@@ -8,7 +8,7 @@ export const meta = {
   title: 'gnomeola — architecture & delivery plan',
   owner: 'kacper',
   created: '2026-09-28',
-  status: 'approved — building critical path',
+  status: 'critical path built — release gate green; T5 manual + live LLM eval pending',
   icon: '🎙️',
 }
 
