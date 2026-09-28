@@ -159,30 +159,42 @@ export class PipeWireCaptureSource implements CaptureSource {
     const kinds = new Set(specs.map((s) => s.kind))
     if (!specs.length || kinds.size !== specs.length) throw new Error('need one spec per track kind')
     const graph = await this.snapshot()
-    if (this.watcher) await this.watcher.start(graph.defaults)
-    const defaults = this.watcher?.current() ?? graph.defaults
-    const resolved = specs.map((spec) => {
-      const followDefault = !spec.device || spec.device === 'default'
-      const target = followDefault ? defaultFor(spec.kind, defaults) : spec.device!
-      if (!target || !graph.nodeNames.has(target)) {
-        throw new Error(
-          `no ${spec.kind} device: ${followDefault ? `default ${spec.kind === 'mic' ? 'source' : 'sink'}` : `node '${target}'`} not found`,
+    const recorders: TrackRecorder[] = []
+    let resolved: Array<{ spec: TrackSpec; followDefault: boolean; target: string }>
+    try {
+      if (this.watcher) await this.watcher.start(graph.defaults)
+      const defaults = this.watcher?.current() ?? graph.defaults
+      resolved = specs.map((spec) => {
+        const followDefault = !spec.device || spec.device === 'default'
+        const target = followDefault ? defaultFor(spec.kind, defaults) : spec.device!
+        if (!target || !graph.nodeNames.has(target)) {
+          throw new Error(
+            `no ${spec.kind} device: ${followDefault ? `default ${spec.kind === 'mic' ? 'source' : 'sink'}` : `node '${target}'`} not found`,
+          )
+        }
+        return { spec, followDefault, target }
+      })
+      mkdirSync(sessionDir, { recursive: true })
+      for (const { spec, target } of resolved)
+        recorders.push(
+          new TrackRecorder({
+            kind: spec.kind,
+            path: join(sessionDir, `${spec.kind}.wav`),
+            device: target,
+            flushIntervalMs: this.opts.flushIntervalMs,
+            fileOps: this.fileOps,
+            emit: (e, ...a) => this.ev.emit(e, ...a),
+          }),
         )
-      }
-      return { spec, followDefault, target }
-    })
-    mkdirSync(sessionDir, { recursive: true })
-    this.tracks = resolved.map(({ spec, followDefault, target }) => ({
+    } catch (e) {
+      this.watcher?.stop()
+      for (const r of recorders) r.close()
+      throw e
+    }
+    this.tracks = resolved.map(({ spec, followDefault, target }, i) => ({
       spec,
       followDefault,
-      rec: new TrackRecorder({
-        kind: spec.kind,
-        path: join(sessionDir, `${spec.kind}.wav`),
-        device: target,
-        flushIntervalMs: this.opts.flushIntervalMs,
-        fileOps: this.fileOps,
-        emit: (e, ...a) => this.ev.emit(e, ...a),
-      }),
+      rec: recorders[i]!,
       target,
       child: null,
       generation: 0,

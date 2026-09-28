@@ -78,13 +78,21 @@ describe('PwMetadataWatcher (live)', () => {
 })
 
 describe('PipeWireCaptureSource start-up', () => {
-  it('rejects a missing named device before creating files or children', async () => {
+  it('rejects a missing named device before creating files, and leaks no children (incl. the watcher)', async () => {
     const dir = tempDir('missing')
-    const src = new PipeWireCaptureSource({ defaultsWatcher: null })
+    const watchers = async () =>
+      new Set((await pgrep('^pw-metadata -m -n default')).map((l) => l.split(' ')[0]))
+    const preexisting = await watchers()
+    const src = new PipeWireCaptureSource() // default PwMetadataWatcher
     await expect(
-      src.start(join(dir, 's'), [{ kind: 'mic', device: `${rig.id}-does-not-exist` }]),
-    ).rejects.toThrow(/not found/)
+      src.start(join(dir, 's'), [
+        { kind: 'system', device: rig.system.captureTarget },
+        { kind: 'mic', device: `${rig.id}-does-not-exist` },
+      ]),
+    ).rejects.toThrow(/node '.*-does-not-exist' not found/)
     expect(existsSync(join(dir, 's'))).toBe(false)
+    await sleep(200)
     expect((await pgrep('pw-record')).filter((l) => l.includes(rig.id))).toEqual([])
+    expect([...(await watchers())].filter((p) => !preexisting.has(p))).toEqual([])
   })
 })

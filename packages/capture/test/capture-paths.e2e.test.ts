@@ -27,6 +27,45 @@ describe('capture paths — level 2 (real PipeWire rig)', () => {
     console.log(`[level 2] ${JSON.stringify(m)}`)
   })
 
+  it('30 s soak: no gaps, no stalls, both WAVs track the wall clock', async () => {
+    const before = await readDefaults()
+    const rig = await PipeWireRig.create()
+    const dir = tempDir('soak')
+    try {
+      const src = new PipeWireCaptureSource({ defaultsWatcher: null })
+      const obs = observe(src)
+      const t0 = performance.now()
+      await src.start(join(dir, 'session'), [
+        { kind: 'mic', device: rig.mic.captureTarget },
+        { kind: 'system', device: rig.system.captureTarget },
+      ])
+      const drift: number[] = []
+      for (let i = 0; i < 30; i++) {
+        await sleep(1000)
+        for (const s of src.status()) drift.push(s.positionMs - src.elapsedMs())
+      }
+      const result = await src.stop()
+      const wall = performance.now() - t0
+      expect(result.error).toBeNull()
+      expect(obs.gaps).toEqual([])
+      expect(obs.errors).toEqual([])
+      expect(Math.abs(result.durationMs - wall)).toBeLessThan(100)
+      for (const t of result.tracks) {
+        const ms = (readTrack(t.audioPath!).length / 16000) * 1000
+        expect(Math.abs(ms - result.durationMs)).toBeLessThanOrEqual(60)
+      }
+      // position vs session clock, sampled every second: bounded by delivery latency, not growing
+      console.log(
+        `[soak] position−clock over 30 s: min ${Math.min(...drift).toFixed(0)} ms, max ${Math.max(...drift).toFixed(0)} ms`,
+      )
+      expect(Math.min(...drift)).toBeGreaterThan(-100)
+      expect(Math.max(...drift)).toBeLessThan(50)
+    } finally {
+      await rig.teardown()
+      await assertDefaultsUnchanged(before)
+    }
+  })
+
   it('aligns the two tracks: one stream fanned into both devices lands at the same timeline position', async () => {
     const before = await readDefaults()
     const rig = await PipeWireRig.create()
