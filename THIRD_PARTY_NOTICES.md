@@ -18,6 +18,7 @@ tree; do not edit it by hand.
 | accepts | 2.0.0 | MIT | https://github.com/jshttp/accepts#readme |
 | ajv | 8.20.0 | MIT | https://ajv.js.org |
 | ajv-formats | 3.0.1 | MIT | https://github.com/ajv-validator/ajv-formats#readme |
+| better-sqlite3 | 13.0.3 | MIT | http://github.com/WiseLibs/better-sqlite3 |
 | body-parser | 2.3.0 | MIT | https://github.com/expressjs/body-parser#readme |
 | bytes | 3.1.2 | MIT | https://github.com/visionmedia/bytes.js#readme |
 | call-bind-apply-helpers | 1.0.2 | MIT | https://github.com/ljharb/call-bind-apply-helpers#readme |
@@ -66,6 +67,7 @@ tree; do not edit it by hand.
 | json-schema-to-ts | 3.1.1 | MIT | https://github.com/ThomasAribart/json-schema-to-ts#readme |
 | json-schema-traverse | 1.0.0 | MIT | https://github.com/epoberezkin/json-schema-traverse#readme |
 | json-schema-typed | 8.0.2 | BSD-2-Clause | https://github.com/RemyRylan/json-schema-typed/tree/main/dist/node |
+| kysely | 0.29.6 | MIT | https://kysely.dev |
 | math-intrinsics | 1.1.0 | MIT | https://github.com/es-shims/math-intrinsics#readme |
 | media-typer | 1.1.1 | MIT | https://github.com/jshttp/media-typer#readme |
 | merge-descriptors | 2.0.0 | MIT | https://github.com/sindresorhus/merge-descriptors#readme |
@@ -73,6 +75,7 @@ tree; do not edit it by hand.
 | mime-types | 3.0.2 | MIT | https://github.com/jshttp/mime-types#readme |
 | ms | 2.1.3 | MIT | https://github.com/vercel/ms#readme |
 | negotiator | 1.1.0 | MIT | https://github.com/jshttp/negotiator#readme |
+| node-addon-api | 8.9.2 | MIT | https://github.com/nodejs/node-addon-api |
 | object-assign | 4.1.1 | MIT | https://github.com/sindresorhus/object-assign#readme |
 | object-inspect | 1.13.4 | MIT | https://github.com/inspect-js/object-inspect |
 | on-finished | 2.4.1 | MIT | https://github.com/jshttp/on-finished#readme |

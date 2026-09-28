@@ -1,2 +1,3 @@
-// owned by the daemon work stream — see packages/testkit/README.md
-export {}
+// @gnomeola/testkit/daemon — run the real daemon for integration and e2e tests.
+export * from './harness.ts'
+export * from './random.ts'

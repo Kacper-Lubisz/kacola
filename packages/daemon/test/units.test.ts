@@ -1,0 +1,159 @@
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { type Segment, SessionStatus } from '@gnomeola/protocol'
+import { assertNoViolations, checkSegmentHistory, checkSegments } from '@gnomeola/testkit/invariants'
+import { describe, expect, it } from 'vitest'
+import { defaultDataDir, parseConfig, UsageError } from '../src/config.ts'
+import { FakePipeline } from '../src/fakes/pipeline.ts'
+import type { PipelineSink } from '../src/interfaces.ts'
+import { type LifecycleAction, nextStatus } from '../src/lifecycle.ts'
+import { Logger, REDACTED } from '../src/logger.ts'
+import { DEFAULT_SETTINGS, mergeSettings } from '../src/settings.ts'
+
+describe('lifecycle state machine', () => {
+  const legal: Record<string, string> = {
+    'idle:start': 'recording',
+    'recording:pause': 'paused',
+    'recording:stop': 'stopped',
+    'paused:resume': 'recording',
+    'paused:stop': 'stopped',
+  }
+  const actions: LifecycleAction[] = ['start', 'pause', 'resume', 'stop']
+  for (const from of SessionStatus.options)
+    for (const action of actions) {
+      const expected = legal[`${from}:${action}`] ?? null
+      it(`${from} --${action}--> ${expected ?? '409'}`, () => {
+        expect(nextStatus(from, action)).toBe(expected)
+      })
+    }
+})
+
+describe('logger', () => {
+  it('redacts registered secrets, key-shaped strings and credential-named fields, everywhere', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-log-'))
+    try {
+      const file = join(dir, 'logs', 'd.log')
+      const log = new Logger({ file, capacity: 3 })
+      log.addSecret('hunter2-very-secret')
+      log.info('user pasted hunter2-very-secret into chat', { note: 'x hunter2-very-secret y' })
+      log.info('stray key sk-ant-api03-AAAAAAAAAAAAAAAA in a message')
+      log.info('fields', { apiKey: 'whatever', Authorization: 'Bearer z', token: 1, fine: 'visible' })
+      log.error('boom', { err: new Error('failed with hunter2-very-secret') })
+      const lines = [...log.tail(10)]
+      log.close()
+      const onDisk = readFileSync(file, 'utf8')
+      for (const text of [lines.join('\n'), onDisk]) {
+        expect(text).not.toContain('hunter2-very-secret')
+        expect(text).not.toContain('sk-ant-api03-AAAA')
+        expect(text).not.toContain('Bearer z')
+        expect(text).not.toContain('whatever')
+        expect(text).toContain(REDACTED)
+        expect(text).toContain('visible')
+      }
+      // ring buffer keeps the last N; the file keeps everything
+      expect(lines).toHaveLength(3)
+      expect(onDisk.trim().split('\n')).toHaveLength(4)
+      for (const l of onDisk.trim().split('\n')) expect(() => JSON.parse(l)).not.toThrow()
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('config', () => {
+  it('resolves the data dir from GNOMEOLA_DATA_DIR, then XDG_DATA_HOME, then ~/.local/share', () => {
+    expect(defaultDataDir({ GNOMEOLA_DATA_DIR: '/x/y' })).toBe('/x/y')
+    expect(defaultDataDir({ XDG_DATA_HOME: '/xdg' })).toBe('/xdg/gnomeola')
+    expect(defaultDataDir({})).toMatch(/\/\.local\/share\/gnomeola$/)
+  })
+
+  it('parses flags and env, and rejects nonsense', () => {
+    const c = parseConfig(['--port', '0', '--data-dir', '/d', '--fake'], { GNOMEOLA_HEARTBEAT_MS: '50' })
+    expect(c).toMatchObject({
+      port: 0,
+      dataDir: '/d',
+      fakes: true,
+      heartbeatMs: 50,
+      host: '127.0.0.1',
+      keyring: 'secret-tool',
+    })
+    expect(parseConfig([], {}).port).toBe(8787)
+    expect(() => parseConfig(['--port', 'abc'], {})).toThrow(UsageError)
+    expect(() => parseConfig(['--bogus'], {})).toThrow(UsageError)
+    expect(() => parseConfig([], { GNOMEOLA_KEYRING: 'kwallet' })).toThrow(UsageError)
+    expect(() => parseConfig([], { GNOMEOLA_FAKE_PIPELINE: '{' })).toThrow(UsageError)
+  })
+})
+
+describe('settings', () => {
+  it('merges patches section-wise over the defaults', () => {
+    const s = mergeSettings(DEFAULT_SETTINGS, { llm: { model: 'm' }, retention: { days: 3 } })
+    expect(s.llm).toEqual({ ...DEFAULT_SETTINGS.llm, model: 'm' })
+    expect(s.retention).toEqual({ ...DEFAULT_SETTINGS.retention, days: 3 })
+    expect(s.stt).toEqual(DEFAULT_SETTINGS.stt)
+    expect(() => mergeSettings(DEFAULT_SETTINGS, { retention: { days: -1 } })).toThrow()
+  })
+})
+
+describe('fake pipeline', () => {
+  it('produces output that satisfies the segment invariants, including across pause and stop', async () => {
+    const upserts: Segment[] = []
+    const revisions = new Map<string, number>()
+    let levels = 0
+    let partials = 0
+    const sink: PipelineSink = {
+      level: () => levels++,
+      partial: () => partials++,
+      segment: (s) => {
+        const revision = (revisions.get(s.id) ?? 0) + 1
+        revisions.set(s.id, revision)
+        upserts.push({ ...s, sessionId: 'ses_x', revision })
+      },
+      gap: () => {},
+      error: () => {},
+    }
+    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-fake-'))
+    try {
+      const p = new FakePipeline({
+        segmentEveryMs: 30,
+        finalizeAfterMs: 20,
+        tickMs: 5,
+        levelEveryMs: 10,
+        partialEveryMs: 10,
+      })
+      const t0 = Date.now()
+      const rec = await p.start(
+        {
+          sessionId: 'ses_x',
+          sessionDir: dir,
+          tracks: [
+            { kind: 'mic', device: 'default' },
+            { kind: 'system', device: 'default' },
+          ],
+          settings: DEFAULT_SETTINGS,
+        },
+        sink,
+      )
+      await new Promise((r) => setTimeout(r, 200))
+      await rec.pause()
+      const pausedAt = Date.now()
+      const n = upserts.length
+      await new Promise((r) => setTimeout(r, 100))
+      const pausedFor = Date.now() - pausedAt
+      expect(upserts.filter((u) => u.quality === 'live').length).toBeLessThanOrEqual(n)
+      await rec.resume()
+      await new Promise((r) => setTimeout(r, 200))
+      await rec.stop()
+      const wall = Date.now() - t0 - pausedFor
+      const latest = [...new Map(upserts.map((u) => [u.id, u])).values()]
+      assertNoViolations(checkSegmentHistory(upserts), 'history')
+      assertNoViolations(checkSegments(latest, { durationMs: wall, requireFinal: true }), 'final')
+      expect(latest.length).toBeGreaterThan(8)
+      expect(levels).toBeGreaterThan(10)
+      expect(partials).toBeGreaterThan(10)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})

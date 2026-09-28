@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Iso, ModelInfo, QaMessage, Segment, Session, TrackKind } from './schemas.ts'
+import { Iso, ModelInfo, QaMessage, Segment, Session, StoredSettings, TrackKind } from './schemas.ts'
 
 // Events come in two kinds, and the distinction is load-bearing:
 //
@@ -13,6 +13,10 @@ export const DurableEventData = z.discriminatedUnion('type', [
   z.object({ type: z.literal('session.upserted'), session: Session }),
   z.object({ type: z.literal('segment.upserted'), segment: Segment }),
   z.object({ type: z.literal('qa.message'), message: QaMessage }),
+  /** The session and everything hanging off it (tracks, segments, Q&A) is gone. */
+  z.object({ type: z.literal('session.deleted'), sessionId: z.string() }),
+  /** Persisted settings changed. Never carries secrets (the API key lives in the keyring, not here). */
+  z.object({ type: z.literal('settings.updated'), settings: StoredSettings }),
 ])
 export type DurableEventData = z.infer<typeof DurableEventData>
 

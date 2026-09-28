@@ -170,7 +170,9 @@ export function createClient(opts: ClientOptions = {}) {
           const ev = AnyEvent.parse(JSON.parse(msg.data))
           if (isDurable(ev)) {
             if (cursor !== undefined && ev.seq <= cursor) continue
-            if (cursor !== undefined && ev.seq !== cursor + 1) {
+            // A sessionId-filtered stream legitimately skips other sessions' seqs, so gap detection only
+            // applies to the unfiltered log.
+            if (cursor !== undefined && s.sessionId === undefined && ev.seq !== cursor + 1) {
               throw new Error(`event gap: expected seq ${cursor + 1}, got ${ev.seq}`)
             }
             cursor = ev.seq

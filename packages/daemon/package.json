@@ -12,10 +12,14 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@gnomeola/capture": "workspace:*",
+    "@gnomeola/llm": "workspace:*",
     "@gnomeola/protocol": "workspace:*",
     "@gnomeola/store": "workspace:*",
-    "@gnomeola/capture": "workspace:*",
     "@gnomeola/stt": "workspace:*",
-    "@gnomeola/llm": "workspace:*"
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@gnomeola/testkit": "workspace:*"
   }
 }
