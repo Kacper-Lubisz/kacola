@@ -130,6 +130,14 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     recovered: recovered.length,
   })
 
+  // Private sessions (X-7): every read path — list, get, transcript, Q&A history, search, ask — treats
+  // a private session as nonexistent (same 404, same message) unless the caller passes
+  // includePrivate=true. The CLI and the Claude skill never pass it; the GTK window does.
+  //
+  // This is a guard against ACCIDENTAL exposure to the agent surface, not a security boundary: any
+  // local process can reach this loopback API and set the flag. Mutations (rename, delete, start/stop)
+  // are not gated. /events is the UI's replication channel and carries private sessions' events too —
+  // filtering it would punch holes in the gap-free seq the resumable client relies on.
   const visible = (id: string, includePrivate: boolean | undefined) => {
     const s = store.getSession(id)
     if (!s || (s.private && !includePrivate)) throw new DaemonError('not_found', `no session ${id}`)
@@ -318,7 +326,8 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
         if (e.code === 'internal')
           logger.error('request failed', { method: req.method, path: pathOf(req), err: errText(err) })
         if (res.headersSent) res.destroy()
-        else sendJson(res, e.status, apiErrorBody(e))
+        else
+          sendJson(res, e.status, apiErrorBody(new DaemonError(e.code, logger.redact(e.message), e.status)))
       })
       .finally(() => {
         logger.debug('request', {

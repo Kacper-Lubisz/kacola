@@ -145,9 +145,10 @@ export async function runAsk(
     if (abort.signal.aborted) return
     const e = toDaemonError(err)
     logger.error('ask failed', { requestId, err, code: e.code })
+    // Engine errors can echo request details; never let a secret ride out on one.
     return fail(
       e.code,
-      e.code === 'internal' && err instanceof Error ? deps.logger.redact(err.message) : e.message,
+      deps.logger.redact(e.code === 'internal' && err instanceof Error ? err.message : e.message),
     )
   }
   if (!answered) {

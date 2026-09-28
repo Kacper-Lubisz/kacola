@@ -33,7 +33,7 @@ export type DaemonHandle = {
   /** SIGTERM and wait for a clean exit; removes an owned temp dir. Resolves with the exit code. */
   stop(): Promise<number | null>
   /** Send a signal and wait for the process to exit. The data dir is kept. */
-  kill(signal?: NodeJS.Signals): Promise<void>
+  kill(signal?: NodeJS.Signals): Promise<{ code: number | null; signal: NodeJS.Signals | null }>
   /** Start again on the same data dir (after stop/kill, or stopping it first). New port. */
   restart(): Promise<void>
 }
@@ -139,12 +139,15 @@ export async function startDaemon(opts: StartDaemonOptions = {}): Promise<Daemon
     return new Promise((r) => c.once('exit', (code) => r(code)))
   }
 
-  async function kill(signal: NodeJS.Signals = 'SIGKILL'): Promise<void> {
+  async function kill(
+    signal: NodeJS.Signals = 'SIGKILL',
+  ): Promise<{ code: number | null; signal: NodeJS.Signals | null }> {
     const c = child
-    if (!c) return
+    if (!c) return { code: null, signal: null }
     c.kill(signal)
     await waitExit(c)
     child = null
+    return { code: c.exitCode, signal: c.signalCode }
   }
 
   async function stopProcess(): Promise<number | null> {

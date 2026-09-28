@@ -70,7 +70,8 @@ function model(
 
 /**
  * Deterministic stand-in for the LLM: answers by quoting the first segment it was given, streamed a
- * word at a time, citing the first two segments. A question containing FAIL makes it throw mid-stream.
+ * word at a time, citing the first two segments. A question containing FAIL makes it throw mid-stream;
+ * LEAK makes it throw an error that echoes the API key (to prove redaction).
  */
 export class FakeQaEngine implements QaEngine {
   readonly requests: QaRequest[] = []
@@ -94,6 +95,9 @@ export class FakeQaEngine implements QaEngine {
       if (req.signal.aborted) return
       if (i === 2 && req.question.includes('FAIL'))
         throw new DaemonError('unavailable', 'fake upstream failure')
+      // a careless upstream library that puts the credential in its error message
+      if (i === 2 && req.question.includes('LEAK'))
+        throw new Error(`401 from upstream: invalid x-api-key ${req.apiKey ?? '(none)'}`)
       await new Promise((r) => setTimeout(r, this.delayMs))
       yield { type: 'delta', text: i ? ` ${w}` : w }
     }
