@@ -5,6 +5,7 @@ import { formatOffset, type QaMessage, type Segment } from '@gnomeola/protocol'
 import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
 import { type AppHandle, type HeadlessDisplay, startHeadlessDisplay } from '@gnomeola/testkit/ui'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { gnomeola } from '../src/cli.ts'
 import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
 import { SEED, seedMeetings } from '../src/seed.ts'
 import {
@@ -199,6 +200,44 @@ describe('Ask pane against the real daemon and a replayed Anthropic API', () => 
     )
     expect((await lastAnswer(daemon, SEED.long)).stopReason).toBe('refusal')
     await capture(d, 'ask-refusal')
+  })
+
+  it('shows questions asked by another client live, and reloads the history from the daemon', async () => {
+    // the CLI asks about the same session: qa.message events bring it into the open pane
+    api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
+    const cli = await gnomeola(['ask', 'Asked from the CLI?', '--session', SEED.long], daemon.baseUrl)
+    expect(cli.code).toBe(0)
+    await d.findOne({ app: APP, role: 'label', name: 'Asked from the CLI?', states: ['showing'] }, 10_000)
+    await d.waitFor(
+      async () =>
+        (await d.find({ app: APP, role: 'button', nameContains: 'Citation 1:', states: ['showing'] }))
+          .length >= 2,
+      10_000,
+      'the CLI answer’s citation chips',
+    )
+
+    // away and back: the pane is rebuilt from getQaHistory, refusal included
+    await d.click(await d.findOne({ app: APP, role: 'list item', name: 'Platform standup' }))
+    await d.findOne({ app: APP, role: 'heading', name: 'Platform standup' })
+    await d.click(await d.findOne({ app: APP, role: 'list item', name: 'Quarterly planning' }))
+    await openTab(d, 'Ask')
+    for (const q of [
+      'What did we decide about the retry budget?',
+      'Tell me something you will refuse',
+      'Asked from the CLI?',
+    ]) {
+      await d.findOne({ app: APP, role: 'label', name: q, states: ['showing'] }, 10_000)
+    }
+    await d.findOne({
+      app: APP,
+      role: 'label',
+      nameContains: 'The model declined to answer this question',
+      states: ['showing'],
+    })
+    expect(
+      await d.find({ app: APP, role: 'button', nameContains: 'Citation 1:', states: ['showing'] }),
+    ).toHaveLength(2)
+    await capture(d, 'ask-history')
   })
 
   it('answers during a live recording, with citations into the growing transcript', async () => {

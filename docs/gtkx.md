@@ -436,8 +436,13 @@ widgets to keep the dependency surface small.
   single-child container) and its name through `listItem.setAccessibleLabel()`.
 - Updates are one `splice()` per render (`data/list-diff.ts`: common prefix/suffix), so appending a
   line or revising one in place touches one position. Measured on the seeded 1,350-line meeting
-  **(e2e, `GNOMEOLA_UI_PERF=1`)**: snapshot → model committed in ~7 ms, `End` to the last line in
-  ~100 ms, ten `Page_Down`s in ~350 ms; only ~12 rows exist as widgets.
+  **(e2e, `GNOMEOLA_UI_PERF=1`)**: snapshot → model committed in ~7 ms; from the first line, `End`
+  shows the last line within ~320 ms and ten `Page_Down`s take ~350 ms — both measured through
+  AT-SPI polling, so upper bounds; only ~12 rows exist as widgets.
+- Keyboard focus entering a *followed* list is moved to the newest line (a `GtkEventControllerFocus`
+  `enter` handler, deferred with `setTimeout(0)` — during `enter` GTK has not yet moved focus to its
+  own cursor item, the first line, which follow keeps scrolled out of view; focus used to land there,
+  invisible and absent from AT-SPI) **(e2e)**.
 - **Gotcha:** give each new list item a placeholder child of the estimated row height in the
   factory's `setup`/`bind`. Without it the item measures 0 px until React commits its portal, and
   the view stopped creating rows: a 1,350-line transcript rendered **one** row. (`@gtkx/components`

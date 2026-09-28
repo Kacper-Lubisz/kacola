@@ -204,7 +204,19 @@ describe('transcript view against the real daemon', () => {
     }
     expect(await d.find({ app: APP, role: 'button', name: 'Jump to Live', states: ['showing'] })).toEqual([])
 
+    // keyboard focus entering a followed transcript lands on the newest line, not on a line
+    // scrolled far out of view (a regression: it used to go to the first line, invisibly)
     await d.focusInto(list, { reverse: true })
+    // (the newest line at that moment; lines keep arriving, so "visible and in this list" is the
+    // stable check — before the fix no row reported focus at all)
+    await d.waitFor(
+      async () => {
+        const focused = (await d.find({ app: APP, role: 'list item', states: ['focused', 'showing'] }))[0]
+        return focused && (await rowNames(d)).includes(focused.name) && !/ at 0:0[0-2]: /.test(focused.name)
+      },
+      3000,
+      'focus on a visible line near the live end',
+    )
     await d.pressKeys('Home')
     const jump = await d.findOne(
       { app: APP, role: 'button', name: 'Jump to Live', states: ['showing'] },

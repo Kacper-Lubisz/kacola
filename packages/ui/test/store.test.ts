@@ -273,6 +273,46 @@ describe('demo source', () => {
     expect(stopped.endedAt).not.toBeNull()
     src.dispose()
   })
+
+  it('transcribes: seeded transcripts, then live partials and segments finalised by revision', async () => {
+    const { src, advance } = demo(4000, 3)
+    const seeded = (await src.load(new AbortController().signal)).sessions[0]!
+    const t = await src.transcript(seeded.id)
+    expect(t.segments.length).toBeGreaterThan(5)
+    expect(t.segments.every((x) => x.quality === 'final')).toBe(true)
+
+    const events: AnyEvent[] = []
+    const ac = new AbortController()
+    void src.subscribe({
+      since: Number.MAX_SAFE_INTEGER,
+      signal: ac.signal,
+      onEvent: (e) => events.push(e),
+      onConnect() {},
+      onDisconnect() {},
+    })
+    const rec = await src.startRecording()
+    advance(5000)
+    const partials = events.filter((e) => e.data.type === 'transcript.partial')
+    const segs = events.flatMap((e) => (e.data.type === 'segment.upserted' ? [e.data.segment] : []))
+    expect(partials.length).toBeGreaterThan(0)
+    expect(segs.some((x) => x.quality === 'live' && x.revision === 1)).toBe(true)
+    const live = segs.find((x) => x.quality === 'live')!
+    expect(segs.find((x) => x.id === live.id && x.quality === 'final')?.revision).toBe(2)
+    // stopping finalises what is still live, and the transcript reflects it
+    await src.stopRecording(rec.id)
+    const after = await src.transcript(rec.id)
+    expect(after.segments.length).toBeGreaterThan(0)
+    expect(after.segments.every((x) => x.quality === 'final')).toBe(true)
+    // settings round-trip through a settings.updated event; questions are honestly unavailable
+    await src.updateSettings({ stt: { finalPass: 'off' } })
+    expect(events.some((e) => e.data.type === 'settings.updated')).toBe(true)
+    expect((await src.getSettings()).stt.finalPass).toBe('off')
+    const asked = []
+    for await (const e of src.ask({ question: 'q', sessionId: rec.id })) asked.push(e.type)
+    expect(asked).toEqual(['question', 'error'])
+    ac.abort()
+    src.dispose()
+  })
 })
 
 describe('daemon source (protocol client over a fake fetch)', () => {

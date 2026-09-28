@@ -4,6 +4,7 @@ import { AdwButtonContent, AdwClampScrollable, AdwSpinner, AdwStatusPage } from 
 import {
   GtkBox,
   GtkButton,
+  GtkEventControllerFocus,
   GtkEventControllerKey,
   GtkEventControllerScroll,
   GtkLabel,
@@ -227,6 +228,22 @@ export function TranscriptView({ feed, live, focus }: TranscriptViewProps) {
                 follow.userKey(keyval)
                 sync()
                 return false
+              }}
+            />
+            {/* Keyboard focus entering a followed transcript goes to the newest line. With
+                tabBehavior=ITEM a GtkListView focuses its keyboard *cursor* item — the first line,
+                scrolled far away while we follow the live end — so focus used to land on a line
+                nobody could see (and AT-SPI did not expose). */}
+            <GtkEventControllerFocus
+              onEnter={() => {
+                if (!follow.following) return
+                // after GTK has finished moving focus to its cursor item, not during `enter`
+                setTimeout(() => {
+                  const n = latest.current.rows.length
+                  if (follow.following && n > 0) {
+                    list.current?.scrollTo(n - 1, Gtk.ListScrollFlags.FOCUS, null)
+                  }
+                }, 0)
               }}
             />
           </>
