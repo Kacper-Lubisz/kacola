@@ -12,6 +12,11 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@gnomeola/protocol": "workspace:*"
+    "@anthropic-ai/sdk": "^0.128.0",
+    "@gnomeola/protocol": "workspace:*",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@gnomeola/testkit": "workspace:*"
   }
 }
