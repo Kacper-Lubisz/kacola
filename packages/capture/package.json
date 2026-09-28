@@ -13,5 +13,8 @@
   },
   "dependencies": {
     "@gnomeola/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "@gnomeola/testkit": "workspace:*"
   }
 }

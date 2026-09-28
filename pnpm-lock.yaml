@@ -32,6 +32,10 @@ importers:
       '@gnomeola/protocol':
         specifier: workspace:*
         version: link:../protocol
+    devDependencies:
+      '@gnomeola/testkit':
+        specifier: workspace:*
+        version: link:../testkit
 
   packages/cli:
     dependencies:
