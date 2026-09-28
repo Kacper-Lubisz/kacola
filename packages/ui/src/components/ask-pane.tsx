@@ -26,6 +26,7 @@ import {
   viewTurn,
 } from '../data/qa.ts'
 import { _, fmt } from '../i18n/index.ts'
+import { NamedButton } from './named-button.tsx'
 import { speakerName } from './transcript-view.tsx'
 
 // Q-5: ask questions about this session. History comes from the daemon (and from any other client,
@@ -79,7 +80,7 @@ function ErrorNotice({ error, onOpenPreferences }: { error: AskError; onOpenPref
   if (isUnavailable(error)) {
     return (
       <Notice
-        kind="error"
+        kind="qa-info"
         icon="dialog-information-symbolic"
         text={fmt(
           _(
@@ -94,7 +95,7 @@ function ErrorNotice({ error, onOpenPreferences }: { error: AskError; onOpenPref
   }
   return (
     <Notice
-      kind="error"
+      kind="qa-error"
       icon="dialog-warning-symbolic"
       text={fmt(_('The question could not be answered: {reason}'), { reason: error.message })}
     />
@@ -131,11 +132,11 @@ function Turn({ turn, onCite, onOpenPreferences }: { turn: QaTurn } & Omit<AskPa
           {view.citations.length ? (
             <GtkBox spacing={6} accessibleLabel={_('Sources')}>
               {view.citations.map((c, i) => (
-                <GtkButton
+                <NamedButton
                   // biome-ignore lint/suspicious/noArrayIndexKey: citations are positional ([n] = index + 1)
                   key={i}
-                  label={`[${i + 1}] ${speakerName(c.speaker)} · ${formatOffset(c.startMs)}`}
-                  accessibleLabel={citationName(i + 1, c)}
+                  text={`[${i + 1}] ${speakerName(c.speaker)} · ${formatOffset(c.startMs)}`}
+                  name={citationName(i + 1, c)}
                   tooltipText={_('Show this line in the transcript')}
                   cssClasses={['citation-chip']}
                   onClicked={() => onCite(c)}
@@ -147,7 +148,7 @@ function Turn({ turn, onCite, onOpenPreferences }: { turn: QaTurn } & Omit<AskPa
       ) : null}
       {view.kind === 'refusal' ? (
         <Notice
-          kind="refusal"
+          kind="qa-refusal"
           icon="action-unavailable-symbolic"
           text={_('The model declined to answer this question. Nothing it wrote before declining is shown.')}
         />

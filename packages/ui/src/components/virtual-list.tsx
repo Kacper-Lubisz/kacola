@@ -139,6 +139,8 @@ export function VirtualList<T>({
       <GtkListView
         ref={listRef}
         model={selection}
+        // Tab leaves the list instead of visiting every row (arrows, Home/End, Page keys move within)
+        tabBehavior={Gtk.ListTabBehavior.ITEM}
         accessibleLabel={accessibleLabel}
         cssClasses={cssClasses}
         factory={factory}

@@ -204,9 +204,13 @@ def cmd_find(args):
     limit = args.get("limit", 1000)
     roots = [deref(args["within"])] if args.get("within") else applications(args.get("app"))
     found = []
+    seen = set()
 
     def visit(acc):
-        if matches(acc, args):
+        # the same object can be reached twice (AdwViewStack exposes its visible child under
+        # every page): report it once
+        if matches(acc, args) and ref_of(acc) not in seen:
+            seen.add(ref_of(acc))
             found.append(acc)
         return len(found) >= limit
 

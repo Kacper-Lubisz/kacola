@@ -1,4 +1,5 @@
 import type { AudioDevice, Settings, SettingsPatch } from '@gnomeola/protocol'
+import type * as Adw from '@gtkx/gi/adw'
 import * as Gtk from '@gtkx/gi/gtk'
 import {
   AdwActionRow,
@@ -9,12 +10,11 @@ import {
   AdwPreferencesGroup,
   AdwPreferencesPage,
   AdwSpinner,
-  AdwSpinRow,
   AdwStatusPage,
   AdwSwitchRow,
 } from '@gtkx/jsx/adw'
-import { GtkButton, GtkStringList } from '@gtkx/jsx/gtk'
-import { useEffect, useMemo, useState } from 'react'
+import { GtkButton, GtkSpinButton, GtkStringList } from '@gtkx/jsx/gtk'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { escapeMarkup } from '../data/format.ts'
 import { useSettings, useStore } from '../data/hooks.ts'
 import {
@@ -27,6 +27,7 @@ import {
   valueAt,
 } from '../data/settings.ts'
 import { _, fmt } from '../i18n/index.ts'
+import { nameGroupList } from './a11y.ts'
 import { useToast } from './toasts.tsx'
 
 // S-3: every daemon setting the UI owns, applied as soon as it changes (GNOME style: no OK button).
@@ -51,15 +52,37 @@ function Combo<T extends string>({
   value: T
   onChange: (v: T) => void
 }) {
-  const labels = useMemo(() => choices.map((c) => c.label), [choices])
+  // Memoised by content, not identity: callers rebuild `choices` every render, and GtkStringList's
+  // `strings` is construct-only — GTKX throws (and the app dies) if it sees a "new" list.
+  const key = choices.map((c) => c.label).join('\n')
+  const labels = useMemo(() => key.split('\n'), [key])
+  const index = indexOf(choices, value)
+  // Controlled by hand, not with a `selected` prop: GTKX applies `model` after `selected`, and
+  // setting the model resets the selection to 0 AND emits notify::selected — so a `selected` prop
+  // plus onNotifySelected wrote the FIRST option back to the daemon every time Preferences opened
+  // (caught by the e2e run: retention silently reset to "Keep"). Notifications are ignored until
+  // the real value has been applied, and while we apply it.
+  const row = useRef<Adw.ComboRow | null>(null)
+  const applying = useRef(true)
+  useLayoutEffect(() => {
+    const r = row.current
+    // (re-run when the choices change: `key` remounts the row, and the new one needs its value)
+    if (!r || key === '') return
+    applying.current = true
+    if (r.getSelected() !== index) r.setSelected(index)
+    applying.current = false
+  }, [index, key])
   return (
     <AdwComboRow
+      ref={row}
+      // …and a genuinely different list (devices plugged in) builds a new row
+      key={key}
       title={title}
       subtitle={subtitle ?? ''}
       useMarkup={false}
       model={<GtkStringList strings={labels} />}
-      selected={indexOf(choices, value)}
       onNotifySelected={(i) => {
+        if (applying.current) return
         const v = valueAt(choices, Number(i))
         if (v !== undefined && v !== value) onChange(v)
       }}
@@ -105,10 +128,10 @@ function ApiKeyRows({ configured }: { configured: boolean }) {
       <AdwPasswordEntryRow
         title={configured ? _('Replace API key') : _('API key')}
         showApplyButton
-        sensitive={!busy}
+        // stays sensitive while saving: an insensitive row would throw keyboard focus elsewhere
         onApply={(self) => {
           const key = self.getText().trim()
-          if (key) void save(key, self)
+          if (key && !busy) void save(key, self)
         }}
       />
     </>
@@ -133,6 +156,7 @@ function Loaded({ settings, devices }: { settings: Settings; devices: AudioDevic
     <>
       <AdwPreferencesPage title={_('General')} iconName="preferences-system-symbolic" name="general">
         <AdwPreferencesGroup
+          ref={nameGroupList(_('Questions and Answers'))}
           title={_('Questions and Answers')}
           description={_('The language model that answers questions about your meetings.')}
         >
@@ -168,6 +192,7 @@ function Loaded({ settings, devices }: { settings: Settings; devices: AudioDevic
           {llm.provider === 'anthropic' ? <ApiKeyRows configured={llm.apiKeyConfigured} /> : null}
         </AdwPreferencesGroup>
         <AdwPreferencesGroup
+          ref={nameGroupList(_('Transcription'))}
           title={_('Transcription')}
           description={_('A second, more accurate pass replaces the live transcript line by line.')}
         >
@@ -178,7 +203,11 @@ function Loaded({ settings, devices }: { settings: Settings; devices: AudioDevic
             onChange={(finalPass) => patch({ stt: { finalPass } })}
           />
         </AdwPreferencesGroup>
-        <AdwPreferencesGroup title={_('Capture')} description={_('Used for recordings started from now on.')}>
+        <AdwPreferencesGroup
+          ref={nameGroupList(_('Capture'))}
+          title={_('Capture')}
+          description={_('Used for recordings started from now on.')}
+        >
           <Combo
             title={_('Microphone')}
             choices={mics}
@@ -196,6 +225,7 @@ function Loaded({ settings, devices }: { settings: Settings; devices: AudioDevic
       </AdwPreferencesPage>
       <AdwPreferencesPage title={_('Storage')} iconName="drive-harddisk-symbolic" name="storage">
         <AdwPreferencesGroup
+          ref={nameGroupList(_('Recorded Audio'))}
           title={_('Recorded Audio')}
           description={_('Transcripts are always kept. This only decides what happens to the audio.')}
         >
@@ -206,14 +236,24 @@ function Loaded({ settings, devices }: { settings: Settings; devices: AudioDevic
             onChange={(audio) => patch({ retention: { audio } })}
           />
           {retention.audio === 'delete-after-days' ? (
-            <AdwSpinRow
+            // An action row with a spin button suffix, not AdwSpinRow: libadwaita 1.9's spin row is
+            // missing from the AT-SPI tree entirely (visible on screen, absent to a screen reader).
+            <AdwActionRow
               title={_('Days to keep audio')}
-              adjustment={days}
-              value={retention.days}
-              onNotifyValue={(v) => {
-                const n = Math.round(Number(v))
-                if (n >= 1 && n !== retention.days) patch({ retention: { days: n } })
-              }}
+              useMarkup={false}
+              suffix={
+                <GtkSpinButton
+                  valign={Gtk.Align.CENTER}
+                  adjustment={days}
+                  numeric
+                  value={retention.days}
+                  accessibleLabel={_('Days to keep audio')}
+                  onNotifyValue={(v) => {
+                    const n = Math.round(Number(v))
+                    if (n >= 1 && n !== retention.days) patch({ retention: { days: n } })
+                  }}
+                />
+              }
             />
           ) : null}
           <AdwSwitchRow
@@ -259,7 +299,7 @@ export function PreferencesDialog({ onClosed }: { onClosed: () => void }) {
         <Loaded settings={settings} devices={devices} />
       ) : (
         <AdwPreferencesPage title={_('General')} iconName="preferences-system-symbolic">
-          <AdwPreferencesGroup>
+          <AdwPreferencesGroup ref={nameGroupList(_('Settings'))}>
             {failed ? (
               <AdwStatusPage
                 iconName="dialog-warning-symbolic"

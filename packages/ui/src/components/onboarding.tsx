@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useEvents, useSettings, useStore } from '../data/hooks.ts'
 import { formatBytes, missingModels, ROLE_LABEL, requiredModels } from '../data/settings.ts'
 import { _, fmt } from '../i18n/index.ts'
+import { NamedButton } from './named-button.tsx'
 
 // S-1 (UI side): first run. Lists the models the configured pipeline needs, with sizes, downloads
 // them through the daemon (POST /models/:id/download) with live progress from model.progress
@@ -52,10 +53,10 @@ function ModelRow({ model, onDownload }: { model: ModelInfo; onDownload: () => v
             accessibleLabel={fmt(_('{model} download progress'), { model: model.title })}
           />
         ) : (
-          <GtkButton
-            label={_('Download')}
+          <NamedButton
+            text={_('Download')}
+            name={fmt(_('Download {model}'), { model: model.title })}
             valign={Gtk.Align.CENTER}
-            accessibleLabel={fmt(_('Download {model}'), { model: model.title })}
             onClicked={onDownload}
           />
         )
@@ -224,15 +225,15 @@ export function OnboardingDialog({ onFinished }: { onFinished: (skippedMissing: 
                       cssClasses={['pill']}
                       onClicked={() => finish(true)}
                     />
-                    <GtkButton
-                      label={
+                    <NamedButton
+                      text={
                         toDownload.length
                           ? fmt(_('Download {size}'), {
                               size: formatBytes(toDownload.reduce((n, m) => n + m.sizeBytes, 0)),
                             })
                           : _('Downloading…')
                       }
-                      accessibleLabel={_('Download all models')}
+                      name={_('Download all models')}
                       cssClasses={['suggested-action', 'pill']}
                       sensitive={toDownload.length > 0}
                       onClicked={() => {

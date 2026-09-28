@@ -23,11 +23,13 @@ export function installStyles(): void {
       box-shadow: inset 3px 0 var(--accent-bg-color);
     }
     .jump-to-live { margin: 12px; }
+    popover.menu button.menu-entry { padding: 6px 12px; margin: 0 6px; font-weight: normal; }
     .qa-question { font-weight: bold; }
     .qa-answer { padding-top: 2px; }
     .citation-chip { min-height: 24px; padding: 0 8px; border-radius: 12px; font-size: smaller; }
     .qa-notice { padding: 6px 10px; border-radius: 8px; background: alpha(currentColor, 0.06); }
-    .qa-notice.refusal { background: alpha(@orange_3, 0.18); }
-    .qa-notice.error { background: alpha(@red_3, 0.15); }
+    .qa-notice.qa-refusal { background: alpha(@orange_3, 0.18); }
+    .qa-notice.qa-error { background: alpha(@red_3, 0.12); }
+    .qa-notice.qa-info { background: alpha(@blue_3, 0.12); }
   `)
 }

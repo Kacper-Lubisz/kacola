@@ -18,8 +18,8 @@ export const FINAL_PASS: readonly Choice<Settings['stt']['finalPass']>[] = [
 
 export const RETENTION: readonly Choice<Settings['retention']['audio']>[] = [
   { value: 'keep', label: 'Keep' },
-  { value: 'delete-after-transcription', label: 'Delete after transcription' },
-  { value: 'delete-after-days', label: 'Delete after a number of days' },
+  { value: 'delete-after-transcription', label: 'Delete once transcribed' },
+  { value: 'delete-after-days', label: 'Delete after some days' },
 ]
 
 export const indexOf = <T extends string>(choices: readonly Choice<T>[], value: T): number =>
