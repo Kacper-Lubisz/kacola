@@ -19,10 +19,13 @@
     "test:int": "vitest run --project int --passWithNoTests",
     "test:e2e": "vitest run --project e2e --passWithNoTests",
     "test:eval": "vitest run --project eval --passWithNoTests",
-    "check": "pnpm run boundaries && pnpm run lint && pnpm run typecheck && pnpm run test:unit && pnpm run test:int"
+    "check": "pnpm run boundaries && pnpm run lint && pnpm run typecheck && pnpm run test:unit && pnpm run test:int",
+    "test:mutation": "stryker run stryker.protocol.config.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
     "@types/node": "^24.0.0",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"

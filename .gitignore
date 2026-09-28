@@ -24,3 +24,5 @@ notes/pages/*.state.json
 
 # agent worktrees and local Claude Code state
 .claude/
+reports/
+.stryker-tmp/

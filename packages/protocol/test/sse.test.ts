@@ -59,3 +59,53 @@ describe('SSE codec', () => {
     expect(d.push(': hello\n\nfoo: bar\n\n\n\ndata: ok\n\n')).toEqual([{ data: 'ok' }])
   })
 })
+
+describe('SSE codec — edge cases pinned by mutation testing', () => {
+  const decode = (...chunks: string[]) => {
+    const d = new SseDecoder()
+    return chunks.flatMap((c) => d.push(c))
+  }
+
+  it('produces exactly the fields present (no undefined keys)', () => {
+    expect(decode('data: x\n\n')).toStrictEqual([{ data: 'x' }])
+    expect(decode('id: 9\ndata: x\n\n')).toStrictEqual([{ id: '9', data: 'x' }])
+    expect(decode('event: e\ndata: x\n\n')).toStrictEqual([{ event: 'e', data: 'x' }])
+    expect(decode('retry: 10\ndata: x\n\n')).toStrictEqual([{ retry: 10, data: 'x' }])
+  })
+
+  it('dispatches id-only and event-only messages (the daemon never sends them, but the cursor must survive)', () => {
+    expect(decode('id: 5\n\n')).toStrictEqual([{ id: '5', data: '' }])
+    expect(decode('event: ping\n\n')).toStrictEqual([{ event: 'ping', data: '' }])
+  })
+
+  it('treats a data field with an empty value as data, not a comment', () => {
+    expect(decode('data:\n\n')).toStrictEqual([{ data: '' }])
+    expect(decode('data\n\n')).toStrictEqual([{ data: '' }])
+  })
+
+  it('strips exactly one leading space from a value', () => {
+    expect(decode('data:x\n\n')).toStrictEqual([{ data: 'x' }])
+    expect(decode('data:  x\n\n')).toStrictEqual([{ data: ' x' }])
+  })
+
+  it('ignores a malformed retry and ids containing NUL', () => {
+    expect(decode('retry: 12a\ndata: x\n\n')).toStrictEqual([{ data: 'x' }])
+    expect(decode('retry: a12\ndata: x\n\n')).toStrictEqual([{ data: 'x' }])
+    expect(decode('id: a\0b\ndata: x\n\n')).toStrictEqual([{ data: 'x' }])
+  })
+
+  it('joins a CR at a chunk end with an LF at the next chunk start — and only then', () => {
+    // CR ends chunk 1; chunk 2 starts with LF but does not end with one.
+    expect(decode('data: a\r', '\ndata: b', '\n\n')).toStrictEqual([{ data: 'a\nb' }])
+    // An LF after a chunk that did NOT end in CR is a real (blank) line terminator.
+    expect(decode('data: a\n', '\ndata: b\n\n')).toStrictEqual([{ data: 'a' }, { data: 'b' }])
+  })
+
+  it('encodes retry, and comments that cannot break framing', () => {
+    expect(encodeSse({ data: 'x', retry: 3000 })).toBe('retry: 3000\ndata: x\n\n')
+    expect(encodeSseComment('a\r\nb\nc')).toBe(': a b c\n\n')
+    expect(decode(encodeSseComment('evil\n\ndata: injected'), encodeSse({ data: 'real' }))).toStrictEqual([
+      { data: 'real' },
+    ])
+  })
+})
