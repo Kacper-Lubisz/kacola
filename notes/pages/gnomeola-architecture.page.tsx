@@ -1005,7 +1005,7 @@ for the retrieval surface:
           { done: true, text: <><strong>G-4</strong> Daemon skeleton: fastify, <code>/health</code>, SSE endpoint with <code>Last-Event-ID</code> cursor resume, systemd user unit. <em>blocked by: G-3</em></> },
           { done: true, text: <><strong>G-5</strong> Store: kysely + better-sqlite3, migration runner, <code>session</code> and <code>event</code> tables. <em>blocked by: G-2</em></> },
           { done: true, text: <><strong>G-6</strong> CI: typecheck, lint, test, and the dependency-boundary rule that fails if <code>ui/</code> imports anything but <code>protocol</code>. <em>blocked by: G-2</em></> },
-          { text: <><strong>V-0</strong> Test harness foundations: the T0–T4 tier split wired into CI as separate jobs, <code>FakeCaptureSource</code>, the fixture repo layout with hand-labelled ground truth, LLM cassette recording, and the invariant property-test helper every later milestone reuses. <em>blocked by: G-2, G-5. Exit: a red build is red for exactly one reason and names it.</em></> },
+          { done: true, text: <><strong>V-0</strong> Test harness foundations: the T0–T4 tier split wired into CI as separate jobs, <code>FakeCaptureSource</code>, the fixture repo layout with hand-labelled ground truth, LLM cassette recording, and the invariant property-test helper every later milestone reuses. <em>blocked by: G-2, G-5. Exit: a red build is red for exactly one reason and names it.</em></> },
         ]} />
 
         <Tasks phase="M1" title="Record & store — 8 d · ships a recorder" items={[
@@ -1017,20 +1017,20 @@ for the retrieval surface:
           { text: <><strong>R-6</strong> Live level meters and elapsed timer over SSE — the first real proof the stream works end to end. <em>blocked by: R-5</em></> },
           { done: true, text: <><strong>R-7</strong> Archive encode to Opus/FLAC via ffmpeg + a retention setting (including &quot;delete audio after transcription&quot;). <em>blocked by: R-2</em></> },
           { done: true, text: <><strong>V-1a</strong> The PipeWire rig: two null sinks, fixture playback, monitor capture, teardown that leaves no stray nodes. Runs level 1 and level 2 from one test body. <em>blocked by: R-2, V-0</em></> },
-          { text: <><strong>V-1b</strong> Capture e2e + chaos: record a fixture through both paths and assert sample-accurate track separation and duration; then SIGKILL mid-session, device-switch mid-session, and disk-full, each with a recovery assertion. <em>blocked by: V-1a, R-3. Exit: a killed daemon never loses a recorded minute.</em></> },
+          { done: true, text: <><strong>V-1b</strong> Capture e2e + chaos: record a fixture through both paths and assert sample-accurate track separation and duration; then SIGKILL mid-session, device-switch mid-session, and disk-full, each with a recovery assertion. <em>blocked by: V-1a, R-3. Exit: a killed daemon never loses a recorded minute.</em></> },
         ]} />
 
         <Tasks phase="M2" title="Transcribe — 9 d · ships live transcripts" items={[
-          { text: <><strong>T-1</strong> Model manager: download to <code>~/.local/share/gnomeola/models</code>, checksum verify, progress events, resume. <em>blocked by: G-4</em></> },
-          { text: <><strong>T-2</strong> <code>SttProvider</code> interface + <code>segment</code> table and protocol types (<code>quality: live | final</code>). <em>blocked by: G-3, G-5</em></> },
-          { text: <><strong>T-3</strong> sherpa-onnx streaming provider — per-track partials via <code>sherpa-onnx-node</code>. <em>blocked by: T-1, T-2, R-2</em></> },
-          { text: <><strong>T-4</strong> whisper.cpp final-pass provider, segment-scoped. <em>blocked by: T-1, T-2</em></> },
-          { text: <><strong>T-5</strong> Reconciler: VAD, segment lifecycle, tier-1 to tier-2 replacement, ordered event emission. <em>blocked by: T-3, T-4</em></> },
+          { done: true, text: <><strong>T-1</strong> Model manager: download to <code>~/.local/share/gnomeola/models</code>, checksum verify, progress events, resume. <em>blocked by: G-4</em></> },
+          { done: true, text: <><strong>T-2</strong> <code>SttProvider</code> interface + <code>segment</code> table and protocol types (<code>quality: live | final</code>). <em>blocked by: G-3, G-5</em></> },
+          { done: true, text: <><strong>T-3</strong> sherpa-onnx streaming provider — per-track partials via <code>sherpa-onnx-node</code>. <em>blocked by: T-1, T-2, R-2</em></> },
+          { done: true, text: <><strong>T-4</strong> whisper.cpp final-pass provider, segment-scoped. <em>blocked by: T-1, T-2</em></> },
+          { done: true, text: <><strong>T-5</strong> Reconciler: VAD, segment lifecycle, tier-1 to tier-2 replacement, ordered event emission. <em>blocked by: T-3, T-4</em></> },
           { text: <><strong>T-6</strong> Transcript view: virtualised list, live partial row, autoscroll with &quot;jump to live&quot;, click-to-seek. <em>blocked by: R-5, T-5</em></> },
           { done: true, text: <><strong>T-7</strong> Full-text search over transcripts (FTS5) + search UI. <em>blocked by: T-5</em></> },
-          { text: <><strong>T-8</strong> Accuracy harness: fixture meetings, reference transcripts, WER report in CI. <em>blocked by: T-5</em></> },
-          { text: <><strong>V-2a</strong> Segment invariants as property tests over every fixture — ordering, non-overlap, monotonic timestamps, the live→final transition, and event-log replay reproducing DB state exactly. <em>blocked by: T-5, V-1a</em></> },
-          { text: <><strong>V-2b</strong> Extends T-8 into a gate: committed per-fixture WER baselines with tolerance bands, a trend report, and the PCM-in-to-partial-out p50/p95 latency budget asserted on the rig. <em>blocked by: T-8, V-2a. Exit: swapping a model is a reviewed baseline change, never a surprise.</em></> },
+          { done: true, text: <><strong>T-8</strong> Accuracy harness: fixture meetings, reference transcripts, WER report in CI. <em>blocked by: T-5</em></> },
+          { done: true, text: <><strong>V-2a</strong> Segment invariants as property tests over every fixture — ordering, non-overlap, monotonic timestamps, the live→final transition, and event-log replay reproducing DB state exactly. <em>blocked by: T-5, V-1a</em></> },
+          { done: true, text: <><strong>V-2b</strong> Extends T-8 into a gate: committed per-fixture WER baselines with tolerance bands, a trend report, and the PCM-in-to-partial-out p50/p95 latency budget asserted on the rig. <em>blocked by: T-8, V-2a. Exit: swapping a model is a reviewed baseline change, never a surprise.</em></> },
         ]} />
 
         <Tasks phase="M3" title="Attribution — 6 d · ships who said what" items={[
