@@ -6,7 +6,14 @@
   "license": "GPL-3.0-or-later",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./invariants": "./src/invariants/index.ts",
+    "./rig": "./src/rig/index.ts",
+    "./fixtures": "./src/fixtures/index.ts",
+    "./metrics": "./src/metrics/index.ts",
+    "./cassettes": "./src/cassettes/index.ts",
+    "./daemon": "./src/daemon/index.ts",
+    "./ui": "./src/ui/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

@@ -16,9 +16,9 @@
     "boundaries": "node scripts/check-boundaries.ts",
     "test": "vitest run --project unit",
     "test:unit": "vitest run --project unit",
-    "test:int": "vitest run --project int",
-    "test:e2e": "vitest run --project e2e",
-    "test:eval": "vitest run --project eval",
+    "test:int": "vitest run --project int --passWithNoTests",
+    "test:e2e": "vitest run --project e2e --passWithNoTests",
+    "test:eval": "vitest run --project eval --passWithNoTests",
     "check": "pnpm run boundaries && pnpm run lint && pnpm run typecheck && pnpm run test:unit && pnpm run test:int"
   },
   "devDependencies": {
