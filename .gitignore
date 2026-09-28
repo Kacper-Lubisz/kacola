@@ -21,3 +21,6 @@ notes/pages/node_modules/
 notes/pages/package.json
 notes/pages/package-lock.json
 notes/pages/*.state.json
+
+# agent worktrees and local Claude Code state
+.claude/
