@@ -88,6 +88,8 @@ export type HeadlessDisplay = {
   pressKeys: (...keys: string[]) => Promise<void>
   /** Replace the contents of an editable text node through AT-SPI EditableText. */
   setText: (node: AccessibleNode | number, text: string) => Promise<void>
+  /** Position and size of a node, relative to its window. */
+  extents: (node: AccessibleNode | number) => Promise<{ x: number; y: number; width: number; height: number }>
   /** Diagnostics: the logs of every process this display started. */
   logs: () => Record<string, string>
   close: () => Promise<{ killedStragglers: number[] }>
@@ -391,7 +393,21 @@ export async function startHeadlessDisplay(opts: HeadlessOptions = {}): Promise<
       await drv.request('action', { ref: refOf(n), name })
     },
     async focus(n) {
-      await drv.request('focus', { ref: refOf(n) })
+      const focused = async () =>
+        (await drv.request<AccessibleNode>('describe', { ref: refOf(n) })).states.includes('focused')
+      if (await focused()) return
+      try {
+        await drv.request('focus', { ref: refOf(n) })
+        if (await waitUntil(focused, 1000, 'focus').catch(() => false)) return
+      } catch {
+        // GTK 4 does not implement Component.GrabFocus; fall through to the keyboard
+      }
+      // Walk focus with real Tab presses, as a keyboard user would, until the node has it.
+      for (let i = 0; i < 40; i++) {
+        await drv.request('key', { keys: ['Tab'] })
+        if (await focused()) return
+      }
+      throw new Error(`could not move keyboard focus to node ${refOf(n)}`)
     },
     async typeText(text, o = {}) {
       await drv.request('typeText', { text, delayMs: o.delayMs ?? 15 }, 60_000)
@@ -402,6 +418,7 @@ export async function startHeadlessDisplay(opts: HeadlessOptions = {}): Promise<
     async setText(n, text) {
       await drv.request('setText', { ref: refOf(n), text })
     },
+    extents: (n) => drv.request('extents', { ref: refOf(n) }),
     logs: () => Object.fromEntries([...all].map(([k, p]) => [k, p.log()])),
     close,
   }
@@ -428,3 +445,5 @@ export function formatTree(nodes: AccessibleNode[], indent = ''): string {
     })
     .join('\n')
 }
+
+export { type PngInfo, pngInfo } from './png.ts'

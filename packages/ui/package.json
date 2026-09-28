@@ -8,7 +8,7 @@
   "scripts": {
     "codegen": "gtkx codegen",
     "dev": "gtkx dev",
-    "build": "gtkx build",
+    "build": "NODE_ENV=production gtkx build",
     "start": "node dist/bundle.mjs",
     "typecheck": "gtkx codegen && tsc -p tsconfig.json"
   },

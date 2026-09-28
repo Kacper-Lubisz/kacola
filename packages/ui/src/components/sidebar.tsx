@@ -58,11 +58,11 @@ export function Sidebar({ selectedId, onSelect, subtitle }: SidebarProps) {
       }
     >
       <GtkBox orientation={Gtk.Orientation.VERTICAL}>
-        <AdwBanner
-          revealed={connection.kind === 'reconnecting'}
-          title="Lost the connection to the daemon. Reconnecting…"
-          useMarkup={false}
-        />
+        {/* Mounted only while reconnecting: an unrevealed AdwBanner stays in the accessibility tree
+            as a visible, named node, which would read out a stale warning. */}
+        {connection.kind === 'reconnecting' ? (
+          <AdwBanner revealed title="Lost the connection to the daemon. Reconnecting…" useMarkup={false} />
+        ) : null}
         <GtkSearchEntry
           placeholderText="Search sessions"
           accessibleLabel="Search sessions"

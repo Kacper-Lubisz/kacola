@@ -110,10 +110,14 @@ def describe(acc, with_children=False, depth=0, max_depth=64):
         node["interfaces"] = []
     if "Text" in node["interfaces"]:
         try:
-            t = acc.get_text_iface()
-            node["text"] = t.get_text(0, t.get_character_count())
-        except Exception:
-            pass
+            node["text"] = Atspi.Text.get_text(acc, 0, Atspi.Text.get_character_count(acc))
+        except Exception as e:
+            node["textError"] = str(e)
+    if "Value" in node["interfaces"]:
+        try:
+            node["value"] = Atspi.Value.get_current_value(acc)
+        except Exception as e:
+            node["valueError"] = str(e)
     if with_children and depth < max_depth:
         node["children"] = [describe(c, True, depth + 1, max_depth) for c in children(acc)]
     return node
@@ -362,6 +366,21 @@ def remote_desktop():
             None,
         )
         _rd_session = path
+        # The virtual keyboard only comes into being with its first event, and that first event is
+        # not delivered to the client. Burn it on a lone Shift press so no real keystroke is lost.
+        for pressed in (True, False):
+            bus.call_sync(
+                "org.gnome.Mutter.RemoteDesktop",
+                path,
+                "org.gnome.Mutter.RemoteDesktop.Session",
+                "NotifyKeyboardKeysym",
+                GLib.Variant("(ub)", (NAMED_KEYS["Shift_L"], pressed)),
+                None,
+                Gio.DBusCallFlags.NONE,
+                5000,
+                None,
+            )
+        spin(0.2)
     return _rd_session
 
 

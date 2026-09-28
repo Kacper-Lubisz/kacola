@@ -17,6 +17,8 @@ export type AccessibleNode = {
   interfaces: string[]
   /** Text contents, for nodes implementing the Text interface. */
   text?: string
+  /** Current value, for nodes implementing the Value interface (level bars, sliders, spin buttons). */
+  value?: number
   children?: AccessibleNode[]
 }
 

@@ -1,19 +1,40 @@
 import type { Session, TrackKind } from '@gnomeola/protocol'
 import * as Gtk from '@gtkx/gi/gtk'
-import {
-  AdwActionRow,
-  AdwClamp,
-  AdwHeaderBar,
-  AdwPreferencesGroup,
-  AdwStatusPage,
-  AdwToolbarView,
-} from '@gtkx/jsx/adw'
-import { GtkBox, GtkLabel, GtkLevelBar, GtkScrolledWindow } from '@gtkx/jsx/gtk'
-import { useState } from 'react'
+import { AdwActionRow, AdwClamp, AdwHeaderBar, AdwStatusPage, AdwToolbarView } from '@gtkx/jsx/adw'
+import { GtkBox, GtkLabel, GtkLevelBar, GtkListBox, GtkScrolledWindow } from '@gtkx/jsx/gtk'
+import { type ReactNode, useState } from 'react'
 import { displayTitle, formatClockTime, formatDuration, statusLabel, statusSummary } from '../data/format.ts'
 import { useEvents, useNow } from '../data/hooks.ts'
 
 const TRACK_LABEL: Record<TrackKind, string> = { mic: 'Microphone', system: 'System audio' }
+
+function SectionHeading({ title }: { title: string }) {
+  return (
+    <GtkLabel
+      label={title}
+      cssClasses={['heading']}
+      xalign={0}
+      accessibleRole={Gtk.AccessibleRole.HEADING}
+      accessibleLevel={2}
+    />
+  )
+}
+
+/**
+ * A titled boxed list. Hand-rolled rather than AdwPreferencesGroup because the group's internal
+ * GtkListBox has no accessible name (so a screen reader announces an anonymous "list"), and it
+ * cannot be reached to give it one.
+ */
+function Section({ title, children }: { title: string; children?: ReactNode }) {
+  return (
+    <GtkBox orientation={Gtk.Orientation.VERTICAL} spacing={12}>
+      <SectionHeading title={title} />
+      <GtkListBox cssClasses={['boxed-list']} selectionMode={Gtk.SelectionMode.NONE} accessibleLabel={title}>
+        {children}
+      </GtkListBox>
+    </GtkBox>
+  )
+}
 
 /** Live input levels for the recording session, fed by ephemeral audio.level events. */
 function Levels({ sessionId }: { sessionId: string }) {
@@ -24,21 +45,26 @@ function Levels({ sessionId }: { sessionId: string }) {
     setLevels((l) => (l[track] === rms ? l : { ...l, [track]: rms }))
   })
   return (
-    <AdwPreferencesGroup title="Levels">
+    <Section title="Levels">
       {(['mic', 'system'] as const).map((t) => (
-        <AdwActionRow key={t} title={TRACK_LABEL[t]} useMarkup={false}>
-          {/* AdwActionRow children land in its suffix area */}
-          <GtkLevelBar
-            valign={Gtk.Align.CENTER}
-            widthRequest={160}
-            minValue={0}
-            maxValue={1}
-            value={levels[t]}
-            accessibleLabel={`${TRACK_LABEL[t]} level`}
-          />
-        </AdwActionRow>
+        <AdwActionRow
+          key={t}
+          title={TRACK_LABEL[t]}
+          useMarkup={false}
+          // `suffix`, not children: children of an AdwActionRow replace the row's whole content
+          suffix={
+            <GtkLevelBar
+              valign={Gtk.Align.CENTER}
+              widthRequest={240}
+              minValue={0}
+              maxValue={1}
+              value={levels[t]}
+              accessibleLabel={`${TRACK_LABEL[t]} level`}
+            />
+          }
+        />
       ))}
-    </AdwPreferencesGroup>
+    </Section>
   )
 }
 
@@ -75,7 +101,7 @@ export function SessionDetail({ session }: { session: Session }) {
               <GtkLabel label={statusSummary(session)} cssClasses={['dim-label']} xalign={0} />
             </GtkBox>
             {live ? <Levels sessionId={session.id} /> : null}
-            <AdwPreferencesGroup title="Details">
+            <Section title="Details">
               <InfoRow title="Status" value={statusLabel(session.status)} />
               <InfoRow
                 title="Started"
@@ -88,15 +114,11 @@ export function SessionDetail({ session }: { session: Session }) {
               />
               {session.private ? <InfoRow title="Visibility" value="Private: hidden from the CLI" /> : null}
               {session.error ? <InfoRow title="Error" value={session.error} /> : null}
-            </AdwPreferencesGroup>
-            <AdwPreferencesGroup title="Transcript">
-              <GtkLabel
-                label="The transcript will appear here."
-                cssClasses={['dim-label']}
-                xalign={0}
-                marginTop={6}
-              />
-            </AdwPreferencesGroup>
+            </Section>
+            <GtkBox orientation={Gtk.Orientation.VERTICAL} spacing={12}>
+              <SectionHeading title="Transcript" />
+              <GtkLabel label="The transcript will appear here." cssClasses={['dim-label']} xalign={0} />
+            </GtkBox>
           </GtkBox>
         </AdwClamp>
       </GtkScrolledWindow>
