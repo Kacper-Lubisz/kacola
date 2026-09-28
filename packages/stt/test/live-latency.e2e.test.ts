@@ -20,7 +20,7 @@ beforeAll(async () => {
   engines = await loadEngines()
 })
 
-const BUDGET = { utteranceEndP50: 800, utteranceEndP95: 1500, wordP95: 1000 }
+const BUDGET = { utteranceEndP50: 600, utteranceEndP95: 1000, wordP95: 700 }
 
 describe(`tier-1 latency at 1× real time (${LIVE_MODEL})`, () => {
   it('standup-2p: PCM-in to partial-out p50/p95 within budget', async () => {
@@ -50,7 +50,7 @@ describe(`tier-1 latency at 1× real time (${LIVE_MODEL})`, () => {
       const due = start + (k + 1) * 100 // a chunk is available once its 100 ms have been captured
       const wait = due - performance.now()
       if (wait > 0) await sleep(wait)
-      else late++
+      else if (wait < -50) late++ // more than 50 ms behind schedule: the decoder is not keeping up
       pushWall[k] = performance.now()
       for (const t of tracks) {
         const c = chunks[t][k]

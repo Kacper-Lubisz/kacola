@@ -1,0 +1,27 @@
+{
+  "fixture": "standup-2p",
+  "config": "pipeline_live=live-nemo-fastconformer-en-80ms-int8+final=off+pass=off",
+  "metrics": {
+    "wer": 0.09696969696969697,
+    "wer_mic": 0.16,
+    "wer_system": 0.044444444444444446,
+    "rtf": 0.3221682485690439
+  },
+  "bands": {
+    "wer": {
+      "abs": 0.03
+    },
+    "wer_mic": {
+      "abs": 0.05
+    },
+    "wer_system": {
+      "abs": 0.05
+    },
+    "rtf": {
+      "rel": 3,
+      "abs": 0.05
+    }
+  },
+  "recordedAt": "2026-09-28T17:33:09.211Z",
+  "notes": "12th Gen Intel(R) Core(TM) i9-12900KF × 24; sherpa-onnx 1.13.8; node v24.21.0"
+}
