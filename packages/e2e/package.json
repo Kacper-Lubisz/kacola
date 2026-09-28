@@ -1,0 +1,19 @@
+{
+  "name": "@gnomeola/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "System-level tests across package boundaries: CLI → daemon → llm/capture/stt, the UI, install.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gnomeola/protocol": "workspace:*",
+    "@gnomeola/cli": "workspace:*",
+    "@gnomeola/testkit": "workspace:*"
+  }
+}

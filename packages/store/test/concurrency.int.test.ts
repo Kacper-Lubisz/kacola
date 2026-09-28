@@ -35,20 +35,27 @@ describe('concurrent writers on one database file', () => {
       ),
     )
     const events = s.eventsAfter(0)
-    expect(events).toHaveLength(1 + WORKERS * COUNT)
-    assertNoViolations(checkEventLog(events))
-    expect(s.lastSeq()).toBe(1 + WORKERS * COUNT)
+    // Every assertion carries the run's stats: this test failed once in ~27 runs under a loaded full gate
+    // (2026-09-28) with its message lost, so a recurrence must explain itself.
+    const writerOfAll = events
+      .slice(1)
+      .map((e) => (e.data.type === 'segment.upserted' ? e.data.segment.id.split('_')[1] : '?'))
+    const switchCount = writerOfAll.filter((w, i) => i > 0 && w !== writerOfAll[i - 1]).length
+    const stats = `events=${events.length} lastSeq=${s.lastSeq()} switches=${switchCount} perWorker=${results.map((r) => r.length).join('/')}`
+    expect(events, stats).toHaveLength(1 + WORKERS * COUNT)
+    assertNoViolations(checkEventLog(events), stats)
+    expect(s.lastSeq(), stats).toBe(1 + WORKERS * COUNT)
     // each worker saw its own seqs strictly increasing, and no seq was handed to two workers
     const all = results.flat()
-    expect(new Set(all).size).toBe(all.length)
+    expect(new Set(all).size, stats).toBe(all.length)
     for (const r of results) expect([...r].sort((a, b) => a - b)).toEqual(r)
     // writers genuinely interleaved (otherwise this test proves nothing)
     const writerOf = events
       .slice(1)
       .map((e) => (e.data.type === 'segment.upserted' ? e.data.segment.id.split('_')[1] : '?'))
     const switches = writerOf.filter((w, i) => i > 0 && w !== writerOf[i - 1]).length
-    expect(switches).toBeGreaterThan(WORKERS * 4)
-    expect(s.segments(session.id)).toHaveLength(WORKERS * COUNT)
+    expect(switches, stats).toBeGreaterThan(WORKERS * 4)
+    expect(s.segments(session.id), stats).toHaveLength(WORKERS * COUNT)
     // and the state is exactly what the log says
     const replayed = Store.open(':memory:')
     replayed.replay(events)

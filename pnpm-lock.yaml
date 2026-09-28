@@ -73,6 +73,18 @@ importers:
         specifier: workspace:*
         version: link:../testkit
 
+  packages/e2e:
+    dependencies:
+      '@gnomeola/cli':
+        specifier: workspace:*
+        version: link:../cli
+      '@gnomeola/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      '@gnomeola/testkit':
+        specifier: workspace:*
+        version: link:../testkit
+
   packages/llm:
     dependencies:
       '@anthropic-ai/sdk':

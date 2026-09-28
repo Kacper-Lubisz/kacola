@@ -11,6 +11,7 @@
 import { spawnSync } from 'node:child_process'
 import { parseConfig, UsageError } from './config.ts'
 import { createDaemon, type DaemonOptions } from './daemon.ts'
+import { LlmQaEngine } from './engines/llm.ts'
 import { FakePipeline } from './fakes/pipeline.ts'
 import { FakeDevices, FakeModels, FakeQaEngine } from './fakes/providers.ts'
 import type { Keyring } from './interfaces.ts'
@@ -49,7 +50,7 @@ async function main(): Promise<void> {
     opts.devices = new FakeDevices()
     opts.models = new FakeModels()
   }
-  if (cfg.fakeQa) opts.qaEngine = new FakeQaEngine()
+  opts.qaEngine = cfg.fakeQa ? new FakeQaEngine() : new LlmQaEngine()
 
   const daemon = await createDaemon(opts)
   process.stdout.write(

@@ -70,6 +70,13 @@ export async function ask(ctx: Ctx, question: string | undefined, o: AskOpts) {
       ),
     )
   }
+  if (answer.stopReason === 'refusal') {
+    // The engine empties a refused answer; anything already streamed must not be read as an answer.
+    ctx.io.stdout(
+      `${live ? '\n' : ''}(the model declined to answer this question${live ? ' — disregard the partial text above' : ''})\n`,
+    )
+    return
+  }
   if (!live) ctx.io.stdout(answer.text)
   ctx.io.stdout('\n')
   if (citations.length) {
