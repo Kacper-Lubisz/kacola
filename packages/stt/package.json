@@ -12,6 +12,10 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@gnomeola/protocol": "workspace:*"
+    "@gnomeola/protocol": "workspace:*",
+    "sherpa-onnx-node": "^1.13.8"
+  },
+  "devDependencies": {
+    "@gnomeola/testkit": "workspace:*"
   }
 }
