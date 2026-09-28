@@ -145,6 +145,8 @@ tree; do not edit it by hand.
 | setprototypeof | 1.2.0 | ISC | https://github.com/wesleytodd/setprototypeof |
 | shebang-command | 2.0.0 | MIT | https://github.com/kevva/shebang-command#readme |
 | shebang-regex | 3.0.0 | MIT | https://github.com/sindresorhus/shebang-regex#readme |
+| sherpa-onnx-linux-x64 | 1.13.8 | Apache-2.0 | https://github.com/csukuangfj/sherpa-onnx#readme |
+| sherpa-onnx-node | 1.13.8 | Apache-2.0 | https://github.com/csukuangfj/sherpa-onnx#readme |
 | side-channel | 1.1.1 | MIT | https://github.com/ljharb/side-channel#readme |
 | side-channel-list | 1.0.1 | MIT | https://github.com/ljharb/side-channel-list#readme |
 | side-channel-map | 1.0.1 | MIT | https://github.com/ljharb/side-channel-map#readme |
@@ -170,7 +172,14 @@ tree; do not edit it by hand.
 
 ## Models, voices and data
 
-_None yet._
+| component | licence | source | note |
+| --- | --- | --- | --- |
+| NeMo streaming FastConformer transducer (en, 80 ms, int8) | CC-BY-4.0 | NVIDIA NeMo via k2-fsa/sherpa-onnx releases | default live (tier-1) model; downloaded at first run |
+| NeMo Parakeet TDT transducer 110M (en, int8) | CC-BY-4.0 | NVIDIA NeMo via k2-fsa/sherpa-onnx releases | default final (tier-2) model; downloaded at first run |
+| Silero VAD | MIT | snakers4/silero-vad via k2-fsa/sherpa-onnx releases | voice activity detection; downloaded at first run |
+| Whisper / Moonshine / Zipformer alternatives | MIT | k2-fsa/sherpa-onnx releases | optional, selectable in Preferences (icefall Zipformers are Apache-2.0) |
+| Piper voices joe, sam / LJSpeech, cori | CC0-1.0 | rhasspy/piper-voices | test fixtures only (sam: Apache-2.0; ljspeech, cori: public domain) |
+| LibriSpeech test-clean excerpts | CC-BY-4.0 | Panayotov et al., openslr.org/12 | test fixture librispeech-3p |
 
 ## Inspiration
 

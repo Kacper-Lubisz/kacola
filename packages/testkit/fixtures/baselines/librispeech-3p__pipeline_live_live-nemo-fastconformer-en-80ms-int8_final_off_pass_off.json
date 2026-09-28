@@ -1,0 +1,27 @@
+{
+  "fixture": "librispeech-3p",
+  "config": "pipeline_live=live-nemo-fastconformer-en-80ms-int8+final=off+pass=off",
+  "metrics": {
+    "wer": 0.06896551724137931,
+    "wer_mic": 0.10810810810810811,
+    "wer_system": 0.046511627906976744,
+    "rtf": 0.322320290888886
+  },
+  "bands": {
+    "wer": {
+      "abs": 0.03
+    },
+    "wer_mic": {
+      "abs": 0.05
+    },
+    "wer_system": {
+      "abs": 0.05
+    },
+    "rtf": {
+      "rel": 3,
+      "abs": 0.05
+    }
+  },
+  "recordedAt": "2026-09-28T17:33:36.488Z",
+  "notes": "12th Gen Intel(R) Core(TM) i9-12900KF × 24; sherpa-onnx 1.13.8; node v24.21.0"
+}

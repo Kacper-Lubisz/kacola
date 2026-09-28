@@ -30,6 +30,9 @@ export const ALLOWED = new Set([
   'LGPL-2.1-or-later',
   'LGPL-3.0-or-later',
   'GPL-3.0-or-later',
+  // data only (models, voices, corpora): attribution is given in the table below
+  'CC-BY-4.0',
+  'Public-Domain',
 ])
 
 /** Accepts `A OR B` if any alternative is allowed; `A AND B` only if all are. Parentheses are stripped. */
@@ -41,7 +44,44 @@ export function licenceAllowed(expr: string): boolean {
 }
 
 /** Reviewed data dependencies (models, voices, fixtures). Extended as work streams land. */
-export const DATA: { name: string; licence: string; source: string; note: string }[] = []
+export const DATA: { name: string; licence: string; source: string; note: string }[] = [
+  {
+    name: 'NeMo streaming FastConformer transducer (en, 80 ms, int8)',
+    licence: 'CC-BY-4.0',
+    source: 'NVIDIA NeMo via k2-fsa/sherpa-onnx releases',
+    note: 'default live (tier-1) model; downloaded at first run',
+  },
+  {
+    name: 'NeMo Parakeet TDT transducer 110M (en, int8)',
+    licence: 'CC-BY-4.0',
+    source: 'NVIDIA NeMo via k2-fsa/sherpa-onnx releases',
+    note: 'default final (tier-2) model; downloaded at first run',
+  },
+  {
+    name: 'Silero VAD',
+    licence: 'MIT',
+    source: 'snakers4/silero-vad via k2-fsa/sherpa-onnx releases',
+    note: 'voice activity detection; downloaded at first run',
+  },
+  {
+    name: 'Whisper / Moonshine / Zipformer alternatives',
+    licence: 'MIT',
+    source: 'k2-fsa/sherpa-onnx releases',
+    note: 'optional, selectable in Preferences (icefall Zipformers are Apache-2.0)',
+  },
+  {
+    name: 'Piper voices joe, sam / LJSpeech, cori',
+    licence: 'CC0-1.0',
+    source: 'rhasspy/piper-voices',
+    note: 'test fixtures only (sam: Apache-2.0; ljspeech, cori: public domain)',
+  },
+  {
+    name: 'LibriSpeech test-clean excerpts',
+    licence: 'CC-BY-4.0',
+    source: 'Panayotov et al., openslr.org/12',
+    note: 'test fixture librispeech-3p',
+  },
+]
 
 export function collect(root: string): Pkg[] {
   const out = execFileSync('pnpm', ['licenses', 'list', '--prod', '--json'], { cwd: root, encoding: 'utf8' })

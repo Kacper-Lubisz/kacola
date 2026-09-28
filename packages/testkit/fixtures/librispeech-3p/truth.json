@@ -1,0 +1,152 @@
+{
+  "id": "librispeech-3p",
+  "title": "Real human speech (LibriSpeech test-clean)",
+  "description": "Read speech from three LibriSpeech test-clean speakers arranged as a call: speaker 1089 on the mic, speakers 121 and 237 on the system track. Harder than synthetic speech; keeps the WER numbers honest.",
+  "sampleRate": 16000,
+  "durationMs": 84589,
+  "tracks": {
+    "mic": "mic.opus",
+    "system": "system.opus"
+  },
+  "speakers": [
+    {
+      "name": "Peter",
+      "track": "mic",
+      "source": "librispeech:1089"
+    },
+    {
+      "name": "Nikolle",
+      "track": "system",
+      "source": "librispeech:121"
+    },
+    {
+      "name": "Rachel",
+      "track": "system",
+      "source": "librispeech:237"
+    }
+  ],
+  "utterances": [
+    {
+      "track": "mic",
+      "speaker": "Peter",
+      "startMs": 2230,
+      "endMs": 4991,
+      "text": "STUFF IT INTO YOU HIS BELLY COUNSELLED HIM",
+      "source": "librispeech:1089-134686-0001"
+    },
+    {
+      "track": "system",
+      "speaker": "Nikolle",
+      "startMs": 5390,
+      "endMs": 13075,
+      "text": "ALSO A POPULAR CONTRIVANCE WHEREBY LOVE MAKING MAY BE SUSPENDED BUT NOT STOPPED DURING THE PICNIC SEASON",
+      "source": "librispeech:121-121726-0000"
+    },
+    {
+      "track": "mic",
+      "speaker": "Peter",
+      "startMs": 13658,
+      "endMs": 19395,
+      "text": "AFTER EARLY NIGHTFALL THE YELLOW LAMPS WOULD LIGHT UP HERE AND THERE THE SQUALID QUARTER OF THE BROTHELS",
+      "source": "librispeech:1089-134686-0002"
+    },
+    {
+      "track": "system",
+      "speaker": "Rachel",
+      "startMs": 19938,
+      "endMs": 27987,
+      "text": "THEN DEAR SAID MISSUS WHITNEY YOU MUST BE KINDER TO HER THAN EVER THINK WHAT IT WOULD BE FOR ONE OF YOU TO BE AWAY FROM HOME EVEN AMONG FRIENDS",
+      "source": "librispeech:237-126133-0002"
+    },
+    {
+      "track": "mic",
+      "speaker": "Peter",
+      "startMs": 28733,
+      "endMs": 33668,
+      "text": "NUMBER TEN FRESH NELLY IS WAITING ON YOU GOOD NIGHT HUSBAND",
+      "source": "librispeech:1089-134686-0004"
+    },
+    {
+      "track": "system",
+      "speaker": "Nikolle",
+      "startMs": 34223,
+      "endMs": 39223,
+      "text": "HARANGUE THE TIRESOME PRODUCT OF A TIRELESS TONGUE",
+      "source": "librispeech:121-121726-0001"
+    },
+    {
+      "track": "mic",
+      "speaker": "Peter",
+      "startMs": 39765,
+      "endMs": 43104,
+      "text": "A COLD LUCID INDIFFERENCE REIGNED IN HIS SOUL",
+      "source": "librispeech:1089-134686-0007"
+    },
+    {
+      "track": "system",
+      "speaker": "Rachel",
+      "startMs": 43587,
+      "endMs": 49615,
+      "text": "SOMEHOW OF ALL THE DAYS WHEN THE HOME FEELING WAS THE STRONGEST THIS DAY IT SEEMED AS IF SHE COULD BEAR IT NO LONGER",
+      "source": "librispeech:237-126133-0003"
+    },
+    {
+      "track": "system",
+      "speaker": "Nikolle",
+      "startMs": 50071,
+      "endMs": 55864,
+      "text": "HAY FEVER A HEART TROUBLE CAUSED BY FALLING IN LOVE WITH A GRASS WIDOW",
+      "source": "librispeech:121-121726-0003"
+    },
+    {
+      "track": "mic",
+      "speaker": "Peter",
+      "startMs": 56738,
+      "endMs": 62610,
+      "text": "THE CHAOS IN WHICH HIS ARDOUR EXTINGUISHED ITSELF WAS A COLD INDIFFERENT KNOWLEDGE OF HIMSELF",
+      "source": "librispeech:1089-134686-0008"
+    },
+    {
+      "track": "system",
+      "speaker": "Rachel",
+      "startMs": 63305,
+      "endMs": 69557,
+      "text": "OH SHE'S ALWAYS AT THE PIANO SAID VAN SHE MUST BE THERE NOW SOMEWHERE AND THEN SOMEBODY LAUGHED",
+      "source": "librispeech:237-126133-0005"
+    },
+    {
+      "track": "system",
+      "speaker": "Nikolle",
+      "startMs": 70127,
+      "endMs": 73024,
+      "text": "HEAVEN A GOOD PLACE TO BE RAISED TO",
+      "source": "librispeech:121-121726-0004"
+    },
+    {
+      "track": "mic",
+      "speaker": "Peter",
+      "startMs": 73469,
+      "endMs": 77145,
+      "text": "WELL NOW ENNIS I DECLARE YOU HAVE A HEAD AND SO HAS MY STICK",
+      "source": "librispeech:1089-134686-0010"
+    },
+    {
+      "track": "system",
+      "speaker": "Rachel",
+      "startMs": 77925,
+      "endMs": 83089,
+      "text": "AT THIS THE BUNDLE OPENED SUDDENLY AND OUT POPPED PHRONSIE",
+      "source": "librispeech:237-126133-0006"
+    }
+  ],
+  "gaps": [],
+  "silences": [],
+  "facts": [],
+  "injections": [],
+  "license": "LibriSpeech test-clean (Panayotov et al., 2015), CC BY 4.0, https://www.openslr.org/12 — utterances as listed in `source`.",
+  "generator": {
+    "script": "packages/testkit/scripts/generate-fixtures.ts",
+    "sherpaOnnx": "1.13.8",
+    "generatedAt": "2026-09-28T16:51:25.549Z"
+  }
+}

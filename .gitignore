@@ -10,7 +10,7 @@ coverage/
 test-results/
 **/__artifacts__/
 # models are downloaded, never committed
-models/
+/models/
 # notes/pages is a local planning tool: keep only authored pages
 notes/pages/.app/
 notes/pages/.page-assets/

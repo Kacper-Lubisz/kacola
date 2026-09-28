@@ -1,2 +1,4 @@
-// owned by the metrics work stream — see packages/testkit/README.md
-export {}
+// Accuracy and latency metrics: WER, latency percentiles, and baselines with tolerance bands.
+export * from './baseline.ts'
+export * from './stats.ts'
+export * from './wer.ts'
