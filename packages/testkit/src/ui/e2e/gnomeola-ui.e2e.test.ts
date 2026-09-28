@@ -120,8 +120,16 @@ describe('gnomeola window, demo mode', () => {
     expect(c.x).toBeGreaterThanOrEqual(s.x + s.width - 1)
     expect(c.width).toBeGreaterThan(s.width)
 
-    const rows = await sessionRows(d)
-    expect(rows.length).toBeGreaterThanOrEqual(3)
+    // The window frame appears before the session list is loaded (health → listSessions → subscribe), so
+    // wait for the rows rather than reading the tree once (a race seen once in a full release-gate run).
+    const rows = await d.waitFor(
+      async () => {
+        const r = await sessionRows(d)
+        return r.length >= 3 ? r : null
+      },
+      15_000,
+      'at least three session rows',
+    )
     const names = rows.map((r) => r.name)
     expect(names).toEqual(
       expect.arrayContaining(['1:1 with Sam', 'Design review: onboarding flow', 'Weekly product sync']),
