@@ -1,0 +1,27 @@
+# gnomeola daemon — systemd *user* unit. Not installed automatically.
+#
+#   install -Dm644 gnomeolad.service ~/.config/systemd/user/gnomeolad.service
+#   systemctl --user daemon-reload && systemctl --user enable --now gnomeolad
+#
+# Adjust ExecStart to where gnomeola is installed and to a Node 24+ binary.
+[Unit]
+Description=gnomeola meeting recorder daemon
+# capture needs the user's PipeWire session
+After=pipewire.service pipewire-pulse.service
+Wants=pipewire.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env node %h/.local/lib/gnomeola/packages/daemon/src/main.ts --port 8787
+# SIGTERM stops running sessions cleanly (status stopped, audio flushed), closes streams and the DB.
+KillSignal=SIGTERM
+TimeoutStopSec=15
+Restart=on-failure
+RestartSec=2
+# The daemon binds loopback only and refuses any other address.
+NoNewPrivileges=yes
+PrivateTmp=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=default.target
