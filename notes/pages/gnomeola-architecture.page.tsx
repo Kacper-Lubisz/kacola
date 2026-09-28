@@ -707,10 +707,12 @@ stream: true    -> SSE deltas straight through to the client`}</Pre>
           <li><strong>Refusal fallbacks</strong>: opus-5 can return <code>stop_reason: &quot;refusal&quot;</code> at HTTP 200, so we check it and enable server-side <code>fallbacks: &quot;default&quot;</code> rather than crashing on a meeting that discussed something spicy.</li>
         </UL>
         <P>
-          Cost is a rounding error and worth stating plainly so nobody optimises it prematurely: an hour of
-          meeting is roughly 8–10k tokens of transcript, so at $5/MTok input a question against a full meeting
-          costs well under a cent, and cached re-asks cost a fraction of that. An <code>LlmProvider</code>
-          interface keeps a local Ollama option open for a fully-offline story.
+          Cost is small but not negligible, so it is worth stating correctly: an hour of meeting is roughly
+          8–10k tokens of transcript. Measured against the implementation (see <code>docs/llm.md</code>), a first
+          question against a full hour costs about <strong>7¢</strong>, and a cached re-ask about <strong>1.6¢</strong>
+          — at that point output tokens, not the transcript, dominate. (An earlier draft of this page said
+          &quot;well under a cent&quot;; that was an arithmetic error: 10k tokens at $5/MTok is 5¢ before output.)
+          An <code>LlmProvider</code> interface keeps a local Ollama option open for a fully-offline story.
         </P>
       </Section>
 
