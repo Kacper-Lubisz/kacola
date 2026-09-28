@@ -1,9 +1,9 @@
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { createReadStream, createWriteStream } from 'node:fs'
-import { mkdir, readdir, readFile, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
+import { createReadStream } from 'node:fs'
+import { mkdir, open, readdir, readFile, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
-import { Readable, Transform } from 'node:stream'
+
 import { pipeline } from 'node:stream/promises'
 import type { ModelInfo } from '@gnomeola/protocol'
 import { CATALOG, type CatalogEntry, catalogEntry } from './catalog.ts'
@@ -345,23 +345,26 @@ export class ModelManager {
       })
     }
     emit(true)
-    const counter = new Transform({
-      transform(chunk: Buffer, _enc, cb) {
+    // Each received chunk is written before the next is read, and the file is closed (not destroyed) on
+    // failure: so every byte that arrived is on disk when an interruption propagates, and the next
+    // ensure() resumes from exactly there. (A stream pipeline destroys its sink on a source error and
+    // can discard writes still queued — found as a flaky resume test under load.)
+    const fh = await open(part, append ? 'a' : 'w')
+    let failure: unknown = null
+    try {
+      for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
+        await fh.write(chunk)
         slot.received += chunk.length
         emit()
-        cb(null, chunk)
-      },
-    })
-    try {
-      await pipeline(
-        Readable.fromWeb(res.body as import('node:stream/web').ReadableStream<Uint8Array>),
-        counter,
-        createWriteStream(part, { flags: append ? 'a' : 'w' }),
-      )
+      }
     } catch (err) {
-      // Keep the partial file: the next ensure() resumes from it.
-      throw new ModelError('http', e.id, `model ${e.id}: download interrupted: ${(err as Error).message}`)
+      failure = err
+    } finally {
+      await fh.close()
     }
+    // Keep the partial file: the next ensure() resumes from it.
+    if (failure)
+      throw new ModelError('http', e.id, `model ${e.id}: download interrupted: ${(failure as Error).message}`)
     emit(true)
   }
 

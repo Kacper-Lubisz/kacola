@@ -5,7 +5,9 @@ import { join } from 'node:path'
 import { createClient } from '@gnomeola/protocol'
 import { loadFixture } from '@gnomeola/testkit/fixtures'
 import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@gnomeola/testkit/rig'
+import { startHeadlessDisplay } from '@gnomeola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { APP, markOnboarded, waitForWindow } from '../src/ui.ts'
 
 // S-2 / V-9b — "the packaged artifact installed and launched from clean". Install into a throwaway prefix
 // and home (never the user's), validate what was installed with the system's own validators, then record
@@ -137,6 +139,28 @@ describe('launched from the install', () => {
     expect(hits.map((h: { sessionId: string }) => h.sessionId)).toContain(started.id)
     const shown = JSON.parse(run(bin('gnomeola'), ['sessions', 'show', started.id], env))
     expect(shown.segments).toBeGreaterThan(3)
+  }, 180_000)
+})
+
+describe('the installed UI', () => {
+  it('launches from the installed launcher and shows the session recorded through the installed CLI', async () => {
+    const display = await startHeadlessDisplay({ size: '1280x800' })
+    try {
+      markOnboarded(display, [])
+      const app = display.launchApp({ command: bin('gnomeola-ui'), env: { GNOMEOLA_URL: url } })
+      await waitForWindow(display, app, 60_000)
+      const row = await display.findOne(
+        { app: APP, role: 'list item', nameContains: 'Installed recording' },
+        30_000,
+      )
+      expect(row.name).toMatch(/Installed recording/)
+      await display.screenshot(join(ROOT, 'packages', 'e2e', 'test', '__artifacts__', 'installed-ui.png'), {
+        kind: 'window',
+      })
+      await app.stop()
+    } finally {
+      await display.close()
+    }
   }, 180_000)
 })
 

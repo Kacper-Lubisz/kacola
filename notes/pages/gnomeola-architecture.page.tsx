@@ -1014,7 +1014,7 @@ for the retrieval surface:
           { done: true, text: <><strong>R-3</strong> Device-change resilience — default sink or source switches mid-meeting, headphones plugged in, stream dies and restarts without losing the session. <em>blocked by: R-2</em></> },
           { done: true, text: <><strong>R-4</strong> Session API: <code>POST /sessions</code>, start/stop, list, get. <em>blocked by: G-4, R-2</em></> },
           { done: true, text: <><strong>R-5</strong> UI shell: GTKX app, <code>AdwApplicationWindow</code> + <code>AdwNavigationSplitView</code>, session list driven by the daemon. <em>blocked by: G-1, R-4</em></> },
-          { text: <><strong>R-6</strong> Live level meters and elapsed timer over SSE — the first real proof the stream works end to end. <em>blocked by: R-5</em></> },
+          { done: true, text: <><strong>R-6</strong> Live level meters and elapsed timer over SSE — the first real proof the stream works end to end. <em>blocked by: R-5</em></> },
           { done: true, text: <><strong>R-7</strong> Archive encode to Opus/FLAC via ffmpeg + a retention setting (including &quot;delete audio after transcription&quot;). <em>blocked by: R-2</em></> },
           { done: true, text: <><strong>V-1a</strong> The PipeWire rig: two null sinks, fixture playback, monitor capture, teardown that leaves no stray nodes. Runs level 1 and level 2 from one test body. <em>blocked by: R-2, V-0</em></> },
           { done: true, text: <><strong>V-1b</strong> Capture e2e + chaos: record a fixture through both paths and assert sample-accurate track separation and duration; then SIGKILL mid-session, device-switch mid-session, and disk-full, each with a recovery assertion. <em>blocked by: V-1a, R-3. Exit: a killed daemon never loses a recorded minute.</em></> },
@@ -1026,7 +1026,7 @@ for the retrieval surface:
           { done: true, text: <><strong>T-3</strong> sherpa-onnx streaming provider — per-track partials via <code>sherpa-onnx-node</code>. <em>blocked by: T-1, T-2, R-2</em></> },
           { done: true, text: <><strong>T-4</strong> whisper.cpp final-pass provider, segment-scoped. <em>blocked by: T-1, T-2</em></> },
           { done: true, text: <><strong>T-5</strong> Reconciler: VAD, segment lifecycle, tier-1 to tier-2 replacement, ordered event emission. <em>blocked by: T-3, T-4</em></> },
-          { text: <><strong>T-6</strong> Transcript view: virtualised list, live partial row, autoscroll with &quot;jump to live&quot;, click-to-seek. <em>blocked by: R-5, T-5</em></> },
+          { done: true, text: <><strong>T-6</strong> Transcript view: virtualised list, live partial row, autoscroll with &quot;jump to live&quot;, click-to-seek. <em>blocked by: R-5, T-5</em></> },
           { done: true, text: <><strong>T-7</strong> Full-text search over transcripts (FTS5) + search UI. <em>blocked by: T-5</em></> },
           { done: true, text: <><strong>T-8</strong> Accuracy harness: fixture meetings, reference transcripts, WER report in CI. <em>blocked by: T-5</em></> },
           { done: true, text: <><strong>V-2a</strong> Segment invariants as property tests over every fixture — ordering, non-overlap, monotonic timestamps, the live→final transition, and event-log replay reproducing DB state exactly. <em>blocked by: T-5, V-1a</em></> },
@@ -1064,9 +1064,9 @@ for the retrieval surface:
           { done: true, text: <><strong>Q-2</strong> Prompt assembler with cache breakpoints on closed-segment boundaries and the question strictly after the breakpoint. <em>blocked by: Q-1, T-5</em></> },
           { done: true, text: <><strong>Q-3</strong> Q&A endpoint: question in, SSE token stream out, <code>qa_message</code> history per session. <em>blocked by: Q-2, G-4</em></> },
           { done: true, text: <><strong>Q-4</strong> Citations — map answer spans to segment ids. <em>blocked by: Q-3</em></> },
-          { text: <><strong>Q-5</strong> Ask pane in the UI: composer, streaming answer, citation chips that seek the transcript. <em>blocked by: Q-3, T-6</em></> },
+          { done: true, text: <><strong>Q-5</strong> Ask pane in the UI: composer, streaming answer, citation chips that seek the transcript. <em>blocked by: Q-3, T-6</em></> },
           { done: true, text: <><strong>Q-6</strong> Cache assertion test (<code>cache_read_input_tokens &gt; 0</code>) + token and cost telemetry. <em>blocked by: Q-2</em></> },
-          { text: <><strong>Q-7</strong> Ask-during-meeting path: rolling transcript, <code>effort: low</code>, never blocks capture. <em>blocked by: Q-3</em></> },
+          { done: true, text: <><strong>Q-7</strong> Ask-during-meeting path: rolling transcript, <code>effort: low</code>, never blocks capture. <em>blocked by: Q-3</em></> },
           { done: true, text: <><strong>Q-8</strong> Optional Ollama provider for offline Q&A. <em>blocked by: Q-1. Deferrable.</em></> },
           { done: true, text: <><strong>V-5a</strong> Cassette-backed Q&A integration: deterministic, offline, free; covers streaming, mid-stream failure, and the <code>refusal</code> stop reason with its fallback. <em>blocked by: Q-3, V-0</em></> },
           { text: <><strong>V-5b</strong> Live answer-quality eval (opt-in, T4): hand-labelled expected facts per fixture meeting, graded, with citation correctness checked against segment ids. Extends Q-6&apos;s cache assertion into the gate. <em>blocked by: Q-6, V-5a. Exit: cache hits are proven, not assumed.</em></> },
@@ -1109,13 +1109,13 @@ for the retrieval surface:
         ]} />
 
         <Tasks phase="M9" title="Ship & package — 8 d · ships 1.0" items={[
-          { text: <><strong>S-1</strong> First-run onboarding: model download with progress, mic and system-audio check, calendar access. <em>blocked by: T-1, C-3</em></> },
+          { done: true, text: <><strong>S-1</strong> First-run onboarding: model download with progress, mic and system-audio check, calendar access. <em>blocked by: T-1, C-3</em></> },
           { done: true, text: <><strong>S-2</strong> Flatpak packaging and the portal strategy for system audio. <em>Real unknown — see risks. blocked by: R-2, C-9</em></> },
-          { text: <><strong>S-3</strong> <code>AdwPreferencesDialog</code>: providers, models, retention, auto-record rules, API key. <em>blocked by: Q-1, T-2</em></> },
-          { text: <><strong>S-4</strong> Licensing and attribution audit: About-dialog credit, third-party notices, model licences. <em>blocked by: —. Worth doing early.</em></> },
-          { text: <><strong>S-5</strong> Accessibility, keyboard navigation, gettext scaffolding. <em>blocked by: R-5</em></> },
+          { done: true, text: <><strong>S-3</strong> <code>AdwPreferencesDialog</code>: providers, models, retention, auto-record rules, API key. <em>blocked by: Q-1, T-2</em></> },
+          { done: true, text: <><strong>S-4</strong> Licensing and attribution audit: About-dialog credit, third-party notices, model licences. <em>blocked by: —. Worth doing early.</em></> },
+          { done: true, text: <><strong>S-5</strong> Accessibility, keyboard navigation, gettext scaffolding. <em>blocked by: R-5</em></> },
           { done: true, text: <><strong>S-6</strong> Local-only error reporting and a log-bundle command for bug reports. <em>blocked by: G-4</em></> },
-          { text: <><strong>V-9a</strong> UI e2e via AT-SPI: drive the real window through the accessible tree — start a session, watch the transcript grow, rename a speaker, ask a question, follow a citation — plus screenshot regression under a headless virtual monitor. Doubles as the S-5 accessibility audit, since an unlabelled widget fails this test. <em>blocked by: S-5, Q-5, A-5</em></> },
+          { done: true, text: <><strong>V-9a</strong> UI e2e via AT-SPI: drive the real window through the accessible tree — start a session, watch the transcript grow, rename a speaker, ask a question, follow a citation — plus screenshot regression under a headless virtual monitor. Doubles as the S-5 accessibility audit, since an unlabelled widget fails this test. <em>blocked by: S-5, Q-5, A-5</em></> },
           { text: <><strong>V-9b</strong> Release gate: the full tier matrix green, mutation testing over protocol and reconciler above threshold, the packaged artifact installed and launched from clean, and the written T5 manual smoke checklist performed and signed off. <em>blocked by: V-9a, S-2, S-3. Exit: nothing ships on a skipped tier.</em></> },
         ]} />
       </Section>

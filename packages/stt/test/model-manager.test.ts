@@ -14,7 +14,7 @@ import { defaultModelsDir } from '../src/model-manager/paths.ts'
 // A fake release server: serves real .tar.bz2 archives with Range support, and can be told to cut a
 // response short (to exercise resume) or to ignore Range (to exercise restart-from-zero).
 
-type Served = { body: Buffer; cutAfter?: number; ignoreRange?: boolean }
+type Served = { body: Buffer; cutAfter?: number; stallAfter?: number; ignoreRange?: boolean }
 const files = new Map<string, Served>()
 const requests: { url: string; range: string | undefined }[] = []
 let server: Server
@@ -77,10 +77,20 @@ beforeAll(async () => {
       })
     } else res.writeHead(200, { 'content-length': f.body.length })
     const slice = f.body.subarray(start)
+    if (f.stallAfter !== undefined) {
+      // Send part of the body, then hang: the test decides when the transfer is interrupted.
+      const n = f.stallAfter
+      f.stallAfter = undefined // only the first response stalls
+      res.write(slice.subarray(0, n))
+      return
+    }
     if (f.cutAfter !== undefined) {
       const cut = f.cutAfter
       f.cutAfter = undefined // only the first response is cut
-      res.write(slice.subarray(0, cut), () => res.destroy())
+      // Close cleanly (FIN) mid-body rather than destroy (possible RST): a reset lets the receiver drop
+      // bytes it has not read yet, which made "some bytes arrived before the cut" timing-dependent under
+      // load. A graceful premature close delivers exactly `cut` bytes, then an error — what resume needs.
+      res.write(slice.subarray(0, cut), () => res.socket?.end())
     } else res.end(slice)
   })
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))
@@ -178,18 +188,22 @@ describe('ModelManager', () => {
 
   it('resumes an interrupted download with a Range request', async () => {
     const body = makeArchive('pkg-e', { ...payload, 'model.onnx': Buffer.from(randomBytes(300_000)) })
-    files.set('e.tar.bz2', { body, cutAfter: 100_000 })
-    const mm = new ModelManager({ dir, catalog: [entry('e', body)] })
-
-    const err = await mm.ensure('e').catch((e: unknown) => e)
+    // Deterministic interruption: the server stalls after 100,000 bytes and the transfer is aborted only
+    // once the manager reports having persisted them. (An earlier version had the server drop the
+    // connection, which let the HTTP client discard unread bytes under load — a flaky test.)
+    files.set('e.tar.bz2', { body, stallAfter: 100_000 })
+    const mm = new ModelManager({ dir, catalog: [entry('e', body)], progressIntervalMs: 0 })
+    const ac = new AbortController()
+    const err = await mm
+      .ensure('e', { signal: ac.signal, onProgress: (p) => p.receivedBytes >= 100_000 && ac.abort() })
+      .catch((e: unknown) => e)
     expect((err as ModelError).code).toBe('http')
     const mid = await mm.status('e')
     expect(mid.state).toBe('missing')
-    expect(mid.partialBytes).toBeGreaterThan(0)
-    expect(mid.partialBytes).toBeLessThan(body.length)
+    expect(mid.partialBytes).toBe(100_000)
 
     await mm.ensure('e')
-    expect(requests.map((r) => r.range)).toEqual([undefined, `bytes=${mid.partialBytes}-`])
+    expect(requests.map((r) => r.range)).toEqual([undefined, 'bytes=100000-'])
     expect((await mm.status('e')).state).toBe('ready')
     expect((await mm.verify('e')).state).toBe('ready')
   })
