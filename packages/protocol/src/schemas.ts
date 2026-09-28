@@ -160,6 +160,10 @@ export const Settings = z.object({
 })
 export type Settings = z.infer<typeof Settings>
 
+/** Settings as persisted: everything except the derived, read-only `apiKeyConfigured`. */
+export const StoredSettings = Settings.extend({ llm: Settings.shape.llm.omit({ apiKeyConfigured: true }) })
+export type StoredSettings = z.infer<typeof StoredSettings>
+
 export const SettingsPatch = z.object({
   llm: Settings.shape.llm.omit({ apiKeyConfigured: true }).partial().optional(),
   stt: Settings.shape.stt.partial().optional(),
