@@ -220,6 +220,12 @@ export function toLlmError(err: unknown): LlmError {
     }
     return new LlmError('unknown', err.message, { status: err.status ?? null, cause: err })
   }
+  // The message stream wraps transport failures during iteration in a bare AnthropicError with the
+  // original as `cause` (e.g. undici's `TypeError: terminated` when the socket dies mid-body).
+  if (err instanceof Anthropic.AnthropicError && err.cause !== undefined && err.cause !== err) {
+    const inner = toLlmError(err.cause)
+    if (inner.code !== 'unknown') return new LlmError(inner.code, inner.message, { cause: err })
+  }
   if (err instanceof Error && err.name === 'AbortError')
     return new LlmError('aborted', 'request aborted', { cause: err })
   // the body stream dying mid-response surfaces from undici as `TypeError: terminated`
