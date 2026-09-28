@@ -13,7 +13,8 @@
       "!**/dist",
       "!notes",
       "!**/fixtures/**/*.json",
-      "!**/*.gen.ts"
+      "!**/*.gen.ts",
+      "!**/__golden__"
     ]
   },
   "formatter": {

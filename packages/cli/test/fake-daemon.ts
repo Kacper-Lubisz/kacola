@@ -178,8 +178,9 @@ export async function startFakeDaemon(): Promise<FakeDaemon> {
       const to = query.toMs !== undefined ? Number(query.toMs) : undefined
       const segs = all.filter(
         (x) =>
-          (from === undefined || x.endMs > from) &&
-          (to === undefined || x.startMs < to) &&
+          // inclusive overlap, as the protocol specifies for TranscriptQuery
+          (from === undefined || x.endMs >= from) &&
+          (to === undefined || x.startMs <= to) &&
           (!query.speaker || x.speaker === query.speaker) &&
           (!query.track || x.track === query.track),
       )

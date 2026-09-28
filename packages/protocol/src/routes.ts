@@ -45,6 +45,10 @@ export const UpdateSessionBody = z.object({
   private: z.boolean().optional(),
 })
 
+/**
+ * A window selects every segment that overlaps it, inclusive at both ends: endMs >= fromMs and
+ * startMs <= toMs. (Found as drift between the CLI's fake daemon and the real store — now the contract.)
+ */
 export const TranscriptQuery = z.object({
   fromMs: z.coerce.number().int().nonnegative().optional(),
   toMs: z.coerce.number().int().nonnegative().optional(),

@@ -1,0 +1,25 @@
+{
+  "query": "retry budget",
+  "total": 2,
+  "returned": 2,
+  "truncated": false,
+  "hits": [
+    {
+      "sessionId": "ses_000000001aaaaaaaaaaa1",
+      "session": "Platform standup",
+      "segmentId": "seg_000000003eeeeeeeeeeee",
+      "t": "1:02",
+      "speaker": "me",
+      "snippet": "Did we settle the [retry] [budget]?"
+    },
+    {
+      "sessionId": "ses_000000001aaaaaaaaaaa1",
+      "session": "Platform standup",
+      "segmentId": "seg_000000004eeeeeeeeeeee",
+      "t": "1:06",
+      "speaker": "them",
+      "snippet": "Yes. The [retry] [budget] is three attempts, then dead-letter."
+    }
+  ],
+  "next": "gnomeola transcript ses_000000001aaaaaaaaaaa1 --around seg_000000003eeeeeeeeeeee"
+}

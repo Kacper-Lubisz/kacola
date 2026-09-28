@@ -1,0 +1,23 @@
+{
+  "id": "ses_000000001aaaaaaaaaaa1",
+  "title": "Platform standup",
+  "createdAt": "<iso>",
+  "status": "stopped",
+  "durationMs": 720000,
+  "startedAt": "<iso>",
+  "endedAt": "<iso>",
+  "segments": 8,
+  "tracks": [
+    {
+      "kind": "mic",
+      "device": "seed.mic",
+      "gaps": []
+    },
+    {
+      "kind": "system",
+      "device": "seed.monitor",
+      "gaps": []
+    }
+  ],
+  "error": null
+}

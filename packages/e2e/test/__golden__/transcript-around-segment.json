@@ -1,0 +1,35 @@
+{
+  "session": {
+    "id": "ses_000000001aaaaaaaaaaa1",
+    "title": "Platform standup",
+    "createdAt": "<iso>",
+    "status": "stopped",
+    "durationMs": 720000
+  },
+  "window": {
+    "from": "2:59",
+    "to": "3:13",
+    "fromMs": 179000,
+    "toMs": 193000
+  },
+  "total": 8,
+  "returned": 2,
+  "segments": [
+    {
+      "id": "seg_000000006eeeeeeeeeeee",
+      "t": "3:00",
+      "startMs": 180000,
+      "endMs": 184000,
+      "speaker": "me",
+      "text": "Who owns the dashboard for that?"
+    },
+    {
+      "id": "seg_000000007eeeeeeeeeeee",
+      "t": "3:04",
+      "startMs": 184000,
+      "endMs": 188000,
+      "speaker": "them",
+      "text": "Ana owns the dashboard."
+    }
+  ]
+}

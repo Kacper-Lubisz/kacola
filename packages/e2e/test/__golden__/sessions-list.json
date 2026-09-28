@@ -1,0 +1,25 @@
+{
+  "sessions": [
+    {
+      "id": "ses_000000002bbbbbbbbbbb2",
+      "title": "Quarterly planning",
+      "createdAt": "<iso>",
+      "status": "stopped",
+      "durationMs": 5400000
+    },
+    {
+      "id": "ses_000000001aaaaaaaaaaa1",
+      "title": "Platform standup",
+      "createdAt": "<iso>",
+      "status": "stopped",
+      "durationMs": 720000
+    },
+    {
+      "id": "ses_000000004ddddddddddd4",
+      "title": "Sprint retro",
+      "createdAt": "<iso>",
+      "status": "stopped",
+      "durationMs": 1200000
+    }
+  ]
+}

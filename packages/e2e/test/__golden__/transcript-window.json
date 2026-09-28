@@ -1,0 +1,35 @@
+{
+  "session": {
+    "id": "ses_000000001aaaaaaaaaaa1",
+    "title": "Platform standup",
+    "createdAt": "<iso>",
+    "status": "stopped",
+    "durationMs": 720000
+  },
+  "window": {
+    "from": "0:55",
+    "to": "1:15",
+    "fromMs": 55000,
+    "toMs": 75000
+  },
+  "total": 8,
+  "returned": 2,
+  "segments": [
+    {
+      "id": "seg_000000003eeeeeeeeeeee",
+      "t": "1:02",
+      "startMs": 62000,
+      "endMs": 66000,
+      "speaker": "me",
+      "text": "Did we settle the retry budget?"
+    },
+    {
+      "id": "seg_000000004eeeeeeeeeeee",
+      "t": "1:06",
+      "startMs": 66000,
+      "endMs": 70000,
+      "speaker": "them",
+      "text": "Yes. The retry budget is three attempts, then dead-letter."
+    }
+  ]
+}

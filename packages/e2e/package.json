@@ -2,7 +2,7 @@
   "name": "@gnomeola/e2e",
   "version": "0.1.0",
   "private": true,
-  "description": "System-level tests across package boundaries: CLI → daemon → llm/capture/stt, the UI, install.",
+  "description": "System-level tests across package boundaries: CLI \u2192 daemon \u2192 llm/capture/stt, the UI, install.",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "exports": {
@@ -14,6 +14,8 @@
   "dependencies": {
     "@gnomeola/protocol": "workspace:*",
     "@gnomeola/cli": "workspace:*",
-    "@gnomeola/testkit": "workspace:*"
+    "@gnomeola/testkit": "workspace:*",
+    "@gnomeola/store": "workspace:*",
+    "@gnomeola/daemon": "workspace:*"
   }
 }

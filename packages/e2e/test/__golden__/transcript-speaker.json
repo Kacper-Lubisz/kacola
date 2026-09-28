@@ -1,0 +1,43 @@
+{
+  "session": {
+    "id": "ses_000000001aaaaaaaaaaa1",
+    "title": "Platform standup",
+    "createdAt": "<iso>",
+    "status": "stopped",
+    "durationMs": 720000
+  },
+  "window": {
+    "from": "0:00",
+    "to": "3:10",
+    "fromMs": 0,
+    "toMs": 190000
+  },
+  "total": 8,
+  "returned": 3,
+  "segments": [
+    {
+      "id": "seg_000000002eeeeeeeeeeee",
+      "t": "0:05",
+      "startMs": 5000,
+      "endMs": 9000,
+      "speaker": "me",
+      "text": "Morning. Quick round, then the retry question."
+    },
+    {
+      "id": "seg_000000003eeeeeeeeeeee",
+      "t": "1:02",
+      "startMs": 62000,
+      "endMs": 66000,
+      "speaker": "me",
+      "text": "Did we settle the retry budget?"
+    },
+    {
+      "id": "seg_000000006eeeeeeeeeeee",
+      "t": "3:00",
+      "startMs": 180000,
+      "endMs": 184000,
+      "speaker": "me",
+      "text": "Who owns the dashboard for that?"
+    }
+  ]
+}

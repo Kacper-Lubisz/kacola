@@ -78,9 +78,15 @@ importers:
       '@gnomeola/cli':
         specifier: workspace:*
         version: link:../cli
+      '@gnomeola/daemon':
+        specifier: workspace:*
+        version: link:../daemon
       '@gnomeola/protocol':
         specifier: workspace:*
         version: link:../protocol
+      '@gnomeola/store':
+        specifier: workspace:*
+        version: link:../store
       '@gnomeola/testkit':
         specifier: workspace:*
         version: link:../testkit
