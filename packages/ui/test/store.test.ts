@@ -34,6 +34,30 @@ const upsert = (seq: number, s: Session): DurableEvent => ({
   data: { type: 'session.upserted', session: s },
 })
 
+const unused = async (): Promise<never> => {
+  throw new Error('unused')
+}
+/** Every DataSource call a store test does not exercise. */
+function unusedApi(): Omit<DataSource, 'origin' | 'load' | 'subscribe'> {
+  return {
+    startRecording: unused,
+    stopRecording: unused,
+    transcript: unused,
+    qaHistory: unused,
+    // biome-ignore lint/correctness/useYield: never iterated
+    ask: async function* () {
+      throw new Error('unused')
+    },
+    health: unused,
+    getSettings: unused,
+    updateSettings: unused,
+    setApiKey: unused,
+    listDevices: unused,
+    listModels: unused,
+    downloadModel: unused,
+  }
+}
+
 /** A controllable source: the test decides when load resolves and pushes events by hand. */
 function fakeSource(opts: { fail?: Error; sessions?: Session[]; seq?: number } = {}) {
   let handlers: SubscribeHandlers | null = null
@@ -43,7 +67,7 @@ function fakeSource(opts: { fail?: Error; sessions?: Session[]; seq?: number } =
     async load() {
       calls.load++
       if (opts.fail) throw opts.fail
-      return { sessions: opts.sessions ?? [], seq: opts.seq ?? 0 }
+      return { sessions: opts.sessions ?? [], seq: opts.seq ?? 0, health: null }
     },
     subscribe(h) {
       handlers = h
@@ -51,12 +75,7 @@ function fakeSource(opts: { fail?: Error; sessions?: Session[]; seq?: number } =
       h.onConnect()
       return new Promise((r) => h.signal.addEventListener('abort', () => r(), { once: true }))
     },
-    async startRecording() {
-      throw new Error('unused')
-    },
-    async stopRecording() {
-      throw new Error('unused')
-    },
+    ...unusedApi(),
   }
   return { src, calls, push: (e: AnyEvent) => handlers!.onEvent(e), handlers: () => handlers! }
 }
@@ -254,6 +273,46 @@ describe('demo source', () => {
     expect(stopped.endedAt).not.toBeNull()
     src.dispose()
   })
+
+  it('transcribes: seeded transcripts, then live partials and segments finalised by revision', async () => {
+    const { src, advance } = demo(4000, 3)
+    const seeded = (await src.load(new AbortController().signal)).sessions[0]!
+    const t = await src.transcript(seeded.id)
+    expect(t.segments.length).toBeGreaterThan(5)
+    expect(t.segments.every((x) => x.quality === 'final')).toBe(true)
+
+    const events: AnyEvent[] = []
+    const ac = new AbortController()
+    void src.subscribe({
+      since: Number.MAX_SAFE_INTEGER,
+      signal: ac.signal,
+      onEvent: (e) => events.push(e),
+      onConnect() {},
+      onDisconnect() {},
+    })
+    const rec = await src.startRecording()
+    advance(5000)
+    const partials = events.filter((e) => e.data.type === 'transcript.partial')
+    const segs = events.flatMap((e) => (e.data.type === 'segment.upserted' ? [e.data.segment] : []))
+    expect(partials.length).toBeGreaterThan(0)
+    expect(segs.some((x) => x.quality === 'live' && x.revision === 1)).toBe(true)
+    const live = segs.find((x) => x.quality === 'live')!
+    expect(segs.find((x) => x.id === live.id && x.quality === 'final')?.revision).toBe(2)
+    // stopping finalises what is still live, and the transcript reflects it
+    await src.stopRecording(rec.id)
+    const after = await src.transcript(rec.id)
+    expect(after.segments.length).toBeGreaterThan(0)
+    expect(after.segments.every((x) => x.quality === 'final')).toBe(true)
+    // settings round-trip through a settings.updated event; questions are honestly unavailable
+    await src.updateSettings({ stt: { finalPass: 'off' } })
+    expect(events.some((e) => e.data.type === 'settings.updated')).toBe(true)
+    expect((await src.getSettings()).stt.finalPass).toBe('off')
+    const asked = []
+    for await (const e of src.ask({ question: 'q', sessionId: rec.id })) asked.push(e.type)
+    expect(asked).toEqual(['question', 'error'])
+    ac.abort()
+    src.dispose()
+  })
 })
 
 describe('daemon source (protocol client over a fake fetch)', () => {
@@ -279,7 +338,7 @@ describe('daemon source (protocol client over a fake fetch)', () => {
     }) as unknown as typeof fetch
     const src = createDaemonSource({ baseUrl: 'http://daemon.test:1', fetch: fetchFn })
     const snap = await src.load(new AbortController().signal)
-    expect(snap).toEqual({ sessions: [a], seq: 12 })
+    expect(snap).toEqual({ sessions: [a], seq: 12, health })
     expect(urls[0]).toBe('http://daemon.test:1/health')
     expect(urls[1]).toBe('http://daemon.test:1/sessions?includePrivate=true&limit=500')
   })
@@ -321,13 +380,28 @@ describe('daemon source (protocol client over a fake fetch)', () => {
 
 describe('readConfig', () => {
   it('defaults to the local daemon', () => {
-    expect(readConfig({})).toEqual({ mode: 'daemon', baseUrl: 'http://127.0.0.1:8787', timeoutMs: 5000 })
+    expect(readConfig({ HOME: '/home/u' })).toEqual({
+      mode: 'daemon',
+      baseUrl: 'http://127.0.0.1:8787',
+      timeoutMs: 5000,
+      uiStatePath: '/home/u/.local/state/gnomeola/ui-state.json',
+      autoOnboarding: true,
+    })
     expect(readConfig({ GNOMEOLA_URL: 'http://10.0.0.2:9000' })).toMatchObject({
       baseUrl: 'http://10.0.0.2:9000',
     })
   })
   it('enables the demo with GNOMEOLA_UI_DEMO', () => {
-    expect(readConfig({ GNOMEOLA_UI_DEMO: '1' })).toEqual({ mode: 'demo', intervalMs: 4000, maxSessions: 40 })
+    expect(readConfig({ GNOMEOLA_UI_DEMO: '1', XDG_STATE_HOME: '/st' })).toEqual({
+      mode: 'demo',
+      intervalMs: 4000,
+      maxSessions: 40,
+      uiStatePath: '/st/gnomeola/ui-state.json',
+      // the demo does not pop onboarding at you unless asked to
+      autoOnboarding: false,
+    })
+    expect(readConfig({ GNOMEOLA_UI_DEMO: '1', GNOMEOLA_UI_ONBOARDING: '1' }).autoOnboarding).toBe(true)
+    expect(readConfig({ GNOMEOLA_UI_ONBOARDING: 'off' }).autoOnboarding).toBe(false)
     expect(readConfig({ GNOMEOLA_UI_DEMO: 'true', GNOMEOLA_UI_DEMO_INTERVAL_MS: '250' })).toMatchObject({
       intervalMs: 250,
     })

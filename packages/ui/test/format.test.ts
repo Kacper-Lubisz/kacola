@@ -89,13 +89,19 @@ describe('status text', () => {
     expect(statusLabel('stopped')).toBe('Finished')
   })
   it('summarises with the duration except before starting', () => {
-    expect(statusSummary(session())).toBe('Recording · 3:12')
+    const at = (iso: string) => new Date(iso)
+    // while recording the clock runs from startedAt (the daemon updates durationMs only on stop/pause)
+    expect(statusSummary(session(), at('2026-09-28T10:03:12.000Z'))).toBe('Recording · 3:12')
+    expect(statusSummary(session(), at('2026-09-28T10:07:00.000Z'))).toBe('Recording · 7:00')
+    // never behind what the daemon reported, and paused sessions do not tick
+    expect(statusSummary(session(), at('2026-09-28T10:00:01.000Z'))).toBe('Recording · 3:12')
+    expect(statusSummary(session({ status: 'paused' }), at('2026-09-28T11:00:00.000Z'))).toBe('Paused · 3:12')
     expect(statusSummary(session({ status: 'stopped', durationMs: 2_700_000 }))).toBe('Finished · 45:00')
     expect(statusSummary(session({ status: 'idle', durationMs: 0 }))).toBe('Not started')
   })
   it('builds the row subtitle from the start time, falling back to creation', () => {
     const now = new Date('2026-09-28T10:05:00.000Z')
-    expect(sessionSubtitle(session(), now)).toBe('5 min ago · Recording · 3:12')
+    expect(sessionSubtitle(session(), now)).toBe('5 min ago · Recording · 5:00')
     expect(sessionSubtitle(session({ startedAt: null, status: 'idle' }), now)).toBe('5 min ago · Not started')
   })
 })

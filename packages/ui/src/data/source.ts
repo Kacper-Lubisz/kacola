@@ -1,4 +1,16 @@
-import type { AnyEvent, Session } from '@gnomeola/protocol'
+import type {
+  AnyEvent,
+  AskStreamEvent,
+  AudioDevice,
+  BodyIn,
+  Health,
+  ModelInfo,
+  QaMessage,
+  Session,
+  Settings,
+  SettingsPatch,
+  Transcript,
+} from '@gnomeola/protocol'
 
 // Where the UI's data comes from. Two implementations: the real daemon over the protocol client,
 // and an in-process demo that fabricates a live-updating list (GNOMEOLA_UI_DEMO=1). The store and
@@ -8,6 +20,8 @@ export type Snapshot = {
   sessions: Session[]
   /** The durable seq the snapshot is known to include; subscribe from here. */
   seq: number
+  /** The health report the cursor came from (capture availability, models, LLM readiness). */
+  health: Health | null
 }
 
 export type SubscribeHandlers = {
@@ -27,4 +41,19 @@ export interface DataSource {
   /** Create a session and start recording it. */
   startRecording(): Promise<Session>
   stopRecording(id: string): Promise<Session>
+
+  /** The whole transcript of one session (best quality per segment), private sessions included. */
+  transcript(sessionId: string, signal?: AbortSignal): Promise<Transcript>
+  qaHistory(sessionId: string, signal?: AbortSignal): Promise<QaMessage[]>
+  /** POST /ask: question, delta*, then answer | error. Throws before the stream on a 4xx/5xx. */
+  ask(body: BodyIn<'ask'>, signal?: AbortSignal): AsyncIterable<AskStreamEvent>
+
+  health(signal?: AbortSignal): Promise<Health>
+  getSettings(signal?: AbortSignal): Promise<Settings>
+  updateSettings(patch: SettingsPatch): Promise<Settings>
+  /** Store (or with null, clear) the LLM API key. The key is write-only: nothing ever reads it back. */
+  setApiKey(key: string | null): Promise<{ configured: boolean }>
+  listDevices(signal?: AbortSignal): Promise<AudioDevice[]>
+  listModels(signal?: AbortSignal): Promise<ModelInfo[]>
+  downloadModel(id: string): Promise<ModelInfo>
 }

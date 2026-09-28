@@ -2,13 +2,18 @@ import * as Gtk from '@gtkx/gi/gtk'
 import { AdwHeaderBar, AdwSpinner, AdwStatusPage, AdwToolbarView } from '@gtkx/jsx/adw'
 import { GtkBox, GtkButton, GtkLabel } from '@gtkx/jsx/gtk'
 import { escapeMarkup } from '../data/format.ts'
+import { _, fmt } from '../i18n/index.ts'
 
 // Whole-window states shown instead of the split view.
 
 export function Connecting({ origin }: { origin: string }) {
   return (
     <AdwToolbarView topBar={<AdwHeaderBar />}>
-      <AdwStatusPage vexpand title="Connecting…" description={escapeMarkup(`Reaching gnomeola at ${origin}`)}>
+      <AdwStatusPage
+        vexpand
+        title={_('Connecting…')}
+        description={escapeMarkup(fmt(_('Reaching gnomeola at {origin}'), { origin }))}
+      >
         <AdwSpinner widthRequest={32} heightRequest={32} halign={Gtk.Align.CENTER} />
       </AdwStatusPage>
     </AdwToolbarView>
@@ -31,15 +36,19 @@ export function Unreachable({
       <AdwStatusPage
         vexpand
         iconName="network-offline-symbolic"
-        title="Can’t Reach gnomeola"
+        title={_('Can’t Reach gnomeola')}
         description={escapeMarkup(
-          `The gnomeola daemon is not answering at ${origin}. Start it with “gnomeolad”; ` +
-            `this window tries again every ${Math.round(retryInMs / 1000)} seconds.`,
+          fmt(
+            _(
+              'The gnomeola daemon is not answering at {origin}. Start it with “gnomeolad”; this window tries again every {seconds} seconds.',
+            ),
+            { origin, seconds: Math.round(retryInMs / 1000) },
+          ),
         )}
       >
         <GtkBox orientation={Gtk.Orientation.VERTICAL} spacing={12} halign={Gtk.Align.CENTER}>
           <GtkButton
-            label="Try Again"
+            label={_('Try Again')}
             cssClasses={['pill', 'suggested-action']}
             halign={Gtk.Align.CENTER}
             onClicked={onRetry}

@@ -1,0 +1,721 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the gnomeola package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: gnomeola 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: src/components/about.tsx:22
+msgid ""
+"gnomeola is an independent clean-room project inspired by Granola. It is not "
+"affiliated with or endorsed by Granola."
+msgstr ""
+
+#: src/components/about.tsx:48
+msgid "Third-Party Notices"
+msgstr ""
+
+#: src/components/about.tsx:49
+msgid "Inspired by"
+msgstr ""
+
+#: src/components/about.tsx:51
+msgid "Third-Party Components"
+msgstr ""
+
+#: src/components/about.tsx:54
+msgid ""
+"gnomeola includes the following components under their own licences. The "
+"full list, with homepages, is in THIRD_PARTY_NOTICES.md."
+msgstr ""
+
+#: src/components/about.tsx:57
+msgid "translator-credits"
+msgstr ""
+
+#: src/components/about.tsx:64 src/components/about.tsx:65
+msgid "The gnomeola contributors"
+msgstr ""
+
+#: src/components/about.tsx:67
+msgid ""
+"Record meetings, read live speaker-labelled transcripts, and ask questions "
+"about what was said."
+msgstr ""
+
+#: src/components/ask-pane.tsx:45
+msgid "Citation {n}: {speaker} at {time}"
+msgstr ""
+
+#: src/components/ask-pane.tsx:87
+msgid ""
+"Questions are not available right now: {reason}. Choose a language model "
+"provider and add an API key in Preferences."
+msgstr ""
+
+#: src/components/ask-pane.tsx:92
+msgid "Open Preferences"
+msgstr ""
+
+#: src/components/ask-pane.tsx:100
+msgid "The question could not be answered: {reason}"
+msgstr ""
+
+#: src/components/ask-pane.tsx:112
+msgid "Answering"
+msgstr ""
+
+#: src/components/ask-pane.tsx:114
+msgid "Thinking…"
+msgstr ""
+
+#: src/components/ask-pane.tsx:133
+msgid "Sources"
+msgstr ""
+
+#: src/components/ask-pane.tsx:140
+msgid "Show this line in the transcript"
+msgstr ""
+
+#: src/components/ask-pane.tsx:153
+msgid ""
+"The model declined to answer this question. Nothing it wrote before "
+"declining is shown."
+msgstr ""
+
+#: src/components/ask-pane.tsx:160
+msgid "No answer was recorded."
+msgstr ""
+
+#: src/components/ask-pane.tsx:202
+msgid "Ask About This Meeting"
+msgstr ""
+
+#: src/components/ask-pane.tsx:205
+msgid "Earlier questions could not be loaded: {reason}"
+msgstr ""
+
+#: src/components/ask-pane.tsx:206
+msgid ""
+"Answers come from this transcript, with citations you can follow back to the "
+"line."
+msgstr ""
+
+#: src/components/ask-pane.tsx:246
+msgid "Questions and answers"
+msgstr ""
+
+#: src/components/ask-pane.tsx:268
+msgid "Ask a question about this meeting"
+msgstr ""
+
+#: src/components/ask-pane.tsx:269
+msgid "Question"
+msgstr ""
+
+#: src/components/ask-pane.tsx:274 src/components/session-detail.tsx:215
+msgid "Ask"
+msgstr ""
+
+#: src/components/ask-pane.tsx:277
+msgid "Ask the question about this meeting"
+msgstr ""
+
+#: src/components/main-window.tsx:55 src/components/sidebar.tsx:181
+msgid "Sessions"
+msgstr ""
+
+#: src/components/onboarding.tsx:29 src/components/onboarding.tsx:47
+msgid "Ready"
+msgstr ""
+
+#: src/components/onboarding.tsx:31
+msgid "Downloading… {percent}"
+msgstr ""
+
+#: src/components/onboarding.tsx:33
+msgid "Damaged: download again"
+msgstr ""
+
+#: src/components/onboarding.tsx:35
+msgid "Not downloaded"
+msgstr ""
+
+#: src/components/onboarding.tsx:53
+msgid "{model} download progress"
+msgstr ""
+
+#: src/components/onboarding.tsx:57
+msgid "Download"
+msgstr ""
+
+#: src/components/onboarding.tsx:58
+msgid "Download {model}"
+msgstr ""
+
+#: src/components/onboarding.tsx:71
+msgid "Checking…"
+msgstr ""
+
+#: src/components/onboarding.tsx:73
+msgid "Available ({backend})"
+msgstr ""
+
+#: src/components/onboarding.tsx:74
+msgid "Not available: {detail}"
+msgstr ""
+
+#: src/components/onboarding.tsx:77
+msgid "Microphone and system audio"
+msgstr ""
+
+#: src/components/onboarding.tsx:82
+msgid "Checking audio capture"
+msgstr ""
+
+#: src/components/onboarding.tsx:87
+msgid "Capture available"
+msgstr ""
+
+#: src/components/onboarding.tsx:87
+msgid "Capture not available"
+msgstr ""
+
+#: src/components/onboarding.tsx:151
+msgid "Welcome to gnomeola"
+msgstr ""
+
+#: src/components/onboarding.tsx:163
+msgid ""
+"gnomeola transcribes on this computer. It needs a few speech models first, "
+"and access to your microphone and system audio."
+msgstr ""
+
+#: src/components/onboarding.tsx:170
+msgid "Speech Models"
+msgstr ""
+
+#: src/components/onboarding.tsx:182
+msgid "Speech models"
+msgstr ""
+
+#: src/components/onboarding.tsx:191
+msgid "Something went wrong: {reason}"
+msgstr ""
+
+#: src/components/onboarding.tsx:200
+msgid "Audio Capture"
+msgstr ""
+
+#: src/components/onboarding.tsx:209
+msgid "Audio capture"
+msgstr ""
+
+#: src/components/onboarding.tsx:217
+msgid "Done"
+msgstr ""
+
+#: src/components/onboarding.tsx:224
+msgid "Skip for Now"
+msgstr ""
+
+#: src/components/onboarding.tsx:231
+msgid "Download {size}"
+msgstr ""
+
+#: src/components/onboarding.tsx:234
+msgid "Downloading…"
+msgstr ""
+
+#: src/components/onboarding.tsx:236
+msgid "Download all models"
+msgstr ""
+
+#: src/components/preferences.tsx:102
+msgid "API key removed"
+msgstr ""
+
+#: src/components/preferences.tsx:102
+msgid "API key saved"
+msgstr ""
+
+#: src/components/preferences.tsx:102
+msgid "The API key was not stored"
+msgstr ""
+
+#: src/components/preferences.tsx:104
+msgid "Could not store the API key: {reason}"
+msgstr ""
+
+#: src/components/preferences.tsx:112
+msgid "Anthropic API key"
+msgstr ""
+
+#: src/components/preferences.tsx:113
+msgid "Configured (kept in the keyring, never shown)"
+msgstr ""
+
+#: src/components/preferences.tsx:113
+msgid "Not configured"
+msgstr ""
+
+#: src/components/preferences.tsx:118
+msgid "Remove"
+msgstr ""
+
+#: src/components/preferences.tsx:122
+msgid "Remove the stored API key"
+msgstr ""
+
+#: src/components/preferences.tsx:129
+msgid "Replace API key"
+msgstr ""
+
+#: src/components/preferences.tsx:129
+msgid "API key"
+msgstr ""
+
+#: src/components/preferences.tsx:146
+msgid "Could not save the setting: {reason}"
+msgstr ""
+
+#: src/components/preferences.tsx:157 src/components/preferences.tsx:301
+msgid "General"
+msgstr ""
+
+#: src/components/preferences.tsx:159 src/components/preferences.tsx:160
+msgid "Questions and Answers"
+msgstr ""
+
+#: src/components/preferences.tsx:161
+msgid "The language model that answers questions about your meetings."
+msgstr ""
+
+#: src/components/preferences.tsx:164
+msgid "Provider"
+msgstr ""
+
+#: src/components/preferences.tsx:171
+msgid "Model"
+msgstr ""
+
+#: src/components/preferences.tsx:182
+msgid "Ollama URL"
+msgstr ""
+
+#: src/components/preferences.tsx:195 src/components/preferences.tsx:196
+msgid "Transcription"
+msgstr ""
+
+#: src/components/preferences.tsx:197
+msgid "A second, more accurate pass replaces the live transcript line by line."
+msgstr ""
+
+#: src/components/preferences.tsx:200
+msgid "Accurate pass"
+msgstr ""
+
+#: src/components/preferences.tsx:207 src/components/preferences.tsx:208
+msgid "Capture"
+msgstr ""
+
+#: src/components/preferences.tsx:209
+msgid "Used for recordings started from now on."
+msgstr ""
+
+#: src/components/preferences.tsx:212 src/components/session-detail.tsx:32
+msgid "Microphone"
+msgstr ""
+
+#: src/components/preferences.tsx:218 src/components/session-detail.tsx:33
+msgid "System audio"
+msgstr ""
+
+#: src/components/preferences.tsx:219
+msgid "What the other people in the call sound like"
+msgstr ""
+
+#: src/components/preferences.tsx:226
+msgid "Storage"
+msgstr ""
+
+#: src/components/preferences.tsx:228 src/components/preferences.tsx:229
+msgid "Recorded Audio"
+msgstr ""
+
+#: src/components/preferences.tsx:230
+msgid ""
+"Transcripts are always kept. This only decides what happens to the audio."
+msgstr ""
+
+#: src/components/preferences.tsx:233
+msgid "Audio"
+msgstr ""
+
+#: src/components/preferences.tsx:242 src/components/preferences.tsx:250
+msgid "Days to keep audio"
+msgstr ""
+
+#: src/components/preferences.tsx:260
+msgid "Archive audio"
+msgstr ""
+
+#: src/components/preferences.tsx:261
+msgid "Keep a compressed copy (Opus) of each recording"
+msgstr ""
+
+#: src/components/preferences.tsx:284
+msgid "The daemon did not return its settings."
+msgstr ""
+
+#: src/components/preferences.tsx:297 src/components/sidebar.tsx:60
+msgid "Preferences"
+msgstr ""
+
+#: src/components/preferences.tsx:302
+msgid "Settings"
+msgstr ""
+
+#: src/components/preferences.tsx:306
+msgid "Settings Unavailable"
+msgstr ""
+
+#: src/components/record-button.tsx:29
+msgid "Could not stop recording: {reason}"
+msgstr ""
+
+#: src/components/record-button.tsx:29
+msgid "Could not start recording: {reason}"
+msgstr ""
+
+#: src/components/record-button.tsx:43
+msgid "Stop recording the current session"
+msgstr ""
+
+#: src/components/record-button.tsx:43
+msgid "Start recording a new session"
+msgstr ""
+
+#: src/components/record-button.tsx:45
+msgid "Stop recording"
+msgstr ""
+
+#: src/components/record-button.tsx:45
+msgid "Start recording"
+msgstr ""
+
+#: src/components/record-button.tsx:52
+msgid "Stop"
+msgstr ""
+
+#: src/components/record-button.tsx:52
+msgid "Record"
+msgstr ""
+
+#: src/components/session-detail.tsx:73
+msgid "Levels"
+msgstr ""
+
+#: src/components/session-detail.tsx:83
+msgid "level"
+msgstr ""
+
+#: src/components/session-detail.tsx:115 src/components/session-detail.tsx:225
+msgid "Details"
+msgstr ""
+
+#: src/components/session-detail.tsx:116
+msgid "Status"
+msgstr ""
+
+#: src/components/session-detail.tsx:118
+msgid "Started"
+msgstr ""
+
+#: src/components/session-detail.tsx:119 src/data/format.ts:60
+msgid "Not started"
+msgstr ""
+
+#: src/components/session-detail.tsx:121
+msgid "Duration"
+msgstr ""
+
+#: src/components/session-detail.tsx:123
+msgid "Tracks"
+msgstr ""
+
+#: src/components/session-detail.tsx:124
+msgid "None"
+msgstr ""
+
+#: src/components/session-detail.tsx:127
+msgid "Visibility"
+msgstr ""
+
+#: src/components/session-detail.tsx:127
+msgid "Private: hidden from the CLI"
+msgstr ""
+
+#: src/components/session-detail.tsx:129
+msgid "Error"
+msgstr ""
+
+#: src/components/session-detail.tsx:183
+msgid "Session details"
+msgstr ""
+
+#: src/components/session-detail.tsx:210 src/components/transcript-view.tsx:245
+msgid "Transcript"
+msgstr ""
+
+#: src/components/session-detail.tsx:242
+msgid "No Session Selected"
+msgstr ""
+
+#: src/components/session-detail.tsx:243
+msgid "Pick a session in the sidebar, or press Record to start one."
+msgstr ""
+
+#: src/components/sidebar.tsx:55
+msgid "Main Menu"
+msgstr ""
+
+#: src/components/sidebar.tsx:56
+msgid "Main menu"
+msgstr ""
+
+#: src/components/sidebar.tsx:61
+msgid "Set Up Speech Models…"
+msgstr ""
+
+#: src/components/sidebar.tsx:63
+msgid "About gnomeola"
+msgstr ""
+
+#: src/components/sidebar.tsx:88 src/data/format.ts:61
+msgid "Recording"
+msgstr ""
+
+#: src/components/sidebar.tsx:88
+msgid "Recorded session"
+msgstr ""
+
+#: src/components/sidebar.tsx:140
+msgid "Lost the connection to the daemon. Reconnecting…"
+msgstr ""
+
+#: src/components/sidebar.tsx:149
+msgid "A speech model is not downloaded yet"
+msgid_plural "Speech models are not downloaded yet"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/components/sidebar.tsx:153
+msgid "Set Up"
+msgstr ""
+
+#: src/components/sidebar.tsx:158 src/components/sidebar.tsx:159
+msgid "Search sessions"
+msgstr ""
+
+#: src/components/sidebar.tsx:170
+msgid "No Matching Sessions"
+msgstr ""
+
+#: src/components/sidebar.tsx:170
+msgid "No Sessions Yet"
+msgstr ""
+
+#: src/components/sidebar.tsx:172
+msgid "Try a different search."
+msgstr ""
+
+#: src/components/sidebar.tsx:172
+msgid "Press Record to capture your first meeting."
+msgstr ""
+
+#: src/components/status-pages.tsx:14
+msgid "Connecting…"
+msgstr ""
+
+#: src/components/status-pages.tsx:15
+msgid "Reaching gnomeola at {origin}"
+msgstr ""
+
+#: src/components/status-pages.tsx:39
+msgid "Can’t Reach gnomeola"
+msgstr ""
+
+#: src/components/status-pages.tsx:43
+msgid ""
+"The gnomeola daemon is not answering at {origin}. Start it with “gnomeolad”; "
+"this window tries again every {seconds} seconds."
+msgstr ""
+
+#: src/components/status-pages.tsx:51
+msgid "Try Again"
+msgstr ""
+
+#: src/components/transcript-view.tsx:30
+msgid "Me"
+msgstr ""
+
+#: src/components/transcript-view.tsx:30
+msgid "Them"
+msgstr ""
+
+#: src/components/transcript-view.tsx:34
+msgid "in progress"
+msgstr ""
+
+#: src/components/transcript-view.tsx:34
+msgid "provisional"
+msgstr ""
+
+#: src/components/transcript-view.tsx:35
+msgid "{speaker} at {time}: {text}"
+msgstr ""
+
+#: src/components/transcript-view.tsx:159
+msgid "Loading Transcript…"
+msgstr ""
+
+#: src/components/transcript-view.tsx:169
+msgid "Could Not Load the Transcript"
+msgstr ""
+
+#: src/components/transcript-view.tsx:179
+msgid "Listening…"
+msgstr ""
+
+#: src/components/transcript-view.tsx:179
+msgid "No Transcript"
+msgstr ""
+
+#: src/components/transcript-view.tsx:181
+msgid "Lines appear here as people speak."
+msgstr ""
+
+#: src/components/transcript-view.tsx:181
+msgid "Nothing was transcribed in this session."
+msgstr ""
+
+#: src/components/transcript-view.tsx:196
+msgid "Scroll to the newest line and keep following"
+msgstr ""
+
+#: src/components/transcript-view.tsx:203
+msgid "Jump to Live"
+msgstr ""
+
+#: src/index.tsx:36
+msgid "Demo data"
+msgstr ""
+
+#: src/data/format.ts:27
+msgid "just now"
+msgstr ""
+
+#: src/data/format.ts:28
+msgid "{n} min ago"
+msgstr ""
+
+#: src/data/format.ts:30
+msgid "{n} h ago"
+msgstr ""
+
+#: src/data/format.ts:31
+msgid "Yesterday"
+msgstr ""
+
+#: src/data/format.ts:62
+msgid "Paused"
+msgstr ""
+
+#: src/data/format.ts:63
+msgid "Finished"
+msgstr ""
+
+#: src/data/format.ts:64
+msgid "Recovered"
+msgstr ""
+
+#: src/data/format.ts:65
+msgid "Failed"
+msgstr ""
+
+#: src/data/format.ts:110
+msgid "Untitled session"
+msgstr ""
+
+#: src/data/settings.ts:10
+msgid "Anthropic (Claude)"
+msgstr ""
+
+#: src/data/settings.ts:11
+msgid "Ollama (on this computer)"
+msgstr ""
+
+#: src/data/settings.ts:12
+msgid "None (questions off)"
+msgstr ""
+
+#: src/data/settings.ts:16
+msgid "During the recording"
+msgstr ""
+
+#: src/data/settings.ts:17
+msgid "After the recording"
+msgstr ""
+
+#: src/data/settings.ts:18
+msgid "Off (live transcript only)"
+msgstr ""
+
+#: src/data/settings.ts:22
+msgid "Keep"
+msgstr ""
+
+#: src/data/settings.ts:23
+msgid "Delete once transcribed"
+msgstr ""
+
+#: src/data/settings.ts:24
+msgid "Delete after some days"
+msgstr ""
+
+#: src/data/settings.ts:46
+msgid "Default"
+msgstr ""
+
+#: src/data/settings.ts:51
+msgid "{device} (default)"
+msgstr ""
+
+#: src/data/settings.ts:55
+msgid "{device} (not connected)"
+msgstr ""
+
+#: src/data/settings.ts:90
+msgid "Live transcription"
+msgstr ""
+
+#: src/data/settings.ts:91
+msgid "Accurate transcription"
+msgstr ""
+
+#: src/data/settings.ts:92
+msgid "Voice detection"
+msgstr ""

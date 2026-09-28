@@ -119,7 +119,13 @@ def describe(acc, with_children=False, depth=0, max_depth=64):
         except Exception as e:
             node["valueError"] = str(e)
     if with_children and depth < max_depth:
-        node["children"] = [describe(c, True, depth + 1, max_depth) for c in children(acc)]
+        node["children"] = []
+        for c in children(acc):
+            try:
+                node["children"].append(describe(c, True, depth + 1, max_depth))
+            except Exception:
+                # a child destroyed while we walked (a recycled GtkListView row): skip it
+                continue
     return node
 
 
@@ -151,9 +157,13 @@ def applications(app_name=None):
 
 
 def walk(acc, fn, depth=0, max_depth=64):
-    uncached(acc)
-    if fn(acc):
-        return True
+    try:
+        uncached(acc)
+        if fn(acc):
+            return True
+    except Exception:
+        # destroyed under us (live UIs recycle rows): not a match, and no children to visit
+        return False
     if depth >= max_depth:
         return False
     for c in children(acc):
@@ -194,9 +204,13 @@ def cmd_find(args):
     limit = args.get("limit", 1000)
     roots = [deref(args["within"])] if args.get("within") else applications(args.get("app"))
     found = []
+    seen = set()
 
     def visit(acc):
-        if matches(acc, args):
+        # the same object can be reached twice (AdwViewStack exposes its visible child under
+        # every page): report it once
+        if matches(acc, args) and ref_of(acc) not in seen:
+            seen.add(ref_of(acc))
             found.append(acc)
         return len(found) >= limit
 
@@ -422,6 +436,9 @@ NAMED_KEYS = {
     "Right": 0xFF53,
     "Home": 0xFF50,
     "End": 0xFF57,
+    "Page_Up": 0xFF55,
+    "Page_Down": 0xFF56,
+    "Delete": 0xFFFF,
     "space": 0x20,
     "Control_L": 0xFFE3,
     "Shift_L": 0xFFE1,

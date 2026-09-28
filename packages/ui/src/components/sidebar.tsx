@@ -1,4 +1,4 @@
-import type { Session } from '@gnomeola/protocol'
+import type { ModelInfo, Session } from '@gnomeola/protocol'
 import * as Gtk from '@gtkx/gi/gtk'
 import {
   AdwActionRow,
@@ -8,17 +8,74 @@ import {
   AdwToolbarView,
   AdwWindowTitle,
 } from '@gtkx/jsx/adw'
-import { GtkBox, GtkImage, GtkListBox, GtkScrolledWindow, GtkSearchEntry } from '@gtkx/jsx/gtk'
-import { useState } from 'react'
+import {
+  GtkBox,
+  GtkButton,
+  GtkImage,
+  GtkLabel,
+  GtkListBox,
+  GtkMenuButton,
+  GtkPopover,
+  GtkScrolledWindow,
+  GtkSearchEntry,
+  GtkSeparator,
+} from '@gtkx/jsx/gtk'
+import { useEffect, useRef, useState } from 'react'
 import { displayTitle, sessionSubtitle } from '../data/format.ts'
 import { useConnection, useNow, useSessions } from '../data/hooks.ts'
 import { filterSessions } from '../data/sessions.ts'
+import { _, ngettext } from '../i18n/index.ts'
+import { useDialogs } from './dialogs.tsx'
 import { RecordButton } from './record-button.tsx'
 
-function SessionRow({ session, now }: { session: Session; now: Date }) {
+/**
+ * The primary menu (GNOME HIG). A popover of named buttons rather than a GMenu: GTK 4.22's popover-menu
+ * items (GtkModelButton) expose no accessible name over AT-SPI — a screen reader, and our tests, see
+ * three anonymous "menu item"s. Each entry activates the same win.* action the shortcuts use.
+ */
+function MainMenu() {
+  const popover = useRef<Gtk.Popover | null>(null)
+  const item = (label: string, action: string, shortcut?: string) => (
+    <GtkButton
+      cssClasses={['flat', 'menu-entry']}
+      accessibleLabel={label}
+      actionName={action}
+      onClicked={() => popover.current?.popdown()}
+    >
+      <GtkBox spacing={24}>
+        <GtkLabel label={label} xalign={0} hexpand />
+        {shortcut ? <GtkLabel label={shortcut} cssClasses={['dim-label']} /> : null}
+      </GtkBox>
+    </GtkButton>
+  )
+  return (
+    <GtkMenuButton
+      iconName="open-menu-symbolic"
+      primary
+      tooltipText={_('Main Menu')}
+      accessibleLabel={_('Main menu')}
+      popover={
+        <GtkPopover ref={popover} cssClasses={['menu']}>
+          <GtkBox orientation={Gtk.Orientation.VERTICAL} marginTop={6} marginBottom={6}>
+            {item(_('Preferences'), 'win.preferences', 'Ctrl+,')}
+            {item(_('Set Up Speech Models…'), 'win.onboarding')}
+            <GtkSeparator marginTop={6} marginBottom={6} />
+            {item(_('About gnomeola'), 'win.about')}
+          </GtkBox>
+        </GtkPopover>
+      }
+    />
+  )
+}
+
+function SessionRow({ session, now, tabStop }: { session: Session; now: Date; tabStop: boolean }) {
   const recording = session.status === 'recording'
   return (
     <AdwActionRow
+      // Roving tab stop: in GTK 4 a GtkListBox gives every row a Tab stop and selects the row that
+      // takes focus, so tabbing through the window used to switch the open session at every press.
+      // Only the selected row (or the first) is focusable; arrows still move between rows.
+      focusable={tabStop}
       // AdwPreferencesRow titles are Pango markup by default; session titles are user text.
       useMarkup={false}
       title={displayTitle(session)}
@@ -28,7 +85,7 @@ function SessionRow({ session, now }: { session: Session; now: Date }) {
         <GtkImage
           iconName={recording ? 'media-record-symbolic' : 'audio-x-generic-symbolic'}
           cssClasses={recording ? ['error'] : ['dim-label']}
-          accessibleLabel={recording ? 'Recording' : 'Recorded session'}
+          accessibleLabel={recording ? _('Recording') : _('Recorded session')}
         />
       }
     />
@@ -39,20 +96,37 @@ export type SidebarProps = {
   selectedId: string | null
   onSelect: (id: string) => void
   subtitle: string | null
+  /** Required speech models that are not downloaded (onboarding was skipped). */
+  missingModels: readonly ModelInfo[]
 }
 
-export function Sidebar({ selectedId, onSelect, subtitle }: SidebarProps) {
+export function Sidebar({ selectedId, onSelect, subtitle, missingModels }: SidebarProps) {
+  const dialogs = useDialogs()
   const sessions = useSessions()
   const connection = useConnection()
-  const now = useNow(15_000)
+  // a recording's row shows its running time, so tick every second while one records
+  const now = useNow(sessions.some((s) => s.status === 'recording') ? 1000 : 15_000)
   const [query, setQuery] = useState('')
   const shown = filterSessions(sessions, query)
+  const selectedIndex = shown.findIndex((s) => s.id === selectedId)
+  // With the roving tab stop, arrow keys move the selection but GTK cannot focus the (then still
+  // unfocusable) next row: once it is the tab stop, move keyboard focus to it — only if focus was
+  // in the list, never stealing it from elsewhere.
+  const listBox = useRef<Gtk.ListBox | null>(null)
+  useEffect(() => {
+    const list = listBox.current
+    if (!list || selectedIndex < 0) return
+    const focus = list.getRoot()?.getFocus() ?? null
+    if (focus === null || !focus.isAncestor(list)) return
+    list.getRowAtIndex(selectedIndex)?.grabFocus()
+  }, [selectedIndex])
 
   return (
     <AdwToolbarView
       topBar={
         <AdwHeaderBar
           start={<RecordButton onStarted={onSelect} />}
+          end={<MainMenu />}
           titleWidget={<AdwWindowTitle title="gnomeola" subtitle={subtitle ?? ''} />}
         />
       }
@@ -61,11 +135,28 @@ export function Sidebar({ selectedId, onSelect, subtitle }: SidebarProps) {
         {/* Mounted only while reconnecting: an unrevealed AdwBanner stays in the accessibility tree
             as a visible, named node, which would read out a stale warning. */}
         {connection.kind === 'reconnecting' ? (
-          <AdwBanner revealed title="Lost the connection to the daemon. Reconnecting…" useMarkup={false} />
+          <AdwBanner
+            revealed
+            title={_('Lost the connection to the daemon. Reconnecting…')}
+            useMarkup={false}
+          />
+        ) : null}
+        {connection.kind !== 'reconnecting' && missingModels.length > 0 ? (
+          <AdwBanner
+            revealed
+            useMarkup={false}
+            title={ngettext(
+              'A speech model is not downloaded yet',
+              'Speech models are not downloaded yet',
+              missingModels.length,
+            )}
+            buttonLabel={_('Set Up')}
+            onButtonClicked={() => dialogs.open('onboarding')}
+          />
         ) : null}
         <GtkSearchEntry
-          placeholderText="Search sessions"
-          accessibleLabel="Search sessions"
+          placeholderText={_('Search sessions')}
+          accessibleLabel={_('Search sessions')}
           marginStart={12}
           marginEnd={12}
           marginTop={6}
@@ -76,24 +167,32 @@ export function Sidebar({ selectedId, onSelect, subtitle }: SidebarProps) {
           <AdwStatusPage
             vexpand
             iconName={query ? 'edit-find-symbolic' : 'audio-input-microphone-symbolic'}
-            title={query ? 'No Matching Sessions' : 'No Sessions Yet'}
-            description={query ? 'Try a different search.' : 'Press Record to capture your first meeting.'}
+            title={query ? _('No Matching Sessions') : _('No Sessions Yet')}
+            description={
+              query ? _('Try a different search.') : _('Press Record to capture your first meeting.')
+            }
             cssClasses={['compact']}
           />
         ) : (
           <GtkScrolledWindow vexpand hscrollbarPolicy={Gtk.PolicyType.NEVER}>
             <GtkListBox
+              ref={listBox}
               cssClasses={['navigation-sidebar']}
-              accessibleLabel="Sessions"
-              selectedIndex={shown.findIndex((s) => s.id === selectedId)}
+              accessibleLabel={_('Sessions')}
+              selectedIndex={selectedIndex}
               onRowSelected={(row) => {
                 if (!row) return
                 const s = shown[row.getIndex()]
                 if (s) onSelect(s.id)
               }}
             >
-              {shown.map((s) => (
-                <SessionRow key={s.id} session={s} now={now} />
+              {shown.map((s, i) => (
+                <SessionRow
+                  key={s.id}
+                  session={s}
+                  now={now}
+                  tabStop={selectedIndex === -1 ? i === 0 : i === selectedIndex}
+                />
               ))}
             </GtkListBox>
           </GtkScrolledWindow>

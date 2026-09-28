@@ -1,11 +1,19 @@
 import { DEFAULT_BASE_URL } from '@gnomeola/protocol'
+import { uiStatePath } from './ui-state.ts'
 
 // Runtime configuration, from the environment only (the app has no config file of its own —
 // settings that matter live in the daemon).
 
+type Common = {
+  /** Where the window remembers onboarding ($XDG_STATE_HOME/gnomeola/ui-state.json). */
+  uiStatePath: string
+  /** Open first-run onboarding by itself when it is due. Default: on for a daemon, off for the demo. */
+  autoOnboarding: boolean
+}
+
 export type UiConfig =
-  | { mode: 'demo'; intervalMs: number; maxSessions: number }
-  | { mode: 'daemon'; baseUrl: string; timeoutMs: number }
+  | ({ mode: 'demo'; intervalMs: number; maxSessions: number } & Common)
+  | ({ mode: 'daemon'; baseUrl: string; timeoutMs: number } & Common)
 
 const TRUE = new Set(['1', 'true', 'yes', 'on'])
 
@@ -17,9 +25,24 @@ function positiveInt(raw: string | undefined, fallback: number, name: string): n
   return n
 }
 
+const FALSE = new Set(['0', 'false', 'no', 'off'])
+
+function flag(raw: string | undefined, fallback: boolean): boolean {
+  const v = (raw ?? '').trim().toLowerCase()
+  if (TRUE.has(v)) return true
+  if (FALSE.has(v)) return false
+  return fallback
+}
+
 export function readConfig(env: Record<string, string | undefined>): UiConfig {
-  if (TRUE.has((env.GNOMEOLA_UI_DEMO ?? '').toLowerCase())) {
+  const demo = TRUE.has((env.GNOMEOLA_UI_DEMO ?? '').toLowerCase())
+  const common: Common = {
+    uiStatePath: uiStatePath(env),
+    autoOnboarding: flag(env.GNOMEOLA_UI_ONBOARDING, !demo),
+  }
+  if (demo) {
     return {
+      ...common,
       mode: 'demo',
       intervalMs: positiveInt(env.GNOMEOLA_UI_DEMO_INTERVAL_MS, 4000, 'GNOMEOLA_UI_DEMO_INTERVAL_MS'),
       maxSessions: positiveInt(env.GNOMEOLA_UI_DEMO_MAX_SESSIONS, 40, 'GNOMEOLA_UI_DEMO_MAX_SESSIONS'),
@@ -32,6 +55,7 @@ export function readConfig(env: Record<string, string | undefined>): UiConfig {
     throw new Error(`GNOMEOLA_URL is not a URL: ${JSON.stringify(baseUrl)}`)
   }
   return {
+    ...common,
     mode: 'daemon',
     baseUrl,
     timeoutMs: positiveInt(env.GNOMEOLA_UI_TIMEOUT_MS, 5000, 'GNOMEOLA_UI_TIMEOUT_MS'),

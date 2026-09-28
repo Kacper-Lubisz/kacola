@@ -1,12 +1,37 @@
-import type { Session, TrackKind } from '@gnomeola/protocol'
+import type { Citation, Session, TrackKind } from '@gnomeola/protocol'
+import * as Adw from '@gtkx/gi/adw'
 import * as Gtk from '@gtkx/gi/gtk'
-import { AdwActionRow, AdwClamp, AdwHeaderBar, AdwStatusPage, AdwToolbarView } from '@gtkx/jsx/adw'
+import {
+  AdwActionRow,
+  AdwClamp,
+  AdwHeaderBar,
+  AdwStatusPage,
+  AdwToolbarView,
+  AdwViewStack,
+  AdwViewStackPage,
+  AdwViewSwitcher,
+  AdwViewSwitcherBar,
+} from '@gtkx/jsx/adw'
 import { GtkBox, GtkLabel, GtkLevelBar, GtkListBox, GtkScrolledWindow } from '@gtkx/jsx/gtk'
 import { type ReactNode, useState } from 'react'
-import { displayTitle, formatClockTime, formatDuration, statusLabel, statusSummary } from '../data/format.ts'
-import { useEvents, useNow } from '../data/hooks.ts'
+import {
+  displayTitle,
+  elapsedMs,
+  formatClockTime,
+  formatDuration,
+  statusLabel,
+  statusSummary,
+} from '../data/format.ts'
+import { useEvents, useNow, useQaFeed, useTranscriptFeed } from '../data/hooks.ts'
+import { _ } from '../i18n/index.ts'
+import { AskPane } from './ask-pane.tsx'
+import { useDialogs } from './dialogs.tsx'
+import { type TranscriptFocus, TranscriptView } from './transcript-view.tsx'
 
-const TRACK_LABEL: Record<TrackKind, string> = { mic: 'Microphone', system: 'System audio' }
+const TRACK_LABEL: Record<TrackKind, () => string> = {
+  mic: () => _('Microphone'),
+  system: () => _('System audio'),
+}
 
 function SectionHeading({ title }: { title: string }) {
   return (
@@ -45,26 +70,21 @@ function Levels({ sessionId }: { sessionId: string }) {
     setLevels((l) => (l[track] === rms ? l : { ...l, [track]: rms }))
   })
   return (
-    <Section title="Levels">
+    <GtkBox spacing={18} accessibleLabel={_('Levels')}>
       {(['mic', 'system'] as const).map((t) => (
-        <AdwActionRow
-          key={t}
-          title={TRACK_LABEL[t]}
-          useMarkup={false}
-          // `suffix`, not children: children of an AdwActionRow replace the row's whole content
-          suffix={
-            <GtkLevelBar
-              valign={Gtk.Align.CENTER}
-              widthRequest={240}
-              minValue={0}
-              maxValue={1}
-              value={levels[t]}
-              accessibleLabel={`${TRACK_LABEL[t]} level`}
-            />
-          }
-        />
+        <GtkBox key={t} spacing={8} hexpand>
+          <GtkLabel label={TRACK_LABEL[t]()} cssClasses={['caption', 'dim-label']} />
+          <GtkLevelBar
+            hexpand
+            valign={Gtk.Align.CENTER}
+            minValue={0}
+            maxValue={1}
+            value={levels[t]}
+            accessibleLabel={`${TRACK_LABEL[t]()} ${_('level')}`}
+          />
+        </GtkBox>
       ))}
-    </Section>
+    </GtkBox>
   )
 }
 
@@ -80,49 +100,135 @@ function InfoRow({ title, value }: { title: string; value: string }) {
   )
 }
 
-export function SessionDetail({ session }: { session: Session }) {
+function Details({ session }: { session: Session }) {
   const now = useNow(30_000)
-  const live = session.status === 'recording' || session.status === 'paused'
   return (
-    <AdwToolbarView topBar={<AdwHeaderBar />}>
-      <GtkScrolledWindow vexpand hscrollbarPolicy={Gtk.PolicyType.NEVER}>
-        <AdwClamp maximumSize={720} marginTop={24} marginBottom={24} marginStart={12} marginEnd={12}>
-          <GtkBox orientation={Gtk.Orientation.VERTICAL} spacing={24} accessibleLabel="Session details">
-            <GtkBox orientation={Gtk.Orientation.VERTICAL} spacing={6}>
-              <GtkLabel
-                label={displayTitle(session)}
-                cssClasses={['title-1']}
-                wrap
-                xalign={0}
-                // not `selectable`: a selectable label takes focus when the page is shown and
-                // selects its whole text (seen in the collapsed-layout screenshot)
-                accessibleRole={Gtk.AccessibleRole.HEADING}
-                accessibleLevel={1}
-              />
-              <GtkLabel label={statusSummary(session)} cssClasses={['dim-label']} xalign={0} />
-            </GtkBox>
+    <GtkScrolledWindow vexpand hscrollbarPolicy={Gtk.PolicyType.NEVER}>
+      <AdwClamp
+        maximumSize={760}
+        tighteningThreshold={560}
+        marginTop={12}
+        marginBottom={24}
+        marginStart={12}
+        marginEnd={18}
+      >
+        <Section title={_('Details')}>
+          <InfoRow title={_('Status')} value={statusLabel(session.status)} />
+          <InfoRow
+            title={_('Started')}
+            value={session.startedAt ? formatClockTime(session.startedAt, now) : _('Not started')}
+          />
+          <InfoRow title={_('Duration')} value={formatDuration(elapsedMs(session, now))} />
+          <InfoRow
+            title={_('Tracks')}
+            value={session.tracks.map((t) => TRACK_LABEL[t.kind]()).join(', ') || _('None')}
+          />
+          {session.private ? (
+            <InfoRow title={_('Visibility')} value={_('Private: hidden from the CLI')} />
+          ) : null}
+          {session.error ? <InfoRow title={_('Error')} value={session.error} /> : null}
+        </Section>
+      </AdwClamp>
+    </GtkScrolledWindow>
+  )
+}
+
+/** "Recording · 3:12", ticking every second while it records. */
+function StatusLine({ session }: { session: Session }) {
+  const now = useNow(session.status === 'recording' ? 1000 : 60_000)
+  return <GtkLabel label={statusSummary(session, now)} cssClasses={['dim-label']} xalign={0} />
+}
+
+export type DetailPage = 'transcript' | 'ask' | 'details'
+
+/**
+ * One session: a heading, then Transcript / Ask / Details as an AdwViewStack with a view switcher
+ * in the header bar (and at the bottom when the window is narrow). Mounted with key={session.id},
+ * so every per-session feed starts fresh when the selection changes.
+ */
+export function SessionDetail({ session, narrow }: { session: Session; narrow: boolean }) {
+  const live = session.status === 'recording' || session.status === 'paused'
+  const transcript = useTranscriptFeed(session.id)
+  const qa = useQaFeed(session.id)
+  const dialogs = useDialogs()
+  const [stack, setStack] = useState<Adw.ViewStack | null>(null)
+  const [page, setPage] = useState<DetailPage>('transcript')
+  const [focus, setFocus] = useState<TranscriptFocus | null>(null)
+
+  const cite = (c: Citation) => {
+    if (c.sessionId !== session.id) return
+    setPage('transcript')
+    setFocus((f) => ({ segmentId: c.segmentId, nonce: (f?.nonce ?? 0) + 1 }))
+  }
+
+  return (
+    <AdwToolbarView
+      topBar={
+        <AdwHeaderBar
+          titleWidget={
+            narrow ? undefined : <AdwViewSwitcher stack={stack} policy={Adw.ViewSwitcherPolicy.WIDE} />
+          }
+        />
+      }
+      bottomBar={narrow ? <AdwViewSwitcherBar stack={stack} reveal /> : undefined}
+    >
+      <GtkBox orientation={Gtk.Orientation.VERTICAL}>
+        {/* same clamp as the transcript list, inset like its lines, so the heading lines up with them */}
+        <AdwClamp maximumSize={760} tighteningThreshold={560} marginTop={18} marginBottom={6}>
+          <GtkBox
+            orientation={Gtk.Orientation.VERTICAL}
+            spacing={6}
+            marginStart={12}
+            marginEnd={18}
+            accessibleLabel={_('Session details')}
+          >
+            <GtkLabel
+              label={displayTitle(session)}
+              cssClasses={['title-1']}
+              wrap
+              xalign={0}
+              // not `selectable`: a selectable label takes focus when the page is shown and
+              // selects its whole text (seen in the collapsed-layout screenshot)
+              accessibleRole={Gtk.AccessibleRole.HEADING}
+              accessibleLevel={1}
+            />
+            <StatusLine session={session} />
             {live ? <Levels sessionId={session.id} /> : null}
-            <Section title="Details">
-              <InfoRow title="Status" value={statusLabel(session.status)} />
-              <InfoRow
-                title="Started"
-                value={session.startedAt ? formatClockTime(session.startedAt, now) : 'Not started'}
-              />
-              <InfoRow title="Duration" value={formatDuration(session.durationMs)} />
-              <InfoRow
-                title="Tracks"
-                value={session.tracks.map((t) => TRACK_LABEL[t.kind]).join(', ') || 'None'}
-              />
-              {session.private ? <InfoRow title="Visibility" value="Private: hidden from the CLI" /> : null}
-              {session.error ? <InfoRow title="Error" value={session.error} /> : null}
-            </Section>
-            <GtkBox orientation={Gtk.Orientation.VERTICAL} spacing={12}>
-              <SectionHeading title="Transcript" />
-              <GtkLabel label="The transcript will appear here." cssClasses={['dim-label']} xalign={0} />
-            </GtkBox>
           </GtkBox>
         </AdwClamp>
-      </GtkScrolledWindow>
+        <AdwViewStack
+          ref={setStack}
+          vexpand
+          visibleChildName={page}
+          onNotifyVisibleChildName={(v) => {
+            if (v === 'transcript' || v === 'ask' || v === 'details') setPage(v)
+          }}
+        >
+          {/* Each page's content sits in a stable GtkBox: a lazy AdwViewStackPage is bound to its
+              child's root widget, and when that root changes (loading page → list) GTKX re-adds
+              the page at the END of the stack — the view switcher order then scrambles. */}
+          <AdwViewStackPage name="transcript" title={_('Transcript')} iconName="view-list-symbolic">
+            <GtkBox orientation={Gtk.Orientation.VERTICAL}>
+              <TranscriptView feed={transcript} live={live} focus={focus} />
+            </GtkBox>
+          </AdwViewStackPage>
+          <AdwViewStackPage name="ask" title={_('Ask')} iconName="chat-message-new-symbolic">
+            <GtkBox orientation={Gtk.Orientation.VERTICAL}>
+              <AskPane
+                state={qa.state}
+                feed={qa.feed}
+                onCite={cite}
+                onOpenPreferences={() => dialogs.open('preferences')}
+              />
+            </GtkBox>
+          </AdwViewStackPage>
+          <AdwViewStackPage name="details" title={_('Details')} iconName="info-outline-symbolic">
+            <GtkBox orientation={Gtk.Orientation.VERTICAL}>
+              <Details session={session} />
+            </GtkBox>
+          </AdwViewStackPage>
+        </AdwViewStack>
+      </GtkBox>
     </AdwToolbarView>
   )
 }
@@ -133,8 +239,8 @@ export function NothingSelected() {
       <AdwStatusPage
         vexpand
         iconName="audio-input-microphone-symbolic"
-        title="No Session Selected"
-        description="Pick a session in the sidebar, or press Record to start one."
+        title={_('No Session Selected')}
+        description={_('Pick a session in the sidebar, or press Record to start one.')}
       />
     </AdwToolbarView>
   )

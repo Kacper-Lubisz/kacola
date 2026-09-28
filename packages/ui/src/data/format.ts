@@ -1,6 +1,9 @@
 import type { Session, SessionStatus } from '@gnomeola/protocol'
+import { _, fmt } from '../i18n/index.ts'
 
-// Pure display formatting. No GTK here, so it is unit-tested under plain vitest.
+// Pure display formatting. No GTK here, so it is unit-tested under plain vitest. Words go through
+// `_()` (translated once the app installs gettext); weekday and month names are still English —
+// moving them to Intl.DateTimeFormat is the next step when a real translation arrives.
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
@@ -21,11 +24,11 @@ export function formatRelativeTime(iso: string, now: Date = new Date()): string 
   const t = then.getTime()
   if (Number.isNaN(t)) return ''
   const diff = now.getTime() - t
-  if (diff < MINUTE) return 'just now'
-  if (diff < HOUR) return `${Math.floor(diff / MINUTE)} min ago`
+  if (diff < MINUTE) return _('just now')
+  if (diff < HOUR) return fmt(_('{n} min ago'), { n: Math.floor(diff / MINUTE) })
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  if (t >= startOfToday) return `${Math.floor(diff / HOUR)} h ago`
-  if (t >= startOfToday - DAY) return 'Yesterday'
+  if (t >= startOfToday) return fmt(_('{n} h ago'), { n: Math.floor(diff / HOUR) })
+  if (t >= startOfToday - DAY) return _('Yesterday')
   if (t >= startOfToday - 6 * DAY) return WEEKDAYS[then.getDay()]!
   const dm = `${then.getDate()} ${MONTHS[then.getMonth()]}`
   return then.getFullYear() === now.getFullYear() ? dm : `${dm} ${then.getFullYear()}`
@@ -52,27 +55,45 @@ export function formatDuration(ms: number): string {
   return h ? `${h}:${pad2(m)}:${pad2(s)}` : `${m}:${pad2(s)}`
 }
 
-const STATUS_LABELS: Record<SessionStatus, string> = {
-  idle: 'Not started',
-  recording: 'Recording',
-  paused: 'Paused',
-  stopped: 'Finished',
-  recovered: 'Recovered',
-  failed: 'Failed',
+// functions, not strings: evaluated after the translator is installed, not at import time
+const STATUS_LABELS: Record<SessionStatus, () => string> = {
+  idle: () => _('Not started'),
+  recording: () => _('Recording'),
+  paused: () => _('Paused'),
+  stopped: () => _('Finished'),
+  recovered: () => _('Recovered'),
+  failed: () => _('Failed'),
 }
 
-export const statusLabel = (s: SessionStatus): string => STATUS_LABELS[s]
+export const statusLabel = (s: SessionStatus): string => STATUS_LABELS[s]()
+
+/**
+ * How long a session has been recording. The daemon updates `durationMs` when a recording stops (or
+ * pauses), not every second, so while it records the clock runs from `startedAt`.
+ */
+export function elapsedMs(
+  session: Pick<Session, 'status' | 'durationMs' | 'startedAt'>,
+  now: Date = new Date(),
+): number {
+  if (session.status !== 'recording' || !session.startedAt) return session.durationMs
+  const since = now.getTime() - Date.parse(session.startedAt)
+  return Number.isFinite(since) ? Math.max(session.durationMs, since) : session.durationMs
+}
 
 /** The status part of a row subtitle: "Recording · 3:12", "Finished · 45:00", "Not started". */
-export function statusSummary(session: Pick<Session, 'status' | 'durationMs'>): string {
+export function statusSummary(
+  session: Pick<Session, 'status' | 'durationMs'> & Partial<Pick<Session, 'startedAt'>>,
+  now: Date = new Date(),
+): string {
   if (session.status === 'idle') return statusLabel('idle')
-  return `${statusLabel(session.status)} · ${formatDuration(session.durationMs)}`
+  const ms = elapsedMs({ startedAt: null, ...session }, now)
+  return `${statusLabel(session.status)} · ${formatDuration(ms)}`
 }
 
 /** The sidebar row subtitle: "5 min ago · Recording · 3:12". */
 export function sessionSubtitle(session: Session, now: Date = new Date()): string {
   const when = formatRelativeTime(session.startedAt ?? session.createdAt, now)
-  return `${when} · ${statusSummary(session)}`
+  return `${when} · ${statusSummary(session, now)}`
 }
 
 /** Escape text for widgets whose string props are Pango markup (AdwStatusPage.description, …). */
@@ -86,4 +107,4 @@ export const escapeMarkup = (s: string): string =>
 
 /** Titles are never blank on screen: an unnamed session reads as "Untitled session". */
 export const displayTitle = (session: Pick<Session, 'title'>): string =>
-  session.title.trim() === '' ? 'Untitled session' : session.title
+  session.title.trim() === '' ? _('Untitled session') : session.title

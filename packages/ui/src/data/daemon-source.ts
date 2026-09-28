@@ -26,7 +26,7 @@ export function createDaemonSource(opts: DaemonSourceOptions): DataSource {
         query: { includePrivate: true, limit: 500 },
         signal,
       })
-      return { sessions, seq: health.lastSeq }
+      return { sessions, seq: health.lastSeq, health }
     },
     subscribe(h: SubscribeHandlers) {
       return client.subscribe({
@@ -46,5 +46,26 @@ export function createDaemonSource(opts: DaemonSourceOptions): DataSource {
     stopRecording(id) {
       return client.call('stopSession', { params: { id } })
     },
+    transcript(id, signal) {
+      return client.call('getTranscript', { params: { id }, query: { includePrivate: true }, signal })
+    },
+    async qaHistory(id, signal) {
+      return (await client.call('getQaHistory', { params: { id }, query: { includePrivate: true }, signal }))
+        .messages
+    },
+    ask(body, signal) {
+      return client.ask(body, signal)
+    },
+    health: (signal) => client.call('health', { signal }),
+    getSettings: (signal) => client.call('getSettings', { signal }),
+    updateSettings: (patch) => client.call('updateSettings', { body: patch }),
+    setApiKey: (key) => client.call('setApiKey', { body: { key } }),
+    async listDevices(signal) {
+      return (await client.call('listDevices', { signal })).devices
+    },
+    async listModels(signal) {
+      return (await client.call('listModels', { signal })).models
+    },
+    downloadModel: (id) => client.call('downloadModel', { params: { id } }),
   }
 }

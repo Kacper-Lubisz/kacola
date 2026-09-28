@@ -1,15 +1,18 @@
-import type { AnyEvent, Session } from '@gnomeola/protocol'
+import type { AnyEvent, Health, Session, Settings } from '@gnomeola/protocol'
 import {
   createContext,
   createElement,
   type ReactNode,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
 } from 'react'
+import { QaFeed, type QaFeedState } from './qa.ts'
 import type { Connection, SessionStore } from './store.ts'
+import { TranscriptFeed, type TranscriptFeedState } from './transcript.ts'
 
 // React bindings for SessionStore. Components never touch the protocol client directly.
 
@@ -43,6 +46,16 @@ export function useConnection(): Connection {
   return useSyncExternalStore(store.subscribe, () => store.getSnapshot().connection)
 }
 
+export function useSettings(): Settings | null {
+  const store = useStore()
+  return useSyncExternalStore(store.subscribe, () => store.getSnapshot().settings)
+}
+
+export function useHealth(): Health | null {
+  const store = useStore()
+  return useSyncExternalStore(store.subscribe, () => store.getSnapshot().health)
+}
+
 /**
  * Subscribe to the raw event stream (durable and ephemeral). The handler may change every render;
  * the subscription does not.
@@ -62,4 +75,41 @@ export function useNow(everyMs = 30_000): Date {
     return () => clearInterval(h)
   }, [everyMs])
   return now
+}
+
+/** One session's transcript, loaded and then kept live. A new feed per session id. */
+export function useTranscriptFeed(sessionId: string): TranscriptFeedState {
+  const store = useStore()
+  const feed = useMemo(
+    () =>
+      new TranscriptFeed(sessionId, {
+        load: (id, signal) => store.api.transcript(id, signal),
+        onEvent: (l) => store.onEvent(l),
+      }),
+    [store, sessionId],
+  )
+  useEffect(() => {
+    feed.start()
+    return () => feed.dispose()
+  }, [feed])
+  return useSyncExternalStore(feed.subscribe, feed.getSnapshot)
+}
+
+/** One session's Q&A: history, live messages, and `feed.ask` for this window's own questions. */
+export function useQaFeed(sessionId: string): { state: QaFeedState; feed: QaFeed } {
+  const store = useStore()
+  const feed = useMemo(
+    () =>
+      new QaFeed(sessionId, {
+        history: (id, signal) => store.api.qaHistory(id, signal),
+        onEvent: (l) => store.onEvent(l),
+        ask: (body, signal) => store.api.ask(body, signal),
+      }),
+    [store, sessionId],
+  )
+  useEffect(() => {
+    feed.start()
+    return () => feed.dispose()
+  }, [feed])
+  return { state: useSyncExternalStore(feed.subscribe, feed.getSnapshot), feed }
 }

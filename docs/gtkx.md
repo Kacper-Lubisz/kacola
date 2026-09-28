@@ -19,21 +19,45 @@ packages/ui/
 ├─ gtkx.config.ts          application id, future flags, codegen options
 ├─ vite.config.ts          alias for the generated bindings (pnpm workspace fix, §3)
 ├─ scripts/gtkx-store-resolve.ts   Node resolve hook for `gtkx dev` (same fix, §3)
+├─ scripts/i18n-pot.ts     regenerate translations/gnomeola.pot with xgettext (§10)
+├─ scripts/i18n-compile.ts compile translations/*.po → dist/locale (runs after `gtkx build`)
+├─ translations/           gnomeola.pot + LINGUAS (NOT po/ — GTKX reserves that, §10)
 ├─ src/
-│  ├─ index.tsx            entry: config → data source → SessionStore → createRoot().render()
-│  ├─ app.tsx              <AdwApplication> + store provider + main window
+│  ├─ index.tsx            entry: gettext → config → data source → SessionStore → render
+│  ├─ app.tsx              <AdwApplication actionAccels> + store + dialogs providers + window
 │  ├─ gallery.tsx          GNOMEOLA_UI_GALLERY=1: every widget pattern in §6, typechecked + e2e-tested
-│  ├─ components/          main-window, sidebar, session-detail, record-button, status-pages, toasts
+│  ├─ i18n/                index.ts: `_()`/`ngettext()`/`fmt()` (GTK-free); gettext.ts: binds the domain
+│  ├─ components/
+│  │  ├─ main-window.tsx   split view, win.* actions, onboarding trigger, dialog host
+│  │  ├─ sidebar.tsx       session list (roving tab stop), primary menu, models banner
+│  │  ├─ session-detail.tsx heading + AdwViewStack: Transcript / Ask / Details
+│  │  ├─ transcript-view.tsx T-6: virtualised lines, partial row, follow + Jump to Live
+│  │  ├─ virtual-list.tsx  GtkListView over a GtkStringList of keys, React rows, named list items
+│  │  ├─ ask-pane.tsx      Q-5: composer, streaming answer, citation chips, refusal/unavailable
+│  │  ├─ preferences.tsx   S-3: AdwPreferencesDialog over the daemon's settings
+│  │  ├─ about.tsx         S-4: AdwAboutDialog, Granola credit, bundled third-party list
+│  │  ├─ onboarding.tsx    S-1: models + progress + capture check
+│  │  ├─ dialogs.tsx       which dialog is open (context), DialogHost
+│  │  ├─ named-button.tsx, a11y.ts   accessible-name helpers (§5)
+│  │  └─ record-button, status-pages, toasts, styles.ts (app CSS via @gtkx/css injectGlobal)
 │  └─ data/                NO GTK IMPORTS — pure TS, unit-tested under plain vitest
-│     ├─ source.ts         DataSource interface (load / subscribe / startRecording / stopRecording)
+│     ├─ source.ts         DataSource: load/subscribe/record + transcript, qa, ask, settings, models…
 │     ├─ daemon-source.ts  the real thing: @gnomeola/protocol createClient()
-│     ├─ demo-source.ts    GNOMEOLA_UI_DEMO=1 in-process fake with timers
-│     ├─ store.ts          SessionStore: snapshot + resumable event stream, connection state
-│     ├─ sessions.ts       pure fold of events into the session list
-│     ├─ hooks.ts          useSessions / useSession / useEvents / useConnection / useNow
-│     ├─ format.ts         relative times, durations, status text, markup escaping
+│     ├─ demo-source.ts    GNOMEOLA_UI_DEMO=1 in-process fake (sessions, transcripts, partials, settings)
+│     ├─ store.ts          SessionStore: snapshot + resumable event stream, connection, settings, health
+│     ├─ sessions.ts       pure fold of events into the session list (upserts, deletions)
+│     ├─ transcript.ts     segment/partial fold (revisions), display rows, TranscriptFeed
+│     ├─ qa.ts             Q&A turns fold (history, qa.message, qa.delta, own ask stream), QaFeed
+│     ├─ follow.ts         autoscroll intent (§6 "Live lists")
+│     ├─ list-diff.ts      one splice per list-model update
+│     ├─ settings.ts       Preferences choices, device lists, required/missing models
+│     ├─ ui-state.ts       onboarding memory ($XDG_STATE_HOME/gnomeola/ui-state.json)
+│     ├─ notices.ts        THIRD_PARTY_NOTICES.md → About's legal section
+│     ├─ perf.ts           GNOMEOLA_UI_PERF=1 measurements on stderr
+│     ├─ hooks.ts          useSessions / useSession / useSettings / useHealth / useTranscriptFeed / useQaFeed …
+│     ├─ format.ts         relative times, durations (a recording's clock runs from startedAt), escaping
 │     └─ config.ts         env → config
-└─ test/*.test.ts          unit tests for data/ (run by the root `unit` project)
+└─ test/*.test.ts          unit tests for data/ and the translation template (root `unit` project)
 ```
 
 **Rule of thumb:** anything that can be a pure function goes in `src/data/` (or another GTK-free module)
@@ -41,7 +65,9 @@ and gets a `*.test.ts`. Components stay thin. `@gtkx/*` imports must never appea
 because the root vitest runs those tests without a display.
 
 The UI may import **only** `@gnomeola/protocol` from this workspace (`pnpm boundaries` enforces it,
-including in `test/`). That is also why the UI's e2e tests live in `packages/testkit/src/ui/e2e/`.
+including in `test/`). That is also why the UI's e2e tests live outside it: the harness self-tests and
+demo/stub-daemon tests in `packages/testkit/src/ui/e2e/`, and everything against the **real daemon**
+in `packages/e2e/test/ui-*.e2e.test.ts` (§8).
 
 ### Runtime configuration (environment only)
 
@@ -53,6 +79,10 @@ including in `test/`). That is also why the UI's e2e tests live in `packages/tes
 | `GNOMEOLA_UI_DEMO_INTERVAL_MS` | demo: a new recording every N ms (default 4000) |
 | `GNOMEOLA_UI_DEMO_MAX_SESSIONS` | demo: stop churning at N sessions (default 40) |
 | `GNOMEOLA_UI_GALLERY=1` | open the widget gallery instead of the app |
+| `GNOMEOLA_UI_ONBOARDING` | `1`/`0`: open first-run onboarding by itself when due (default: on for a daemon, off for the demo) |
+| `GNOMEOLA_UI_STATE_FILE` | where onboarding is remembered (default `$XDG_STATE_HOME/gnomeola/ui-state.json`) |
+| `GNOMEOLA_UI_PERF=1` | print `{"perf":…}` measurement lines on stderr (the e2e suite reads them) |
+| `GNOMEOLA_LOCALE_DIR` | where `<lang>/LC_MESSAGES/gnomeola.mo` catalogs are (default: `locale/` beside the bundle, else `/usr/share/locale`) |
 
 ---
 
@@ -68,7 +98,9 @@ pnpm --filter @gnomeola/ui build       # → packages/ui/dist/bundle.mjs (+ dist
 node packages/ui/dist/bundle.mjs       # run the production bundle
 pnpm --filter @gnomeola/ui typecheck   # codegen, then tsc (also part of `pnpm run check`)
 pnpm exec vitest run --project unit packages/ui          # pure-logic tests, no display
-pnpm exec vitest run --project e2e packages/testkit/src/ui   # headless window tests (~50 s)
+pnpm exec vitest run --project e2e packages/testkit/src/ui   # harness + demo/stub-daemon window tests (~50 s)
+pnpm exec vitest run --project e2e packages/e2e/test/ui-     # the window against the real daemon (~2 min)
+pnpm --filter @gnomeola/ui i18n:pot    # regenerate translations/gnomeola.pot after changing strings
 ```
 
 `build` sets `NODE_ENV=production` itself. **Do not build with `NODE_ENV=test` (vitest's default):**
@@ -191,7 +223,14 @@ Details worth knowing:
   keyboard is swallowed, so the driver burns a Shift press first. The top bar then shows the orange
   "remote desktop" indicator in screenshots; that is expected.
 - **Focus:** GTK 4 does not implement AT-SPI `Component.GrabFocus`; `focus()` falls back to real
-  Tab presses until the node reports `focused`.
+  Tab presses until the node reports `focused`. Tab walking has side effects in a real window — it
+  used to cross the sidebar list and switch sessions (§9) — so `focusInto(container, { reverse })`
+  exists: it Tabs (or Shift+Tabs) until focus lands *inside* a container, which is also the only way
+  to reach a GtkListView whose rows are recycled and cannot be targeted one by one.
+- **Live trees:** rows of a GtkListView are destroyed and recreated as it scrolls. The driver skips
+  nodes that vanish mid-walk, and `find` reports a node once even when the tree reaches it twice
+  (AdwViewStack exposes its visible child under every page). Never hold a row's `ref` across a
+  scroll — find it again.
 - **Clicking:** `click()` uses the node's AT-SPI action (`click` for buttons, `toggle` for
   switches), else — for selectable list rows — `Selection.select_child` on the parent list (the
   same selection a pointer click makes), else an action on a descendant (composite rows such as
@@ -221,6 +260,14 @@ Details worth knowing:
   | `AdwAlertDialog` | heading/body are `label`s, responses `button`s | `click()` a response |
   | `AdwToast` | a `label` with the toast title | — |
   | `AdwBanner` | `grouping` · title | see the gotcha in §5 |
+  | `AdwViewStack` + `AdwViewSwitcher` | `page tab` · page title (`selected` when shown) | `click()` → action `click` |
+  | `GtkListView` (ours, `virtual-list.tsx`) | `list` · `accessibleLabel`; rows `list item` · the item's `accessible-label` | `focusInto(list)`, arrows/Home/End/Page keys |
+  | `GtkMenuButton` | `button` wrapping a `toggle button` · `accessibleLabel` | `click()` the toggle button |
+  | `AdwPasswordEntryRow` | `password text` · title (text is masked) | `focus()` + `typeText()`, `Return` applies |
+  | `GtkSpinButton` | `spin button` · `accessibleLabel`, `describe().value` | `focus()` + `Up`/`Down` |
+  | `GtkProgressBar` | `progress bar` · `accessibleLabel`, `describe().value` (0..1) | — |
+  | `AdwDialog` / `AdwPreferencesDialog` | `dialog` · title | Close button inside it (`within: dialog`) |
+  | `AdwAboutDialog` rows (Details, Legal…) | `list item`, **no action** | `focus()` + `Return` |
 - The app's AT-SPI application name comes from `GLib.setApplicationName()` — see `src/index.tsx`;
   without it the app is registered as `node`.
 
@@ -271,7 +318,33 @@ has an audit that **fails on any showing button/entry/list/list item/level bar/s
   reader (and a test) sees a stale warning. We mount the banner only while it should show.
 - **Known exception:** `AdwComboRow` exposes its current-value display as an unnamed `list` /
   `list item` inside the named `combo box`. That is libadwaita's, not ours; if you add the audit to a
-  screen with a combo row, skip descendants of `combo box`.
+  screen with a combo row, skip descendants of `combo box` (`unnamedInteractive()` in
+  `packages/e2e/src/ui.ts` does).
+- **Gotcha:** the labelled-by trap is not limited to `AdwButtonContent`: a plain `<GtkButton
+  label=…>` also names itself after its internal label, so `accessibleLabel` is ignored **(e2e)**.
+  When the visible text is not a good name (a citation chip shows "[1] Me · 0:08" but should be
+  announced "Citation 1: Me at 0:08") use `<NamedButton text=… name=…>` (a child `GtkLabel`, which
+  is not wired as labelled-by).
+- **Fixed:** `AdwPreferencesGroup`'s internal list *can* be named after all: `ref={nameGroupList(title)}`
+  (`components/a11y.ts`) finds the group's `GtkListBox` and sets its label through
+  `updateProperty` with a GValue string, exactly as GTKX applies `accessibleLabel`.
+- **GTK/libadwaita widgets that are not usable over AT-SPI here** (GTK 4.22, libadwaita 1.9),
+  replaced in this app **(e2e)**:
+  - popover-menu items built from a `GMenu` (`GtkModelButton`) are `menu item`s with **no name** —
+    the primary menu is a `GtkPopover` of named flat buttons with `actionName="win.…"` instead;
+  - `AdwSpinRow` is **absent from the tree** (drawn, not exposed) — use an `AdwActionRow` with a
+    `GtkSpinButton accessibleLabel=…` suffix;
+  - `AdwAboutDialog` shows `comments` on its **Details** sub-page, not the main page, and its rows
+    have no AT-SPI action (activate with the keyboard). Its own row lists are unnamed too;
+    `nameInternalLists(dialog.getChild())` (`a11y.ts`) names each after its visible rows' titles.
+    Walk from `getChild()`: an `AdwDialog`'s content is reparented into the window's sheet when
+    presented, so the dialog widget itself has no children by then (a walk from it found 0 widgets).
+  - a hyperlink inside label markup (the licence link on About → Legal) is an unnamed `link` child
+    of the `label`; its text is read as part of the label. The audit skips links inside labels.
+- A GtkListView row's name is the `GtkListItem`'s `accessible-label` (GTK ≥ 4.12). A label on the
+  row's *content* box does not help: a `GtkBox` has the generic role, which GTK refuses to name.
+  `@gtkx/components`' `ListView` gives no access to the `GtkListItem`, which is why
+  `virtual-list.tsx` exists (§6).
 
 ---
 
@@ -345,9 +418,56 @@ widgets to keep the dependency surface small.
 - **Row widgets go in `prefix`/`suffix`. Children of an `AdwActionRow` replace the row's whole
   content** (title and subtitle disappear) — seen in a screenshot of the level meters, fixed by moving
   them to `suffix`.
-- For long lists (hundreds+) prefer `GtkListView` (model + factory); `@gtkx/components` has a
-  `ListView` wrapper taking `items` + `renderItem`. The sidebar is fine with `GtkListBox`.
+- For long lists (hundreds+) use `GtkListView`: see "Live lists" below. The sidebar is fine with
+  `GtkListBox`, but see the Tab gotcha in §9.
 - libadwaita 1.9 also has `AdwSidebar`/`AdwSidebarItem`; not evaluated yet.
+
+### Live lists: `VirtualList` (the transcript)
+
+`components/virtual-list.tsx`, ~150 lines over documented GTK API:
+
+```tsx
+<GtkScrolledWindow vexpand hscrollbarPolicy={Gtk.PolicyType.NEVER}>
+  <AdwClampScrollable maximumSize={760}>
+    <VirtualList rows={rows} keyOf={(r) => r.id} render={(r) => <Line row={r} />}
+      labelOf={rowAccessibleName} selectedKey={cited} onSelectedKey={setCited}
+      listRef={list} accessibleLabel="Transcript" />
+  </AdwClampScrollable>
+</GtkScrolledWindow>
+```
+
+- The model is a `GtkStringList` of row **keys** behind a `GtkSingleSelection`; each visible
+  `GtkListItem` gets its content through `createPortal(…, listItem)` (a `GtkListItem` is a GTKX
+  single-child container) and its name through `listItem.setAccessibleLabel()`.
+- Updates are one `splice()` per render (`data/list-diff.ts`: common prefix/suffix), so appending a
+  line or revising one in place touches one position. Measured on the seeded 1,350-line meeting
+  **(e2e, `GNOMEOLA_UI_PERF=1`)**: snapshot → model committed in ~7 ms; from the first line, `End`
+  shows the last line within ~320 ms and ten `Page_Down`s take ~350 ms — both measured through
+  AT-SPI polling, so upper bounds; only ~12 rows exist as widgets.
+- Keyboard focus entering a *followed* list is moved to the newest line (a `GtkEventControllerFocus`
+  `enter` handler, deferred with `setTimeout(0)` — during `enter` GTK has not yet moved focus to its
+  own cursor item, the first line, which follow keeps scrolled out of view; focus used to land there,
+  invisible and absent from AT-SPI) **(e2e)**.
+- **Gotcha:** give each new list item a placeholder child of the estimated row height in the
+  factory's `setup`/`bind`. Without it the item measures 0 px until React commits its portal, and
+  the view stopped creating rows: a 1,350-line transcript rendered **one** row. (`@gtkx/components`
+  does the same.)
+- **Gotcha:** create the `GtkSignalListItemFactory` element once (`useMemo`). A new factory element
+  per render makes the view tear down and rebuild every row.
+- `tabBehavior={Gtk.ListTabBehavior.ITEM}`: Tab leaves the list instead of visiting each of its
+  1,350 rows; arrows/Home/End/Page keys move within. A `GtkSingleSelection` selects the row the
+  keyboard cursor moves to — the transcript uses the selection as its "cited line" highlight, so a
+  keyboard user's position and a followed citation are the same visual.
+- Scroll to a row with `listView.scrollTo(i, Gtk.ListScrollFlags.NONE, null)`.
+- **Following the live end** (`data/follow.ts`) is about *intent*, not position: wheel/touchpad up
+  (a capture-phase `GtkEventControllerScroll`), Up/Page Up/Home (a capture-phase
+  `GtkEventControllerKey`), or a page-sized jump of the adjustment detach; reaching the bottom
+  re-attaches; content growth while attached pins `adjustment.value` to `upper - page_size`. A
+  position-only rule fails on a GtkListView because it re-estimates row heights as it measures them —
+  the scroll value drifts with nobody touching anything, and the view detached itself **(e2e: Jump
+  to Live appeared unprompted, then refused to go away)**.
+- The earlier open question here (does re-setting a `GtkTextBuffer`'s text on every partial reset
+  scroll/selection?) is moot: the transcript is a list, and the in-progress partial is its last row.
 
 ### Status pages (empty/error/loading)
 
@@ -391,9 +511,38 @@ equivalent `ToastProvider`.)
 </GtkScrolledWindow>
 ```
 
-Not yet verified (T-6 should check): for a live transcript, re-setting the buffer's `text` on every
-partial will likely reset scroll position and selection; appending through a `GtkTextBuffer` ref is
-the usual GTK approach.
+(The transcript does not use a text view: see "Live lists" above.)
+
+### Pages: `AdwViewStack` + `AdwViewSwitcher`
+
+```tsx
+const [stack, setStack] = useState<Adw.ViewStack | null>(null)   // state: the switcher needs the object
+<AdwToolbarView
+  topBar={<AdwHeaderBar titleWidget={narrow ? undefined : <AdwViewSwitcher stack={stack} policy={Adw.ViewSwitcherPolicy.WIDE} />} />}
+  bottomBar={narrow ? <AdwViewSwitcherBar stack={stack} reveal /> : undefined}>
+  <AdwViewStack ref={setStack} visibleChildName={page} onNotifyVisibleChildName={(v) => setPage(v)}>
+    <AdwViewStackPage name="transcript" title="Transcript" iconName="view-list-symbolic">
+      <GtkBox orientation={Gtk.Orientation.VERTICAL}><TranscriptView … /></GtkBox>
+    </AdwViewStackPage>
+    …
+```
+
+- **Gotcha:** an `AdwViewStackPage` is a *lazy* GTKX element bound to its child's **root widget**.
+  When that root changes type (a loading `AdwStatusPage` becoming the list), GTKX removes the page and
+  adds it again — at the **end**: the switcher read "Ask, Details, Transcript" **(seen in a
+  screenshot)**. Wrap every page's content in a stable `GtkBox`.
+- Tabs are `page tab`s in AT-SPI; a citation switches pages by setting `visibleChildName`.
+
+### Actions, shortcuts and the primary menu
+
+```tsx
+<AdwApplication actionAccels={[{ detailedActionName: 'win.preferences', accels: ['<Control>comma'] }]}>
+<AdwApplicationWindow actions={<><GSimpleAction name="preferences" onActivate={open} />…</>}>
+<GtkButton actionName="win.preferences" … />      // anything actionable can target it
+```
+
+`GSimpleAction` comes from `@gtkx/jsx/gio`. GTKX also has `<GMenu items=[…]>` for `menuModel`, but
+see §5 for why the primary menu is a popover of buttons.
 
 ### Buttons, switches, rows, combo rows
 
@@ -421,7 +570,26 @@ Style classes: `suggested-action`, `destructive-action`, `pill`, `flat`, `boxed-
 Mounting presents the dialog, unmounting closes it; the user closing it (Escape, the close button)
 fires `onClosed`, where we clear the state — reopening then works **(e2e)**. `AdwAlertDialog`
 reports the chosen response id to `onResponse` **(e2e)**. Inside `AdwPreferencesDialog`,
-`AdwPreferencesGroup` is the right container (the dialog's search and layout expect it).
+`AdwPreferencesGroup` is the right container (the dialog's search and layout expect it). In the app,
+`components/dialogs.tsx` keeps "which dialog is open" in a context so the menu, the shortcuts and the
+Ask pane's "Open Preferences" all open the same instance.
+
+**Controlled combo rows — a data-loss trap.** `<AdwComboRow model={…} selected={i}
+onNotifySelected={…}>` looks controlled but is not: GTKX applies the `model` slot *after* `selected`,
+setting the model resets the selection to 0, and that emits `notify::selected` — so the handler
+wrote the **first option back to the daemon every time Preferences opened** (retention silently
+became "Keep"; caught by the e2e run, now a regression test). `preferences.tsx`'s `Combo` sets the
+selection in a layout effect after mount and ignores notifications until then.
+
+**`GtkStringList.strings` is construct-only**, and GTKX compares it by identity: a new array with the
+same strings on a re-render throws ("Cannot change the construct-only prop 'strings'") and the app
+exits. Memoise the list by content, and give the row a `key` derived from it so a genuinely new list
+builds a new row.
+
+**Password entries:** `AdwPasswordEntryRow` is masked in the AT-SPI tree as well as on screen; an
+entry row that goes insensitive while you save throws keyboard focus to the previous row (whose
+text then shows selected) — keep it sensitive and guard re-entry instead. Escape inside an entry row
+that is being edited ends the edit first; it does not close the dialog.
 
 ```tsx
 {open === 'prefs' ? (
@@ -464,8 +632,30 @@ DataSource (daemon-source | demo-source)
 - An unreachable daemon is a whole-window `AdwStatusPage` with the URL, the error, a Try Again button
   and a 5 s auto-retry — never a hang **(e2e)**.
 - The demo source speaks the same event vocabulary, so the demo exercises exactly the code the
-  daemon path does. It seeds three finished sessions, starts a new recording every interval, ticks
-  durations and emits `audio.level` once a second, and goes quiet at `maxSessions`.
+  daemon path does. It seeds three finished sessions with short transcripts, starts a new recording
+  every interval, ticks durations, emits `audio.level` and `transcript.partial` once a second,
+  closes a live segment every three seconds and finalises it a second later, keeps settings in
+  memory, reports every model ready, answers every question with `unavailable`, and goes quiet at
+  `maxSessions`.
+- **Per-session feeds** (`TranscriptFeed`, `QaFeed`, created by `useTranscriptFeed` /
+  `useQaFeed`; `SessionDetail` is keyed by session id): subscribe to the store's event fan-out
+  *first*, then fetch (`getTranscript` / `getQaHistory`), then fold what arrived during the fetch.
+  Segment revisions and message ids make the overlap harmless **(unit)**.
+- **Q&A deltas arrive twice** — on the `/ask` stream and as `qa.delta` bus events. A turn keeps them
+  per origin and shows its own stream's when present, so nothing is doubled; another client's answer
+  streams in from the bus alone **(unit)**. A refusal (`stopReason: 'refusal'`, empty text) replaces
+  whatever streamed before it.
+- **Settings** are fetched after connecting and whenever Preferences opens; `settings.updated`
+  events (which never carry the key flag) are folded in keeping `apiKeyConfigured`; `setApiKey`
+  updates the flag from its response. The key itself is never read back — the daemon has no way to.
+- **Onboarding** (`data/ui-state.ts`): opens by itself on first run, or when a required model is
+  missing that was not already missing when the user skipped; not at all if the daemon cannot list
+  models. Done/skip is remembered in `$XDG_STATE_HOME/gnomeola/ui-state.json` (window state, not a
+  daemon setting: a remote daemon should not decide whether *this* machine has seen the welcome).
+  After a skip, a sidebar banner offers "Set Up".
+- A recording's clock: the daemon updates `durationMs` on stop/pause, so while recording the UI
+  counts from `startedAt` (`format.ts: elapsedMs`) **(seen: "Recording · 0:00" frozen in a
+  screenshot)**.
 
 ---
 
@@ -476,8 +666,21 @@ DataSource (daemon-source | demo-source)
 | unit | `packages/ui/test/*.test.ts` | formatters, the event fold, the store (fake source, demo source with hand-driven timers, daemon source over a fake `fetch`), config |
 | e2e | `packages/testkit/src/ui/e2e/harness.e2e.test.ts` | the harness itself, against a 60-line PyGObject app |
 | e2e | `packages/testkit/src/ui/e2e/gnomeola-ui.e2e.test.ts` | the real bundle: split view, live list, selection → detail, keyboard search, Record/Stop + meters, a11y audit, screenshots, unreachable daemon + Try Again, SSE resume via a schema-validated stub daemon, `gtkx dev` starting, collapsed layout on a 480 px monitor (breakpoint → back button), the widget gallery |
+| e2e | `packages/e2e/test/ui-transcript.e2e.test.ts` | **real daemon** (child process, fake capture/STT): seeded transcript as speaker-grouped lines, the 1,350-line meeting (perf budget, End/Home/Page keys), live partial → provisional → final replaced in place, follow / Jump to Live, stop → complete and equal to `getTranscript` |
+| e2e | `packages/e2e/test/ui-ask.e2e.test.ts` | real daemon + real LLM engine → `startFakeAnthropic({ eventDelayMs })` replaying cassettes: streaming answer, citation chips → Transcript scrolled back to and selecting the cited line, refusal notice replacing the partial, asking mid-recording |
+| e2e | `packages/e2e/test/ui-dialogs.e2e.test.ts` | no key → unavailable notice → Open Preferences; a key typed into Preferences reaches `x-api-key`, never the AT-SPI tree or the screen (OCR); settings by keyboard persisted, `settings.updated` reflected live, opening Preferences writes nothing; About's Granola credit + legal list; Tab order; onboarding (slow fake models: progress observed, remembered; skip → banner → reopen) |
+| e2e | `packages/e2e/test/ui-i18n.e2e.test.ts` | a German catalog compiled with msgfmt, the bundle run with `LANGUAGE=de`: translated strings on screen (§10) |
 
-Screenshots land in `packages/testkit/src/ui/e2e/__artifacts__/` (gitignored). Look at them.
+Helpers for the real-daemon tests are in `packages/e2e/src/ui.ts` (`buildUi`, `launchUi`,
+`markOnboarded`, `unnamedInteractive`, `allAccessibleText`, `capture`, `perfLines`) and
+`packages/e2e/src/slow-models-daemon.ts` (the real `createDaemon` with a fake model provider slow
+enough to watch). `startFakeAnthropic({ eventDelayMs })` writes each SSE event of a cassette
+separately so a streaming state stays on screen long enough to assert.
+
+Screenshots land in `packages/testkit/src/ui/e2e/__artifacts__/` and `packages/e2e/test/__artifacts__/`
+(gitignored); `capture()` checks each is a full, non-flat PNG. Look at them — the frozen recording
+clock, the reversed tabs, the red "no key" notice and the ellipsized retention label were all found
+that way.
 
 **GTKX's own testing library (`@gtkx/testing`: `render`, `screen.findByRole`, `userEvent`) is not
 used yet.** It is good (React-Testing-Library-style queries over GTK's in-process accessibility
@@ -514,3 +717,44 @@ exists; not wired up.
 11. The application id is `org.gnome.Gnomeola.App`, deliberately *not* `org.gnome.Gnomeola`,
     which the plan reserves for the daemon's D-Bus interface (C-4): a GApplication owns its id as a
     bus name, so the two would collide.
+12. **Tab in a `GtkListBox` visits every row, and single selection follows keyboard focus** — tabbing
+    through the window switched the open session at every press (and destroyed the widget a test was
+    typing into). The sidebar uses a roving tab stop: only the selected row is `focusable`, and an
+    effect moves focus to the newly selected row when arrows change it. GtkListView has
+    `tabBehavior` for this; GtkListBox does not.
+13. Lazy `AdwViewStackPage` + changing root widget → page re-added at the end (§6 "Pages").
+14. Controlled `AdwComboRow` writes its first option back on mount (§6 "Dialogs").
+15. `GtkStringList` `strings` is construct-only and compared by identity (§6 "Dialogs").
+16. GtkListView items need a sized placeholder child until React fills them (§6 "Live lists").
+17. Style classes: don't name your own class `error`/`warning`/`success` — Adwaita's colour the text
+    (our "no API key" notice rendered as a red error).
+18. A `po/` directory in `packages/ui` switches on GTKX's own i18n build step (§10).
+
+---
+
+## 10. Translations (S-5)
+
+Every user-visible string goes through `_()` / `ngettext()` from `src/i18n/index.ts`, with `fmt()` for
+named placeholders *after* translation (`fmt(_('{speaker} at {time}: {text}'), {…})`, so translators
+can reorder). That module is GTK-free (the data layer uses it too); until `src/i18n/gettext.ts`
+installs the translator at startup — `bindtextdomain('gnomeola', localeDir)` through libc via
+`@gtkx/runtime`'s `t.bind`, lookups through `GLib.dgettext`/`dngettext`, the same mechanism
+`@gtkx/i18n` uses — it returns the source string. Module-level label tables are functions
+(`providers()`, `statusLabel()`), so they translate when used, not at import time.
+
+- `translations/gnomeola.pot` is generated by `pnpm --filter @gnomeola/ui i18n:pot` (GNU xgettext ≥ 0.23
+  reads TSX). `test/i18n.test.ts` (unit, no xgettext needed) fails when a wrapped string is missing
+  from the template, when the template has stale entries, or when `_()` is called with a non-literal.
+- Add a language: `msginit -i translations/gnomeola.pot -l de -o translations/de.po`, list `de` in
+  `translations/LINGUAS`; `pnpm build` compiles it to `dist/locale/de/LC_MESSAGES/gnomeola.mo`.
+  `GNOMEOLA_LOCALE_DIR` overrides where catalogs are looked up. Proven end to end with a throwaway
+  German catalog **(e2e: `ui-i18n.e2e.test.ts`)**.
+- Only English exists today. Weekday/month names in `format.ts` are still English literals
+  (`Intl.DateTimeFormat` is the next step when a real translation arrives).
+- **Why not `po/` and `@gtkx/i18n`:** GTKX's build treats a `po/` directory as `@gtkx/i18n`'s — it
+  requires that package, injects its bootstrap (i18next + react-i18next), extracts messages from
+  `t()`/`<Trans>` with a Babel analyser, uses the *application id* as the text domain, and msgmerges
+  the catalogs against *its* template — which would drop every `_()` message as obsolete. Using it
+  means `t()` everywhere via React context, which the GTK-free data layer cannot import. We kept plain
+  gettext and moved our catalogs to `translations/`. (Observed: creating `po/` made `gtkx build` fail
+  with "Cannot find module '@gtkx/i18n/package.json'".)

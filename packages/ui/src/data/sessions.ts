@@ -36,6 +36,12 @@ export function fromSnapshot(sessions: readonly Session[], seq: number): Session
 export function applyEvent(state: SessionsState, event: AnyEvent): SessionsState {
   if (event.seq !== null && event.seq <= state.seq) return state
   const seq = event.seq ?? state.seq
+  if (event.data.type === 'session.deleted') {
+    if (!state.byId.has(event.data.sessionId)) return seq === state.seq ? state : { ...state, seq }
+    const byId = new Map(state.byId)
+    byId.delete(event.data.sessionId)
+    return build(byId, seq)
+  }
   if (event.data.type !== 'session.upserted') {
     return seq === state.seq ? state : { ...state, seq }
   }
