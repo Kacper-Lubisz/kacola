@@ -5,7 +5,7 @@
 export default {
   testRunner: 'vitest',
   plugins: ['@stryker-mutator/vitest-runner'],
-  vitest: { configFile: 'vitest.config.ts', related: false },
+  vitest: { configFile: 'vitest.stryker.config.ts', related: false },
   mutate: [
     'packages/protocol/src/sse.ts',
     'packages/protocol/src/time.ts',
