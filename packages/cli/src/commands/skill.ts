@@ -42,6 +42,12 @@ export function skillInstall(ctx: Ctx, o: { dir?: string; force?: boolean }) {
     writeFileSync(target, source)
     writeFileSync(stamp, `${sha(source)}\n`)
   }
-  if (ctx.format === 'json') return ctx.io.stdout(renderJson({ action, path: target }, ctx.io))
+  // Invoking a skill is itself a permission prompt in Claude Code (and silently denied when headless), so
+  // say which rules make it frictionless — but never edit the user's settings for them.
+  const permissions = [`Skill(${SKILL_NAME})`, 'Bash(gnomeola:*)']
+  if (ctx.format === 'json') return ctx.io.stdout(renderJson({ action, path: target, permissions }, ctx.io))
   ctx.io.stdout(`${action}: ${target}\n`)
+  ctx.io.stdout(
+    `to use it without prompts, add to permissions.allow in ~/.claude/settings.json:\n  ${permissions.map((x) => JSON.stringify(x)).join(', ')}\n`,
+  )
 }

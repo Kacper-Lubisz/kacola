@@ -282,7 +282,10 @@ describe('skill install', () => {
   it('installs, is idempotent, and refuses to clobber local edits without --force', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'gnomeola-skill-'))
     const first = await cli(['skill', 'install', '--dir', dir], { url: d.url })
-    expect(first.json()).toMatchObject({ action: 'installed' })
+    expect(first.json()).toMatchObject({
+      action: 'installed',
+      permissions: ['Skill(meeting-context)', 'Bash(gnomeola:*)'],
+    })
     const path = first.json().path as string
     expect(readFileSync(path, 'utf8')).toMatch(/^---\nname: meeting-context/)
     expect((await cli(['skill', 'install', '--dir', dir], { url: d.url })).json().action).toBe('unchanged')

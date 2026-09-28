@@ -11,6 +11,10 @@ daemon. Use it to answer questions about what was said — but do it by **retrie
 meeting is ~14,000 tokens, and printing one to answer a narrow question wastes the context this session
 needs for its actual work.
 
+`gnomeola` is on your PATH and is the only interface to the meetings: don't look for transcript files on
+disk, and run each `gnomeola` command on its own (no `;`, `&&`, pipes or `echo $?` — you already see the
+exit code and stderr).
+
 ## The discipline: search → window → cite
 
 1. **Search first.** It returns short ranked snippets with ids, costs a few hundred tokens, and usually
