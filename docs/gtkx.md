@@ -475,7 +475,7 @@ DataSource (daemon-source | demo-source)
 | --- | --- | --- |
 | unit | `packages/ui/test/*.test.ts` | formatters, the event fold, the store (fake source, demo source with hand-driven timers, daemon source over a fake `fetch`), config |
 | e2e | `packages/testkit/src/ui/e2e/harness.e2e.test.ts` | the harness itself, against a 60-line PyGObject app |
-| e2e | `packages/testkit/src/ui/e2e/gnomeola-ui.e2e.test.ts` | the real bundle: split view, live list, selection → detail, keyboard search, Record/Stop + meters, a11y audit, screenshots, unreachable daemon + Try Again, SSE resume via a schema-validated stub daemon, `gtkx dev` starting, the widget gallery |
+| e2e | `packages/testkit/src/ui/e2e/gnomeola-ui.e2e.test.ts` | the real bundle: split view, live list, selection → detail, keyboard search, Record/Stop + meters, a11y audit, screenshots, unreachable daemon + Try Again, SSE resume via a schema-validated stub daemon, `gtkx dev` starting, collapsed layout on a 480 px monitor (breakpoint → back button), the widget gallery |
 
 Screenshots land in `packages/testkit/src/ui/e2e/__artifacts__/` (gitignored). Look at them.
 
@@ -509,6 +509,8 @@ exists; not wired up.
 8. `libraries: []` in `gtkx.config.ts` is rejected; omit the key.
 9. The `Gdk-WARNING … Vulkan … VK_ERROR_INCOMPATIBLE_DRIVER` line at startup is harmless (GTK
    probes Vulkan and falls back to GL).
-10. The application id is `org.gnome.Gnomeola.App`, deliberately *not* `org.gnome.Gnomeola`,
+10. A `selectable` `GtkLabel` can take focus when its page is shown and select its whole text
+    (seen on the collapsed detail page); don't make headings selectable.
+11. The application id is `org.gnome.Gnomeola.App`, deliberately *not* `org.gnome.Gnomeola`,
     which the plan reserves for the daemon's D-Bus interface (C-4): a GApplication owns its id as a
     bus name, so the two would collide.

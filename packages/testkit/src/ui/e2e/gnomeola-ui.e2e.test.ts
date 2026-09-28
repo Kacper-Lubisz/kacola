@@ -384,6 +384,45 @@ describe('gtkx dev inside the pnpm workspace', () => {
   })
 })
 
+describe('gnomeola window on a narrow screen', () => {
+  let d: HeadlessDisplay
+
+  afterAll(async () => {
+    await d?.close()
+  })
+
+  it('collapses the split view and navigates sidebar → detail → back', async () => {
+    // a monitor narrower than the 560sp breakpoint: the window is clamped to it and collapses
+    d = await startHeadlessDisplay({ size: '480x800' })
+    const app = launch(d, { GNOMEOLA_UI_DEMO: '1', GNOMEOLA_UI_DEMO_INTERVAL_MS: '60000' })
+    const sidebar = await d
+      .findOne({ app: APP, role: 'grouping', name: 'Sessions', states: ['showing'] }, 30_000)
+      .catch((e) => {
+        throw new Error(`${e.message}\napp log:\n${logTail(app)}`)
+      })
+    // collapsed: only one page is on screen
+    expect(
+      await d.find({ app: APP, role: 'label', name: 'No Session Selected', states: ['showing'] }),
+    ).toEqual([])
+    const s = await d.extents(sidebar)
+    expect(s.width).toBeLessThanOrEqual(480)
+
+    await d.click(await d.findOne({ app: APP, role: 'list item', name: '1:1 with Sam' }))
+    await d.findOne({ app: APP, role: 'heading', name: '1:1 with Sam', states: ['showing'] })
+    await d.waitFor(
+      async () =>
+        (await d.find({ app: APP, role: 'grouping', name: 'Sessions', states: ['showing'] })).length === 0,
+      5000,
+      'the sidebar to slide away',
+    )
+    await d.screenshot(join(ARTIFACTS, 'ui-narrow-detail.png'))
+    // the header bar grew a back button; it returns to the list
+    await d.click(await d.findOne({ app: APP, role: 'button', name: 'Back', states: ['showing'] }))
+    await d.findOne({ app: APP, role: 'grouping', name: 'Sessions', states: ['showing'] })
+    await d.screenshot(join(ARTIFACTS, 'ui-narrow-list.png'))
+  })
+})
+
 describe('widget gallery (the patterns docs/gtkx.md recommends)', () => {
   let d: HeadlessDisplay
   let app: AppHandle

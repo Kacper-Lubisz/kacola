@@ -94,7 +94,8 @@ export function SessionDetail({ session }: { session: Session }) {
                 cssClasses={['title-1']}
                 wrap
                 xalign={0}
-                selectable
+                // not `selectable`: a selectable label takes focus when the page is shown and
+                // selects its whole text (seen in the collapsed-layout screenshot)
                 accessibleRole={Gtk.AccessibleRole.HEADING}
                 accessibleLevel={1}
               />
