@@ -1077,7 +1077,7 @@ for the retrieval surface:
           { done: true, text: <><strong>X-2</strong> Read commands — <code>sessions list</code>, <code>sessions show</code>, <code>transcript</code> with <code>--from/--to/--speaker</code> windowing, <code>notes</code>. Refuses to print a whole transcript without <code>--full</code>. <em>blocked by: X-1, T-5</em></> },
           { done: true, text: <><strong>X-3</strong> <code>search</code> over FTS5 returning ranked snippets with session and segment ids. <em>blocked by: X-1, T-7</em></> },
           { done: true, text: <><strong>X-4</strong> <code>ask</code> — streams a cited answer from the daemon, reusing the M5 assembler and its prompt cache; <code>--since</code> for cross-session questions. <em>blocked by: X-1, Q-3, Q-4</em></> },
-          { text: <><strong>X-5</strong> Control verbs: <code>record start|stop|status</code>, <code>meetings --next|--today</code>. <em>blocked by: X-1, C-3, R-4</em></> },
+          { done: true, text: <><strong>X-5</strong> Control verbs: <code>record start|stop|status</code>, <code>meetings --next|--today</code>. <em>blocked by: X-1, C-3, R-4</em></> },
           { done: true, text: <><strong>X-6</strong> The skill: <code>skills/meeting-context/SKILL.md</code> with trigger phrasings and the search-then-window-then-cite discipline, plus <code>gnomeola skill install</code>. <em>blocked by: X-2, X-3, X-4</em></> },
           { done: true, text: <><strong>X-7</strong> Private sessions: a <code>private</code> flag that hides a session from the CLI and skill but not the window; CLI read-only outside the <code>record</code> verbs. <em>blocked by: X-2</em></> },
           { done: true, text: <><strong>X-8</strong> <code>gnomeola mcp</code> — the same operations as typed MCP tools over stdio. <em>blocked by: X-2, X-3, X-4. Deferrable — first thing to cut.</em></> },
@@ -1110,11 +1110,11 @@ for the retrieval surface:
 
         <Tasks phase="M9" title="Ship & package — 8 d · ships 1.0" items={[
           { text: <><strong>S-1</strong> First-run onboarding: model download with progress, mic and system-audio check, calendar access. <em>blocked by: T-1, C-3</em></> },
-          { text: <><strong>S-2</strong> Flatpak packaging and the portal strategy for system audio. <em>Real unknown — see risks. blocked by: R-2, C-9</em></> },
+          { done: true, text: <><strong>S-2</strong> Flatpak packaging and the portal strategy for system audio. <em>Real unknown — see risks. blocked by: R-2, C-9</em></> },
           { text: <><strong>S-3</strong> <code>AdwPreferencesDialog</code>: providers, models, retention, auto-record rules, API key. <em>blocked by: Q-1, T-2</em></> },
           { text: <><strong>S-4</strong> Licensing and attribution audit: About-dialog credit, third-party notices, model licences. <em>blocked by: —. Worth doing early.</em></> },
           { text: <><strong>S-5</strong> Accessibility, keyboard navigation, gettext scaffolding. <em>blocked by: R-5</em></> },
-          { text: <><strong>S-6</strong> Local-only error reporting and a log-bundle command for bug reports. <em>blocked by: G-4</em></> },
+          { done: true, text: <><strong>S-6</strong> Local-only error reporting and a log-bundle command for bug reports. <em>blocked by: G-4</em></> },
           { text: <><strong>V-9a</strong> UI e2e via AT-SPI: drive the real window through the accessible tree — start a session, watch the transcript grow, rename a speaker, ask a question, follow a citation — plus screenshot regression under a headless virtual monitor. Doubles as the S-5 accessibility audit, since an unlabelled widget fails this test. <em>blocked by: S-5, Q-5, A-5</em></> },
           { text: <><strong>V-9b</strong> Release gate: the full tier matrix green, mutation testing over protocol and reconciler above threshold, the packaged artifact installed and launched from clean, and the written T5 manual smoke checklist performed and signed off. <em>blocked by: V-9a, S-2, S-3. Exit: nothing ships on a skipped tier.</em></> },
         ]} />

@@ -11,6 +11,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 24, cache: pnpm }
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
 
@@ -21,7 +22,13 @@ jobs:
     container: { image: 'registry.fedoraproject.org/fedora:44', options: '--privileged' }
     needs: check
     steps:
-      - run: dnf install -y nodejs24 pnpm git pipewire pipewire-utils wireplumber mutter gtk4 libadwaita ffmpeg-free python3-gobject at-spi2-core dbus-daemon
+      - run: dnf install -y nodejs24 pnpm git pipewire pipewire-utils wireplumber gnome-shell mutter gtk4-devel libadwaita-devel glib2-devel ffmpeg-free python3-gobject at-spi2-core dbus-daemon tar bzip2 util-linux coreutils desktop-file-utils systemd
       - uses: actions/checkout@v4
       - run: pnpm install --frozen-lockfile
-      - run: dbus-run-session -- bash -c 'pipewire & wireplumber & sleep 2 && pnpm test:e2e'
+      # No audio hardware in a container: stand-in default devices with high priority so the rig has
+      # defaults to leave untouched (unverified in CI — see the capture work stream's report).
+      - run: >
+          dbus-run-session -- bash -c 'pipewire & wireplumber & sleep 2 &&
+          pw-cli create-node adapter "{ factory.name=support.null-audio-sink node.name=ci-speakers media.class=Audio/Sink object.linger=true priority.session=2000 }" &&
+          pw-cli create-node adapter "{ factory.name=support.null-audio-sink node.name=ci-mic media.class=Audio/Source/Virtual object.linger=true priority.session=2000 }" &&
+          sleep 1 && pnpm test:e2e'
