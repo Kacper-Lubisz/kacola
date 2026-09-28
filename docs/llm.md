@@ -180,6 +180,7 @@ own KV prefix cache; the stable layout helps it too), cache fields are 0, `effor
 | unit | `packages/llm/test/prompt.test.ts` | layout, breakpoint placement, byte determinism, live growth, minimum prefix, anchors, cross-session order, injection escaping |
 | unit | `packages/llm/test/citations.test.ts` | alias rewriting, hallucination drop, streaming == batch over every split |
 | unit | `packages/llm/test/ask.test.ts` | the `ask` contract, refusal handling, Q-7 snapshot / non-blocking / abort |
+| unit | `packages/llm/test/cost.test.ts` | usage mapping and the cost numbers above |
 | unit | `packages/testkit/test/cassettes.test.ts` | cassette record/replay mechanics |
 | int | `packages/llm/test/qa.cassettes.int.test.ts` | the real SDK parses every cassette; the exact request sent |
 | int | `packages/llm/test/ollama.int.test.ts` | Ollama provider against a fake server |
