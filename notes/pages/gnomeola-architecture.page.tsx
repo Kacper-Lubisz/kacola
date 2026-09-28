@@ -1000,11 +1000,11 @@ for the retrieval surface:
 
         <Tasks phase="M0" title="Foundations — 6 d" items={[
           { text: <><strong>G-1</strong> GTKX spike: hello-world <code>AdwApplicationWindow</code> under GNOME 50 / libadwaita 1.9 on Node 24, pinned to GTKX 1.6. <em>Blocks everything visual. Do this first — it is the plan&apos;s biggest unknown.</em></> },
-          { text: <><strong>G-2</strong> Node 24 toolchain: <code>mise</code>/<code>fnm</code> pin, pnpm workspace, shared tsconfig, biome, vitest. <em>blocked by: —</em></> },
-          { text: <><strong>G-3</strong> <code>@gnomeola/protocol</code> v0 — zod schemas for Session, Track, Segment, Speaker, and the event envelope with monotonic <code>seq</code>. <em>blocked by: G-2</em></> },
+          { done: true, text: <><strong>G-2</strong> Node 24 toolchain: <code>mise</code>/<code>fnm</code> pin, pnpm workspace, shared tsconfig, biome, vitest. <em>blocked by: —</em></> },
+          { done: true, text: <><strong>G-3</strong> <code>@gnomeola/protocol</code> v0 — zod schemas for Session, Track, Segment, Speaker, and the event envelope with monotonic <code>seq</code>. <em>blocked by: G-2</em></> },
           { text: <><strong>G-4</strong> Daemon skeleton: fastify, <code>/health</code>, SSE endpoint with <code>Last-Event-ID</code> cursor resume, systemd user unit. <em>blocked by: G-3</em></> },
           { text: <><strong>G-5</strong> Store: kysely + better-sqlite3, migration runner, <code>session</code> and <code>event</code> tables. <em>blocked by: G-2</em></> },
-          { text: <><strong>G-6</strong> CI: typecheck, lint, test, and the dependency-boundary rule that fails if <code>ui/</code> imports anything but <code>protocol</code>. <em>blocked by: G-2</em></> },
+          { done: true, text: <><strong>G-6</strong> CI: typecheck, lint, test, and the dependency-boundary rule that fails if <code>ui/</code> imports anything but <code>protocol</code>. <em>blocked by: G-2</em></> },
           { text: <><strong>V-0</strong> Test harness foundations: the T0–T4 tier split wired into CI as separate jobs, <code>FakeCaptureSource</code>, the fixture repo layout with hand-labelled ground truth, LLM cassette recording, and the invariant property-test helper every later milestone reuses. <em>blocked by: G-2, G-5. Exit: a red build is red for exactly one reason and names it.</em></> },
         ]} />
 
@@ -1060,15 +1060,15 @@ for the retrieval surface:
         ]} />
 
         <Tasks phase="M5" title="Transcript Q&A — 7 d · ships ask-anything" items={[
-          { text: <><strong>Q-1</strong> <code>LlmProvider</code> + Anthropic client: <code>claude-opus-5</code>, adaptive thinking, refusal handling with server-side fallbacks, key in libsecret. <em>blocked by: G-3</em></> },
-          { text: <><strong>Q-2</strong> Prompt assembler with cache breakpoints on closed-segment boundaries and the question strictly after the breakpoint. <em>blocked by: Q-1, T-5</em></> },
+          { done: true, text: <><strong>Q-1</strong> <code>LlmProvider</code> + Anthropic client: <code>claude-opus-5</code>, adaptive thinking, refusal handling with server-side fallbacks, key in libsecret. <em>blocked by: G-3</em></> },
+          { done: true, text: <><strong>Q-2</strong> Prompt assembler with cache breakpoints on closed-segment boundaries and the question strictly after the breakpoint. <em>blocked by: Q-1, T-5</em></> },
           { text: <><strong>Q-3</strong> Q&A endpoint: question in, SSE token stream out, <code>qa_message</code> history per session. <em>blocked by: Q-2, G-4</em></> },
-          { text: <><strong>Q-4</strong> Citations — map answer spans to segment ids. <em>blocked by: Q-3</em></> },
+          { done: true, text: <><strong>Q-4</strong> Citations — map answer spans to segment ids. <em>blocked by: Q-3</em></> },
           { text: <><strong>Q-5</strong> Ask pane in the UI: composer, streaming answer, citation chips that seek the transcript. <em>blocked by: Q-3, T-6</em></> },
-          { text: <><strong>Q-6</strong> Cache assertion test (<code>cache_read_input_tokens &gt; 0</code>) + token and cost telemetry. <em>blocked by: Q-2</em></> },
+          { done: true, text: <><strong>Q-6</strong> Cache assertion test (<code>cache_read_input_tokens &gt; 0</code>) + token and cost telemetry. <em>blocked by: Q-2</em></> },
           { text: <><strong>Q-7</strong> Ask-during-meeting path: rolling transcript, <code>effort: low</code>, never blocks capture. <em>blocked by: Q-3</em></> },
-          { text: <><strong>Q-8</strong> Optional Ollama provider for offline Q&A. <em>blocked by: Q-1. Deferrable.</em></> },
-          { text: <><strong>V-5a</strong> Cassette-backed Q&A integration: deterministic, offline, free; covers streaming, mid-stream failure, and the <code>refusal</code> stop reason with its fallback. <em>blocked by: Q-3, V-0</em></> },
+          { done: true, text: <><strong>Q-8</strong> Optional Ollama provider for offline Q&A. <em>blocked by: Q-1. Deferrable.</em></> },
+          { done: true, text: <><strong>V-5a</strong> Cassette-backed Q&A integration: deterministic, offline, free; covers streaming, mid-stream failure, and the <code>refusal</code> stop reason with its fallback. <em>blocked by: Q-3, V-0</em></> },
           { text: <><strong>V-5b</strong> Live answer-quality eval (opt-in, T4): hand-labelled expected facts per fixture meeting, graded, with citation correctness checked against segment ids. Extends Q-6&apos;s cache assertion into the gate. <em>blocked by: Q-6, V-5a. Exit: cache hits are proven, not assumed.</em></> },
         ]} />
 
@@ -1078,11 +1078,11 @@ for the retrieval surface:
           { text: <><strong>X-3</strong> <code>search</code> over FTS5 returning ranked snippets with session and segment ids. <em>blocked by: X-1, T-7</em></> },
           { text: <><strong>X-4</strong> <code>ask</code> — streams a cited answer from the daemon, reusing the M5 assembler and its prompt cache; <code>--since</code> for cross-session questions. <em>blocked by: X-1, Q-3, Q-4</em></> },
           { text: <><strong>X-5</strong> Control verbs: <code>record start|stop|status</code>, <code>meetings --next|--today</code>. <em>blocked by: X-1, C-3, R-4</em></> },
-          { text: <><strong>X-6</strong> The skill: <code>skills/meeting-context/SKILL.md</code> with trigger phrasings and the search-then-window-then-cite discipline, plus <code>gnomeola skill install</code>. <em>blocked by: X-2, X-3, X-4</em></> },
+          { done: true, text: <><strong>X-6</strong> The skill: <code>skills/meeting-context/SKILL.md</code> with trigger phrasings and the search-then-window-then-cite discipline, plus <code>gnomeola skill install</code>. <em>blocked by: X-2, X-3, X-4</em></> },
           { text: <><strong>X-7</strong> Private sessions: a <code>private</code> flag that hides a session from the CLI and skill but not the window; CLI read-only outside the <code>record</code> verbs. <em>blocked by: X-2</em></> },
-          { text: <><strong>X-8</strong> <code>gnomeola mcp</code> — the same operations as typed MCP tools over stdio. <em>blocked by: X-2, X-3, X-4. Deferrable — first thing to cut.</em></> },
+          { done: true, text: <><strong>X-8</strong> <code>gnomeola mcp</code> — the same operations as typed MCP tools over stdio. <em>blocked by: X-2, X-3, X-4. Deferrable — first thing to cut.</em></> },
           { text: <><strong>V-6a</strong> CLI golden-file tests over a seeded database: every command&apos;s <code>--json</code> shape, exit codes, and TTY-vs-pipe behaviour driven under a real pty. <em>blocked by: X-2, X-3, V-0</em></> },
-          { text: <><strong>V-6b</strong> Token-budget guards: tokenizer-counted ceilings on <code>search</code> and <code>ask</code> output, and a test that <code>transcript</code> without <code>--full</code> refuses. These are the regression tests for the retrieval discipline — without them a well-meaning change quietly turns the CLI back into a dumper. <em>blocked by: V-6a</em></> },
+          { done: true, text: <><strong>V-6b</strong> Token-budget guards: tokenizer-counted ceilings on <code>search</code> and <code>ask</code> output, and a test that <code>transcript</code> without <code>--full</code> refuses. These are the regression tests for the retrieval discipline — without them a well-meaning change quietly turns the CLI back into a dumper. <em>blocked by: V-6a</em></> },
           { text: <><strong>V-6c</strong> Prompt-injection corpus plus a scripted headless agent run asserting behaviour: search before transcript, no full-session dump for a narrow question, and private sessions invisible. <em>blocked by: X-6, X-7. Exit: a hostile transcript changes nothing about what the agent can do.</em></> },
         ]} />
 
