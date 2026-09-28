@@ -1009,14 +1009,14 @@ for the retrieval surface:
         ]} />
 
         <Tasks phase="M1" title="Record & store — 8 d · ships a recorder" items={[
-          { text: <><strong>R-1</strong> Enumerate PipeWire nodes via <code>pw-dump</code>: default source, default sink monitor, friendly names. <em>blocked by: G-2</em></> },
-          { text: <><strong>R-2</strong> Dual-track capture: one <code>pw-record</code> per track, 16 kHz mono PCM to both a WAV on disk and an in-process stream; start/stop/pause. <em>blocked by: R-1, G-5</em></> },
-          { text: <><strong>R-3</strong> Device-change resilience — default sink or source switches mid-meeting, headphones plugged in, stream dies and restarts without losing the session. <em>blocked by: R-2</em></> },
+          { done: true, text: <><strong>R-1</strong> Enumerate PipeWire nodes via <code>pw-dump</code>: default source, default sink monitor, friendly names. <em>blocked by: G-2</em></> },
+          { done: true, text: <><strong>R-2</strong> Dual-track capture: one <code>pw-record</code> per track, 16 kHz mono PCM to both a WAV on disk and an in-process stream; start/stop/pause. <em>blocked by: R-1, G-5</em></> },
+          { done: true, text: <><strong>R-3</strong> Device-change resilience — default sink or source switches mid-meeting, headphones plugged in, stream dies and restarts without losing the session. <em>blocked by: R-2</em></> },
           { done: true, text: <><strong>R-4</strong> Session API: <code>POST /sessions</code>, start/stop, list, get. <em>blocked by: G-4, R-2</em></> },
           { done: true, text: <><strong>R-5</strong> UI shell: GTKX app, <code>AdwApplicationWindow</code> + <code>AdwNavigationSplitView</code>, session list driven by the daemon. <em>blocked by: G-1, R-4</em></> },
           { text: <><strong>R-6</strong> Live level meters and elapsed timer over SSE — the first real proof the stream works end to end. <em>blocked by: R-5</em></> },
-          { text: <><strong>R-7</strong> Archive encode to Opus/FLAC via ffmpeg + a retention setting (including &quot;delete audio after transcription&quot;). <em>blocked by: R-2</em></> },
-          { text: <><strong>V-1a</strong> The PipeWire rig: two null sinks, fixture playback, monitor capture, teardown that leaves no stray nodes. Runs level 1 and level 2 from one test body. <em>blocked by: R-2, V-0</em></> },
+          { done: true, text: <><strong>R-7</strong> Archive encode to Opus/FLAC via ffmpeg + a retention setting (including &quot;delete audio after transcription&quot;). <em>blocked by: R-2</em></> },
+          { done: true, text: <><strong>V-1a</strong> The PipeWire rig: two null sinks, fixture playback, monitor capture, teardown that leaves no stray nodes. Runs level 1 and level 2 from one test body. <em>blocked by: R-2, V-0</em></> },
           { text: <><strong>V-1b</strong> Capture e2e + chaos: record a fixture through both paths and assert sample-accurate track separation and duration; then SIGKILL mid-session, device-switch mid-session, and disk-full, each with a recovery assertion. <em>blocked by: V-1a, R-3. Exit: a killed daemon never loses a recorded minute.</em></> },
         ]} />
 
