@@ -7,8 +7,8 @@
 import { execFileSync } from 'node:child_process'
 import { FIXTURE_SCRIPTS as FIXTURES } from '@gnomeola/testkit/fixtures'
 import { wer } from '@gnomeola/testkit/metrics'
-import { CATALOG } from '../src/models/catalog.ts'
-import { ModelManager } from '../src/models/manager.ts'
+import { CATALOG } from '../src/model-manager/catalog.ts'
+import { ModelManager } from '../src/model-manager/manager.ts'
 import { createFinalTranscriber, createTts } from '../src/sherpa/index.ts'
 
 const models = new ModelManager()

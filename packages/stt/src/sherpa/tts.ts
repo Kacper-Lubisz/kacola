@@ -1,4 +1,4 @@
-import type { CatalogEntry } from '../models/catalog.ts'
+import type { CatalogEntry } from '../model-manager/catalog.ts'
 import { sherpa } from './native.ts'
 
 // Piper/VITS text-to-speech — used only to synthesize test fixtures with exact ground truth.

@@ -13,7 +13,7 @@ import {
   writeBaseline,
 } from '@gnomeola/testkit/metrics'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { DEFAULT_MODELS } from '../src/models/catalog.ts'
+import { DEFAULT_MODELS } from '../src/model-manager/catalog.ts'
 import type { FinalPass } from '../src/reconciler.ts'
 import { sherpaVersion } from '../src/sherpa/index.ts'
 import {

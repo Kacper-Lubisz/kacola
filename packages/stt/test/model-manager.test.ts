@@ -7,9 +7,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ModelInfo } from '@gnomeola/protocol'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import type { CatalogEntry } from '../src/models/catalog.ts'
-import { ModelError, ModelManager, type ModelProgress } from '../src/models/manager.ts'
-import { defaultModelsDir } from '../src/models/paths.ts'
+import type { CatalogEntry } from '../src/model-manager/catalog.ts'
+import { ModelError, ModelManager, type ModelProgress } from '../src/model-manager/manager.ts'
+import { defaultModelsDir } from '../src/model-manager/paths.ts'
 
 // A fake release server: serves real .tar.bz2 archives with Range support, and can be told to cut a
 // response short (to exercise resume) or to ignore Range (to exercise restart-from-zero).

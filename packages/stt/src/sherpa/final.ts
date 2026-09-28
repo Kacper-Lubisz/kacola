@@ -1,4 +1,4 @@
-import type { CatalogEntry } from '../models/catalog.ts'
+import type { CatalogEntry } from '../model-manager/catalog.ts'
 import { type FinalResult, type FinalTranscriber, SAMPLE_RATE } from '../types.ts'
 import { type OfflineRecognizer, type OfflineResult, sherpa } from './native.ts'
 

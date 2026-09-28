@@ -1,4 +1,4 @@
-import type { CatalogEntry } from '../models/catalog.ts'
+import type { CatalogEntry } from '../model-manager/catalog.ts'
 import {
   SAMPLE_RATE,
   samplesToMs,

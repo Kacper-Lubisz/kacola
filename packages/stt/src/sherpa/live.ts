@@ -1,5 +1,5 @@
 import type { TrackKind } from '@gnomeola/protocol'
-import type { CatalogEntry } from '../models/catalog.ts'
+import type { CatalogEntry } from '../model-manager/catalog.ts'
 import {
   type LiveHypothesis,
   type LiveRecognizer,

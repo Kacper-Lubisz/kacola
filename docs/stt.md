@@ -24,7 +24,7 @@ whisper.cpp build.
 | final (tier 2) | `final-parakeet-tdt-110m-en-int8` — NVIDIA Parakeet TDT 110M | 108.0 MB | CC-BY-4.0 |
 | VAD | `vad-silero` — Silero VAD | 0.6 MB | MIT |
 
-URLs and pinned sha256 for every model are in `packages/stt/src/models/catalog.ts`; defaults are
+URLs and pinned sha256 for every model are in `packages/stt/src/model-manager/catalog.ts`; defaults are
 `DEFAULT_MODELS` there. Whisper, Moonshine, Parakeet 0.6B, Kroko and two Zipformers remain in the catalog
 as selectable alternatives (Settings `stt.liveModel` / `stt.finalModel` are catalog ids).
 

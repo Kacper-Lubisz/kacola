@@ -1,4 +1,4 @@
-import type { ModelManager } from '../models/manager.ts'
+import type { ModelManager } from '../model-manager/manager.ts'
 import { type SherpaFinalOptions, SherpaFinalTranscriber } from './final.ts'
 import { type SherpaLiveOptions, SherpaLiveRecognizer } from './live.ts'
 import { sherpa } from './native.ts'
