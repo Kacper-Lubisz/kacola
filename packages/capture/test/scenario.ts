@@ -128,10 +128,32 @@ function pcmOf(result: CaptureResult): Record<TrackKind, Int16Array> {
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
+type GapLike = { atMs: number; durationMs: number; reason: string }
+
+/**
+ * The gaps that are real outages. On a loaded machine the first chunk after start can land a graph
+ * quantum or two later than the jitter threshold, and the tail can be short by the same; the source pads
+ * those and reports them honestly as `latency` gaps at the very start or end of the session. They are
+ * asserted to be exactly that (edge position, < 250 ms) and removed; everything else is returned.
+ */
+export function outageGaps<G extends GapLike>(gaps: readonly G[], durationMs: number): G[] {
+  const out: G[] = []
+  for (const g of gaps) {
+    const atStart = g.atMs <= 5
+    const atEnd = g.atMs + g.durationMs >= durationMs - 5
+    if (g.reason === 'latency' && (atStart || atEnd)) {
+      expect(g.durationMs, `edge latency gap ${JSON.stringify(g)}`).toBeLessThan(250)
+      continue
+    }
+    out.push(g)
+  }
+  return out
+}
+
 /**
  * Cross-track alignment on real PipeWire: each track is anchored to the wall clock from its first
- * chunk, and chunks arrive once per graph cycle (1024 frames @ 48 kHz = 21.3 ms), so the pair is good to
- * ±2 quanta. Within a take the offset is constant (no drift).
+ * chunk, and chunks arrive once per graph cycle (512 frames @ 48 kHz = 10.7 ms on the rig), so tracks
+ * are good to a few quanta; measured offsets are whole quanta (0, ±10.7, ±21.3 ms). No drift within a take.
  */
 export const ALIGN_TOLERANCE_MS = 45
 
@@ -165,9 +187,12 @@ export function assertCaptureRun(run: CaptureRun) {
     })
     expect(info.dataBytes).toBe(pcm[t.kind].length * 2)
     expect(t.sampleRate).toBe(16000)
-    expect(t.gaps).toEqual([])
+    // file path: no gaps at all; PipeWire: no outages (edge start/stop latency is allowed, bounded)
+    if (run.level === 'file') expect(t.gaps).toEqual([])
+    else expect(outageGaps(t.gaps, result.durationMs)).toEqual([])
+    // gap events and Track.gaps agree
+    expect(run.gaps.filter((g) => g.track === t.kind).map(({ track: _, ...g }) => g)).toEqual(t.gaps)
   }
-  expect(run.gaps).toEqual([])
 
   // 2. The live frame stream is bit-identical to the WAV and contiguous on the timeline.
   for (const kind of ['mic', 'system'] as const) {
@@ -196,8 +221,8 @@ export function assertCaptureRun(run: CaptureRun) {
   // 4. Every burst is present with the right length and spacing (no dropped or duplicated samples).
   const micB = detectBursts(pcm.mic, MIC_FIXTURE.freq)
   const sysB = detectBursts(pcm.system, SYSTEM_FIXTURE.freq)
-  expect(micB).toHaveLength(2)
-  expect(sysB).toHaveLength(2)
+  expect(micB, `mic bursts ${JSON.stringify(micB)} gaps ${JSON.stringify(run.gaps)}`).toHaveLength(2)
+  expect(sysB, `system bursts ${JSON.stringify(sysB)} gaps ${JSON.stringify(run.gaps)}`).toHaveLength(2)
   // Durations are compared with the same detector run on the pristine fixture, so detector bias (ramps,
   // half-amplitude threshold) cancels and what remains is what the capture path did to the audio.
   const refLen = (f: ToneFixture) => detectBursts(synthesize(f), f.freq).map((b) => b.endMs - b.startMs)

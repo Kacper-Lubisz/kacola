@@ -107,6 +107,8 @@ export class PipeWireCaptureSource implements CaptureSource {
   private tick: NodeJS.Timeout | null = null
   private unwatch: (() => void) | null = null
   private fatal: CaptureErrorEvent | null = null
+  /** Set once stop() has drained every child; output after that is dropped. */
+  private closed = false
   private stopping: Promise<CaptureResult> | null = null
 
   constructor(opts: PipeWireCaptureOptions = {}) {
@@ -251,6 +253,7 @@ export class PipeWireCaptureSource implements CaptureSource {
     this.watcher?.stop()
     this._state = 'stopped' // stop accepting new attaches before detaching
     await Promise.all(this.tracks.map((t) => this.detach(t, null)))
+    this.closed = true
     const endSample = Math.round(this.elapsedMs() * SAMPLES_PER_MS)
     if (!wasFatal) {
       for (const t of this.tracks) {
@@ -419,7 +422,8 @@ export class PipeWireCaptureSource implements CaptureSource {
   }
 
   private onData(t: TrackState, buf: Buffer): void {
-    if (this._state === 'stopped' || this._state === 'failed') return
+    // During stop() children are drained (their output is real audio); only after that is it dropped.
+    if (this.closed) return
     // Chunks can split a sample; carry the odd byte over.
     let bytes = buf
     if (t.carry !== null) {

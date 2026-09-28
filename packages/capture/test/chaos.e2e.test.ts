@@ -25,6 +25,7 @@ import {
   ALIGN_TOLERANCE_MS,
   MIC_FIXTURE,
   observe,
+  outageGaps,
   readTrack,
   SYSTEM_FIXTURE,
   sleep,
@@ -88,6 +89,8 @@ function assertTimeline(result: CaptureResult, frames: ReturnType<typeof observe
 }
 
 const track = (r: CaptureResult, k: TrackKind) => r.tracks.find((t) => t.kind === k)!
+/** A track's gaps minus bounded start/stop latency (see outageGaps). */
+const outages = (r: CaptureResult, k: TrackKind) => outageGaps(track(r, k).gaps, r.durationMs)
 
 describe('chaos — capture on the PipeWire rig', () => {
   it('(a) pw-record child killed mid-recording → reattach, recorded gap, timeline still aligned', async () => {
@@ -113,15 +116,15 @@ describe('chaos — capture on the PipeWire rig', () => {
     const newPid = src.status().find((s) => s.kind === 'mic')!.pid
     const result = await src.stop()
 
-    const micGaps = track(result, 'mic').gaps
+    const micGaps = outages(result, 'mic')
     expect(micGaps).toHaveLength(1)
     expect(micGaps[0]!.reason).toBe('child-exit')
     expect(micGaps[0]!.durationMs).toBeGreaterThan(0)
     expect(micGaps[0]!.durationMs).toBeLessThan(1000) // bounded reattach
     expect(micGaps[0]!.atMs).toBeGreaterThan(killedAt - 300)
     expect(micGaps[0]!.atMs).toBeLessThan(killedAt + 50)
-    expect(track(result, 'system').gaps).toEqual([])
-    expect(obs.gaps).toEqual([{ track: 'mic', ...micGaps[0]! }])
+    expect(outages(result, 'system')).toEqual([])
+    expect(outageGaps(obs.gaps, result.durationMs)).toEqual([{ track: 'mic', ...micGaps[0]! }])
     expect(obs.errors).toContainEqual(
       expect.objectContaining({ track: 'mic', code: 'child-exit', fatal: false }),
     )
@@ -144,10 +147,11 @@ describe('chaos — capture on the PipeWire rig', () => {
   })
 
   it('(b) recorded device removed and recreated mid-recording → device-missing gap, reattach, aligned', async () => {
+    // one stream fanned into both devices (playInto), so any cross-track offset is the capture's own
     const burst = writeFixture(join(dir, 'burst.wav'), {
       freq: 700,
-      bursts: [{ atMs: 200, durationMs: 300 }],
-      totalMs: 700,
+      bursts: [{ atMs: 400, durationMs: 300 }],
+      totalMs: 900,
     })
     const src = new PipeWireCaptureSource({ defaultsWatcher: null })
     const obs = observe(src)
@@ -156,29 +160,24 @@ describe('chaos — capture on the PipeWire rig', () => {
       { kind: 'system', device: rig.system.captureTarget },
     ])
     await sleep(300)
-    await rig.playTogether([
-      [rig.mic, burst],
-      [rig.system, burst],
-    ])
+    await rig.playInto([rig.mic, rig.system], burst)
+    const gapsBefore = src.status().find((s) => s.kind === 'mic')!.gaps
     const removedAt = src.elapsedMs()
     await rig.remove(rig.mic)
     await sleep(1000)
     await rig.recreate('mic')
     const recreatedAt = src.elapsedMs()
-    // wait for the supervisor to find it again
+    // wait for the supervisor to find it again (the gap is recorded when the first audio arrives)
     const t0 = Date.now()
-    while (Date.now() - t0 < 3000) {
-      if (src.status().find((s) => s.kind === 'mic')!.gaps > 0) break
+    while (src.status().find((s) => s.kind === 'mic')!.gaps === gapsBefore) {
+      if (Date.now() - t0 > 3000) throw new Error('mic never reattached')
       await sleep(20)
     }
-    await rig.playTogether([
-      [rig.mic, burst],
-      [rig.system, burst],
-    ])
+    await rig.playInto([rig.mic, rig.system], burst)
     await sleep(300)
     const result = await src.stop()
 
-    const gaps = track(result, 'mic').gaps
+    const gaps = outages(result, 'mic')
     expect(gaps).toHaveLength(1)
     expect(gaps[0]!.reason).toBe('device-missing')
     const outage = recreatedAt - removedAt
@@ -188,7 +187,7 @@ describe('chaos — capture on the PipeWire rig', () => {
     )
     expect(gaps[0]!.durationMs).toBeGreaterThanOrEqual(outage - 100)
     expect(reattachLag).toBeLessThan(1500) // retry backoff is capped at 1 s
-    expect(track(result, 'system').gaps).toEqual([])
+    expect(outages(result, 'system')).toEqual([])
     const codes = obs.errors.map((e) => (e as { code: string }).code)
     expect(codes).toContain('child-exit')
     expect(codes).toContain('device-missing')
@@ -198,6 +197,9 @@ describe('chaos — capture on the PipeWire rig', () => {
     const sys = detectBursts(readTrack(track(result, 'system').audioPath!), 700)
     expect(mic).toHaveLength(2)
     expect(sys).toHaveLength(2)
+    console.log(
+      `[chaos b] cross-track offsets before/after the outage: ${sys.map((b, i) => (b.startMs - mic[i]!.startMs).toFixed(1)).join(' / ')} ms`,
+    )
     for (let i = 0; i < 2; i++)
       expect(Math.abs(sys[i]!.startMs - mic[i]!.startMs)).toBeLessThanOrEqual(ALIGN_TOLERANCE_MS)
     // and the second burst is after the gap, not swallowed by it
@@ -252,16 +254,17 @@ describe('chaos — capture on the PipeWire rig', () => {
 
     const t = track(result, 'mic')
     expect(t.device).toBe(mic2.captureTarget)
-    expect(t.gaps).toHaveLength(1)
-    expect(t.gaps[0]!.reason).toBe('device-changed')
-    expect(t.gaps[0]!.durationMs).toBeLessThan(1000)
-    console.log(`[chaos b2] ${JSON.stringify(t.gaps[0])}`)
+    const changed = outages(result, 'mic')
+    expect(changed).toHaveLength(1)
+    expect(changed[0]!.reason).toBe('device-changed')
+    expect(changed[0]!.durationMs).toBeLessThan(1000)
+    console.log(`[chaos b2] ${JSON.stringify(changed[0])}`)
     const pcm = readTrack(t.audioPath!)
     expect(detectBursts(pcm, 440)).toHaveLength(1)
     expect(detectBursts(pcm, 900)).toHaveLength(1)
     expect(detectBursts(pcm, 1300)).toHaveLength(0)
     expect(goertzel(pcm, 1300)).toBeLessThan(goertzel(pcm, 900) * 1e-4)
-    expect(track(result, 'system').gaps).toEqual([])
+    expect(outages(result, 'system')).toEqual([])
     assertTimeline(result, obs.frames)
     // only rig devices were ever recorded — never the user's real microphone or speakers
     expect([...targetsSeen].every((n) => n.startsWith(rig.id))).toBe(true)
@@ -279,13 +282,13 @@ describe('chaos — capture on the PipeWire rig', () => {
     process.kill(victim, 'SIGSTOP')
     await sleep(2000)
     const result = await src.stop()
-    const gaps = track(result, 'mic').gaps
+    const gaps = outages(result, 'mic')
     expect(gaps).toHaveLength(1)
     expect(gaps[0]!.reason).toBe('stall')
     expect(gaps[0]!.durationMs).toBeGreaterThan(700)
     expect(gaps[0]!.durationMs).toBeLessThan(1600)
     expect(obs.errors).toContainEqual(expect.objectContaining({ code: 'stall', track: 'mic' }))
-    expect(track(result, 'system').gaps).toEqual([])
+    expect(outages(result, 'system')).toEqual([])
     assertTimeline(result, obs.frames)
   })
 
@@ -319,7 +322,12 @@ describe('chaos — capture on the PipeWire rig', () => {
     expect(detectBursts(pcm, 500)).toHaveLength(2)
     expect(result.durationMs).toBeLessThan(2500)
     assertTimeline(result, obs.frames)
-    for (const t of result.tracks) for (const g of t.gaps) expect(g.reason).toBe('latency')
+    // the only gaps: bounded start/resume/stop latency — pausing is not an outage
+    for (const t of result.tracks)
+      for (const g of t.gaps) {
+        expect(g.reason).toBe('latency')
+        expect(g.durationMs).toBeLessThan(250)
+      }
   })
 
   it('(c) recording process SIGKILLed → recoverWav yields valid WAVs up to (at least) the last flush', async () => {

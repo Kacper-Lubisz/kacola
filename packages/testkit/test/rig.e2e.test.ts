@@ -38,16 +38,16 @@ afterAll(async () => {
 })
 
 describe('PipeWireRig', () => {
-  it('creates a virtual mic (sink→source loopback) and a virtual speaker, without touching defaults', async () => {
+  it('creates a virtual mic (Audio/Source/Virtual) and a virtual speaker, without touching defaults', async () => {
     const rig = await PipeWireRig.create()
     try {
       const nodes = await rig.nodes()
       const byName = Object.fromEntries(nodes.map((n) => [n.name, n.mediaClass]))
       expect(byName).toEqual({
-        [rig.mic.playTarget]: 'Audio/Sink',
-        [rig.mic.captureTarget]: 'Audio/Source',
-        [rig.system.playTarget]: 'Audio/Sink',
+        [rig.mic.captureTarget]: 'Audio/Source/Virtual',
+        [rig.system.captureTarget]: 'Audio/Sink',
       })
+      expect(rig.mic.playTarget).toBe(rig.mic.captureTarget)
       const dump = await pwDump()
       for (const o of dump) {
         const p = o.info?.props ?? {}
@@ -68,23 +68,60 @@ describe('PipeWireRig', () => {
     try {
       expect(a.id).not.toBe(b.id)
       expect(a.id.startsWith(`${RIG_PREFIX}${process.pid}-`)).toBe(true)
-      expect((await a.nodes()).length).toBe(3)
-      expect((await b.nodes()).length).toBe(3)
+      expect((await a.nodes()).length).toBe(2)
+      expect((await b.nodes()).length).toBe(2)
     } finally {
       await Promise.all([a.teardown(), b.teardown()])
     }
   })
 
-  it('refuses to play into anything that is not its own present sink', async () => {
+  it('refuses to play into anything that is not its own present device', async () => {
     const rig = await PipeWireRig.create()
     const wav = join(dir, 'silence.wav')
     writeFileSync(wav, encodeWav16(new Int16Array(1600)))
     try {
       await expect(rig.play(before.sink!, wav)).rejects.toThrow(/not a rig device/)
-      await expect(rig.play(rig.mic.captureTarget, wav)).rejects.toThrow(/not a present rig Audio\/Sink/)
+      await expect(rig.play(before.source!, wav)).rejects.toThrow(/not a rig device/)
       await expect(rig.play(`${rig.id}-nonexistent`, wav)).rejects.toThrow(/missing/)
       await rig.remove(rig.system)
       await expect(rig.play(rig.system, wav)).rejects.toThrow(/missing/)
+    } finally {
+      await rig.teardown()
+    }
+  })
+
+  it('players are linked only to the rig device they target — never by WirePlumber, never elsewhere', async () => {
+    const rig = await PipeWireRig.create()
+    const wav = join(dir, 'quiet.wav')
+    const quiet = new Int16Array(16000 * 1.5).map((_, i) => Math.round(300 * Math.sin(i / 5)))
+    writeFileSync(wav, encodeWav16(quiet))
+    try {
+      const playing = rig.playTogether([
+        [rig.mic, wav],
+        [rig.system, wav],
+      ])
+      await sleep(700)
+      // `pw-link -l` while playing: a port line, then indented `|-> peer:port` / `|<- peer:port` lines
+      const snapshot = await sh('pw-link', ['-l'])
+      await playing
+      const pairs: Array<[string, string]> = []
+      let port = ''
+      for (const line of snapshot.split('\n')) {
+        if (!line.trim()) continue
+        if (!/^\s/.test(line)) port = line.trim()
+        else pairs.push([port.split(':')[0]!, line.replace(/^\s*\|?(->|<-)\s*/, '').split(':')[0]!])
+      }
+      const playerPeers = pairs
+        .filter(([node]) => node.startsWith(`${rig.id}-player-`))
+        .map(([, peer]) => peer)
+      expect(playerPeers.sort()).toEqual([rig.mic.captureTarget, rig.system.captureTarget].sort())
+      // and nothing else in the graph links to a rig player
+      const intoPlayers = pairs
+        .filter(([, peer]) => peer.startsWith(`${rig.id}-player-`))
+        .map(([node]) => node)
+      expect(intoPlayers.every((n) => n === rig.mic.captureTarget || n === rig.system.captureTarget)).toBe(
+        true,
+      )
     } finally {
       await rig.teardown()
     }
@@ -128,8 +165,8 @@ describe('PipeWireRig', () => {
       stdio: ['ignore', 'pipe', 'inherit'],
     })
     const ready = await readyLine(child)
-    expect(ready.nodes).toHaveLength(3)
-    expect((await listRigNodes(ready.id)).length).toBe(3)
+    expect(ready.nodes).toHaveLength(2)
+    expect((await listRigNodes(ready.id)).length).toBe(2)
     child.kill('SIGKILL')
     const t0 = Date.now()
     while ((await listRigNodes(ready.id)).length && Date.now() - t0 < 5000) await sleep(50)
@@ -167,7 +204,7 @@ describe('PipeWireRig', () => {
       const removed = await cleanupStaleRigs()
       expect(removed).toEqual([s2.name])
       expect(await listRigNodes(s2.name)).toEqual([])
-      expect((await live.nodes()).length).toBe(3)
+      expect((await live.nodes()).length).toBe(2)
       for (const h of [s1.holder, s2.holder])
         await new Promise((r) => (h.exitCode !== null || h.signalCode ? r(null) : h.on('exit', r)))
     } finally {

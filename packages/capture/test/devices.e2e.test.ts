@@ -39,7 +39,6 @@ describe('listDevices (live)', () => {
       { name: rig.mic.captureTarget, description: 'gnomeola rig mic', kind: 'source', isDefault: false },
     ])
     expect(find(rig.system.captureTarget).map((d) => [d.kind, d.isDefault])).toEqual([['sink', false]])
-    expect(find(rig.mic.playTarget).map((d) => d.kind)).toEqual(['sink'])
   })
 
   it('flags exactly the effective defaults from the metadata', async () => {

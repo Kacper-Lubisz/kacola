@@ -6,17 +6,18 @@ import { randomBytes } from 'node:crypto'
 // Two virtual devices stand in for the user's microphone and speakers, so the production capture path
 // (pw-record against named nodes) can be exercised end to end without touching real hardware:
 //
-//   mic    — a loopback: an Audio/Sink `<id>-mic-in` you play fixtures into, and an Audio/Source
-//            `<id>-mic` you record from, exactly as you would a microphone.
+//   mic    — `<id>-mic`, a server-side null node of class Audio/Source/Virtual: fixtures are linked
+//            into its input, and it is recorded exactly as a microphone is. (A client-side loopback
+//            module was tried first; under CPU load it dropped ~2-quantum blocks, so it was replaced.)
 //   system — a null Audio/Sink `<id>-system`; fixtures are played into it and capture records its
 //            monitor (stream.capture.sink=true), exactly as for real speakers.
 //
 // Safety properties (verified by the rig's own e2e tests):
 //   * The user's defaults are never changed: every rig node has priority.session/driver = 1, far below
 //     any real device, so WirePlumber never picks one as a default. assertDefaultsUnchanged() checks.
-//   * Nothing is ever played to a real device: play() refuses any target that is not one of this rig's
-//     own sinks, and pw-play runs with node.dont-fallback so a vanished target fails instead of being
-//     rerouted to the default sink.
+//   * Nothing is ever played to a real device: players are created with `--target 0` (WirePlumber never
+//     links them anywhere) plus node.dont-fallback, and the rig links them itself, only to input ports
+//     of nodes it owns and has verified are present.
 //   * No leaks: each device is owned by a long-lived `pw-cli` whose stdin we hold. The nodes live exactly
 //     as long as that process, and pw-cli exits on stdin EOF — so if the test process dies for any
 //     reason, even SIGKILL, the kernel closes the pipe and the nodes disappear. Node names carry the
@@ -198,7 +199,7 @@ export type RigRole = 'mic' | 'system'
 
 export type RigDevice = {
   role: RigRole
-  /** Node to pass to pw-play (always an Audio/Sink owned by the rig). */
+  /** Rig node whose input ports fixtures are linked into (a null sink, or the virtual source itself). */
   playTarget: string
   /** Node the capture code should record: a source for the mic, the sink itself for system. */
   captureTarget: string
@@ -229,12 +230,7 @@ export class PipeWireRig {
 
   private constructor(id: string) {
     this.id = id
-    this.mic = {
-      role: 'mic',
-      playTarget: `${id}-mic-in`,
-      captureTarget: `${id}-mic`,
-      nodes: [`${id}-mic-in`, `${id}-mic`],
-    }
+    this.mic = { role: 'mic', playTarget: `${id}-mic`, captureTarget: `${id}-mic`, nodes: [`${id}-mic`] }
     this.system = {
       role: 'system',
       playTarget: `${id}-system`,
@@ -246,6 +242,14 @@ export class PipeWireRig {
   /** Create a rig with both devices. Cleans up stale rigs from dead processes first. */
   static async create(): Promise<PipeWireRig> {
     await cleanupStaleRigs()
+    // With no real default device WirePlumber would elect a rig node as the default (low priority is
+    // still the highest when it is the only candidate), so the no-touch guarantee needs real defaults.
+    const d = await readDefaults()
+    if (!d.sink || !d.source)
+      throw new Error(
+        `PipeWire has no default ${d.sink ? 'source' : 'sink'}; the rig needs real (or CI stand-in) defaults ` +
+          'with priority.session > 1 before it starts, or WirePlumber would make a rig device the default',
+      )
     const rig = new PipeWireRig(`${RIG_PREFIX}${process.pid}-${randomBytes(3).toString('hex')}`)
     try {
       await rig.addSource('mic')
@@ -258,21 +262,21 @@ export class PipeWireRig {
   }
 
   /**
-   * Add a virtual microphone named `<id>-<suffix>` (source) fed by `<id>-<suffix>-in` (sink). The rig's
-   * own `mic` is one of these; tests add more to simulate switching devices.
+   * Add a virtual microphone `<id>-<suffix>`: a server-side null node with media.class
+   * Audio/Source/Virtual. Its input port is fed by linking a player to it directly (WirePlumber will
+   * not route a playback stream to a source), and it is recorded exactly like a microphone.
    */
   async addSource(suffix: string, description = `gnomeola rig ${suffix}`): Promise<RigDevice> {
-    const src = `${this.id}-${suffix}`
-    const sink = `${src}-in`
+    const name = `${this.id}-${suffix}`
     const cmd =
-      `load-module libpipewire-module-loopback { node.description="${description}" audio.position=[MONO] ` +
-      `capture.props={ node.name=${sink} media.class=Audio/Sink priority.session=1 priority.driver=1 } ` +
-      `playback.props={ node.name=${src} media.class=Audio/Source priority.session=1 priority.driver=1 } }`
-    await this.hold(src, cmd, [sink, src])
-    return { role: 'mic', playTarget: sink, captureTarget: src, nodes: [sink, src] }
+      `create-node adapter { factory.name=support.null-audio-sink node.name=${name} ` +
+      `node.description="${description}" media.class=Audio/Source/Virtual audio.position=[MONO] ` +
+      'priority.session=1 priority.driver=1 }'
+    await this.hold(name, cmd, [name])
+    return { role: 'mic', playTarget: name, captureTarget: name, nodes: [name] }
   }
 
-  /** Add a virtual speaker (null sink) named `<id>-<suffix>`. */
+  /** Add a virtual speaker (null sink) named `<id>-<suffix>`; capture records its monitor. */
   async addSink(suffix: string, description = `gnomeola rig ${suffix}`): Promise<RigDevice> {
     const name = `${this.id}-${suffix}`
     const cmd =
@@ -306,69 +310,103 @@ export class PipeWireRig {
     else await this.addSink('system')
   }
 
-  /**
-   * Play a WAV into one of this rig's sinks and resolve when playback finishes. Refuses any target the
-   * rig does not own, and never falls back to another device.
-   */
+  /** Play a WAV into one rig device and resolve when playback finishes. */
   async play(target: RigDevice | string, wavPath: string, opts: { timeoutMs?: number } = {}): Promise<void> {
     await this.playTogether([[target, wavPath]], opts)
   }
 
   /**
-   * Play several WAVs into several rig sinks at once. Targets are validated with one graph snapshot and
-   * the players are spawned back to back, so their start skew is only process start-up (a few ms).
+   * Play several WAVs into several rig devices at once. Every player is created unlinked
+   * (`--target 0`: WirePlumber never routes it anywhere, so it cannot reach a real device), and an
+   * unlinked stream is not scheduled — it consumes nothing until linked. All links are then made
+   * together, so the players start within a few ms of each other.
    */
   async playTogether(
     pairs: ReadonlyArray<readonly [RigDevice | string, string]>,
     opts: { timeoutMs?: number } = {},
   ): Promise<void> {
-    const names = pairs.map(([t]) => (typeof t === 'string' ? t : t.playTarget))
-    await this.assertOwnSinks(names)
-    await Promise.all(pairs.map(([, wav], i) => this.spawnPlayer(names[i]!, wav, opts.timeoutMs)))
+    await this.playLinked(
+      pairs.map(([t, wav]) => ({ targets: [typeof t === 'string' ? t : t.playTarget], wav })),
+      opts.timeoutMs,
+    )
   }
 
   /**
-   * Play ONE stream into several rig sinks: one pw-play, linked to the first target by WirePlumber and
-   * to the others with pw-link. Every target receives the identical samples in the same graph cycle, so
-   * any offset between the captured tracks is the capture path's own misalignment. The WAV should start
-   * with ≥ 300 ms of silence (the extra links are made after playback starts).
+   * Play ONE stream into several rig devices: one player linked to all of them, so every target gets
+   * the identical samples in the same graph cycle and any offset between the captured tracks is the
+   * capture path's own.
    */
   async playInto(
     targets: ReadonlyArray<RigDevice | string>,
     wavPath: string,
     opts: { timeoutMs?: number } = {},
-  ) {
-    const names = targets.map((t) => (typeof t === 'string' ? t : t.playTarget))
-    await this.assertOwnSinks(names)
-    const player = `${this.id}-player-${++this.playerSeq}`
-    const done = this.spawnPlayer(names[0]!, wavPath, opts.timeoutMs, player)
-    await waitFor(async () => (await portsOf(player)).length > 0, 3000, `${player} output port`)
-    const [port] = await portsOf(player)
-    for (const sink of names.slice(1)) {
-      const sinkPorts = (await listPorts()).filter((p) => p.startsWith(`${sink}:playback_`))
-      if (!sinkPorts.length) throw new Error(`no playback port on ${sink}`)
-      await run('pw-link', [port!, sinkPorts[0]!])
-    }
-    await done
+  ): Promise<void> {
+    await this.playLinked(
+      [{ targets: targets.map((t) => (typeof t === 'string' ? t : t.playTarget)), wav: wavPath }],
+      opts.timeoutMs,
+    )
   }
 
   private playerSeq = 0
 
-  private async assertOwnSinks(names: string[]): Promise<void> {
-    const nodes = await listRigNodes(this.id)
-    for (const name of names) {
-      if (!name.startsWith(`${this.id}-`)) throw new Error(`refusing to play into ${name}: not a rig device`)
-      const node = nodes.find((n) => n.name === name)
-      if (node?.mediaClass !== 'Audio/Sink')
-        throw new Error(
-          `refusing to play into ${name}: not a present rig Audio/Sink (${node?.mediaClass ?? 'missing'})`,
-        )
+  private async playLinked(
+    jobs: Array<{ targets: string[]; wav: string }>,
+    timeoutMs = 120_000,
+  ): Promise<void> {
+    const inputs = await this.ownInputPorts(jobs.flatMap((j) => j.targets))
+    const players = jobs.map((j) => ({ ...j, name: `${this.id}-player-${++this.playerSeq}` }))
+    const done = players.map((p) => this.spawnPlayer(p.name, p.wav, timeoutMs))
+    // a player that dies before its port appears must fail the call, not hang it
+    let early: Error | null = null
+    for (const d of done)
+      d.catch((e: Error) => {
+        early ??= e
+      })
+    const outs: string[] = []
+    for (const p of players) {
+      let port: string | undefined
+      await waitFor(
+        async () => {
+          if (early) throw early
+          port = (await portsOf(p.name))[0]
+          return port !== undefined
+        },
+        5000,
+        `${p.name} output port`,
+      )
+      outs.push(port!)
     }
+    await Promise.all(
+      players.flatMap((p, i) =>
+        p.targets.flatMap((t) => inputs.get(t)!.map((inPort) => run('pw-link', [outs[i]!, inPort]))),
+      ),
+    )
+    await Promise.all(done)
   }
 
-  private async spawnPlayer(target: string, wavPath: string, timeoutMs = 120_000, nodeName?: string) {
-    const props = `{ ${NO_FALLBACK} media.role=Test${nodeName ? ` node.name=${nodeName}` : ''} }`
-    const child = spawn('pw-play', ['--target', target, '-P', props, wavPath], {
+  /** Input ports of rig devices; refuses anything the rig does not own or that is not present. */
+  private async ownInputPorts(names: string[]): Promise<Map<string, string[]>> {
+    const nodes = await listRigNodes(this.id)
+    const ports = await listPorts()
+    const out = new Map<string, string[]>()
+    for (const name of names) {
+      if (!name.startsWith(`${this.id}-`) || name.includes('-player-'))
+        throw new Error(`refusing to play into ${name}: not a rig device`)
+      const node = nodes.find((n) => n.name === name)
+      if (node?.mediaClass !== 'Audio/Sink' && node?.mediaClass !== 'Audio/Source/Virtual')
+        throw new Error(
+          `refusing to play into ${name}: not a present rig device (${node?.mediaClass ?? 'missing'})`,
+        )
+      const inPorts = ports.filter((p) => p.startsWith(`${name}:`))
+      if (!inPorts.length) throw new Error(`rig device ${name} has no input port`)
+      out.set(name, inPorts)
+    }
+    return out
+  }
+
+  private async spawnPlayer(nodeName: string, wavPath: string, timeoutMs: number): Promise<void> {
+    const props = `{ ${NO_FALLBACK} media.role=Test node.name=${nodeName} }`
+    const child = spawn('pw-play', ['--target', '0', '-P', props, wavPath], {
       stdio: ['ignore', 'ignore', 'pipe'],
     })
     own(child)
@@ -381,13 +419,12 @@ export class PipeWireRig {
       await new Promise<void>((resolve, reject) => {
         const timer = setTimeout(() => {
           child.kill('SIGKILL')
-          reject(new Error(`pw-play into ${target} did not finish within ${timeoutMs} ms: ${stderr}`))
+          reject(new Error(`${nodeName} did not finish within ${timeoutMs} ms: ${stderr}`))
         }, timeoutMs)
         child.on('exit', (code, sig) => {
           clearTimeout(timer)
           if (code === 0) resolve()
-          else
-            reject(new Error(`pw-play into ${target} failed (code ${code}, signal ${sig}): ${stderr.trim()}`))
+          else reject(new Error(`${nodeName} failed (code ${code}, signal ${sig}): ${stderr.trim()}`))
         })
       })
     } finally {

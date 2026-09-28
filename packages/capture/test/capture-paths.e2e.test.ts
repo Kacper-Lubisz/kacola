@@ -12,6 +12,7 @@ import {
   ALIGN_TOLERANCE_MS,
   assertCaptureRun,
   observe,
+  outageGaps,
   readTrack,
   runScenario,
   sleep,
@@ -47,7 +48,7 @@ describe('capture paths — level 2 (real PipeWire rig)', () => {
       const result = await src.stop()
       const wall = performance.now() - t0
       expect(result.error).toBeNull()
-      expect(obs.gaps).toEqual([])
+      expect(outageGaps(obs.gaps, result.durationMs)).toEqual([])
       expect(obs.errors).toEqual([])
       expect(Math.abs(result.durationMs - wall)).toBeLessThan(100)
       for (const t of result.tracks) {
@@ -92,7 +93,7 @@ describe('capture paths — level 2 (real PipeWire rig)', () => {
       await sleep(300)
       const result = await src.stop()
       expect(result.error).toBeNull()
-      expect(obs.gaps).toEqual([])
+      expect(outageGaps(obs.gaps, result.durationMs)).toEqual([])
       const mic = detectBursts(readTrack(join(dir, 'session', 'mic.wav')), 800)
       const sys = detectBursts(readTrack(join(dir, 'session', 'system.wav')), 800)
       expect(mic).toHaveLength(3)
@@ -100,8 +101,8 @@ describe('capture paths — level 2 (real PipeWire rig)', () => {
       const offsets = mic.map((b, i) => sys[i]!.startMs - b.startMs)
       console.log(`[align] per-burst system−mic offsets (ms): ${offsets.map((o) => o.toFixed(2)).join(', ')}`)
       // Each track is anchored to the wall clock from its first chunk, which PipeWire delivers once per
-      // graph cycle (1024 frames @ 48 kHz = 21.3 ms), so each anchor is good to ±1 quantum and the pair to
-      // ±2 quanta. Observed over 11 runs: 0 ms ×8, ±10.7 ms ×2, −21.3 ms ×1.
+      // graph cycle (512 frames @ 48 kHz = 10.7 ms on the rig, per pw-top), so the pair is good to a few
+      // quanta. Measured offsets are whole quanta: 0 ms most runs, ±10.7 ms or −21.3 ms occasionally.
       for (const o of offsets) expect(Math.abs(o)).toBeLessThanOrEqual(ALIGN_TOLERANCE_MS)
       // Offsets must not drift within a take.
       expect(Math.max(...offsets) - Math.min(...offsets)).toBeLessThanOrEqual(1)
