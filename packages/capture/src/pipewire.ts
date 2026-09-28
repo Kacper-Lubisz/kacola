@@ -457,6 +457,7 @@ export class PipeWireCaptureSource implements CaptureSource {
       child.once('close', () => resolve())
     })
     child.kill('SIGTERM')
+    child.kill('SIGCONT') // a stopped (hung) child cannot act on SIGTERM until continued
     const timer = setTimeout(() => child.kill('SIGKILL'), 2000)
     await done
     clearTimeout(timer)
