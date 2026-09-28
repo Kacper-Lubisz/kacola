@@ -999,7 +999,7 @@ for the retrieval surface:
         </P>
 
         <Tasks phase="M0" title="Foundations — 6 d" items={[
-          { text: <><strong>G-1</strong> GTKX spike: hello-world <code>AdwApplicationWindow</code> under GNOME 50 / libadwaita 1.9 on Node 24, pinned to GTKX 1.6. <em>Blocks everything visual. Do this first — it is the plan&apos;s biggest unknown.</em></> },
+          { done: true, text: <><strong>G-1</strong> GTKX spike: hello-world <code>AdwApplicationWindow</code> under GNOME 50 / libadwaita 1.9 on Node 24, pinned to GTKX 1.6. <em>Blocks everything visual. Do this first — it is the plan&apos;s biggest unknown.</em></> },
           { done: true, text: <><strong>G-2</strong> Node 24 toolchain: <code>mise</code>/<code>fnm</code> pin, pnpm workspace, shared tsconfig, biome, vitest. <em>blocked by: —</em></> },
           { done: true, text: <><strong>G-3</strong> <code>@gnomeola/protocol</code> v0 — zod schemas for Session, Track, Segment, Speaker, and the event envelope with monotonic <code>seq</code>. <em>blocked by: G-2</em></> },
           { done: true, text: <><strong>G-4</strong> Daemon skeleton: fastify, <code>/health</code>, SSE endpoint with <code>Last-Event-ID</code> cursor resume, systemd user unit. <em>blocked by: G-3</em></> },
@@ -1013,7 +1013,7 @@ for the retrieval surface:
           { text: <><strong>R-2</strong> Dual-track capture: one <code>pw-record</code> per track, 16 kHz mono PCM to both a WAV on disk and an in-process stream; start/stop/pause. <em>blocked by: R-1, G-5</em></> },
           { text: <><strong>R-3</strong> Device-change resilience — default sink or source switches mid-meeting, headphones plugged in, stream dies and restarts without losing the session. <em>blocked by: R-2</em></> },
           { done: true, text: <><strong>R-4</strong> Session API: <code>POST /sessions</code>, start/stop, list, get. <em>blocked by: G-4, R-2</em></> },
-          { text: <><strong>R-5</strong> UI shell: GTKX app, <code>AdwApplicationWindow</code> + <code>AdwNavigationSplitView</code>, session list driven by the daemon. <em>blocked by: G-1, R-4</em></> },
+          { done: true, text: <><strong>R-5</strong> UI shell: GTKX app, <code>AdwApplicationWindow</code> + <code>AdwNavigationSplitView</code>, session list driven by the daemon. <em>blocked by: G-1, R-4</em></> },
           { text: <><strong>R-6</strong> Live level meters and elapsed timer over SSE — the first real proof the stream works end to end. <em>blocked by: R-5</em></> },
           { text: <><strong>R-7</strong> Archive encode to Opus/FLAC via ffmpeg + a retention setting (including &quot;delete audio after transcription&quot;). <em>blocked by: R-2</em></> },
           { text: <><strong>V-1a</strong> The PipeWire rig: two null sinks, fixture playback, monitor capture, teardown that leaves no stray nodes. Runs level 1 and level 2 from one test body. <em>blocked by: R-2, V-0</em></> },
