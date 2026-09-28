@@ -1,5 +1,6 @@
-import { mkdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
+import { recoverWav } from '@gnomeola/capture'
 import type { Session, StoredSettings } from '@gnomeola/protocol'
 import type { Store } from '@gnomeola/store'
 import type { EventBus } from './bus.ts'
@@ -249,7 +250,20 @@ export class SessionManager {
     const out: Session[] = []
     for (const s of this.d.store.sessionsWithStatus(['recording', 'paused'])) {
       const endedAt = this.d.store.lastEventAt(s.id) ?? s.startedAt ?? s.createdAt
-      const durationMs = Math.max(s.durationMs, this.d.store.maxSegmentEndMs(s.id))
+      // The capturing process died without finalising its WAV headers: repair them so the audio up to the
+      // last flush is playable, and let its real length count towards the session's duration.
+      let audioMs = 0
+      for (const t of s.tracks) {
+        if (!t.audioPath || !existsSync(t.audioPath)) continue
+        try {
+          const r = recoverWav(t.audioPath)
+          if (r.status !== 'unrecoverable') audioMs = Math.max(audioMs, r.durationMs)
+          this.d.logger.info('recovered audio', { sessionId: s.id, track: t.kind, status: r.status })
+        } catch (err) {
+          this.d.logger.error('audio recovery failed', { sessionId: s.id, track: t.kind, err })
+        }
+      }
+      const durationMs = Math.max(s.durationMs, this.d.store.maxSegmentEndMs(s.id), Math.round(audioMs))
       out.push(
         this.d.store.updateSession(s.id, (cur) => ({
           ...cur,

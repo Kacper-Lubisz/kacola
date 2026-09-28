@@ -207,14 +207,40 @@ describe('pipeline failures', () => {
     }
   })
 
-  it('without fakes, recording is honestly unavailable', async () => {
-    const d = await startDaemon({ fake: false })
+  it('without fakes and without models, recording is honestly unavailable, naming the model', async () => {
+    const { mkdtempSync } = await import('node:fs')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+    const models = mkdtempSync(join(tmpdir(), 'gnomeola-nomodels-'))
+    const d = await startDaemon({ fake: false, env: { GNOMEOLA_MODELS_DIR: models } })
     try {
       const h = await d.client.call('health')
-      expect(h.capture).toEqual({ available: false, backend: 'none', detail: expect.any(String) })
+      if (h.capture.available) expect(h.capture.detail).toMatch(/models not ready: .*live-nemo/)
       const s = await d.client.call('createSession', {})
-      expect(await status(d.client.call('startSession', { params: { id: s.id } }))).toBe(503)
-      expect(await d.client.call('listDevices')).toEqual({ devices: [] })
+      const err = await d.client.call('startSession', { params: { id: s.id } }).catch((e) => e)
+      expect(err.status).toBe(503)
+      expect(err.message).toMatch(
+        /speech model live-nemo-fastconformer-en-80ms-int8 is missing; download it first/,
+      )
+      const after = await d.client.call('getSession', { params: { id: s.id } })
+      expect(after.status).toBe('idle')
+      expect(after.error).toMatch(/is missing/)
+      const { models: listed } = await d.client.call('listModels')
+      expect(listed.find((m) => m.id === 'live-nemo-fastconformer-en-80ms-int8')?.state).toBe('missing')
+    } finally {
+      await d.stop()
+    }
+  })
+
+  it('without PipeWire tools, health says so plainly', async () => {
+    const d = await startDaemon({ fake: false, env: { PATH: '/nonexistent' } })
+    try {
+      const h = await d.client.call('health')
+      expect(h.capture).toEqual({
+        available: false,
+        backend: 'pipewire',
+        detail: 'pw-record is not installed',
+      })
     } finally {
       await d.stop()
     }

@@ -6,8 +6,12 @@ import type { Logger } from './logger.ts'
 
 export const DEFAULT_SETTINGS: StoredSettings = {
   llm: { provider: 'anthropic', model: 'claude-opus-5', ollamaUrl: 'http://127.0.0.1:11434' },
-  // Placeholder ids until the STT model manager defines its catalogue.
-  stt: { liveModel: 'zipformer-en-streaming', finalModel: 'whisper-small.en', finalPass: 'during' },
+  // The measured defaults from @gnomeola/stt's catalogue (see docs/stt.md).
+  stt: {
+    liveModel: 'live-nemo-fastconformer-en-80ms-int8',
+    finalModel: 'final-parakeet-tdt-110m-en-int8',
+    finalPass: 'during',
+  },
   capture: { micDevice: 'default', systemDevice: 'default' },
   retention: { audio: 'keep', days: 30, archive: false },
 }

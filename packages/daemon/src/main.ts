@@ -9,9 +9,11 @@
 // Once listening it prints one JSON line to stdout — {"event":"listening","url":…,"port":…,"pid":…} —
 // which the test harness (and anything else that started it with --port 0) reads to find it.
 import { spawnSync } from 'node:child_process'
+import { ModelManager } from '@gnomeola/stt'
 import { parseConfig, UsageError } from './config.ts'
 import { createDaemon, type DaemonOptions } from './daemon.ts'
 import { LlmQaEngine } from './engines/llm.ts'
+import { PipeWireDevices, RecordingPipeline, SttModels } from './engines/recording.ts'
 import { FakePipeline } from './fakes/pipeline.ts'
 import { FakeDevices, FakeModels, FakeQaEngine } from './fakes/providers.ts'
 import type { Keyring } from './interfaces.ts'
@@ -49,6 +51,11 @@ async function main(): Promise<void> {
     opts.pipeline = new FakePipeline(cfg.fakePipeline)
     opts.devices = new FakeDevices()
     opts.models = new FakeModels()
+  } else {
+    const models = new ModelManager()
+    opts.pipeline = new RecordingPipeline({ models })
+    opts.devices = new PipeWireDevices()
+    opts.models = new SttModels(models)
   }
   opts.qaEngine = cfg.fakeQa ? new FakeQaEngine() : new LlmQaEngine()
 
