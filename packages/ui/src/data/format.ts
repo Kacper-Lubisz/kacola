@@ -63,16 +63,33 @@ const STATUS_LABELS: Record<SessionStatus, string> = {
 
 export const statusLabel = (s: SessionStatus): string => STATUS_LABELS[s]
 
+/**
+ * How long a session has been recording. The daemon updates `durationMs` when a recording stops (or
+ * pauses), not every second, so while it records the clock runs from `startedAt`.
+ */
+export function elapsedMs(
+  session: Pick<Session, 'status' | 'durationMs' | 'startedAt'>,
+  now: Date = new Date(),
+): number {
+  if (session.status !== 'recording' || !session.startedAt) return session.durationMs
+  const since = now.getTime() - Date.parse(session.startedAt)
+  return Number.isFinite(since) ? Math.max(session.durationMs, since) : session.durationMs
+}
+
 /** The status part of a row subtitle: "Recording · 3:12", "Finished · 45:00", "Not started". */
-export function statusSummary(session: Pick<Session, 'status' | 'durationMs'>): string {
+export function statusSummary(
+  session: Pick<Session, 'status' | 'durationMs'> & Partial<Pick<Session, 'startedAt'>>,
+  now: Date = new Date(),
+): string {
   if (session.status === 'idle') return statusLabel('idle')
-  return `${statusLabel(session.status)} · ${formatDuration(session.durationMs)}`
+  const ms = elapsedMs({ startedAt: null, ...session }, now)
+  return `${statusLabel(session.status)} · ${formatDuration(ms)}`
 }
 
 /** The sidebar row subtitle: "5 min ago · Recording · 3:12". */
 export function sessionSubtitle(session: Session, now: Date = new Date()): string {
   const when = formatRelativeTime(session.startedAt ?? session.createdAt, now)
-  return `${when} · ${statusSummary(session)}`
+  return `${when} · ${statusSummary(session, now)}`
 }
 
 /** Escape text for widgets whose string props are Pango markup (AdwStatusPage.description, …). */

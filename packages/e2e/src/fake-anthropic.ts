@@ -21,7 +21,16 @@ export function loadCassette(path: string): CannedResponse[] {
   }))
 }
 
-export async function startFakeAnthropic() {
+export type FakeAnthropicOptions = {
+  /**
+   * Write a streamed (text/event-stream) body one SSE event at a time, this many ms apart, so a UI
+   * can be watched while the answer streams. 0 (the default) writes the whole body at once.
+   */
+  eventDelayMs?: number
+}
+
+export async function startFakeAnthropic(opts: FakeAnthropicOptions = {}) {
+  let eventDelayMs = opts.eventDelayMs ?? 0
   const seen: SeenRequest[] = []
   let queue: CannedResponse[] = []
   let fallback: CannedResponse | null = null
@@ -43,7 +52,14 @@ export async function startFakeAnthropic() {
       )
     }
     res.writeHead(next.status, next.headers)
-    res.end(next.body)
+    const streamed = String(next.headers['content-type'] ?? '').includes('text/event-stream')
+    if (!eventDelayMs || !streamed) return res.end(next.body)
+    for (const event of next.body.split(/(?<=\n\n)/)) {
+      if (res.destroyed) return
+      res.write(event)
+      await new Promise((r) => setTimeout(r, eventDelayMs))
+    }
+    res.end()
   })
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
@@ -55,6 +71,10 @@ export async function startFakeAnthropic() {
     /** Served once the queue is empty (e.g. for retry storms). */
     always: (r: CannedResponse | null) => {
       fallback = r
+    },
+    /** Change the per-event delay for responses served from now on. */
+    setEventDelay: (ms: number) => {
+      eventDelayMs = ms
     },
     reset: () => {
       queue = []

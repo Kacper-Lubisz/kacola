@@ -1,4 +1,4 @@
-import type { Session } from '@gnomeola/protocol'
+import type { ModelInfo, Session } from '@gnomeola/protocol'
 import * as Gtk from '@gtkx/gi/gtk'
 import {
   AdwActionRow,
@@ -8,12 +8,40 @@ import {
   AdwToolbarView,
   AdwWindowTitle,
 } from '@gtkx/jsx/adw'
-import { GtkBox, GtkImage, GtkListBox, GtkScrolledWindow, GtkSearchEntry } from '@gtkx/jsx/gtk'
+import { GMenu } from '@gtkx/jsx/gio'
+import { GtkBox, GtkImage, GtkListBox, GtkMenuButton, GtkScrolledWindow, GtkSearchEntry } from '@gtkx/jsx/gtk'
 import { useState } from 'react'
 import { displayTitle, sessionSubtitle } from '../data/format.ts'
 import { useConnection, useNow, useSessions } from '../data/hooks.ts'
 import { filterSessions } from '../data/sessions.ts'
+import { _, ngettext } from '../i18n/index.ts'
+import { useDialogs } from './dialogs.tsx'
 import { RecordButton } from './record-button.tsx'
+
+/** The primary menu (GNOME HIG): app-wide actions, each also reachable by a keyboard shortcut. */
+function MainMenu() {
+  return (
+    <GtkMenuButton
+      iconName="open-menu-symbolic"
+      primary
+      tooltipText={_('Main Menu')}
+      accessibleLabel={_('Main menu')}
+      menuModel={
+        <GMenu
+          items={[
+            {
+              section: [
+                { label: _('Preferences'), action: 'win.preferences' },
+                { label: _('Set Up Speech Models…'), action: 'win.onboarding' },
+              ],
+            },
+            { section: [{ label: _('About gnomeola'), action: 'win.about' }] },
+          ]}
+        />
+      }
+    />
+  )
+}
 
 function SessionRow({ session, now }: { session: Session; now: Date }) {
   const recording = session.status === 'recording'
@@ -28,7 +56,7 @@ function SessionRow({ session, now }: { session: Session; now: Date }) {
         <GtkImage
           iconName={recording ? 'media-record-symbolic' : 'audio-x-generic-symbolic'}
           cssClasses={recording ? ['error'] : ['dim-label']}
-          accessibleLabel={recording ? 'Recording' : 'Recorded session'}
+          accessibleLabel={recording ? _('Recording') : _('Recorded session')}
         />
       }
     />
@@ -39,12 +67,16 @@ export type SidebarProps = {
   selectedId: string | null
   onSelect: (id: string) => void
   subtitle: string | null
+  /** Required speech models that are not downloaded (onboarding was skipped). */
+  missingModels: readonly ModelInfo[]
 }
 
-export function Sidebar({ selectedId, onSelect, subtitle }: SidebarProps) {
+export function Sidebar({ selectedId, onSelect, subtitle, missingModels }: SidebarProps) {
+  const dialogs = useDialogs()
   const sessions = useSessions()
   const connection = useConnection()
-  const now = useNow(15_000)
+  // a recording's row shows its running time, so tick every second while one records
+  const now = useNow(sessions.some((s) => s.status === 'recording') ? 1000 : 15_000)
   const [query, setQuery] = useState('')
   const shown = filterSessions(sessions, query)
 
@@ -53,6 +85,7 @@ export function Sidebar({ selectedId, onSelect, subtitle }: SidebarProps) {
       topBar={
         <AdwHeaderBar
           start={<RecordButton onStarted={onSelect} />}
+          end={<MainMenu />}
           titleWidget={<AdwWindowTitle title="gnomeola" subtitle={subtitle ?? ''} />}
         />
       }
@@ -61,11 +94,28 @@ export function Sidebar({ selectedId, onSelect, subtitle }: SidebarProps) {
         {/* Mounted only while reconnecting: an unrevealed AdwBanner stays in the accessibility tree
             as a visible, named node, which would read out a stale warning. */}
         {connection.kind === 'reconnecting' ? (
-          <AdwBanner revealed title="Lost the connection to the daemon. Reconnecting…" useMarkup={false} />
+          <AdwBanner
+            revealed
+            title={_('Lost the connection to the daemon. Reconnecting…')}
+            useMarkup={false}
+          />
+        ) : null}
+        {connection.kind !== 'reconnecting' && missingModels.length > 0 ? (
+          <AdwBanner
+            revealed
+            useMarkup={false}
+            title={ngettext(
+              'A speech model is not downloaded yet',
+              'Speech models are not downloaded yet',
+              missingModels.length,
+            )}
+            buttonLabel={_('Set Up')}
+            onButtonClicked={() => dialogs.open('onboarding')}
+          />
         ) : null}
         <GtkSearchEntry
-          placeholderText="Search sessions"
-          accessibleLabel="Search sessions"
+          placeholderText={_('Search sessions')}
+          accessibleLabel={_('Search sessions')}
           marginStart={12}
           marginEnd={12}
           marginTop={6}
@@ -76,15 +126,17 @@ export function Sidebar({ selectedId, onSelect, subtitle }: SidebarProps) {
           <AdwStatusPage
             vexpand
             iconName={query ? 'edit-find-symbolic' : 'audio-input-microphone-symbolic'}
-            title={query ? 'No Matching Sessions' : 'No Sessions Yet'}
-            description={query ? 'Try a different search.' : 'Press Record to capture your first meeting.'}
+            title={query ? _('No Matching Sessions') : _('No Sessions Yet')}
+            description={
+              query ? _('Try a different search.') : _('Press Record to capture your first meeting.')
+            }
             cssClasses={['compact']}
           />
         ) : (
           <GtkScrolledWindow vexpand hscrollbarPolicy={Gtk.PolicyType.NEVER}>
             <GtkListBox
               cssClasses={['navigation-sidebar']}
-              accessibleLabel="Sessions"
+              accessibleLabel={_('Sessions')}
               selectedIndex={shown.findIndex((s) => s.id === selectedId)}
               onRowSelected={(row) => {
                 if (!row) return

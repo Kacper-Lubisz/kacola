@@ -1,5 +1,6 @@
-import type { AnyEvent, Session } from '@gnomeola/protocol'
+import type { AnyEvent, Health, Session, Settings, SettingsPatch } from '@gnomeola/protocol'
 import { applyEvent, emptySessions, fromSnapshot, type SessionsState } from './sessions.ts'
+import { withStored } from './settings.ts'
 import type { DataSource } from './source.ts'
 
 // The one place UI state lives. A plain external store (subscribe / getSnapshot) so React reads it
@@ -16,6 +17,10 @@ export type Connection =
 export type StoreState = {
   sessions: SessionsState
   connection: Connection
+  /** The daemon's settings; null until fetched (or when this daemon cannot serve them). */
+  settings: Settings | null
+  /** The health report from the last (re)load: capture availability, models, LLM readiness. */
+  health: Health | null
 }
 
 export type StoreOptions = {
@@ -34,7 +39,12 @@ const message = (err: unknown): string => {
 }
 
 export class SessionStore {
-  private state: StoreState = { sessions: emptySessions, connection: { kind: 'connecting' } }
+  private state: StoreState = {
+    sessions: emptySessions,
+    connection: { kind: 'connecting' },
+    settings: null,
+    health: null,
+  }
   private readonly listeners = new Set<() => void>()
   private readonly eventListeners = new Set<(e: AnyEvent) => void>()
   private abort: AbortController | null = null
@@ -53,6 +63,11 @@ export class SessionStore {
 
   get origin(): string {
     return this.source.origin
+  }
+
+  /** The data source, for per-session feeds (transcript, Q&A) and one-off calls. */
+  get api(): DataSource {
+    return this.source
   }
 
   subscribe = (l: () => void): (() => void) => {
@@ -115,7 +130,12 @@ export class SessionStore {
       return
     }
     if (ac.signal.aborted) return
-    this.set({ sessions: fromSnapshot(snap.sessions, snap.seq), connection: { kind: 'live' } })
+    this.set({
+      sessions: fromSnapshot(snap.sessions, snap.seq),
+      connection: { kind: 'live' },
+      health: snap.health,
+    })
+    void this.refreshSettings(ac.signal)
     await this.source.subscribe({
       since: snap.seq,
       signal: ac.signal,
@@ -134,7 +154,47 @@ export class SessionStore {
   ingest(e: AnyEvent): void {
     const sessions = applyEvent(this.state.sessions, e)
     if (sessions !== this.state.sessions) this.set({ sessions })
+    if (e.data.type === 'settings.updated') {
+      this.set({ settings: withStored(this.state.settings, e.data.settings) })
+    }
     for (const l of [...this.eventListeners]) l(e)
+  }
+
+  /** Fetch settings (after connecting, and whenever the Preferences dialog opens). */
+  async refreshSettings(signal?: AbortSignal): Promise<Settings | null> {
+    try {
+      const settings = await this.source.getSettings(signal)
+      if (signal?.aborted) return null
+      this.set({ settings })
+      return settings
+    } catch {
+      // an older daemon without /settings: the dialog says so; nothing else depends on it
+      return null
+    }
+  }
+
+  async updateSettings(patch: SettingsPatch): Promise<Settings> {
+    const settings = await this.source.updateSettings(patch)
+    this.set({ settings })
+    return settings
+  }
+
+  /** Store or clear the API key. Only the configured flag ever comes back. */
+  async setApiKey(key: string | null): Promise<boolean> {
+    const { configured } = await this.source.setApiKey(key)
+    const cur = this.state.settings
+    if (cur) this.set({ settings: { ...cur, llm: { ...cur.llm, apiKeyConfigured: configured } } })
+    return configured
+  }
+
+  async refreshHealth(): Promise<Health | null> {
+    try {
+      const health = await this.source.health()
+      this.set({ health })
+      return health
+    } catch {
+      return null
+    }
   }
 
   async startRecording(): Promise<Session> {

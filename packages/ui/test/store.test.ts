@@ -34,6 +34,30 @@ const upsert = (seq: number, s: Session): DurableEvent => ({
   data: { type: 'session.upserted', session: s },
 })
 
+const unused = async (): Promise<never> => {
+  throw new Error('unused')
+}
+/** Every DataSource call a store test does not exercise. */
+function unusedApi(): Omit<DataSource, 'origin' | 'load' | 'subscribe'> {
+  return {
+    startRecording: unused,
+    stopRecording: unused,
+    transcript: unused,
+    qaHistory: unused,
+    // biome-ignore lint/correctness/useYield: never iterated
+    ask: async function* () {
+      throw new Error('unused')
+    },
+    health: unused,
+    getSettings: unused,
+    updateSettings: unused,
+    setApiKey: unused,
+    listDevices: unused,
+    listModels: unused,
+    downloadModel: unused,
+  }
+}
+
 /** A controllable source: the test decides when load resolves and pushes events by hand. */
 function fakeSource(opts: { fail?: Error; sessions?: Session[]; seq?: number } = {}) {
   let handlers: SubscribeHandlers | null = null
@@ -43,7 +67,7 @@ function fakeSource(opts: { fail?: Error; sessions?: Session[]; seq?: number } =
     async load() {
       calls.load++
       if (opts.fail) throw opts.fail
-      return { sessions: opts.sessions ?? [], seq: opts.seq ?? 0 }
+      return { sessions: opts.sessions ?? [], seq: opts.seq ?? 0, health: null }
     },
     subscribe(h) {
       handlers = h
@@ -51,12 +75,7 @@ function fakeSource(opts: { fail?: Error; sessions?: Session[]; seq?: number } =
       h.onConnect()
       return new Promise((r) => h.signal.addEventListener('abort', () => r(), { once: true }))
     },
-    async startRecording() {
-      throw new Error('unused')
-    },
-    async stopRecording() {
-      throw new Error('unused')
-    },
+    ...unusedApi(),
   }
   return { src, calls, push: (e: AnyEvent) => handlers!.onEvent(e), handlers: () => handlers! }
 }
@@ -279,7 +298,7 @@ describe('daemon source (protocol client over a fake fetch)', () => {
     }) as unknown as typeof fetch
     const src = createDaemonSource({ baseUrl: 'http://daemon.test:1', fetch: fetchFn })
     const snap = await src.load(new AbortController().signal)
-    expect(snap).toEqual({ sessions: [a], seq: 12 })
+    expect(snap).toEqual({ sessions: [a], seq: 12, health })
     expect(urls[0]).toBe('http://daemon.test:1/health')
     expect(urls[1]).toBe('http://daemon.test:1/sessions?includePrivate=true&limit=500')
   })
@@ -321,13 +340,28 @@ describe('daemon source (protocol client over a fake fetch)', () => {
 
 describe('readConfig', () => {
   it('defaults to the local daemon', () => {
-    expect(readConfig({})).toEqual({ mode: 'daemon', baseUrl: 'http://127.0.0.1:8787', timeoutMs: 5000 })
+    expect(readConfig({ HOME: '/home/u' })).toEqual({
+      mode: 'daemon',
+      baseUrl: 'http://127.0.0.1:8787',
+      timeoutMs: 5000,
+      uiStatePath: '/home/u/.local/state/gnomeola/ui-state.json',
+      autoOnboarding: true,
+    })
     expect(readConfig({ GNOMEOLA_URL: 'http://10.0.0.2:9000' })).toMatchObject({
       baseUrl: 'http://10.0.0.2:9000',
     })
   })
   it('enables the demo with GNOMEOLA_UI_DEMO', () => {
-    expect(readConfig({ GNOMEOLA_UI_DEMO: '1' })).toEqual({ mode: 'demo', intervalMs: 4000, maxSessions: 40 })
+    expect(readConfig({ GNOMEOLA_UI_DEMO: '1', XDG_STATE_HOME: '/st' })).toEqual({
+      mode: 'demo',
+      intervalMs: 4000,
+      maxSessions: 40,
+      uiStatePath: '/st/gnomeola/ui-state.json',
+      // the demo does not pop onboarding at you unless asked to
+      autoOnboarding: false,
+    })
+    expect(readConfig({ GNOMEOLA_UI_DEMO: '1', GNOMEOLA_UI_ONBOARDING: '1' }).autoOnboarding).toBe(true)
+    expect(readConfig({ GNOMEOLA_UI_ONBOARDING: 'off' }).autoOnboarding).toBe(false)
     expect(readConfig({ GNOMEOLA_UI_DEMO: 'true', GNOMEOLA_UI_DEMO_INTERVAL_MS: '250' })).toMatchObject({
       intervalMs: 250,
     })

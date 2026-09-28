@@ -82,6 +82,15 @@ export type HeadlessDisplay = {
   click: (node: AccessibleNode | number) => Promise<string>
   action: (node: AccessibleNode | number, name: string) => Promise<void>
   focus: (node: AccessibleNode | number) => Promise<void>
+  /**
+   * Move keyboard focus into a container (e.g. a GtkListView, whose rows are recycled and cannot be
+   * targeted one by one) with real Tab presses (Shift+Tab with `reverse`: useful when forward
+   * tabbing would cross a GtkListBox whose selection follows focus). Resolves with the focused node.
+   */
+  focusInto: (
+    within: AccessibleNode | number,
+    opts?: { maxTabs?: number; reverse?: boolean },
+  ) => Promise<AccessibleNode>
   /** Real keyboard input through mutter's RemoteDesktop API, into whatever has focus. */
   typeText: (text: string, opts?: { delayMs?: number }) => Promise<void>
   /** Press a chord of named keys ("Return", "Escape", "Control_L", "a", …). */
@@ -408,6 +417,24 @@ export async function startHeadlessDisplay(opts: HeadlessOptions = {}): Promise<
         if (await focused()) return
       }
       throw new Error(`could not move keyboard focus to node ${refOf(n)}`)
+    },
+    async focusInto(within, o = {}) {
+      const focusedInside = async () =>
+        (
+          await drv.request<AccessibleNode[]>('find', {
+            within: refOf(within),
+            states: ['focused'],
+            limit: 1,
+          })
+        )[0]
+      const already = await focusedInside()
+      if (already) return already
+      for (let i = 0; i < (o.maxTabs ?? 60); i++) {
+        await drv.request('key', { keys: o.reverse ? ['Shift_L', 'Tab'] : ['Tab'] })
+        const f = await focusedInside()
+        if (f) return f
+      }
+      throw new Error(`could not move keyboard focus into node ${refOf(within)}`)
     },
     async typeText(text, o = {}) {
       await drv.request('typeText', { text, delayMs: o.delayMs ?? 15 }, 60_000)
