@@ -355,8 +355,141 @@ describe('gnomeola window, real client against a daemon', () => {
     expect(stub.requests.filter((r) => r.startsWith('POST')).at(-1)).toMatch(/\/stop$/)
     await d.screenshot(join(ARTIFACTS, 'ui-daemon.png'))
     if (app.hasExited()) throw new Error(logTail(app))
-    expect(await unnamedInteractive(d)).toEqual([])
-    // keep the tree in the log for whoever writes the next test
-    console.log(formatTree(await d.accessibleTree({ app: APP, maxDepth: 12 })).slice(0, 4000))
+    const unnamed = await unnamedInteractive(d)
+    if (unnamed.length) console.log(formatTree(await d.accessibleTree({ app: APP })))
+    expect(unnamed).toEqual([])
+  })
+})
+
+describe('gtkx dev inside the pnpm workspace', () => {
+  let d: HeadlessDisplay
+
+  afterAll(async () => {
+    await d?.close()
+  })
+
+  it('starts the dev server (with the generated-store resolve hook) and opens the window', async () => {
+    d = await startHeadlessDisplay({ size: '1280x800' })
+    const dev = d.launchApp({
+      command: 'pnpm',
+      args: ['run', 'dev'],
+      cwd: UI_DIR,
+      env: { GNOMEOLA_UI_DEMO: '1' },
+    })
+    await d.findOne({ app: APP, role: 'list', name: 'Sessions' }, 90_000).catch((e) => {
+      throw new Error(`${e.message}\ndev log:\n${logTail(dev)}`)
+    })
+    expect((await rowNames(d)).length).toBeGreaterThanOrEqual(3)
+    expect(dev.log()).toContain('HMR enabled')
+  })
+})
+
+describe('widget gallery (the patterns docs/gtkx.md recommends)', () => {
+  let d: HeadlessDisplay
+  let app: AppHandle
+  const state = async () =>
+    (await d.describe(await d.findOne({ app: APP, role: 'label', name: 'Gallery state' }))).text ?? ''
+  const stateHas = (s: string) =>
+    d.waitFor(async () => (await state()).includes(s), 5000, `gallery state "${s}"`)
+
+  beforeAll(async () => {
+    d = await startHeadlessDisplay({ size: '1280x800' })
+    app = launch(d, { GNOMEOLA_UI_GALLERY: '1' })
+    await d.findOne({ app: APP, role: 'frame', name: 'Widget gallery' }, 30_000).catch((e) => {
+      throw new Error(`${e.message}\napp log:\n${logTail(app)}`)
+    })
+  })
+
+  afterAll(async () => {
+    await d?.close()
+  })
+
+  it('renders text widgets with their content', async () => {
+    const tv = await d.findOne({ app: APP, role: 'text', name: 'Transcript' })
+    expect(tv.text).toBe('me: shall we start?\nthem: yes, recording now.')
+    const level = await d.findOne({ app: APP, role: 'level bar', name: 'Input level' })
+    expect(level.value).toBeCloseTo(0.6)
+    expect(await state()).toContain('auto-record: off')
+  })
+
+  it('switch row, plain switch, entry and entry row feed React state', async () => {
+    await d.click(await d.findOne({ app: APP, role: 'switch', name: 'Auto-record meetings' }))
+    await stateHas('auto-record: on')
+    await d.click(await d.findOne({ app: APP, role: 'switch', name: 'Private' }))
+    await stateHas('private: on')
+
+    const speaker = await d.findOne({ app: APP, role: 'text', name: 'Speaker name' })
+    await d.focus(speaker)
+    await d.typeText('Sam')
+    await stateHas('speaker: Sam')
+
+    // combo row, by keyboard: open the popover, move down one, choose
+    const combo = await d.findOne({ app: APP, role: 'combo box', name: 'Live model' })
+    await d.focus(combo)
+    await d.pressKeys('Return')
+    await d.findOne({ app: APP, role: 'label', name: 'base.en', states: ['showing'] })
+    await d.pressKeys('Down')
+    await d.pressKeys('Return')
+    await stateHas('model: base.en')
+
+    const url = await d.findOne({ app: APP, role: 'text', name: 'Daemon URL' })
+    await d.focus(url)
+    await d.pressKeys('Control_L', 'a')
+    await d.typeText('http://10.0.0.5:8787\n')
+    await stateHas('url: http://10.0.0.5:8787')
+  })
+
+  it('toasts show plain text (no markup parsing)', async () => {
+    await d.click(await d.findOne({ app: APP, role: 'button', name: 'Show Toast' }))
+    await d.findOne({ app: APP, role: 'label', name: 'Saved “Weekly sync & retro”' })
+  })
+
+  it('alert dialog: responses arrive in onResponse and unmounting closes it', async () => {
+    await d.click(await d.findOne({ app: APP, role: 'button', name: 'Delete…' }))
+    await d.findOne({ app: APP, role: 'label', name: 'Delete Session?' })
+    await d.screenshot(join(ARTIFACTS, 'gallery-alert.png'))
+    await d.click(await d.findOne({ app: APP, role: 'button', name: 'Delete', states: ['showing'] }))
+    await stateHas('last action: deleted')
+    await d.waitFor(
+      async () => (await d.find({ app: APP, role: 'label', name: 'Delete Session?' })).length === 0,
+      5000,
+      'the alert to close',
+    )
+  })
+
+  it('preferences and about dialogs open, work, and close with Escape', async () => {
+    await d.click(await d.findOne({ app: APP, role: 'button', name: 'Preferences' }))
+    const toggle = await d.findOne({ app: APP, role: 'switch', name: 'Record system audio' })
+    await d.click(toggle)
+    await stateHas('last action: system audio off')
+    await d.screenshot(join(ARTIFACTS, 'gallery-preferences.png'))
+    await d.pressKeys('Escape')
+    await d.waitFor(
+      async () => (await d.find({ app: APP, role: 'switch', name: 'Record system audio' })).length === 0,
+      5000,
+      'preferences to close',
+    )
+    // onClosed reset React's state: the same button opens it again
+    await d.click(await d.findOne({ app: APP, role: 'button', name: 'Preferences' }))
+    await d.findOne({ app: APP, role: 'switch', name: 'Record system audio' })
+    await d.pressKeys('Escape')
+    await d.waitFor(
+      async () => (await d.find({ app: APP, role: 'switch', name: 'Record system audio' })).length === 0,
+      5000,
+      'preferences to close again',
+    )
+
+    await d.click(await d.findOne({ app: APP, role: 'button', name: 'About gnomeola' }))
+    await d.findOne({ app: APP, role: 'dialog', name: 'About' })
+    await d.findOne({ app: APP, role: 'label', name: 'The gnomeola contributors' })
+    await d.screenshot(join(ARTIFACTS, 'gallery-about.png'))
+    await d.pressKeys('Escape')
+    await d.waitFor(
+      async () => (await d.find({ app: APP, role: 'dialog', name: 'About' })).length === 0,
+      5000,
+      'about to close',
+    )
+    await d.screenshot(join(ARTIFACTS, 'gallery.png'))
+    if (app.hasExited()) throw new Error(logTail(app))
   })
 })

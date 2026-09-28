@@ -232,22 +232,39 @@ def cmd_click(args):
     """Activate a widget the way a user would, preferring the widget's own semantics.
 
     1. an Action named click/activate/press/toggle on the node itself;
-    2. if the node is an item in a container implementing Selection (a GtkListBox row),
-       select it through the container — which is what a pointer click on a row does;
-    3. otherwise fail loudly rather than guess.
+    2. if the node is a selectable item in a container implementing Selection (a GtkListBox
+       row), select it through the container — which is what a pointer click on a row does;
+    3. an action on a descendant, preferring one with the same name — composite widgets such
+       as AdwSwitchRow expose the row (no action) with the real GtkSwitch (action "toggle")
+       inside it;
+    4. otherwise fail loudly rather than guess.
     """
+    wanted = ["click", "activate", "press", "toggle"]
     acc = uncached(deref(args["ref"]))
-    used = do_named_action(acc, ["click", "activate", "press", "toggle"])
+    used = do_named_action(acc, wanted)
     if used:
         return {"via": f"action:{used}"}
     parent = acc.get_parent()
-    if parent is not None:
+    if parent is not None and "selectable" in state_names(acc):
         sel = parent.get_selection_iface() if "Selection" in parent.get_interfaces() else None
         if sel is not None:
             idx = acc.get_index_in_parent()
-            if not sel.select_child(idx):
-                raise RuntimeError("Selection.select_child refused")
-            return {"via": "selection", "index": idx}
+            if sel.select_child(idx):
+                return {"via": "selection", "index": idx}
+    name = acc.get_name() or ""
+    candidates = []
+
+    def collect(node):
+        if node is not acc and set(action_names(node)) & set(wanted):
+            candidates.append(node)
+        return False
+
+    walk(acc, collect, 0, 6)
+    candidates.sort(key=lambda n: 0 if (n.get_name() or "") == name else 1)
+    for c in candidates:
+        used = do_named_action(c, wanted)
+        if used:
+            return {"via": f"descendant-action:{used}"}
     raise RuntimeError(
         f"no way to click {acc.get_role_name()} {acc.get_name()!r}: actions={action_names(acc)}"
     )
