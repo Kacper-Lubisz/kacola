@@ -57,25 +57,48 @@ export class SecretToolKeyring implements Keyring {
   }
 
   async get(): Promise<string | null> {
-    const r = await this.run(['lookup', ...this.attrs()])
+    const r = await this.retry(
+      (r) => r.code === 0 || (r.code === 1 && !r.stderr.trim()),
+      ['lookup', ...this.attrs()],
+    )
     if (r.code === 0) return r.stdout.replace(/\n$/, '') || null
     // `lookup` exits 1 with no output when nothing matches
     if (r.code === 1 && !r.stderr.trim()) return null
-    throw new DaemonError('unavailable', `keyring lookup failed (${r.code})`)
+    throw failure('lookup', r)
   }
 
   async set(key: string): Promise<void> {
-    const r = await this.run(['store', '--label=gnomeola: Anthropic API key', ...this.attrs()], key)
-    if (r.code !== 0) throw new DaemonError('unavailable', `keyring store failed (${r.code})`)
+    const r = await this.retry(
+      (r) => r.code === 0,
+      ['store', '--label=gnomeola: Anthropic API key', ...this.attrs()],
+      key,
+    )
+    if (r.code !== 0) throw failure('store', r)
   }
 
   async clear(): Promise<void> {
-    const r = await this.run(['clear', ...this.attrs()])
     // clear exits non-zero when there was nothing to clear; that is success for us
-    if (r.code !== 0 && r.stderr.trim())
-      throw new DaemonError('unavailable', `keyring clear failed (${r.code})`)
+    const ok = (r: Run) => r.code === 0 || !r.stderr.trim()
+    const r = await this.retry(ok, ['clear', ...this.attrs()])
+    if (!ok(r)) throw failure('clear', r)
+  }
+
+  /** The Secret Service occasionally fails a call transiently under contention; try up to 3 times. */
+  private async retry(ok: (r: Run) => boolean, args: string[], stdin?: string): Promise<Run> {
+    let r = await this.run(args, stdin)
+    for (let attempt = 1; attempt < 3 && !ok(r); attempt++) {
+      await new Promise((res) => setTimeout(res, 150 * attempt))
+      r = await this.run(args, stdin)
+    }
+    return r
   }
 }
+
+const failure = (op: string, r: Run) =>
+  new DaemonError(
+    'unavailable',
+    `keyring ${op} failed (exit ${r.code}): ${r.stderr.trim().slice(0, 200) || 'no detail'}`,
+  )
 
 /** Process-lifetime keyring for tests and keyring-less environments. Nothing touches disk. */
 export class MemoryKeyring implements Keyring {
