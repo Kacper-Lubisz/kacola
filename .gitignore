@@ -1,0 +1,23 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+# local runtime state (never committed)
+.gnomeola/
+.cache/
+# test artefacts
+test-results/
+**/__artifacts__/
+# models are downloaded, never committed
+models/
+# notes/pages is a local planning tool: keep only authored pages
+notes/pages/.app/
+notes/pages/.page-assets/
+notes/pages/.share/
+notes/pages/.config/
+notes/pages/templates/
+notes/pages/node_modules/
+notes/pages/package.json
+notes/pages/package-lock.json
+notes/pages/*.state.json

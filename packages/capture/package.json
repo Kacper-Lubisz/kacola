@@ -1,0 +1,17 @@
+{
+  "name": "@gnomeola/capture",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Audio capture: PipeWire dual-track recorder and a file-backed source for tests. Local only.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gnomeola/protocol": "workspace:*"
+  }
+}

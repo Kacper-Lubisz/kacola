@@ -1,0 +1,17 @@
+{
+  "name": "@gnomeola/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "gnomeola(1): the agent-facing CLI. Protocol client only.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gnomeola/protocol": "workspace:*"
+  }
+}

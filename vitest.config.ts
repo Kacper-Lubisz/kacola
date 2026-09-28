@@ -1,0 +1,53 @@
+import { defineConfig } from 'vitest/config'
+
+// Test tiers (see the plan's Verification section):
+//   unit  — T0 unit + T1 contract. Hermetic, fast, blocking on every commit.
+//   int   — T2 integration: real daemon + real SQLite + fake capture + LLM cassettes.
+//   e2e   — T3: real PipeWire rig, real models, real UI via AT-SPI. Slow.
+//   eval  — T4: accuracy baselines and live-LLM evals. Opt-in, tracked against baselines.
+const common = { exclude: ['**/node_modules/**', '**/dist/**'] }
+
+export default defineConfig({
+  test: {
+    projects: [
+      {
+        test: {
+          ...common,
+          name: 'unit',
+          include: ['packages/*/src/**/*.test.ts', 'packages/*/test/**/*.test.ts', 'scripts/**/*.test.ts'],
+          exclude: [...common.exclude, '**/*.int.test.ts', '**/*.e2e.test.ts', '**/*.eval.test.ts'],
+          testTimeout: 10_000,
+        },
+      },
+      {
+        test: {
+          ...common,
+          name: 'int',
+          include: ['packages/*/**/*.int.test.ts'],
+          testTimeout: 60_000,
+          hookTimeout: 60_000,
+        },
+      },
+      {
+        test: {
+          ...common,
+          name: 'e2e',
+          include: ['packages/*/**/*.e2e.test.ts'],
+          testTimeout: 300_000,
+          hookTimeout: 300_000,
+          fileParallelism: false,
+        },
+      },
+      {
+        test: {
+          ...common,
+          name: 'eval',
+          include: ['packages/*/**/*.eval.test.ts'],
+          testTimeout: 900_000,
+          hookTimeout: 900_000,
+          fileParallelism: false,
+        },
+      },
+    ],
+  },
+})

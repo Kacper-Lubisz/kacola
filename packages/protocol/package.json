@@ -1,0 +1,17 @@
+{
+  "name": "@gnomeola/protocol",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Wire protocol: zod schemas, event envelope, route table, typed client. The only package clients may import.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "^4.1.0"
+  }
+}

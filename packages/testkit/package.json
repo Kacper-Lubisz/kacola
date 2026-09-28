@@ -1,0 +1,17 @@
+{
+  "name": "@gnomeola/testkit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Test harness: fixtures + ground truth, segment invariants, LLM cassettes, daemon harness, PipeWire rig.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gnomeola/protocol": "workspace:*"
+  }
+}

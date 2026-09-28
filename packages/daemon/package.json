@@ -1,0 +1,21 @@
+{
+  "name": "@gnomeola/daemon",
+  "version": "0.1.0",
+  "private": true,
+  "description": "gnomeolad: the local backend. HTTP + SSE over the protocol; orchestrates capture, STT, store, LLM.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gnomeola/protocol": "workspace:*",
+    "@gnomeola/store": "workspace:*",
+    "@gnomeola/capture": "workspace:*",
+    "@gnomeola/stt": "workspace:*",
+    "@gnomeola/llm": "workspace:*"
+  }
+}

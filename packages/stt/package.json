@@ -1,0 +1,17 @@
+{
+  "name": "@gnomeola/stt",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Speech-to-text providers (live + final tiers), VAD, model manager, and the segment reconciler.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gnomeola/protocol": "workspace:*"
+  }
+}

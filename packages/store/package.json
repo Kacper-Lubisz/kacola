@@ -1,0 +1,17 @@
+{
+  "name": "@gnomeola/store",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Persistence: kysely schema, migrations, SQLite (+FTS5) dialect.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gnomeola/protocol": "workspace:*"
+  }
+}

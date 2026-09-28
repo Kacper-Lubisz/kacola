@@ -1,0 +1,30 @@
+{
+  "name": "gnomeola",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A GNOME-native meeting recorder and transcriber \u2014 inspired by Granola.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "packageManager": "pnpm@10.19.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --if-present run typecheck && tsc -p scripts/tsconfig.json",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "boundaries": "node scripts/check-boundaries.ts",
+    "test": "vitest run --project unit",
+    "test:unit": "vitest run --project unit",
+    "test:int": "vitest run --project int",
+    "test:e2e": "vitest run --project e2e",
+    "test:eval": "vitest run --project eval",
+    "check": "pnpm run boundaries && pnpm run lint && pnpm run typecheck && pnpm run test:unit && pnpm run test:int"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.0",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}

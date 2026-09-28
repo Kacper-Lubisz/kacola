@@ -1,0 +1,27 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  # T0 unit + T1 contract + T2 integration + boundaries + lint + typecheck. Hermetic and fast: this is
+  # the blocking gate and must never need audio hardware, a display, or network access to an LLM.
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+
+  # T3: real PipeWire graph, real models, headless compositor for the UI. Needs a runner image with
+  # PipeWire, mutter and GTK 4.20+/libadwaita 1.8+ — ubuntu-24.04 is too old, hence the Fedora container.
+  e2e:
+    runs-on: ubuntu-24.04
+    container: { image: 'registry.fedoraproject.org/fedora:44', options: '--privileged' }
+    needs: check
+    steps:
+      - run: dnf install -y nodejs24 pnpm git pipewire pipewire-utils wireplumber mutter gtk4 libadwaita ffmpeg-free python3-gobject at-spi2-core dbus-daemon
+      - uses: actions/checkout@v4
+      - run: pnpm install --frozen-lockfile
+      - run: dbus-run-session -- bash -c 'pipewire & wireplumber & sleep 2 && pnpm test:e2e'
