@@ -1,0 +1,160 @@
+{
+  "id": "retro-silence-gap",
+  "title": "Retro with a long silence and a recorded gap",
+  "description": "Two people; twenty seconds of silence while the user looks something up, then a six-second recorded gap (device switch) on both tracks.",
+  "sampleRate": 16000,
+  "durationMs": 82025,
+  "tracks": {
+    "mic": "mic.opus",
+    "system": "system.opus"
+  },
+  "speakers": [
+    {
+      "name": "Sam",
+      "track": "mic",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "name": "Priya",
+      "track": "system",
+      "source": "tts-piper-en_GB-cori-medium"
+    }
+  ],
+  "utterances": [
+    {
+      "track": "system",
+      "speaker": "Priya",
+      "startMs": 1923,
+      "endMs": 5503,
+      "text": "Hi Sam, can you hear me all right? My headset has been playing up.",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 6231,
+      "endMs": 9532,
+      "text": "I can hear you fine. Let's do the retro for the payments release.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Priya",
+      "startMs": 10101,
+      "endMs": 16023,
+      "text": "What went well is that the rollout was smooth. We shipped behind a flag and turned it on region by region.",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 16652,
+      "endMs": 18296,
+      "text": "Agreed. What didn't go so well?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Priya",
+      "startMs": 18888,
+      "endMs": 22848,
+      "text": "The alerts were too noisy. We got paged eleven times for the same warning.",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 23276,
+      "endMs": 25989,
+      "text": "Let me pull up the incident timeline. Give me a moment.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 46365,
+      "endMs": 49534,
+      "text": "Okay, found it. The warning fired every time the cache was cold.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Priya",
+      "startMs": 50327,
+      "endMs": 53867,
+      "text": "Then we should raise the threshold, or only alert after five minutes.",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Priya",
+      "startMs": 61431,
+      "endMs": 65018,
+      "text": "Sorry, I switched to my speakers. Did you catch the last part?",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 65877,
+      "endMs": 69681,
+      "text": "Yes. Let's alert only after five minutes. I'll make the change.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Priya",
+      "startMs": 70149,
+      "endMs": 75501,
+      "text": "Great. And remember, the retry budget is three attempts, then dead-letter, for the payment webhooks too.",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 76012,
+      "endMs": 77390,
+      "text": "Noted. Anything else?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Priya",
+      "startMs": 78223,
+      "endMs": 80525,
+      "text": "No, that's everything. Thanks Sam.",
+      "source": "tts-piper-en_GB-cori-medium"
+    }
+  ],
+  "gaps": [
+    {
+      "atMs": 54667,
+      "durationMs": 6000,
+      "reason": "device switch",
+      "tracks": [
+        "mic",
+        "system"
+      ]
+    }
+  ],
+  "silences": [
+    {
+      "startMs": 25989,
+      "endMs": 45989
+    }
+  ],
+  "facts": [
+    {
+      "key": "retry-budget",
+      "text": "Great. And remember, the retry budget is three attempts, then dead-letter, for the payment webhooks too.",
+      "utterance": 10
+    }
+  ],
+  "injections": [],
+  "license": "Synthesized with Piper voices (MIT code; voices trained on public-domain, CC0 or Apache-2.0 data — see docs/stt.md). Script and audio: GPL-3.0-or-later as part of gnomeola.",
+  "generator": {
+    "script": "packages/testkit/scripts/generate-fixtures.ts",
+    "sherpaOnnx": "1.13.8",
+    "generatedAt": "2026-09-28T17:13:03.397Z"
+  }
+}

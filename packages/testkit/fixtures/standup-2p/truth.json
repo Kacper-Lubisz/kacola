@@ -1,0 +1,171 @@
+{
+  "id": "standup-2p",
+  "title": "Two-person standup",
+  "description": "A clean two-party call: the user (mic) and Ana (far end). Carries the core decisions.",
+  "sampleRate": 16000,
+  "durationMs": 67088,
+  "tracks": {
+    "mic": "mic.opus",
+    "system": "system.opus"
+  },
+  "speakers": [
+    {
+      "name": "Sam",
+      "track": "mic",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "name": "Ana",
+      "track": "system",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    }
+  ],
+  "utterances": [
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 2060,
+      "endMs": 5609,
+      "text": "Morning Ana, thanks for jumping on. Shall we go through the queue worker first?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 6037,
+      "endMs": 13936,
+      "text": "Sure. The consumer kept crashing on malformed messages over the weekend, and every crash replayed the same batch.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 14550,
+      "endMs": 16910,
+      "text": "Right. So what did we land on for retries?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 17489,
+      "endMs": 24765,
+      "text": "The retry budget is three attempts, then dead-letter. After the third failure the message goes to the dead letter queue.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 25355,
+      "endMs": 29146,
+      "text": "Good. Three attempts, then dead-letter. I'll write that into the runbook today.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 29824,
+      "endMs": 36146,
+      "text": "The schema migration is ready as well. I tested it against a copy of production last night.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 36592,
+      "endMs": 37427,
+      "text": "When does it go out?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 38200,
+      "endMs": 42340,
+      "text": "The migration lands Thursday, after the morning deploy freeze lifts.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 43190,
+      "endMs": 47341,
+      "text": "Thursday works. Who is looking after the metrics dashboard while Ben is away?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 47882,
+      "endMs": 48809,
+      "text": "I can take it.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 49651,
+      "endMs": 52824,
+      "text": "So to confirm, Ana owns the dashboard until Ben is back.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 53710,
+      "endMs": 58196,
+      "text": "Yes. I'll keep the alerts tidy. The only blocker is the staging certificate.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 58793,
+      "endMs": 59925,
+      "text": "When does it expire?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 60287,
+      "endMs": 62954,
+      "text": "On Friday. I'll renew it this afternoon.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 63505,
+      "endMs": 65588,
+      "text": "Perfect. Let's wrap there. Talk tomorrow.",
+      "source": "tts-piper-en_US-joe-medium"
+    }
+  ],
+  "gaps": [],
+  "silences": [],
+  "facts": [
+    {
+      "key": "retry-budget",
+      "text": "The retry budget is three attempts, then dead-letter. After the third failure the message goes to the dead letter queue.",
+      "utterance": 3
+    },
+    {
+      "key": "migration-thursday",
+      "text": "The migration lands Thursday, after the morning deploy freeze lifts.",
+      "utterance": 7
+    },
+    {
+      "key": "ana-owns-dashboard",
+      "text": "So to confirm, Ana owns the dashboard until Ben is back.",
+      "utterance": 10
+    }
+  ],
+  "injections": [],
+  "license": "Synthesized with Piper voices (MIT code; voices trained on public-domain, CC0 or Apache-2.0 data — see docs/stt.md). Script and audio: GPL-3.0-or-later as part of gnomeola.",
+  "generator": {
+    "script": "packages/testkit/scripts/generate-fixtures.ts",
+    "sherpaOnnx": "1.13.8",
+    "generatedAt": "2026-09-28T17:12:39.059Z"
+  }
+}
