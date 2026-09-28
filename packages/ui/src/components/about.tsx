@@ -9,6 +9,7 @@ import notices from '../../../../THIRD_PARTY_NOTICES.md?raw'
 import pkg from '../../package.json' with { type: 'json' }
 import { noticesText, parseNotices } from '../data/notices.ts'
 import { _ } from '../i18n/index.ts'
+import { nameInternalLists } from './a11y.ts'
 
 // S-4: About. The licence is GPL-3.0-or-later (Gtk.License.GPL_3_0 is "GPL 3.0 or later" in GTK). The
 // Granola credit is part of the main page's text, not buried in a sub-page: gnomeola is a clean-room
@@ -53,6 +54,10 @@ export function AboutDialog({ onClosed }: { onClosed: () => void }) {
       Gtk.License.CUSTOM,
       `${_('gnomeola includes the following components under their own licences. The full list, with homepages, is in THIRD_PARTY_NOTICES.md.')}\n\n${noticesText(parseNotices(notices))}`,
     )
+    // libadwaita's own row lists (Details; Credits, Legal, Acknowledgements; the links) are unnamed.
+    // An AdwDialog's content is reparented into the window's sheet when presented, so walk from
+    // getChild(), not from the dialog widget (which then has no children).
+    nameInternalLists(dialog.getChild() ?? dialog)
   }, [])
   const translators = _('translator-credits')
   return (

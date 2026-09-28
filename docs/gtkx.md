@@ -335,7 +335,12 @@ has an audit that **fails on any showing button/entry/list/list item/level bar/s
   - `AdwSpinRow` is **absent from the tree** (drawn, not exposed) — use an `AdwActionRow` with a
     `GtkSpinButton accessibleLabel=…` suffix;
   - `AdwAboutDialog` shows `comments` on its **Details** sub-page, not the main page, and its rows
-    have no AT-SPI action (activate with the keyboard).
+    have no AT-SPI action (activate with the keyboard). Its own row lists are unnamed too;
+    `nameInternalLists(dialog.getChild())` (`a11y.ts`) names each after its visible rows' titles.
+    Walk from `getChild()`: an `AdwDialog`'s content is reparented into the window's sheet when
+    presented, so the dialog widget itself has no children by then (a walk from it found 0 widgets).
+  - a hyperlink inside label markup (the licence link on About → Legal) is an unnamed `link` child
+    of the `label`; its text is read as part of the label. The audit skips links inside labels.
 - A GtkListView row's name is the `GtkListItem`'s `accessible-label` (GTK ≥ 4.12). A label on the
   row's *content* box does not help: a `GtkBox` has the generic role, which GTK refuses to name.
   `@gtkx/components`' `ListView` gives no access to the `GtkListItem`, which is why

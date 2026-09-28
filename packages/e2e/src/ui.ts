@@ -86,19 +86,28 @@ const INTERACTIVE = new Set([
 
 /**
  * A11y audit: every showing interactive widget must have a name, or AT-SPI tests (and screen reader
- * users) cannot tell what it is. Descendants of a named `combo box` are skipped: AdwComboRow exposes
- * its current-value display as an unnamed list/list item (libadwaita's, see docs/gtkx.md §5).
+ * users) cannot tell what it is. Two GTK/libadwaita exceptions are skipped (docs/gtkx.md §5):
+ * descendants of a named `combo box` (AdwComboRow's value display is an unnamed list/list item), and
+ * a `link` inside a `label` (a hyperlink in label markup is an unnamed child; its text is read as
+ * part of the label's).
  */
 export async function unnamedInteractive(d: HeadlessDisplay): Promise<string[]> {
   const out: string[] = []
-  const visit = (n: AccessibleNode, inCombo: boolean) => {
+  const visit = (n: AccessibleNode, inCombo: boolean, parentRole: string) => {
     const combo = inCombo || n.role === 'combo box'
-    if (!inCombo && INTERACTIVE.has(n.role) && n.states.includes('showing') && n.name.trim() === '') {
+    const labelLink = n.role === 'link' && parentRole === 'label'
+    if (
+      !inCombo &&
+      !labelLink &&
+      INTERACTIVE.has(n.role) &&
+      n.states.includes('showing') &&
+      n.name.trim() === ''
+    ) {
       out.push(`${n.role} (ref ${n.ref})`)
     }
-    for (const c of n.children ?? []) visit(c, combo)
+    for (const c of n.children ?? []) visit(c, combo, n.role)
   }
-  for (const root of await d.accessibleTree({ app: APP })) visit(root, false)
+  for (const root of await d.accessibleTree({ app: APP })) visit(root, false, '')
   return out
 }
 

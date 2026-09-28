@@ -1,3 +1,4 @@
+import * as Adw from '@gtkx/gi/adw'
 import * as GObject from '@gtkx/gi/gobject'
 import * as Gtk from '@gtkx/gi/gtk'
 
@@ -22,6 +23,38 @@ export function findDescendant<T extends Gtk.Widget>(
     if (found) return found
   }
   return null
+}
+
+/** Every descendant passing `test`, depth-first. */
+export function findDescendants<T extends Gtk.Widget>(
+  root: Gtk.Widget,
+  test: (w: Gtk.Widget) => w is T,
+  acc: T[] = [],
+): T[] {
+  for (let c = root.getFirstChild(); c !== null; c = c.getNextSibling()) {
+    if (test(c)) acc.push(c)
+    findDescendants(c, test, acc)
+  }
+  return acc
+}
+
+/**
+ * Name every GtkListBox inside a composite libadwaita widget (AdwAboutDialog's "Details", "Credits,
+ * Legal, Acknowledgements"…) after the titles of its rows, so none is announced as an anonymous list.
+ */
+export function nameInternalLists(root: Gtk.Widget): void {
+  for (const list of findDescendants(root, (w): w is Gtk.ListBox => w instanceof Gtk.ListBox)) {
+    const titles: string[] = []
+    for (let i = 0; ; i++) {
+      const row = list.getRowAtIndex(i)
+      if (!row) break
+      if (!(row instanceof Adw.PreferencesRow) || !row.getVisible()) continue
+      // titles carry mnemonics ("_Legal")
+      const title = row.getTitle().replace(/[_](.)/g, '$1')
+      if (title) titles.push(title)
+    }
+    if (titles.length) setAccessibleName(list, titles.join(', '))
+  }
 }
 
 /**

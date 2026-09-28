@@ -255,6 +255,7 @@ describe('questions without a key, Preferences, About', () => {
     await d.findOne({ app: APP, role: 'dialog', name: 'About' }, 10_000)
     await d.findOne({ app: APP, role: 'label', name: '0.1.0' })
     await capture(d, 'about')
+    expect(await unnamedInteractive(d)).toEqual([])
     // AdwAboutDialog shows `comments` on its Details page
     // its rows have no AT-SPI action: activate them as a keyboard user does
     await d.focus(await d.findOne({ app: APP, role: 'list item', name: 'Details', states: ['showing'] }))
@@ -278,6 +279,7 @@ describe('questions without a key, Preferences, About', () => {
     )
     await d.findOne({ app: APP, role: 'label', nameContains: '@gtkx/react 1.6.0 — MPL-2.0' }, 5000)
     await capture(d, 'about-legal')
+    expect(await unnamedInteractive(d)).toEqual([])
     await d.pressKeys('Escape')
     await d.pressKeys('Escape')
     await gone(d, { app: APP, role: 'dialog', name: 'About' }, 'About to close')
