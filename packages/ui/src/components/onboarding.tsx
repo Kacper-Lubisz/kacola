@@ -12,7 +12,7 @@ import {
 } from '@gtkx/jsx/gtk'
 import { useEffect, useRef, useState } from 'react'
 import { useEvents, useSettings, useStore } from '../data/hooks.ts'
-import { formatBytes, missingModels, ROLE_LABEL, requiredModels } from '../data/settings.ts'
+import { formatBytes, missingModels, requiredModels, roleLabel } from '../data/settings.ts'
 import { _, fmt } from '../i18n/index.ts'
 import { NamedButton } from './named-button.tsx'
 
@@ -40,7 +40,7 @@ function ModelRow({ model, onDownload }: { model: ModelInfo; onDownload: () => v
   return (
     <AdwActionRow
       title={model.title}
-      subtitle={`${ROLE_LABEL[model.role]} · ${formatBytes(model.sizeBytes)} · ${stateText(model)}`}
+      subtitle={`${roleLabel(model.role)} · ${formatBytes(model.sizeBytes)} · ${stateText(model)}`}
       useMarkup={false}
       suffix={
         model.state === 'ready' ? (

@@ -20,10 +20,10 @@ import { useSettings, useStore } from '../data/hooks.ts'
 import {
   type Choice,
   deviceChoices,
-  FINAL_PASS,
+  finalPasses,
   indexOf,
-  PROVIDERS,
-  RETENTION,
+  providers,
+  retentions,
   valueAt,
 } from '../data/settings.ts'
 import { _, fmt } from '../i18n/index.ts'
@@ -162,7 +162,7 @@ function Loaded({ settings, devices }: { settings: Settings; devices: AudioDevic
         >
           <Combo
             title={_('Provider')}
-            choices={PROVIDERS}
+            choices={providers()}
             value={llm.provider}
             onChange={(provider) => patch({ llm: { provider } })}
           />
@@ -198,7 +198,7 @@ function Loaded({ settings, devices }: { settings: Settings; devices: AudioDevic
         >
           <Combo
             title={_('Accurate pass')}
-            choices={FINAL_PASS}
+            choices={finalPasses()}
             value={stt.finalPass}
             onChange={(finalPass) => patch({ stt: { finalPass } })}
           />
@@ -231,7 +231,7 @@ function Loaded({ settings, devices }: { settings: Settings; devices: AudioDevic
         >
           <Combo
             title={_('Audio')}
-            choices={RETENTION}
+            choices={retentions()}
             value={retention.audio}
             onChange={(audio) => patch({ retention: { audio } })}
           />

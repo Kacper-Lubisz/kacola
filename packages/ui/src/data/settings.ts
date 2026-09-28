@@ -1,25 +1,27 @@
 import type { AudioDevice, ModelInfo, Settings, StoredSettings } from '@gnomeola/protocol'
+import { _, fmt } from '../i18n/index.ts'
 
 // The Preferences dialog's model: option lists for the combo rows, and index ↔ value mapping. Pure.
+// Lists are functions so their labels are translated when used, not when this module loads.
 
 export type Choice<T extends string> = { value: T; label: string }
 
-export const PROVIDERS: readonly Choice<Settings['llm']['provider']>[] = [
-  { value: 'anthropic', label: 'Anthropic (Claude)' },
-  { value: 'ollama', label: 'Ollama (on this computer)' },
-  { value: 'none', label: 'None (questions off)' },
+export const providers = (): Choice<Settings['llm']['provider']>[] => [
+  { value: 'anthropic', label: _('Anthropic (Claude)') },
+  { value: 'ollama', label: _('Ollama (on this computer)') },
+  { value: 'none', label: _('None (questions off)') },
 ]
 
-export const FINAL_PASS: readonly Choice<Settings['stt']['finalPass']>[] = [
-  { value: 'during', label: 'During the recording' },
-  { value: 'after', label: 'After the recording' },
-  { value: 'off', label: 'Off (live transcript only)' },
+export const finalPasses = (): Choice<Settings['stt']['finalPass']>[] => [
+  { value: 'during', label: _('During the recording') },
+  { value: 'after', label: _('After the recording') },
+  { value: 'off', label: _('Off (live transcript only)') },
 ]
 
-export const RETENTION: readonly Choice<Settings['retention']['audio']>[] = [
-  { value: 'keep', label: 'Keep' },
-  { value: 'delete-after-transcription', label: 'Delete once transcribed' },
-  { value: 'delete-after-days', label: 'Delete after some days' },
+export const retentions = (): Choice<Settings['retention']['audio']>[] => [
+  { value: 'keep', label: _('Keep') },
+  { value: 'delete-after-transcription', label: _('Delete once transcribed') },
+  { value: 'delete-after-days', label: _('Delete after some days') },
 ]
 
 export const indexOf = <T extends string>(choices: readonly Choice<T>[], value: T): number =>
@@ -41,13 +43,16 @@ export function deviceChoices(
   kind: AudioDevice['kind'],
   current: string,
 ): Choice<string>[] {
-  const out: Choice<string>[] = [{ value: 'default', label: 'Default' }]
+  const out: Choice<string>[] = [{ value: 'default', label: _('Default') }]
   for (const d of devices) {
     if (d.kind !== kind) continue
-    out.push({ value: d.name, label: d.isDefault ? `${d.description} (default)` : d.description })
+    out.push({
+      value: d.name,
+      label: d.isDefault ? fmt(_('{device} (default)'), { device: d.description }) : d.description,
+    })
   }
   if (current !== 'default' && !out.some((c) => c.value === current)) {
-    out.push({ value: current, label: `${current} (not connected)` })
+    out.push({ value: current, label: fmt(_('{device} (not connected)'), { device: current }) })
   }
   return out
 }
@@ -80,8 +85,9 @@ export function formatBytes(n: number): string {
   return `${v >= 100 || Number.isInteger(v) ? Math.round(v) : v.toFixed(1)} ${units[i]}`
 }
 
-export const ROLE_LABEL: Record<ModelInfo['role'], string> = {
-  live: 'Live transcription',
-  final: 'Accurate transcription',
-  vad: 'Voice detection',
-}
+export const roleLabel = (role: ModelInfo['role']): string =>
+  ({
+    live: _('Live transcription'),
+    final: _('Accurate transcription'),
+    vad: _('Voice detection'),
+  })[role]

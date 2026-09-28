@@ -1,7 +1,13 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { type AccessibleNode, type AppHandle, flatten, type HeadlessDisplay } from '@gnomeola/testkit/ui'
+import {
+  type AccessibleNode,
+  type AppHandle,
+  flatten,
+  type HeadlessDisplay,
+  pngInfo,
+} from '@gnomeola/testkit/ui'
 
 // Helpers for driving the real gnomeola window (packages/ui, built bundle) in the testkit's headless
 // GNOME Shell, against a real daemon. Used by packages/e2e/test/*.e2e.test.ts.
@@ -100,6 +106,22 @@ export async function unnamedInteractive(d: HeadlessDisplay): Promise<string[]> 
 export async function allAccessibleText(d: HeadlessDisplay): Promise<string> {
   const nodes = flatten(await d.accessibleTree({ app: APP }))
   return nodes.map((n) => `${n.name}\n${n.description}\n${n.text ?? ''}`).join('\n')
+}
+
+export const ARTIFACTS = join(import.meta.dirname, '..', 'test', '__artifacts__')
+
+/**
+ * Screenshot a screen into test/__artifacts__/<name>.png and check it is a real capture: the full
+ * monitor, and not a flat frame (a blank or all-black capture compresses to a few kB). The images
+ * are for a human to look at; this only guards against silently capturing nothing.
+ */
+export async function capture(d: HeadlessDisplay, name: string, size = { width: 1280, height: 800 }) {
+  const path = await d.screenshot(join(ARTIFACTS, `${name}.png`))
+  const info = pngInfo(path)
+  if (info.width !== size.width || info.height !== size.height || info.bytes < 30_000) {
+    throw new Error(`${name}.png does not look like a real capture: ${JSON.stringify(info)}`)
+  }
+  return path
 }
 
 /** Lines the app printed with GNOMEOLA_UI_PERF=1. */

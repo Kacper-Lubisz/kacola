@@ -8,9 +8,10 @@
   "scripts": {
     "codegen": "gtkx codegen",
     "dev": "NODE_OPTIONS=\"--import $PWD/scripts/gtkx-store-resolve.ts $NODE_OPTIONS\" gtkx dev",
-    "build": "NODE_ENV=production gtkx build",
+    "build": "NODE_ENV=production gtkx build && node scripts/i18n-compile.ts",
     "start": "node dist/bundle.mjs",
-    "typecheck": "gtkx codegen && tsc -p tsconfig.json"
+    "typecheck": "gtkx codegen && tsc -p tsconfig.json",
+    "i18n:pot": "node scripts/i18n-pot.ts"
   },
   "dependencies": {
     "@gnomeola/protocol": "workspace:*",

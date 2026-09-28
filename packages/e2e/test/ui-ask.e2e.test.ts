@@ -10,6 +10,7 @@ import { SEED, seedMeetings } from '../src/seed.ts'
 import {
   APP,
   buildUi,
+  capture,
   launchUi,
   logTail,
   markOnboarded,
@@ -21,7 +22,6 @@ import {
 // gnomeolad (child process) → @gnomeola/llm → @anthropic-ai/sdk → HTTP — and only the far end is a replay
 // of recorded Messages API streams, trickled one SSE event at a time so the streaming state is visible.
 
-const ARTIFACTS = join(import.meta.dirname, '__artifacts__')
 const CASSETTES = join(import.meta.dirname, '..', '..', 'llm', 'test', 'fixtures', 'cassettes')
 const KEY = 'sk-ant-e2e-ui-planted-key-9876543210'
 const PIPELINE = { speed: 4, segmentEveryMs: 2500, partialEveryMs: 250, finalizeAfterMs: 1500, tickMs: 20 }
@@ -122,7 +122,7 @@ describe('Ask pane against the real daemon and a replayed Anthropic API', () => 
       'streamed text under the Answering spinner',
     )
     expect(partial).not.toMatch(/\[s\d/) // aliases never leak: markers are rewritten as they stream
-    await d.screenshot(join(ARTIFACTS, 'ask-streaming.png'))
+    await capture(d, 'ask-streaming')
 
     // the answer: text with [n] markers, and one chip per citation
     const answer = await d.waitFor(() => lastAnswer(daemon, SEED.long), 15_000, 'the persisted answer')
@@ -136,7 +136,7 @@ describe('Ask pane against the real daemon and a replayed Anthropic API', () => 
     const chip2 = await d.findOne({ app: APP, role: 'button', name: chipName(2), states: ['showing'] })
     await d.findOne({ app: APP, role: 'button', name: chipName(1), states: ['showing'] })
     expect(await unnamedInteractive(d)).toEqual([])
-    await d.screenshot(join(ARTIFACTS, 'ask-answer.png'))
+    await capture(d, 'ask-answer')
 
     // follow citation 2: the Transcript page shows, scrolled back to that line, which is selected
     await d.click(chip2)
@@ -155,7 +155,7 @@ describe('Ask pane against the real daemon and a replayed Anthropic API', () => 
         )
       ).children ?? []
     expect(rows.filter((r) => r.states.includes('selected')).map((r) => r.name)).toEqual([rowName(cited[1]!)])
-    await d.screenshot(join(ARTIFACTS, 'ask-citation-followed.png'))
+    await capture(d, 'ask-citation-followed')
 
     // and back: citation 1 moves the highlight
     await openTab(d, 'Ask')
@@ -198,7 +198,7 @@ describe('Ask pane against the real daemon and a replayed Anthropic API', () => 
       'the partial text to be gone',
     )
     expect((await lastAnswer(daemon, SEED.long)).stopReason).toBe('refusal')
-    await d.screenshot(join(ARTIFACTS, 'ask-refusal.png'))
+    await capture(d, 'ask-refusal')
   })
 
   it('answers during a live recording, with citations into the growing transcript', async () => {
@@ -236,7 +236,7 @@ describe('Ask pane against the real daemon and a replayed Anthropic API', () => 
       { app: APP, role: 'button', nameContains: 'Citation 1:', states: ['showing'] },
       10_000,
     )
-    await d.screenshot(join(ARTIFACTS, 'ask-live.png'))
+    await capture(d, 'ask-live')
     await d.click(chip)
     // the cited line is found by its start time and speaker (its text may have been revised to final)
     const prefix = `${speakerName(cited.speaker)} at ${formatOffset(cited.startMs)}: `

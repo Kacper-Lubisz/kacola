@@ -16,6 +16,7 @@ import { SEED, seedMeetings } from '../src/seed.ts'
 import {
   APP,
   buildUi,
+  capture,
   launchUi,
   logTail,
   markOnboarded,
@@ -28,8 +29,6 @@ import {
 // capture + STT pipeline), asserted through AT-SPI. Every transcript line is a GtkListView row whose
 // accessible name is "<Speaker> at <m:ss>: <text>", suffixed " (provisional)" for a live-quality
 // segment and " (in progress)" for the partial line.
-
-const ARTIFACTS = join(import.meta.dirname, '__artifacts__')
 
 // Audio runs 4x wall clock: a segment closes every 2.5 s of audio per track (≈0.6 s wall), partials
 // every 250 ms of audio, and a live segment is re-emitted as final 1.5 s (wall) after it closes — long
@@ -93,7 +92,7 @@ describe('transcript view against the real daemon', () => {
     const labels = (await d.find({ app: APP, role: 'label', name: 'Them', states: ['showing'] })).length
     expect(labels).toBe(2) // runs at 1:06-2:00 and 3:04-5:00
     expect(await unnamedInteractive(d)).toEqual([])
-    await d.screenshot(join(ARTIFACTS, 'transcript-seeded.png'))
+    await capture(d, 'transcript-seeded')
   })
 
   it('renders the 1,350-line meeting quickly and scrolls it end to end from the keyboard', async () => {
@@ -123,7 +122,7 @@ describe('transcript view against the real daemon', () => {
       5000,
     )
     const toEnd = Date.now() - t0
-    await d.screenshot(join(ARTIFACTS, 'transcript-long-end.png'))
+    await capture(d, 'transcript-long-end')
     await d.pressKeys('Home')
     await d.findOne(
       { app: APP, role: 'list item', nameContains: 'Planning item 0:', states: ['showing'] },
@@ -173,7 +172,7 @@ describe('transcript view against the real daemon', () => {
       15_000,
       'a provisional line',
     )
-    await d.screenshot(join(ARTIFACTS, 'transcript-live.png'))
+    await capture(d, 'transcript-live')
     const prefix = provisional.slice(0, provisional.indexOf(': ') + 2)
     const finalName = await d.waitFor(
       async () => {
@@ -215,7 +214,7 @@ describe('transcript view against the real daemon', () => {
     const top = (await rowNames(d))[0]
     await new Promise((r) => setTimeout(r, 1500))
     expect((await rowNames(d))[0]).toBe(top)
-    await d.screenshot(join(ARTIFACTS, 'transcript-jump-to-live.png'))
+    await capture(d, 'transcript-jump-to-live')
 
     await d.click(jump)
     await d.waitFor(
@@ -251,7 +250,7 @@ describe('transcript view against the real daemon', () => {
       10_000,
       'a final, complete transcript ending in the daemon’s last segment',
     )
-    const shot = await d.screenshot(join(ARTIFACTS, 'transcript-stopped.png'))
+    const shot = await capture(d, 'transcript-stopped')
     expect(pngInfo(shot)).toMatchObject({ width: 1280, height: 800 })
     if (app.hasExited()) throw new Error(logTail(app))
   })

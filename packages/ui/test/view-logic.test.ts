@@ -8,11 +8,11 @@ import { applySplice, diffKeys } from '../src/data/list-diff.ts'
 import { noticesText, parseNotices } from '../src/data/notices.ts'
 import {
   deviceChoices,
-  FINAL_PASS,
+  finalPasses,
   formatBytes,
   indexOf,
   missingModels,
-  PROVIDERS,
+  providers,
   valueAt,
   withStored,
 } from '../src/data/settings.ts'
@@ -81,9 +81,9 @@ describe('Follow (autoscroll intent)', () => {
 
 describe('settings model', () => {
   it('maps combo indexes and values both ways', () => {
-    expect(indexOf(PROVIDERS, 'ollama')).toBe(1)
-    expect(valueAt(FINAL_PASS, 2)).toBe('off')
-    expect(valueAt(FINAL_PASS, 9)).toBeUndefined()
+    expect(indexOf(providers(), 'ollama')).toBe(1)
+    expect(valueAt(finalPasses(), 2)).toBe('off')
+    expect(valueAt(finalPasses(), 9)).toBeUndefined()
   })
   it('lists default first, keeps an unplugged configured device instead of rewriting it', () => {
     const devices: AudioDevice[] = [

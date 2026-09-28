@@ -11,6 +11,7 @@ import {
   APP,
   allAccessibleText,
   buildUi,
+  capture,
   launchUi,
   logTail,
   markOnboarded,
@@ -23,7 +24,6 @@ import {
 // Preferences is the only thing that makes questions work — and the test watches that key reach the
 // API's x-api-key header while never appearing in the window's accessible tree or on screen.
 
-const ARTIFACTS = join(import.meta.dirname, '__artifacts__')
 const CASSETTES = join(import.meta.dirname, '..', '..', 'llm', 'test', 'fixtures', 'cassettes')
 const KEY = 'sk-ant-typed-into-prefs-5Z7Q2W9X4K'
 
@@ -96,7 +96,7 @@ describe('questions without a key, Preferences, About', () => {
     const why = await d.findOne({ app: APP, role: 'label', nameContains: 'is an API key configured?' })
     expect(why.name).toMatch(/Add an API key in Preferences|Preferences\./)
     expect(api.seen).toHaveLength(0) // nothing went to the API
-    await d.screenshot(join(ARTIFACTS, 'ask-unavailable.png'))
+    await capture(d, 'ask-unavailable')
     expect(await unnamedInteractive(d)).toEqual([])
 
     // non-default settings, set elsewhere (the CLI, say) before Preferences first opens
@@ -122,7 +122,7 @@ describe('questions without a key, Preferences, About', () => {
     await d.typeText(KEY)
     // while typed: masked in the accessible tree and on screen
     expect(await allAccessibleText(d)).not.toContain(KEY)
-    const typed = await d.screenshot(join(ARTIFACTS, 'prefs-key-typed.png'))
+    const typed = await capture(d, 'prefs-key-typed')
     const text = ocr(typed)
     expect(text).toMatch(/Preferences|Provider/) // OCR works on this screen at all
     expect(text).not.toContain(KEY.slice(8, 20))
@@ -138,7 +138,7 @@ describe('questions without a key, Preferences, About', () => {
     // cleared from the entry, absent from the tree and the screen
     await d.waitFor(async () => !(await allAccessibleText(d)).includes('•'), 5000, 'the entry to be emptied')
     expect(await allAccessibleText(d)).not.toContain(KEY)
-    const after = await d.screenshot(join(ARTIFACTS, 'prefs-key-saved.png'))
+    const after = await capture(d, 'prefs-key-saved')
     expect(ocr(after)).not.toContain(KEY.slice(8, 20))
     expect(await unnamedInteractive(d)).toEqual([])
     await closeDialog(d)
@@ -194,7 +194,7 @@ describe('questions without a key, Preferences, About', () => {
       5000,
       'micDevice=fake.mic persisted',
     )
-    await d.screenshot(join(ARTIFACTS, 'prefs-general.png'))
+    await capture(d, 'prefs-general')
 
     // a change made by another client (the CLI, say) shows up while the dialog is open
     await daemon.client.call('updateSettings', { body: { llm: { provider: 'ollama' } } })
@@ -240,7 +240,7 @@ describe('questions without a key, Preferences, About', () => {
       'archive on',
     )
     expect(await unnamedInteractive(d)).toEqual([])
-    await d.screenshot(join(ARTIFACTS, 'prefs-storage.png'))
+    await capture(d, 'prefs-storage')
     await closeDialog(d)
     await gone(d, { app: APP, role: 'combo box', name: 'Audio' }, 'Preferences to close')
   })
@@ -254,7 +254,7 @@ describe('questions without a key, Preferences, About', () => {
     )
     await d.findOne({ app: APP, role: 'dialog', name: 'About' }, 10_000)
     await d.findOne({ app: APP, role: 'label', name: '0.1.0' })
-    await d.screenshot(join(ARTIFACTS, 'about.png'))
+    await capture(d, 'about')
     // AdwAboutDialog shows `comments` on its Details page
     // its rows have no AT-SPI action: activate them as a keyboard user does
     await d.focus(await d.findOne({ app: APP, role: 'list item', name: 'Details', states: ['showing'] }))
@@ -266,7 +266,7 @@ describe('questions without a key, Preferences, About', () => {
     })
     expect(credit.name).toContain('It is not affiliated with or endorsed by Granola.')
     await d.findOne({ app: APP, nameContains: 'Third-Party Notices' })
-    await d.screenshot(join(ARTIFACTS, 'about-details.png'))
+    await capture(d, 'about-details')
     await d.pressKeys('Escape') // back to the main page
     await d.findOne({ app: APP, role: 'list item', name: 'Legal', states: ['showing'] }, 5000)
     // Legal: GPL-3.0-or-later and the bundled component list
@@ -277,7 +277,7 @@ describe('questions without a key, Preferences, About', () => {
       5000,
     )
     await d.findOne({ app: APP, role: 'label', nameContains: '@gtkx/react 1.6.0 — MPL-2.0' }, 5000)
-    await d.screenshot(join(ARTIFACTS, 'about-legal.png'))
+    await capture(d, 'about-legal')
     await d.pressKeys('Escape')
     await d.pressKeys('Escape')
     await gone(d, { app: APP, role: 'dialog', name: 'About' }, 'About to close')
@@ -353,7 +353,7 @@ describe('first-run onboarding (slow fake model downloads)', () => {
     expect(await subtitle()).toBe('Accurate transcription · 1 MB · Not downloaded')
     await d.findOne({ app: APP, role: 'label', name: 'Available (fake)' }) // capture check from health()
     expect(await unnamedInteractive(d)).toEqual([])
-    await d.screenshot(join(ARTIFACTS, 'onboarding.png'))
+    await capture(d, 'onboarding')
 
     await d.click(
       await d.findOne({ app: APP, role: 'button', name: 'Download all models', states: ['showing'] }),
@@ -370,7 +370,7 @@ describe('first-run onboarding (slow fake model downloads)', () => {
           await d.find({ app: APP, role: 'progress bar', name: `${whisper.title} download progress` })
         )[0]
         if (bar?.value !== undefined) bars.add(Math.round(bar.value * 100))
-        if (seen.size === 2) await d.screenshot(join(ARTIFACTS, 'onboarding-progress.png'))
+        if (seen.size === 2) await capture(d, 'onboarding-progress')
         return s.endsWith('· Ready')
       },
       20_000,
@@ -426,7 +426,7 @@ describe('onboarding skipped', () => {
       nameContains: 'A speech model is not downloaded yet',
       states: ['showing'],
     })
-    await d.screenshot(join(ARTIFACTS, 'onboarding-skipped-banner.png'))
+    await capture(d, 'onboarding-skipped-banner')
     await d.click(await d.findOne({ app: APP, role: 'button', name: 'Set Up', within: banner }))
     await d.findOne({ app: APP, role: 'dialog', name: 'Welcome to gnomeola' }, 5000)
     // Escape counts as skipping again
