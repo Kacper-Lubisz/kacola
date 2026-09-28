@@ -19,8 +19,9 @@
     "test:int": "vitest run --project int --passWithNoTests",
     "test:e2e": "vitest run --project e2e --passWithNoTests",
     "test:eval": "vitest run --project eval --passWithNoTests",
-    "check": "pnpm run boundaries && pnpm run lint && pnpm run typecheck && pnpm run test:unit && pnpm run test:int",
-    "test:mutation": "stryker run stryker.protocol.config.mjs"
+    "check": "pnpm run boundaries && node scripts/third-party-notices.ts --check && pnpm run lint && pnpm run typecheck && pnpm run test:unit && pnpm run test:int",
+    "test:mutation": "stryker run stryker.protocol.config.mjs",
+    "notices": "node scripts/third-party-notices.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
