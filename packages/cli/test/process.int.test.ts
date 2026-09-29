@@ -107,6 +107,7 @@ describe('gnomeola mcp — the same tools over MCP', () => {
       'get_meeting_notes',
       'get_transcript_window',
       'list_sessions',
+      'list_speakers',
       'recording_status',
       'search_meetings',
     ])
