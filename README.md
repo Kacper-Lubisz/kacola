@@ -19,13 +19,18 @@ One local backend (`gnomeolad`) and several clients that may only talk to it ove
 | `daemon` | the local backend: HTTP + SSE, orchestrates everything below |
 | `capture` | PipeWire dual-track capture (local only) |
 | `stt` | live + final speech-to-text tiers, VAD, model manager, segment reconciler |
-| `store` | SQLite + FTS5 via kysely |
+| `store` | kysely: SQLite + FTS5 locally, Postgres (Neon/PGlite) hosted; BlobStore (FS / Vercel Blob) |
 | `llm` | transcript Q&A with prompt caching |
 | `cli` | `gnomeola(1)` — agent-facing, JSON-first, retrieval rather than dumping |
 | `ui` | the GTK4 / libadwaita app, in React via GTKX |
 | `testkit` | fixtures, invariants, cassettes, the PipeWire rig |
+| `server` | the hosted server: the same protocol over Postgres, pairing auth, hybrid sync, chunked audio |
+| `capture-agent` | the local-only half: capture + resumable upload (full offload), and the hybrid-sync pusher |
+| `web` | the read-only web viewer (a protocol client) |
+| `vercel` | the hosted server + viewer as a Vercel deployment (Build Output API) |
 
-The client/backend boundary is enforced in CI (`pnpm boundaries`).
+The client/backend boundary and the hosted layers are enforced in CI (`pnpm boundaries`). Hosting it
+remotely — hybrid sync (recommended), full offload, pairing, Vercel — is in [docs/hosting.md](docs/hosting.md).
 
 ## Development
 

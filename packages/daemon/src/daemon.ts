@@ -422,7 +422,10 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
   })
   const port = (server.address() as AddressInfo).port
   logger.info('listening', { host, port })
-  const url = `http://${host.includes(':') ? `[${host}]` : host}:${port}`
+  // The URL local clients (the harness, D-Bus bridge, `listening` line) should use: a wildcard bind is
+  // reached over loopback, where the owner needs no token.
+  const localHost = host === '0.0.0.0' ? '127.0.0.1' : host === '::' ? '::1' : host
+  const url = `http://${localHost.includes(':') ? `[${localHost}]` : localHost}:${port}`
 
   calendar.start()
   autoRecord.start()

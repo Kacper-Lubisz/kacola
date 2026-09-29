@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import {
   type AnyEvent,
   DaemonUnreachableError,
@@ -415,6 +418,24 @@ describe('readConfig', () => {
       intervalMs: 250,
     })
     expect(readConfig({ GNOMEOLA_UI_DEMO: '0' }).mode).toBe('daemon')
+  })
+  it('uses a device token for a remote host: GNOMEOLA_TOKEN, else the one `gnomeola pair` saved', () => {
+    expect(readConfig({ HOME: '/nonexistent', GNOMEOLA_TOKEN: 'gnm1.a.b' })).toMatchObject({
+      token: 'gnm1.a.b',
+    })
+    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-ui-hosts-'))
+    mkdirSync(join(dir, 'gnomeola'))
+    writeFileSync(
+      join(dir, 'gnomeola', 'hosts.json'),
+      JSON.stringify({ 'https://me.example': { token: 'gnm1.saved.x' } }),
+    )
+    expect(readConfig({ XDG_CONFIG_HOME: dir, GNOMEOLA_URL: 'https://me.example/' })).toMatchObject({
+      token: 'gnm1.saved.x',
+    })
+    expect(readConfig({ XDG_CONFIG_HOME: dir, GNOMEOLA_URL: 'https://other.example' })).not.toHaveProperty(
+      'token',
+    )
+    rmSync(dir, { recursive: true, force: true })
   })
   it('rejects bad values loudly', () => {
     expect(() => readConfig({ GNOMEOLA_URL: 'not a url' })).toThrow(/GNOMEOLA_URL/)

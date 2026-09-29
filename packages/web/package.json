@@ -1,0 +1,22 @@
+{
+  "name": "@gnomeola/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The read-only web viewer (H-9): session list, transcript, notes, search, pairing. A protocol client only.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": "./src/data.ts",
+    "./build": "./scripts/build.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "node scripts/build.ts"
+  },
+  "dependencies": {
+    "@gnomeola/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

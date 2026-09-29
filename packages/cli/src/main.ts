@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { type ParseArgsConfig, parseArgs } from 'node:util'
-import { DaemonUnreachableError, PROTOCOL_VERSION } from '@gnomeola/protocol'
+import { DaemonUnreachableError, GnomeolaApiError, PROTOCOL_VERSION } from '@gnomeola/protocol'
 import { ask } from './commands/ask.ts'
 import { bugReport } from './commands/bugreport.ts'
 import { meetingsNext, meetingsToday } from './commands/meetings.ts'
 import { notes } from './commands/notes.ts'
+import { pair, pairApprove, pairToken } from './commands/pair.ts'
 import { recordStart, recordStatus, recordStop, recordUsage } from './commands/record.ts'
 import { search } from './commands/search.ts'
 import { sessionsList, sessionsShow } from './commands/sessions.ts'
@@ -38,9 +39,12 @@ usage: gnomeola <command> [options]
   skill install [--dir DIR] [--force]         install the Claude Code skill
   bug-report [--out FILE]                     write a diagnostics bundle
   mcp                                         serve the same tools over MCP (stdio)
+  pair [--name N] | pair approve <CODE> | pair token
+                                              pair with a remote gnomeola (device code → token)
 
 ids: a full id, an unambiguous prefix, or latest / current.
-global: --url URL (or GNOMEOLA_URL), --json, --text, -h/--help, --version
+global: --url URL (or GNOMEOLA_URL), --token T (or GNOMEOLA_TOKEN; else the one saved by
+        \`gnomeola pair\` for that URL), --json, --text, -h/--help, --version
 output: compact JSON when stdout is not a terminal, text otherwise.
 
 exit codes: 0 ok · 1 error · 2 usage · 3 daemon unreachable · 4 not found
@@ -49,6 +53,7 @@ exit codes: 0 ok · 1 error · 2 usage · 3 daemon unreachable · 4 not found
 
 const GLOBAL = {
   url: { type: 'string' },
+  token: { type: 'string' },
   json: { type: 'boolean' },
   text: { type: 'boolean' },
   help: { type: 'boolean', short: 'h' },
@@ -80,9 +85,9 @@ export async function run(argv: string[], io: Io): Promise<number> {
   }
 
   try {
-    const ctxFor = (v: { url?: string; json?: boolean; text?: boolean }): Ctx => ({
+    const ctxFor = (v: { url?: string; token?: string; json?: boolean; text?: boolean }): Ctx => ({
       io,
-      client: makeClient(v.url, io),
+      client: makeClient(v.url, io, v.token),
       format: resolveFormat(v, io),
       now: new Date(),
     })
@@ -219,7 +224,21 @@ export async function run(argv: string[], io: Io): Promise<number> {
         const { values: v } = parse(rest, {})
         if (helpOr(v)) return EXIT.OK
         const { serveMcp } = await import('./commands/mcp.ts')
-        await serveMcp(makeClient(v.url, io), io.env, VERSION)
+        await serveMcp(makeClient(v.url, io, v.token), io.env, VERSION)
+        break
+      }
+      case 'pair': {
+        const { values: v, positionals: p } = parse(rest, { name: { type: 'string' } })
+        if (helpOr(v)) return EXIT.OK
+        const ctx = ctxFor(v)
+        if (p[0] === 'approve') await pairApprove(ctx, p[1])
+        else if (p[0] === 'token') pairToken(ctx)
+        else if (p[0] === undefined) await pair(ctx, { name: v.name })
+        else
+          throw usage(
+            `unknown subcommand: pair ${p[0]}`,
+            'gnomeola pair [--name N] | pair approve <CODE> | pair token',
+          )
         break
       }
       default:
@@ -232,6 +251,13 @@ export async function run(argv: string[], io: Io): Promise<number> {
 }
 
 function report(err: unknown, io: Io): number {
+  if (err instanceof GnomeolaApiError && err.status === 401) {
+    io.stderr(`gnomeola: ${err.message}\n`)
+    io.stderr(
+      '  this host needs a device token: run `gnomeola pair --url <URL>`, or pass --token / GNOMEOLA_TOKEN\n',
+    )
+    return EXIT.ERROR
+  }
   if (err instanceof CliError) {
     io.stderr(`gnomeola: ${err.message}\n`)
     if (err.hint) io.stderr(`  ${err.hint}\n`)

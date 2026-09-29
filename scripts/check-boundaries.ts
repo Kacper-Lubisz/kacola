@@ -75,7 +75,8 @@ export function checkBoundaries(root: string): Violation[] {
 //   server         the hosted half: protocol, the store (its driver-free core, pg, blob; the SQLite
 //                  entry only for self-hosting) and the native-free cloud STT. Never capture, local STT
 //                  (sherpa), the daemon, the LLM package, or a client.
-//   vercel         the deployment: the server, the store's pg/blob/core entries, cloud STT, protocol.
+//   vercel         the deployment: the server, the store's pg/blob/core entries, cloud STT, protocol (and
+//                  the SQLite entry, reached only for a `sqlite:` DATABASE_URL in the local harness).
 export const LAYER_RULES: Record<string, readonly string[]> = {
   'capture-agent': ['@gnomeola/protocol', '@gnomeola/capture'],
   server: [
@@ -89,6 +90,7 @@ export const LAYER_RULES: Record<string, readonly string[]> = {
   vercel: [
     '@gnomeola/protocol',
     '@gnomeola/server',
+    '@gnomeola/store',
     '@gnomeola/store/core',
     '@gnomeola/store/pg',
     '@gnomeola/store/blob',

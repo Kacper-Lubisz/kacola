@@ -8,6 +8,8 @@ export type DaemonSourceOptions = {
   /** Per-request timeout for JSON calls, so an unresponsive daemon becomes an error, not a hang. */
   timeoutMs?: number
   fetch?: typeof fetch
+  /** Device token for a remote gnomeola (M8). */
+  token?: string
 }
 
 export function createDaemonSource(opts: DaemonSourceOptions): DataSource {
@@ -15,6 +17,7 @@ export function createDaemonSource(opts: DaemonSourceOptions): DataSource {
     baseUrl: opts.baseUrl,
     timeoutMs: opts.timeoutMs ?? 5000,
     fetch: opts.fetch,
+    ...(opts.token ? { token: opts.token } : {}),
   })
   return {
     origin: client.baseUrl,
