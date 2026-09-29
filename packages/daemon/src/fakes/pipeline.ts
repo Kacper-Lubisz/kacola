@@ -108,6 +108,8 @@ export class FakeRecording implements RecordingHandle {
   private readonly open = new Map<TrackKind, OpenSeg>()
   private readonly known: KnownVoice[]
   private farSegments = 0
+  /** The option, and the user's setting (settings.speakers.diarize), both on. */
+  private readonly diarize: boolean
   /** Fake voice index → the known voice it was recognised as (null: nobody we know). */
   private readonly recognised = new Map<number, string | null>()
   private readonly heard = new Map<number, string>()
@@ -118,6 +120,7 @@ export class FakeRecording implements RecordingHandle {
   constructor(opts: PipelineStartOptions, sink: PipelineSink, o: FakePipeline['opts']) {
     this.sink = sink
     this.o = o
+    this.diarize = Boolean(o.diarize) && (opts.settings.speakers?.diarize ?? true)
     this.known = (opts.voices ?? []).filter((v) => v.model === FAKE_EMBEDDING_MODEL)
     mkdirSync(opts.sessionDir, { recursive: true })
     this.tracks = opts.tracks.map((t) => {
@@ -210,7 +213,7 @@ export class FakeRecording implements RecordingHandle {
       }
       this.sink.segment(live)
       this.emitted++
-      if (track === 'system' && this.o.diarize) this.attribute(live.id)
+      if (track === 'system' && this.diarize) this.attribute(live.id)
       const fin: SegmentUpsert = { ...live, text: capitalise(live.text), quality: 'final', confidence: 0.92 }
       this.pendingFinal.set(live.id, fin)
       const timer = setTimeout(() => {
@@ -236,7 +239,7 @@ export class FakeRecording implements RecordingHandle {
   }
 
   voices(): SpeakerVoices | null {
-    if (!this.o.diarize) return null
+    if (!this.diarize) return null
     return {
       model: FAKE_EMBEDDING_MODEL,
       voices: [...this.heard].map(([v, speakerId]) => ({
