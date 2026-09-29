@@ -12,8 +12,8 @@ export const INTERFACE_XML = `<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS O
   C-4: org.gnome.Gnomeola — the daemon's face on the session bus, for the GNOME Shell extension (and
   anything else on the desktop). Exported by gnomeolad's D-Bus bridge at /org/gnome/Gnomeola.
 
-  This file is the contract. The bridge (packages/daemon/gjs/dbus-bridge.js) and the extension both
-  embed a copy; a unit test fails if either drifts from this file.
+  This file is the contract. The bridge (packages/daemon/gjs/dbus-bridge.js) exports exactly this
+  file; the Shell extension embeds a copy, and a unit test fails if the copy drifts from it.
 
   Conventions
     * Times are Unix epoch milliseconds (int64); 0 means "none".
@@ -29,6 +29,8 @@ export const INTERFACE_XML = `<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS O
     <!-- The active (recording or paused) session; '' when idle. -->
     <property name="SessionId" type="s" access="read"/>
     <property name="SessionTitle" type="s" access="read"/>
+    <!-- The calendar meeting the active session was recorded for (a meeting id, as in the dicts); '' if none. -->
+    <property name="SessionMeetingId" type="s" access="read"/>
     <!-- Elapsed recording time = ElapsedMs + (State == 'recording' ? now - RunningSince : 0). -->
     <property name="ElapsedMs" type="t" access="read"/>
     <property name="RunningSince" type="x" access="read"/>

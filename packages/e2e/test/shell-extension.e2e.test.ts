@@ -200,6 +200,7 @@ describe('the extension in a nested GNOME Shell 50', () => {
       State: 'recording',
       SessionId: 'ses_joined',
       SessionTitle: 'Platform standup',
+      SessionMeetingId: 'mtg_standup',
       ElapsedMs: 0,
       RunningSince: since,
       LastLine: 'The retry budget is three attempts.',

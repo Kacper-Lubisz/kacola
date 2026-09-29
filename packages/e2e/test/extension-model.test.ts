@@ -157,6 +157,7 @@ describe('buildView', () => {
     const props = {
       State: 'recording',
       SessionTitle: 'Standup',
+      SessionMeetingId: 'mtg_1',
       ElapsedMs: 0,
       RunningSince: NOW - 61_000,
       LastLine: 'hello',
@@ -179,6 +180,12 @@ describe('buildView', () => {
     expect(v.items[1]!.text).toBe('me: hello')
     // the meeting being recorded does not offer Join
     expect(v.items.find((i: { key: string }) => i.key === 'meeting:mtg_1')!.verb).toBe('')
+    // …decided by the meeting id, never by a title that merely matches
+    const other = build(
+      { ...props, SessionMeetingId: 'mtg_other' },
+      { daemon: true, now: NOW, prefs },
+    ).items.find((i) => i.key === 'meeting:mtg_1')
+    expect(other!.verb).toBe('Join')
     const hidden = build(props, {
       daemon: true,
       now: NOW,

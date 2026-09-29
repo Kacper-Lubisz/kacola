@@ -31,6 +31,10 @@ const ENV: NodeJS.ProcessEnv = {
   XDG_DATA_HOME: join(HOME, '.local', 'share'),
   GNOMEOLA_INSTALL_NO_SYSTEMCTL: '1',
   GNOMEOLA_MODELS_DIR: REAL_MODELS,
+  // the installed daemon runs with the caller's session env: keep it off the real session bus and EDS
+  GNOMEOLA_CALENDAR: 'off',
+  GNOMEOLA_DBUS: 'off',
+  GNOMEOLA_MIC_ACTIVITY: 'off',
 }
 const bin = (n: string) => join(PREFIX, 'bin', n)
 const EXT_DIR = join(HOME, '.local', 'share', 'gnome-shell', 'extensions', GNOMEOLA_UUID)

@@ -193,7 +193,7 @@ export function buildView(props, o) {
     const provider = providerLabel(m.provider, _)
     const when = inProgress ? _('Now') : formatRange(m, now, _, clock24)
     const verb = m.joinUrl ? _('Join') : _('Record')
-    const recordingThis = active && props.SessionTitle === m.title
+    const recordingThis = active && Boolean(props.SessionMeetingId) && props.SessionMeetingId === m.id
     items.push({
       key: `meeting:${m.id}`,
       kind: 'meeting',

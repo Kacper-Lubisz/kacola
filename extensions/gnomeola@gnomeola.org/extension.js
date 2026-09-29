@@ -28,6 +28,7 @@ const PROPS = [
   'State',
   'SessionId',
   'SessionTitle',
+  'SessionMeetingId',
   'ElapsedMs',
   'RunningSince',
   'LastLine',
