@@ -149,7 +149,7 @@ once, record the sha256 and size) and, if it is a new engine family, a case in
 
 ## Fixtures and baselines
 
-`@gnomeola/testkit/fixtures` — four meetings with exact ground truth, audio committed as Opus (2.2 MB
+`@gnomeola/testkit/fixtures` — seven meetings with exact ground truth, audio committed as Opus (2.2 MB
 total), decoded by ffmpeg to 16 kHz WAV in `${XDG_CACHE_HOME:-~/.cache}/gnomeola/fixtures`:
 
 | id | what | length |
@@ -158,6 +158,9 @@ total), decoded by ffmpeg to 16 kHz WAV in `${XDG_CACHE_HOME:-~/.cache}/gnomeola
 | `planning-3p-crosstalk` | user + 2 far-end speakers, 4 cross-track overlaps, −40 dB speaker bleed into the mic, a far-end prompt-injection line | 62 s |
 | `retro-silence-gap` | 20 s silence, then a 6 s recorded gap on both tracks | 82 s |
 | `librispeech-3p` | real read speech (LibriSpeech test-clean 1089 / 121 / 237) | 85 s |
+| `three-far-4p` | V-3: LibriSpeech, the user + **three** far-end speakers (two women, one man) handing over in 250 ms — too quick for VAD | 56 s |
+| `crosstalk-bleed-3p` | V-3: far-end people talking **over each other** on the system track, the user over them, and −12 dB bleed through a reverberant room (40 ms, RT60 0.35 s) | 63 s |
+| `bad-connection-3p` | V-3: one far-end speaker on a **bad line** (telephone band, 6 kbit/s Opus, lost packets), noisy far-end mix | 70 s |
 
 Synthetic speech: Piper voices `en_US-joe` (CC0 data), `en_US-ljspeech` (public domain), `en_US-sam`
 (Apache-2.0 data), `en_GB-cori` (public domain). Each was accepted only after scoring < 5% WER with
@@ -170,3 +173,78 @@ Baselines: `GNOMEOLA_UPDATE_BASELINES=1 pnpm test:e2e` rewrites them (a reviewed
 `compareToBaseline` fails on WER +3 pts (±5 pts per track) or RTF beyond 4× the recorded value. RTF bands
 are wide because CI hardware differs; WER is deterministic run to run on the same build. A trend report
 is written to `packages/stt/test/__artifacts__/stt-pipeline-report.json`.
+
+## Attribution (M3): who said what
+
+Track A (the mic) is the user by construction and never touches the diarizer; the store refuses to
+attribute a mic segment to anyone but `me`, or a far-end segment to `me` (and `me`/`them` are reserved
+speaker labels). Only the far-end track is diarized:
+
+1. **Split** (A-2). When a far-end VAD segment closes, its tier-2 request is held while pyannote
+   segmentation 3.0 (via sherpa's offline diarizer, run on just that segment) looks for a change of
+   speaker. Stable runs of another voice ≥ 700 ms become split points; the reconciler cuts the segment
+   (first piece keeps the id, words follow their timestamps, each piece gets its own tier-2 pass with
+   context padding that never crosses the cut). This is what separates quick hand-overs VAD merges.
+2. **Assign** (A-3). One TitaNet-small embedding per piece, clustered online: join the most similar
+   centroid at cosine ≥ 0.4, else found a new speaker. Pieces under 1 s may join but never found a
+   speaker or move a centroid; under 300 ms get no embedding and follow the previous speaker. Cluster ids
+   never change, so the daemon's speaker ids (`spk_…`, "Speaker N", a stable colour) never do either.
+3. **Re-cluster** at stop: average-linkage over every embedding (threshold 0.4), mapped back onto the
+   online ids by shared time (Hungarian), so only genuinely changed attributions are re-emitted.
+   Attributions a person made (split, merge) are never overridden by the diarizer.
+
+Models run in a worker thread (`packages/stt/src/sherpa/diarize-worker.ts`); nothing blocks capture.
+
+**Echo gate** (A-4). Laptop speakers leak the far end into the mic; transcribed, that would become "me".
+The gate estimates the echo delay (log-energy envelope correlation), the echo gain (60th percentile of
+mic/far-end energy ratios while the far end talks) and silences 20 ms mic blocks that the far end, through
+a reverberant tail, explains within 9 dB — before VAD and both tiers. It is a gate, not a canceller: a
+quiet syllable of the user's under a loud far end can be clipped; the far end is never made the user.
+Measured: `crosstalk-bleed-3p` produces **31.9 s** of phantom "me" speech without it and **0** with it;
+mic WER on every other fixture is unchanged.
+
+### Choosing the embedding model and thresholds
+
+`node packages/stt/scripts/diarize-bench.ts` (VAD + split + embed + cluster, no ASR). Far-end DER,
+250 ms collar, overlapped speech scored, over all seven fixtures:
+
+| embedding | online 0.4 | online 0.7 → re-cluster 0.4 | notes |
+| --- | --- | --- | --- |
+| **TitaNet-small** (default) | **3.3 %** | 9.2 % → **3.3 %** | right speaker count on every fixture; flat plateau for online thresholds 0.2–0.55 |
+| WeSpeaker ResNet34 | 34.6 % | 9.0 % → 34.6 % | a different similarity scale: needs ~0.7 online and no re-cluster at 0.4 |
+| CAM++ / ERes2Net / TitaNet-large (sherpa offline diarizer, whole track) | — | — | over-split badly (17–62 %) on the first four fixtures; not catalogued |
+
+Thresholds are specific to the embedding model: change the model, re-run the bench.
+
+### DER baselines (V-3)
+
+`packages/stt/test/diarize.e2e.test.ts` runs the whole pipeline (real ASR too) and gates DER against
+committed baselines (`fixtures/baselines/*__diarize_emb=…json`; bands ±0.04 abs / 20 % rel, speaker count
+exact, phantom-me ≤ baseline + 500 ms). Current numbers:
+
+| fixture | far-end DER | confusion | all-track DER | speakers found | phantom "me" |
+| --- | --- | --- | --- | --- | --- |
+| standup-2p | 0.0 % | 0 | 2.3 % | 1/1 | 0 |
+| retro-silence-gap | 0.0 % | 0 | 0.0 % | 1/1 | 0 |
+| planning-3p-crosstalk | 0.03 % | 0 | 0.9 % | 2/2 | 320 ms (VAD tail, not bleed) |
+| librispeech-3p | 11.3 % | 0 | 8.4 % | 2/2 | 0 |
+| three-far-4p | 2.6 % | 0 | 4.5 % | 3/3 | 0 |
+| crosstalk-bleed-3p | 7.3 % | 0 | 5.1 % | 2/2 | 0 |
+| bad-connection-3p | 0.7 % | 0 | 5.0 % | 2/2 | 0 |
+
+Every remaining error is missed speech — VAD (LibriSpeech's quiet onsets) or far-end cross-talk, which one
+track cannot carry as two people at once — not confusion. These fixtures are still kind: at most three
+far-end voices, distinct recordings per person. Expect confusion on real calls with similar voices,
+music, or many participants; the bench and baselines are where to measure it.
+
+Through the real PipeWire path (`packages/e2e/test/attribution-real.e2e.test.ts`): planning 0.0 %,
+standup 0.0 %, crosstalk-bleed 7.1 % far-end DER, 0 ms phantom "me", and a voiceprint named in one
+meeting recognised the same voice in the next.
+
+### Voiceprints (A-6)
+
+Opt-in (`settings.speakers.voiceprints`, off by default). With it on, each recording's far-end speaker
+centroids are kept beside its audio (`voices.json`, 0600); naming a speaker makes (or refines, as a running
+mean) the voiceprint of that name, and every new recording is seeded with them — a cluster whose centroid
+is ≥ 0.6 cosine to a voiceprint arrives named. Embeddings never leave the machine and never appear in any
+API response. Switching it off deletes every voiceprint and every `voices.json`.
