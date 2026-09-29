@@ -17,6 +17,8 @@ export const BUDGET = {
   search: 1_500,
   /** Default ceiling for a `transcript` window; raise with --max-tokens, bypass with --full. */
   transcriptWindow: 4_000,
+  /** A meeting's notes (`gnomeola notes`); bypass with --full. */
+  notes: 4_000,
   /** An `ask` result, rendered — an answer and its citations, never raw transcript. */
   ask: 1_500,
   /** One search snippet, in characters (server snippets are already capped; this is belt and braces). */
