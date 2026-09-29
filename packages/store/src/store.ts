@@ -22,8 +22,9 @@ import {
   SqliteQueryCompiler,
   sql,
 } from 'kysely'
+import { StoreError } from './errors.ts'
 import { capSnippet, SNIPPET_TOKENS, toFtsQuery } from './fts.ts'
-import { migrations as defaultMigrations, type Migration, migrate } from './migrations.ts'
+import { BOOKKEEPING_TABLES, migrations as defaultMigrations, type Migration, migrate } from './migrations.ts'
 import type { DB, QaRow, SegmentRow, SessionRow, TrackRow } from './schema.ts'
 
 // The store. Two rules make the event log trustworthy:
@@ -39,14 +40,7 @@ import type { DB, QaRow, SegmentRow, SessionRow, TrackRow } from './schema.ts'
 // All access is synchronous (better-sqlite3). kysely is used as a type-safe query *compiler* only, so a
 // transaction can never interleave with anything else on the event loop.
 
-export class StoreError extends Error {
-  readonly code: 'not_found' | 'conflict' | 'bad_request'
-  constructor(code: StoreError['code'], message: string) {
-    super(message)
-    this.name = 'StoreError'
-    this.code = code
-  }
-}
+export { StoreError }
 
 export type SegmentInput = Omit<Segment, 'revision'>
 
@@ -245,9 +239,33 @@ export class Store {
         return e
       })
       .immediate()
-    this.outbox.push(event)
-    this.drain()
+    if (this.deferred) this.deferred.push(event)
+    else {
+      this.outbox.push(event)
+      this.drain()
+    }
     return event
+  }
+
+  private deferred: DurableEvent[] | null = null
+
+  /**
+   * Run several commits (plus any bookkeeping writes) as ONE IMMEDIATE transaction: all land or none
+   * do. Commits inside become savepoints; listeners hear about them only once the whole thing has
+   * committed. Used by hybrid-sync ingest, where a batch and the device cursor must move together.
+   */
+  transaction<T>(fn: () => T): T {
+    if (this.deferred) return fn()
+    this.deferred = []
+    let result: T
+    try {
+      result = this.db.transaction(fn).immediate()
+      this.outbox.push(...this.deferred)
+    } finally {
+      this.deferred = null
+    }
+    this.drain()
+    return result
   }
 
   private insertEvent(e: DurableEvent): void {
@@ -727,7 +745,9 @@ export class Store {
           "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('events', 'schema_migrations', 'segments_fts') ORDER BY name",
         )
         .all() as { name: string }[]
-    ).map((r) => r.name)
+    )
+      .map((r) => r.name)
+      .filter((t) => !BOOKKEEPING_TABLES.includes(t))
     const out: Record<string, string[]> = {}
     for (const t of tables) {
       const rows = this.db.prepare(`SELECT * FROM "${t}"`).raw().all() as unknown[][]

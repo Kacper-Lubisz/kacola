@@ -13,7 +13,9 @@
     "./metrics": "./src/metrics/index.ts",
     "./cassettes": "./src/cassettes/index.ts",
     "./daemon": "./src/daemon/index.ts",
-    "./ui": "./src/ui/index.ts"
+    "./ui": "./src/ui/index.ts",
+    "./postgres": "./src/postgres/index.ts",
+    "./cloud-stt": "./src/cloud-stt/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

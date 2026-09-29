@@ -23,6 +23,7 @@ import { EventBus } from './bus.ts'
 import { apiErrorBody, DaemonError, toDaemonError } from './errors.ts'
 import { streamEvents } from './events-stream.ts'
 import { NoDevices, NoModels, UnavailablePipeline } from './fakes/providers.ts'
+import { hostedHandlers } from './hosted.ts'
 import { readJsonBody, SseWriter, sendJson } from './http.ts'
 import type { DeviceProvider, Keyring, ModelProvider, QaEngine, TranscriptionPipeline } from './interfaces.ts'
 import { NoKeyring } from './keyring.ts'
@@ -254,6 +255,8 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
       health: await health(),
       logTail: logger.tail(200),
     }),
+
+    ...hostedHandlers,
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))

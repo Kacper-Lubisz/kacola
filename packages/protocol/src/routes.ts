@@ -1,5 +1,20 @@
 import { z } from 'zod'
 import {
+  AudioChunkBody,
+  AudioChunkResult,
+  AudioStatus,
+  FinalizeAudioBody,
+  PairApprove,
+  PairApproveBody,
+  PairStart,
+  PairStartBody,
+  PairToken,
+  PairTokenBody,
+  SyncCursor,
+  SyncPushBody,
+  SyncPushResult,
+} from './hosted.ts'
+import {
   ApiError,
   AudioDevice,
   Health,
@@ -170,6 +185,31 @@ export const routes = {
       health: Health,
       logTail: z.array(z.string()),
     }),
+  },
+
+  // ---- M8: hosted — hybrid sync, pairing, chunked audio upload (schemas in ./hosted.ts)
+  syncPush: { method: 'POST', path: '/sync/push', body: SyncPushBody, response: SyncPushResult },
+  syncCursor: {
+    method: 'GET',
+    path: '/sync/cursor',
+    query: z.object({ deviceId: z.string().min(1).max(100).optional() }),
+    response: SyncCursor,
+  },
+  pairStart: { method: 'POST', path: '/pair/start', body: PairStartBody, response: PairStart },
+  pairApprove: { method: 'POST', path: '/pair/approve', body: PairApproveBody, response: PairApprove },
+  pairToken: { method: 'POST', path: '/pair/token', body: PairTokenBody, response: PairToken },
+  putAudioChunk: {
+    method: 'PUT',
+    path: '/sessions/:id/audio/chunks/:chunkSeq',
+    body: AudioChunkBody,
+    response: AudioChunkResult,
+  },
+  getAudioStatus: { method: 'GET', path: '/sessions/:id/audio', response: AudioStatus },
+  finalizeAudio: {
+    method: 'POST',
+    path: '/sessions/:id/audio/finalize',
+    body: FinalizeAudioBody,
+    response: Session,
   },
 } as const satisfies Record<string, RouteDef>
 

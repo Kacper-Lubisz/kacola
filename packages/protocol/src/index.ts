@@ -1,5 +1,6 @@
 export * from './client.ts'
 export * from './events.ts'
+export * from './hosted.ts'
 export * from './ids.ts'
 export * from './routes.ts'
 export * from './schemas.ts'

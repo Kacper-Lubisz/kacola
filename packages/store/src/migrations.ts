@@ -105,6 +105,63 @@ export const migrations: readonly Migration[] = [
       CREATE TABLE settings (id INTEGER PRIMARY KEY CHECK (id = 1), value TEXT NOT NULL) STRICT;
     `,
   },
+  {
+    // M8 (H-1/H-3/H-6/H-7). Server-local bookkeeping, not event-sourced (see BOOKKEEPING_TABLES).
+    // Mirrored, same version and name, in ./pg/migrations.ts — a parity test keeps the lists aligned.
+    version: 2,
+    name: 'hosted',
+    up: `
+      -- hybrid sync: the highest seq of each pushing device's log that this store has accounted for
+      CREATE TABLE sync_devices (
+        device_id TEXT PRIMARY KEY,
+        cursor INTEGER NOT NULL,
+        updated_at TEXT NOT NULL
+      ) STRICT;
+
+      -- paired devices; a bearer token is valid only while its device is here and not revoked
+      CREATE TABLE devices (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        revoked_at TEXT
+      ) STRICT;
+
+      -- device-code pairing requests; the device code itself is stored only as a SHA-256
+      CREATE TABLE pairing_requests (
+        device_code_hash TEXT PRIMARY KEY,
+        user_code TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        device_id TEXT,
+        claimed INTEGER NOT NULL DEFAULT 0
+      ) STRICT;
+
+      -- receipts for chunked audio uploads; the bytes live in the BlobStore under blob_key
+      CREATE TABLE audio_chunks (
+        session_id TEXT NOT NULL REFERENCES sessions (id) ON DELETE CASCADE,
+        chunk_seq INTEGER NOT NULL,
+        track TEXT NOT NULL,
+        bytes INTEGER NOT NULL,
+        sha256 TEXT NOT NULL,
+        blob_key TEXT NOT NULL,
+        received_at TEXT NOT NULL,
+        PRIMARY KEY (session_id, chunk_seq)
+      ) STRICT;
+    `,
+  },
+]
+
+/**
+ * Tables that are server-local bookkeeping rather than domain state: not written by events, not
+ * reproduced by replay, left out of dump() and snapshot(). Pairing secrets and upload receipts must
+ * never travel over /events.
+ */
+export const BOOKKEEPING_TABLES: readonly string[] = [
+  'sync_devices',
+  'devices',
+  'pairing_requests',
+  'audio_chunks',
 ]
 
 function validateList(list: readonly Migration[]): void {

@@ -54,6 +54,8 @@ export type ClientOptions = {
   headers?: Record<string, string>
   /** Per-request timeout for JSON calls. Streams are never timed out. */
   timeoutMs?: number
+  /** Bearer token from pairing. Loopback daemons need none; every remote host does. */
+  token?: string
 }
 
 export function toQueryString(query: Record<string, unknown> | undefined): string {
@@ -90,6 +92,7 @@ export function createClient(opts: ClientOptions = {}) {
       buildPath(def.path, (o.params ?? {}) as Record<string, string>) +
       toQueryString(o.query as unknown as Record<string, unknown> | undefined)
     const headers: Record<string, string> = { ...opts.headers }
+    if (opts.token) headers.authorization = `Bearer ${opts.token}`
     if (stream) headers.accept = 'text/event-stream'
     let body: string | undefined
     if (o.body !== undefined) {
