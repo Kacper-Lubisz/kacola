@@ -36,6 +36,7 @@ packages/ui/
 │  │  ├─ notes-editor.tsx  GtkSourceView 5 markdown editor (vendored GIR, §3)
 │  │  ├─ notes-review.tsx  block-by-block review of an enhanced version
 │  │  ├─ transcript-view.tsx T-6: virtualised lines, partial row, follow + Jump to Live
+│  │  ├─ speakers.tsx     A-5: Speakers dialog (inline rename, merge) + "Someone Else Said This" line action
 │  │  ├─ virtual-list.tsx  GtkListView over a GtkStringList of keys, React rows, named list items
 │  │  ├─ ask-pane.tsx      Q-5: composer, streaming answer, citation chips, refusal/unavailable
 │  │  ├─ preferences.tsx   S-3: AdwPreferencesDialog over the daemon's settings
@@ -50,7 +51,8 @@ packages/ui/
 │     ├─ demo-source.ts    GNOMEOLA_UI_DEMO=1 in-process fake (sessions, transcripts, partials, settings)
 │     ├─ store.ts          SessionStore: snapshot + resumable event stream, connection, settings, health
 │     ├─ sessions.ts       pure fold of events into the session list (upserts, deletions)
-│     ├─ transcript.ts     segment/partial fold (revisions), display rows, TranscriptFeed
+│     ├─ transcript.ts     segment/partial fold (revisions, M3 attribution events), display rows, TranscriptFeed
+│     ├─ speakers.ts       SpeakersFeed: listSpeakers + speaker/merge/attribution fold; chip colour classes
 │     ├─ qa.ts             Q&A turns fold (history, qa.message, qa.delta, own ask stream), QaFeed
 │     ├─ notes.ts          NotesFeed: draft, debounced autosave, conflict re-save, enhance, merge; review helpers
 │     ├─ follow.ts         autoscroll intent (§6 "Live lists")
@@ -689,6 +691,7 @@ DataSource (daemon-source | demo-source)
 | e2e | `packages/e2e/test/ui-ask.e2e.test.ts` | real daemon + real LLM engine → `startFakeAnthropic({ eventDelayMs })` replaying cassettes: streaming answer, citation chips → Transcript scrolled back to and selecting the cited line, refusal notice replacing the partial, asking mid-recording |
 | e2e | `packages/e2e/test/ui-dialogs.e2e.test.ts` | no key → unavailable notice → Open Preferences; a key typed into Preferences reaches `x-api-key`, never the AT-SPI tree or the screen (OCR); settings by keyboard persisted, `settings.updated` reflected live, opening Preferences writes nothing; About's Granola credit + legal list; Tab order; onboarding (slow fake models: progress observed, remembered; skip → banner → reopen) |
 | e2e | `packages/e2e/test/ui-notes.e2e.test.ts` | real daemon + real LLM engine → fake Anthropic: type notes into the GtkSourceView, autosave, enhance (streaming), revert some review blocks and accept others, apply; the stored merge equals the choices and every typed version is recoverable; copy (read back with `wl-paste` on the private display), export through the real file dialog, refusal, flush on leaving a session |
+| e2e | `packages/e2e/test/ui-speakers.e2e.test.ts` | real daemon, diarizing fake pipeline: speaker chips carry the daemon's colour slot in their accessible description (`colour 2`, `your colour` for the mic) so colour stability is asserted without pixels; inline rename (entry grabs focus itself), refusals shown (reserved / duplicate names), merge through a menu button, split a selected line off, the mic always `me`; Preferences speaker switches |
 | e2e | `packages/e2e/test/ui-i18n.e2e.test.ts` | a German catalog compiled with msgfmt, the bundle run with `LANGUAGE=de`: translated strings on screen (§10) |
 
 Helpers for the real-daemon tests are in `packages/e2e/src/ui.ts` (`buildUi`, `launchUi`,

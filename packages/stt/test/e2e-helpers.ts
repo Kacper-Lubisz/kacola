@@ -1,10 +1,12 @@
 import { setImmediate as yieldToLoop } from 'node:timers/promises'
 import { EphemeralEventData, Segment, type TrackKind } from '@gnomeola/protocol'
 import type { Fixture } from '@gnomeola/testkit/fixtures'
+import type { DiarizationSession } from '../src/diarize/types.ts'
 import { DEFAULT_MODELS } from '../src/model-manager/catalog.ts'
 import { ModelManager } from '../src/model-manager/manager.ts'
 import { type PipelineEvent, TranscriptionPipeline } from '../src/pipeline.ts'
 import type { FinalPass, PartialOut } from '../src/reconciler.ts'
+import { createDiarizer } from '../src/sherpa/diarize.ts'
 import { createFinalTranscriber, createLiveRecognizer, createVad } from '../src/sherpa/index.ts'
 import type { FinalTranscriber, LiveRecognizer, VoiceActivityDetector } from '../src/types.ts'
 
@@ -44,6 +46,24 @@ export type RunOptions = {
   finalPass: FinalPass
   /** Pause at `atMs` and resume at `resumeMs`; audio in between is never delivered. */
   pause?: { atMs: number; resumeMs: number }
+  /** Far-end diarization (M3). */
+  diarizer?: DiarizationSession | null
+  /** The mic echo gate (default on, as in the daemon). */
+  echoGate?: boolean
+}
+
+export const EMBEDDING_MODEL = process.env.GNOMEOLA_EMBEDDING_MODEL ?? DEFAULT_MODELS.embedding
+export const SEGMENTATION_MODEL = process.env.GNOMEOLA_SEGMENTATION_MODEL ?? DEFAULT_MODELS.segmentation
+
+let diarizer: ReturnType<typeof createDiarizer> | null = null
+/** The daemon's diarizer (real models, downloaded and verified on first use); one per test file. */
+export function loadDiarizer() {
+  diarizer ??= (async () => {
+    const models = new ModelManager()
+    for (const id of [EMBEDDING_MODEL, SEGMENTATION_MODEL]) await models.ensure(id)
+    return createDiarizer(models, { embedding: EMBEDDING_MODEL, segmentation: SEGMENTATION_MODEL })
+  })()
+  return diarizer
 }
 
 /**
@@ -59,10 +79,12 @@ export async function runFixture(f: Fixture, e: Engines, opts: RunOptions): Prom
     final: opts.finalPass === 'off' ? null : e.final,
     vad: e.vad,
     finalPass: opts.finalPass,
+    diarizer: opts.diarizer ?? null,
+    echoGate: opts.echoGate ?? true,
     onEvent: (ev) => {
       // every event must be wire-valid
       if (ev.type === 'segment.upserted') Segment.parse(ev.segment)
-      else EphemeralEventData.parse(ev)
+      else if (ev.type === 'transcript.partial') EphemeralEventData.parse(ev)
       events.push(ev)
     },
   })

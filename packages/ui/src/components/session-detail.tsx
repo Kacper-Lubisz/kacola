@@ -12,7 +12,7 @@ import {
   AdwViewSwitcher,
   AdwViewSwitcherBar,
 } from '@gtkx/jsx/adw'
-import { GtkBox, GtkLabel, GtkLevelBar, GtkListBox, GtkScrolledWindow } from '@gtkx/jsx/gtk'
+import { GtkBox, GtkButton, GtkLabel, GtkLevelBar, GtkListBox, GtkScrolledWindow } from '@gtkx/jsx/gtk'
 import { type ReactNode, useState } from 'react'
 import {
   displayTitle,
@@ -22,11 +22,20 @@ import {
   statusLabel,
   statusSummary,
 } from '../data/format.ts'
-import { useEvents, useNotesFeed, useNow, useQaFeed, useTranscriptFeed } from '../data/hooks.ts'
-import { _ } from '../i18n/index.ts'
+import {
+  useEvents,
+  useNotesFeed,
+  useNow,
+  useQaFeed,
+  useSpeakersFeed,
+  useTranscriptFeed,
+} from '../data/hooks.ts'
+import { _, fmt } from '../i18n/index.ts'
 import { AskPane } from './ask-pane.tsx'
 import { useDialogs } from './dialogs.tsx'
 import { NotesPane } from './notes-pane.tsx'
+import { LineActions, SpeakersDialog } from './speakers.tsx'
+import { useToast } from './toasts.tsx'
 import { type TranscriptFocus, TranscriptView } from './transcript-view.tsx'
 
 const TRACK_LABEL: Record<TrackKind, () => string> = {
@@ -152,6 +161,9 @@ export function SessionDetail({ session, narrow }: { session: Session; narrow: b
   const transcript = useTranscriptFeed(session.id)
   const qa = useQaFeed(session.id)
   const notes = useNotesFeed(session.id)
+  const speakers = useSpeakersFeed(session.id)
+  const [speakersOpen, setSpeakersOpen] = useState(false)
+  const toast = useToast()
   const dialogs = useDialogs()
   const [stack, setStack] = useState<Adw.ViewStack | null>(null)
   const [page, setPage] = useState<DetailPage>('transcript')
@@ -169,6 +181,15 @@ export function SessionDetail({ session, narrow }: { session: Session; narrow: b
         <AdwHeaderBar
           titleWidget={
             narrow ? undefined : <AdwViewSwitcher stack={stack} policy={Adw.ViewSwitcherPolicy.WIDE} />
+          }
+          end={
+            <GtkButton
+              iconName="system-users-symbolic"
+              tooltipText={_('Speakers')}
+              accessibleLabel={_('Speakers')}
+              accessibleDescription={_('Name, merge and split the people in this session')}
+              onClicked={() => setSpeakersOpen(true)}
+            />
           }
         />
       }
@@ -211,7 +232,19 @@ export function SessionDetail({ session, narrow }: { session: Session; narrow: b
               the page at the END of the stack — the view switcher order then scrambles. */}
           <AdwViewStackPage name="transcript" title={_('Transcript')} iconName="view-list-symbolic">
             <GtkBox orientation={Gtk.Orientation.VERTICAL}>
-              <TranscriptView feed={transcript} live={live} focus={focus} />
+              <TranscriptView
+                feed={transcript}
+                live={live}
+                focus={focus}
+                speakers={speakers.state.speakers}
+                lineActions={(row) => (
+                  <LineActions
+                    sessionId={session.id}
+                    row={row}
+                    onError={(m) => toast(fmt(_('Could not change the speaker: {reason}'), { reason: m }))}
+                  />
+                )}
+              />
             </GtkBox>
           </AdwViewStackPage>
           <AdwViewStackPage name="notes" title={_('Notes')} iconName="document-edit-symbolic">
@@ -240,6 +273,13 @@ export function SessionDetail({ session, narrow }: { session: Session; narrow: b
             </GtkBox>
           </AdwViewStackPage>
         </AdwViewStack>
+        {speakersOpen ? (
+          <SpeakersDialog
+            sessionId={session.id}
+            state={speakers.state}
+            onClosed={() => setSpeakersOpen(false)}
+          />
+        ) : null}
       </GtkBox>
     </AdwToolbarView>
   )

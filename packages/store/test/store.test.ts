@@ -252,10 +252,14 @@ describe('replay reproduces the store byte-for-byte', () => {
     it(`random history, seed ${seed}`, () => {
       const rnd = seededRandom(seed)
       const src = mem(tickingClock())
-      const log = randomHistory(src, rnd, 400)
+      const log = randomHistory(src, rnd, 600)
       const events = src.eventsAfter(0)
       expect(events.length).toBe(log)
       assertNoViolations(checkEventLog(events))
+      // the history exercises every kind of event, attribution (M3) included
+      const kinds = new Set(events.map((e) => e.data.type))
+      for (const k of ['speaker.upserted', 'speaker.merged', 'segments.attributed', 'voiceprint.upserted'])
+        expect(kinds, k).toContain(k)
 
       const dst = mem(() => new Date('2000-01-01T00:00:00Z')) // a different clock must not matter
       expect(dst.replay(events, 37)).toBe(events.length)
@@ -345,6 +349,83 @@ const WORDS = [
   'œuvre',
 ]
 
+const NAMES = ['Ana', 'Ben', 'Priya', 'Zoë', 'Ana-María', 'Sam']
+
+/**
+ * One random M3 operation (create / rename / merge / attribute / split / voiceprints), always legal;
+ * returns how many events it should have written (0 when there was nothing to do).
+ */
+function speakerOp(
+  s: Store,
+  rnd: () => number,
+  sessionId: string,
+  segIds: Map<string, { id: string; track: TrackKind; final: boolean }[]>,
+): number {
+  const spk = s.speakers(sessionId)
+  const system = (segIds.get(sessionId) ?? []).filter((k) => k.track === 'system').map((k) => k.id)
+  const r = rnd()
+  if (spk.length < 2 || r < 0.2) {
+    const vps = s.voiceprints()
+    s.createSpeaker(sessionId, vps.length && rnd() < 0.3 ? { voiceprintId: pick(rnd, vps).id } : {})
+    return 1
+  }
+  if (r < 0.35) {
+    const name = `${pick(rnd, NAMES)} ${randInt(rnd, 1, 999)}`
+    s.renameSpeaker(sessionId, pick(rnd, spk).id, name)
+    return 1
+  }
+  if (r < 0.5 && spk.length >= 2) {
+    const a = pick(rnd, spk)
+    const b = pick(
+      rnd,
+      spk.filter((x) => x.id !== a.id),
+    )
+    s.mergeSpeakers(sessionId, a.id, b.id)
+    return 1
+  }
+  if (r < 0.75 && system.length) {
+    const ids = system.filter(() => rnd() < 0.4)
+    // a stale id (a merged tombstone) must still resolve
+    const all = s.speakers(sessionId, { includeMerged: true })
+    return s.attributeSegments(sessionId, pick(rnd, all).id, ids, rnd() < 0.7 ? 'auto' : 'user').length
+      ? 1
+      : 0
+  }
+  if (r < 0.85 && system.length) {
+    const from = pick(rnd, [...spk.map((x) => x.id), 'them'])
+    const mine = system.filter((id) => (s.getSegment(id)!.speakerId ?? 'them') === from)
+    if (!mine.length) return 0
+    s.splitSpeaker(sessionId, from, mine.slice(0, randInt(rnd, 1, mine.length)))
+    return 2
+  }
+  if (r < 0.95) {
+    const existing = s.voiceprints()
+    const now = new Date(Date.parse('2026-09-01T00:00:00Z') + randInt(rnd, 0, 1e9)).toISOString()
+    const v =
+      existing.length && rnd() < 0.5
+        ? { ...pick(rnd, existing), samples: randInt(rnd, 1, 9), updatedAt: now }
+        : {
+            id: newId('vp'),
+            name: pick(rnd, NAMES),
+            model: 'emb-test',
+            embedding: Array.from({ length: 4 }, () => Math.round(rnd() * 1000) / 1000),
+            samples: 1,
+            createdAt: now,
+            updatedAt: now,
+          }
+    s.upsertVoiceprint(v)
+    if (rnd() < 0.5) {
+      s.linkVoiceprint(sessionId, pick(rnd, spk).id, v.id)
+      return 2
+    }
+    return 1
+  }
+  const vps = s.voiceprints()
+  if (!vps.length) return 0
+  s.deleteVoiceprint(pick(rnd, vps).id)
+  return 1
+}
+
 /** Drive a store through a random but legal history; returns how many events it produced. */
 function randomHistory(s: Store, rnd: () => number, steps: number): number {
   const cursor = new Map<string, Record<TrackKind, number>>()
@@ -396,6 +477,9 @@ function randomHistory(s: Store, rnd: () => number, steps: number): number {
       v.retention.days = randInt(rnd, 1, 90)
       v.autoRecord = { calendar: rnd() < 0.5, micActivity: rnd() < 0.5 }
       s.putSettings(v)
+    } else if (r < 0.42) {
+      n += speakerOp(s, rnd, pick(rnd, sessions), segIds)
+      continue
     } else {
       const id = pick(rnd, sessions)
       const known = segIds.get(id)!
@@ -417,6 +501,9 @@ function randomHistory(s: Store, rnd: () => number, steps: number): number {
           sessionId: id,
           track,
           speaker: track === 'mic' ? 'me' : pick(rnd, ['them', 'speaker-1', 'Ana']),
+          ...(track === 'system' && s.speakers(id).length && rnd() < 0.3
+            ? { speakerId: pick(rnd, s.speakers(id, { includeMerged: true })).id }
+            : {}),
           startMs: start,
           endMs: end,
           text: text(),

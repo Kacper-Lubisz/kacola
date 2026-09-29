@@ -14,6 +14,14 @@ import {
   SettingsPatch,
   TrackKind,
 } from './schemas.ts'
+import {
+  MergeSpeakerBody,
+  RenameSpeakerBody,
+  Speaker,
+  SpeakersResponse,
+  SplitSpeakerBody,
+  VoiceprintsResponse,
+} from './speakers.ts'
 
 // The route table is the contract. The daemon registers handlers against it and the typed client is
 // derived from it, so a drift between the two is a compile error (T1) and a parse error at runtime.
@@ -188,6 +196,44 @@ export const routes = {
   },
   // ---- M7: notes + enhancement (schemas in notes.ts)
   ...notesRoutes,
+  // ---- M3: attribution
+  /** Everyone who speaks in a session: `me`, each far-end speaker, and `them` for unattributed speech. */
+  listSpeakers: {
+    method: 'GET',
+    path: '/sessions/:id/speakers',
+    query: z.object({ includePrivate: flag }),
+    response: SpeakersResponse,
+  },
+  /** Name a far-end speaker. Every one of their segments takes the new label. 409 if another has it. */
+  renameSpeaker: {
+    method: 'PATCH',
+    path: '/sessions/:id/speakers/:speakerId',
+    body: RenameSpeakerBody,
+    response: Speaker,
+  },
+  /** Fold this speaker into `into` (same session); returns the surviving speaker. */
+  mergeSpeaker: {
+    method: 'POST',
+    path: '/sessions/:id/speakers/:speakerId/merge',
+    body: MergeSpeakerBody,
+    response: Speaker,
+  },
+  /**
+   * Move some of this speaker's segments to a new speaker; returns it. `:speakerId` may be `them` to
+   * attribute far-end speech that has no speaker yet.
+   */
+  splitSpeaker: {
+    method: 'POST',
+    path: '/sessions/:id/speakers/:speakerId/split',
+    body: SplitSpeakerBody,
+    response: Speaker,
+  },
+  listVoiceprints: { method: 'GET', path: '/voiceprints', response: VoiceprintsResponse },
+  deleteVoiceprint: {
+    method: 'DELETE',
+    path: '/voiceprints/:id',
+    response: z.object({ deleted: z.literal(true) }),
+  },
 } as const satisfies Record<string, RouteDef>
 
 export type Routes = typeof routes

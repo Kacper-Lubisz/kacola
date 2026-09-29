@@ -142,6 +142,42 @@ export const migrations: readonly Migration[] = [
       ALTER TABLE sessions ADD COLUMN meeting TEXT;
     `,
   },
+  {
+    // M3 — attribution.
+    version: 4,
+    name: 'speakers',
+    up: `
+      -- far-end speakers, per session. A merged speaker stays as a tombstone (merged_into) so a late
+      -- reference to it from the diarizer still resolves.
+      CREATE TABLE speakers (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES sessions (id) ON DELETE CASCADE,
+        label TEXT NOT NULL,
+        named INTEGER NOT NULL,
+        colour INTEGER NOT NULL,
+        voiceprint_id TEXT,
+        merged_into TEXT,
+        created_at TEXT NOT NULL
+      ) STRICT;
+      CREATE INDEX speakers_session ON speakers (session_id);
+
+      -- which far-end speaker a segment is, and whether a person (not the diarizer) decided it.
+      ALTER TABLE segments ADD COLUMN speaker_id TEXT;
+      ALTER TABLE segments ADD COLUMN speaker_source TEXT;
+      CREATE INDEX segments_speaker ON segments (speaker_id);
+
+      -- cross-session voiceprints (opt-in). The embedding is a JSON array of floats.
+      CREATE TABLE voiceprints (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        model TEXT NOT NULL,
+        embedding TEXT NOT NULL,
+        samples INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      ) STRICT;
+    `,
+  },
 ]
 
 function validateList(list: readonly Migration[]): void {

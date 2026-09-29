@@ -31,7 +31,13 @@ import type { TrackKind } from '@gnomeola/protocol'
 import { createTts, ModelManager, type SherpaTts, sherpaVersion } from '@gnomeola/stt'
 import { FIXTURES_DIR } from '../src/fixtures/index.ts'
 import { GroundTruth, type Utterance } from '../src/fixtures/schema.ts'
-import { FIXTURE_SCRIPTS, type FixtureDef, type Line, type Speaker } from '../src/fixtures/scripts.ts'
+import {
+  type Channel,
+  FIXTURE_SCRIPTS,
+  type FixtureDef,
+  type Line,
+  type Speaker,
+} from '../src/fixtures/scripts.ts'
 
 const SR = 16_000
 const REPO = join(import.meta.dirname, '..', '..', '..')
@@ -80,6 +86,62 @@ function trim(s: Float32Array): Float32Array {
   while (b > a && Math.abs(s[b]!) < thr) b--
   const pad = SR / 100
   return s.slice(Math.max(0, a - pad), Math.min(s.length, b + pad + 1))
+}
+
+/** A bad far-end link (V-3): telephone band, a starved codec, lost packets — deterministic per `rand`. */
+function degrade(s: Float32Array, ch: Channel, rand: () => number): Float32Array {
+  let out = s
+  const f32 = ['-f', 'f32le', '-ar', String(SR), '-ac', '1', '-i', '-']
+  if (ch.narrowband)
+    out = ffmpegF32(
+      [...f32, '-af', 'highpass=f=300,lowpass=f=3400,aresample=8000,aresample=16000'],
+      Buffer.from(out.buffer),
+    )
+  if (ch.codecKbps) {
+    const ogg = execFileSync(
+      'ffmpeg',
+      ['-nostdin', '-v', 'error', ...f32, '-c:a', 'libopus', '-b:a', `${ch.codecKbps}k`, '-f', 'ogg', '-'],
+      { input: Buffer.from(out.buffer), maxBuffer: 1 << 30 },
+    )
+    out = ffmpegF32(['-f', 'ogg', '-i', '-'], ogg).subarray(0, out.length)
+    if (out.length < s.length) {
+      const padded = new Float32Array(s.length)
+      padded.set(out)
+      out = padded
+    }
+  }
+  if (ch.dropoutRate) {
+    out = out.slice()
+    const frame = SR / 50
+    for (let i = 0; i < out.length; i += frame)
+      if (rand() < ch.dropoutRate) {
+        const len = Math.round(((40 + rand() * 80) * SR) / 1000)
+        out.fill(0, i, Math.min(out.length, i + len))
+        i += len
+      }
+  }
+  return out
+}
+
+/** A reverberant room between the laptop's speakers and its mic: direct path, then a decaying tail. */
+function roomBleed(
+  x: Float32Array,
+  gainDb: number,
+  room: { delayMs: number; rt60: number },
+  rand: () => number,
+) {
+  const y = new Float32Array(x.length)
+  const g = 10 ** (gainDb / 20)
+  const d0 = Math.round((room.delayMs * SR) / 1000)
+  // sparse tail: a reflection every 1–3 ms, random sign, decaying 60 dB over rt60, carrying half the
+  // direct path's energy (so the whole bleed sits ~1.8 dB above `gainDb`)
+  const tail: [number, number][] = []
+  for (let t = 0.003; t < room.rt60; t += 0.001 + rand() * 0.002)
+    tail.push([d0 + Math.round(t * SR), 10 ** ((-3 * t) / room.rt60) * (rand() < 0.5 ? -1 : 1)])
+  const k = Math.sqrt(0.5 / tail.reduce((acc, [, a]) => acc + a * a, 0))
+  const taps: [number, number][] = [[d0, g], ...tail.map(([d, a]): [number, number] => [d, a * k * g])]
+  for (const [d, a] of taps) for (let i = d; i < x.length; i++) y[i]! += x[i - d]! * a
+  return y
 }
 
 function normalize(s: Float32Array, targetDbfs: number): Float32Array {
@@ -183,15 +245,19 @@ async function generate(def: FixtureDef, models: ModelManager): Promise<void> {
       audio = resample(out.samples, out.sampleRate)
       text = item.text!
     }
-    audio = normalize(trim(audio), -20 + (speaker.gainDb ?? 0))
+    audio = trim(audio)
+    if (speaker.channel) audio = degrade(audio, speaker.channel, rand)
+    audio = normalize(audio, -20 + (speaker.gainDb ?? 0))
     const lenMs = (audio.length * 1000) / SR
     let start =
       item.overlapMs !== undefined ? prevEnd - item.overlapMs : cursor + (item.pauseMs ?? 350 + rand() * 550)
-    start = Math.max(start, lastEnd[speaker.track] + 250)
+    // one person per track at a time — unless the script asks for far-end cross-talk
+    if (!(item.crossTalk && item.overlapMs !== undefined))
+      start = Math.max(start, lastEnd[speaker.track] + 250)
     start = Math.round(start)
     const end = start + lenMs
     placed.push({ line: item, speaker, audio, text, startMs: start })
-    lastEnd[speaker.track] = end
+    lastEnd[speaker.track] = Math.max(lastEnd[speaker.track], end)
     prevEnd = end
     cursor = Math.max(cursor, end)
   }
@@ -203,7 +269,10 @@ async function generate(def: FixtureDef, models: ModelManager): Promise<void> {
     const buf = tracks[p.speaker.track]
     for (let i = 0; i < p.audio.length && at + i < n; i++) buf[at + i]! += p.audio[i]!
   }
-  if (def.bleedDb !== undefined) {
+  if (def.bleedDb !== undefined && def.room) {
+    const bleed = roomBleed(tracks.system, def.bleedDb, def.room, rand)
+    for (let i = 0; i < n; i++) tracks.mic[i]! += bleed[i]!
+  } else if (def.bleedDb !== undefined) {
     const g = 10 ** (def.bleedDb / 20)
     const delay = Math.round(0.03 * SR)
     for (let i = n - 1; i >= delay; i--) tracks.mic[i]! += g * tracks.system[i - delay]!

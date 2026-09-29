@@ -6,6 +6,8 @@ import {
   type DurableEventData,
   type EnhanceStreamEvent,
   type Health,
+  isReservedLabel,
+  ME,
   type ModelInfo,
   type Note,
   type NoteTemplate,
@@ -15,6 +17,10 @@ import {
   type Session,
   type Settings,
   type SettingsPatch,
+  SPEAKER_COLOURS,
+  type Speaker,
+  type SpeakerSummary,
+  THEM,
   type TrackKind,
 } from '@gnomeola/protocol'
 import type { DataSource, Snapshot, SubscribeHandlers } from './source.ts'
@@ -83,8 +89,12 @@ export const DEMO_DEFAULT_SETTINGS: Settings = {
   stt: { liveModel: 'demo-live', finalModel: 'demo-final', finalPass: 'during' },
   capture: { micDevice: 'default', systemDevice: 'default' },
   retention: { audio: 'keep', days: 30, archive: false },
+  speakers: { diarize: true, voiceprints: false },
   autoRecord: { calendar: false, micActivity: false },
 }
+
+/** Which of the two demo far-end voices says each seeded line (null: the user). */
+const LINE_SPEAKER = [null, 0, 0, null, 1, null, 0, null] as const
 
 const DEMO_DEVICES: AudioDevice[] = [
   { name: 'demo-microphone', description: 'Demo Microphone', kind: 'source', isDefault: true },
@@ -130,6 +140,8 @@ export function createDemoSource(opts: DemoOptions = {}): DataSource & { dispose
 
   const sessions = new Map<string, Session>()
   const segments = new Map<string, Segment[]>()
+  /** Far-end speakers per session, merged tombstones included (M3). */
+  const speakers = new Map<string, Speaker[]>()
   let settings: Settings = DEMO_DEFAULT_SETTINGS
   const log: DurableEvent[] = []
   const listeners = new Set<(e: AnyEvent) => void>()
@@ -164,19 +176,107 @@ export function createDemoSource(opts: DemoOptions = {}): DataSource & { dispose
   }
 
   function seedTranscript(sessionId: string, at: number) {
-    const list: Segment[] = LINES.map(([t, text], i) => ({
-      id: newId('seg', at + i),
+    const people: Speaker[] = [0, 1].map((k) => ({
+      id: newId('spk', at + k),
       sessionId,
-      track: t,
-      speaker: t === 'mic' ? 'me' : 'them',
-      startMs: i * 6000 + 2000,
-      endMs: i * 6000 + 7000,
-      text,
-      quality: 'final',
-      revision: 2,
-      confidence: 0.9,
+      label: `Speaker ${k + 1}`,
+      named: false,
+      colour: k,
+      voiceprintId: null,
+      mergedInto: null,
+      createdAt: iso(at),
     }))
+    speakers.set(sessionId, people)
+    const list: Segment[] = LINES.map(([t, text], i) => {
+      const who = LINE_SPEAKER[i] ?? null
+      const p = who === null ? null : people[who]!
+      return {
+        id: newId('seg', at + i),
+        sessionId,
+        track: t,
+        speaker: t === 'mic' ? 'me' : (p?.label ?? 'them'),
+        ...(p ? { speakerId: p.id } : {}),
+        startMs: i * 6000 + 2000,
+        endMs: i * 6000 + 7000,
+        text,
+        quality: 'final',
+        revision: 2,
+        confidence: 0.9,
+      }
+    })
     segments.set(sessionId, list)
+  }
+
+  // ---- M3: speakers, with the daemon's rules (reserved and unique labels, merges, splits)
+  const demoError = (code: string, message: string) => Object.assign(new Error(message), { code })
+  const liveSpeakers = (id: string) => (speakers.get(id) ?? []).filter((p) => !p.mergedInto)
+  function speakerOf(sessionId: string, id: string): Speaker {
+    const p = liveSpeakers(sessionId).find((x) => x.id === id)
+    if (!p) throw demoError('not_found', `no speaker ${id} in session ${sessionId}`)
+    return p
+  }
+  function upsertSpeaker(p: Speaker) {
+    const all = speakers.get(p.sessionId) ?? []
+    const i = all.findIndex((x) => x.id === p.id)
+    speakers.set(p.sessionId, i === -1 ? [...all, p] : all.map((x) => (x.id === p.id ? p : x)))
+    for (const g of segments.get(p.sessionId) ?? []) if (g.speakerId === p.id) g.speaker = p.label
+    durable(p.sessionId, { type: 'speaker.upserted', speaker: p })
+  }
+  function checkLabel(sessionId: string, label: string, except?: string) {
+    if (isReservedLabel(label)) throw demoError('bad_request', `"${label.trim()}" is reserved`)
+    const clash = liveSpeakers(sessionId).find(
+      (x) => x.id !== except && x.label.toLowerCase() === label.trim().toLowerCase(),
+    )
+    if (clash)
+      throw demoError(
+        'conflict',
+        `another speaker in this session is already called "${clash.label}" — merge them instead`,
+      )
+  }
+  function attribute(sessionId: string, speakerId: string, ids: string[]) {
+    const p = speakerOf(sessionId, speakerId)
+    for (const g of segments.get(sessionId) ?? [])
+      if (ids.includes(g.id)) {
+        g.speakerId = p.id
+        g.speaker = p.label
+      }
+    durable(sessionId, { type: 'segments.attributed', sessionId, speakerId, segmentIds: ids, by: 'user' })
+  }
+  function summaries(sessionId: string): SpeakerSummary[] {
+    const segs = segments.get(sessionId) ?? []
+    const stat = (f: (g: Segment) => boolean) => {
+      const mine = segs.filter(f)
+      return { segments: mine.length, talkMs: mine.reduce((a, g) => a + g.endMs - g.startMs, 0) }
+    }
+    const pseudo = (id: string, track: TrackKind, st: { segments: number; talkMs: number }) => ({
+      id,
+      label: id,
+      track,
+      named: false,
+      colour: null,
+      voiceprintId: null,
+      ...st,
+    })
+    const out: SpeakerSummary[] = [
+      pseudo(
+        ME,
+        'mic',
+        stat((g) => g.track === 'mic'),
+      ),
+    ]
+    for (const p of liveSpeakers(sessionId))
+      out.push({
+        id: p.id,
+        label: p.label,
+        track: 'system',
+        named: p.named,
+        colour: p.colour,
+        voiceprintId: p.voiceprintId,
+        ...stat((g) => g.speakerId === p.id),
+      })
+    const them = stat((g) => g.track === 'system' && !g.speakerId)
+    if (them.segments) out.push(pseudo(THEM, 'system', them))
+    return out
   }
 
   function finished(title: string, startedAgoMs: number, durationMs: number): Session {
@@ -365,6 +465,7 @@ export function createDemoSource(opts: DemoOptions = {}): DataSource & { dispose
       stt: { ...settings.stt, ...p.stt },
       capture: { ...settings.capture, ...p.capture },
       retention: { ...settings.retention, ...p.retention },
+      speakers: { diarize: true, voiceprints: false, ...settings.speakers, ...p.speakers },
       autoRecord: { ...settings.autoRecord, ...p.autoRecord },
     }
     const { apiKeyConfigured: _configured, ...llm } = settings.llm
@@ -513,6 +614,58 @@ export function createDemoSource(opts: DemoOptions = {}): DataSource & { dispose
         templates: DEMO_TEMPLATES,
         suggested: { templateId: 'general', reason: 'default' as const, matched: null },
       }
+    },
+    async listSpeakers(id: string) {
+      if (!sessions.has(id)) throw demoError('not_found', `no session ${id}`)
+      return summaries(id)
+    },
+    async renameSpeaker(id: string, speakerId: string, label: string) {
+      const p = speakerOf(id, speakerId)
+      checkLabel(id, label, speakerId)
+      const next = { ...p, label: label.trim(), named: true }
+      upsertSpeaker(next)
+      return next
+    },
+    async mergeSpeaker(id: string, speakerId: string, into: string) {
+      if (speakerId === into) throw demoError('bad_request', 'cannot merge a speaker into itself')
+      speakerOf(id, speakerId)
+      const target = speakerOf(id, into)
+      speakers.set(
+        id,
+        (speakers.get(id) ?? []).map((x) => (x.id === speakerId ? { ...x, mergedInto: into } : x)),
+      )
+      for (const g of segments.get(id) ?? [])
+        if (g.speakerId === speakerId) {
+          g.speakerId = into
+          g.speaker = target.label
+        }
+      durable(id, { type: 'speaker.merged', sessionId: id, fromId: speakerId, intoId: into })
+      return target
+    },
+    async splitSpeaker(id: string, speakerId: string, segmentIds: string[]) {
+      const segs = segments.get(id) ?? []
+      for (const sid of segmentIds) {
+        const g = segs.find((x) => x.id === sid)
+        if (!g) throw demoError('not_found', `no segment ${sid}`)
+        if (g.track !== 'system') throw demoError('bad_request', `segment ${sid} is the user's (mic)`)
+        if ((g.speakerId ?? THEM) !== speakerId)
+          throw demoError('bad_request', `segment ${sid} is not ${speakerId}'s`)
+      }
+      const all = speakers.get(id) ?? []
+      const used = all.map((x) => Number(/^Speaker (\d+)$/.exec(x.label)?.[1] ?? 0))
+      const p: Speaker = {
+        id: newId('spk', now()),
+        sessionId: id,
+        label: `Speaker ${Math.max(0, ...used) + 1}`,
+        named: false,
+        colour: all.length % SPEAKER_COLOURS,
+        voiceprintId: null,
+        mergedInto: null,
+        createdAt: iso(now()),
+      }
+      upsertSpeaker(p)
+      attribute(id, p.id, [...segmentIds])
+      return p
     },
     dispose() {
       clearIv(tick)

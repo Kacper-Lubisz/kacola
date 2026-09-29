@@ -161,7 +161,7 @@ export class ModelManager {
 
   /** Protocol view. TTS voices are fixture tooling, not runtime models, so they have no ModelInfo. */
   static toModelInfo(s: ModelStatus): ModelInfo {
-    if (s.role === 'tts') throw new Error(`${s.id} is a TTS voice; ModelInfo covers live|final|vad`)
+    if (s.role === 'tts') throw new Error(`${s.id} is a TTS voice; ModelInfo covers every runtime model`)
     return {
       id: s.id,
       role: s.role,

@@ -14,18 +14,25 @@ const byId = new Map(truths.map((t) => [t.id, t]))
 const norm = (s: string) => normalizeWords(s).join(' ')
 
 describe('committed fixtures', () => {
-  it('are the four expected meetings', () => {
+  it('are the expected meetings: four everyday ones and three hostile ones for attribution (V-3)', () => {
     expect(listFixtures()).toEqual([
+      'bad-connection-3p',
+      'crosstalk-bleed-3p',
       'librispeech-3p',
       'planning-3p-crosstalk',
       'retro-silence-gap',
       'standup-2p',
+      'three-far-4p',
     ])
   })
 
   it.each(truths.map((t) => [t.id, t] as const))(
-    '%s: utterances lie inside the session, one speaker per track at a time',
+    '%s: utterances lie inside the session, one speaker per track at a time (unless scripted cross-talk)',
     (_, t) => {
+      const crossTalk = FIXTURE_SCRIPTS.find((d) => d.id === t.id)!.script.filter(
+        (i) => 'who' in i && i.crossTalk,
+      ).length
+      let overlapping = 0
       expect(t.utterances.length).toBeGreaterThanOrEqual(10)
       for (const u of t.utterances) {
         expect(u.endMs).toBeGreaterThan(u.startMs)
@@ -36,8 +43,9 @@ describe('committed fixtures', () => {
       }
       for (const track of ['mic', 'system'] as const) {
         const us = t.utterances.filter((u) => u.track === track).sort((a, b) => a.startMs - b.startMs)
-        for (let i = 1; i < us.length; i++) expect(us[i]!.startMs).toBeGreaterThanOrEqual(us[i - 1]!.endMs)
+        for (let i = 1; i < us.length; i++) if (us[i]!.startMs < us[i - 1]!.endMs) overlapping++
       }
+      expect(overlapping).toBe(crossTalk)
       expect(t.durationMs).toBeGreaterThanOrEqual(55_000)
       expect(t.durationMs).toBeLessThanOrEqual(120_000)
     },
@@ -80,6 +88,21 @@ describe('committed fixtures', () => {
     const r = byId.get('retro-silence-gap')!
     expect(r.silences.some((s) => s.endMs - s.startMs >= 20_000)).toBe(true)
     expect(r.gaps).toEqual([expect.objectContaining({ durationMs: 6000, tracks: ['mic', 'system'] })])
+  })
+
+  it('are hostile where attribution needs it: three far-end voices, far-end cross-talk and loud bleed, a bad line', () => {
+    const three = byId.get('three-far-4p')!
+    expect(new Set(three.utterances.filter((u) => u.track === 'system').map((u) => u.speaker)).size).toBe(3)
+    const sys = three.utterances.filter((u) => u.track === 'system').sort((a, b) => a.startMs - b.startMs)
+    const quick = sys
+      .slice(1)
+      .filter((u, i) => u.speaker !== sys[i]!.speaker && u.startMs - sys[i]!.endMs < 400)
+    expect(quick.length).toBeGreaterThanOrEqual(5) // hand-overs too quick for VAD to separate
+    const x = FIXTURE_SCRIPTS.find((d) => d.id === 'crosstalk-bleed-3p')!
+    expect(x.bleedDb).toBeGreaterThanOrEqual(-12)
+    expect(x.room).toBeDefined()
+    const bad = FIXTURE_SCRIPTS.find((d) => d.id === 'bad-connection-3p')!
+    expect(bad.speakers.filter((s) => s.channel)).toHaveLength(1)
   })
 
   it('use at least three distinct synthetic voices plus real LibriSpeech speakers', () => {

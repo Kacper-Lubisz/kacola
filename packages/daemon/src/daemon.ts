@@ -38,6 +38,7 @@ import type { NotesEngine } from './notes/engine.ts'
 import { notesHandlers } from './notes/handlers.ts'
 import { SessionManager } from './sessions.ts'
 import { SettingsService } from './settings.ts'
+import { SpeakerService } from './speakers.ts'
 
 export const VERSION: string = pkg.version
 
@@ -89,6 +90,7 @@ export type Daemon = {
   readonly calendar: CalendarService
   readonly control: RecordingControl
   readonly dbus: DbusService | null
+  readonly speakers: SpeakerService
   /** Open SSE connections. */
   readonly sseClients: number
   close(): Promise<void>
@@ -130,6 +132,8 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
   const devices = o.devices ?? new NoDevices()
   const engine = o.qaEngine ?? null
   const settings = new SettingsService({ store, keyring: o.keyring ?? new NoKeyring(), env, logger })
+  // M3: the speaker service and the session manager need each other; bound late.
+  let speakers: SpeakerService | null = null
   const sessions = new SessionManager({
     store,
     bus,
@@ -137,6 +141,8 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     logger,
     dataDir: o.dataDir,
     settings: () => settings.get(),
+    knownVoices: () => speakers?.knownVoices() ?? [],
+    onVoices: (id, v) => speakers?.recordingVoices(id, v),
   })
   const calendar = new CalendarService({ provider: o.calendar ?? new NoCalendar(), bus, logger })
   const control = new RecordingControl({ store, sessions, calendar, logger })
@@ -149,6 +155,8 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     mic: o.micActivity ?? { start() {}, stop() {} },
     micIdleStopMs: o.micIdleStopMs,
   })
+  speakers = new SpeakerService({ store, sessions, settings: () => settings.get(), logger })
+  const spk = speakers
   const heartbeatMs = o.heartbeatMs ?? 15_000
   const pageSize = o.replayPageSize ?? 500
   const allowedOrigins = new Set(o.allowedOrigins ?? [])
@@ -305,6 +313,19 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     joinMeeting: ({ params, body }) => control.join(params.id, { private: body.private }),
     // ---- M7: notes + enhancement
     ...notesHandlers({ store, engine: o.notesEngine ?? null, settings, logger, visible }),
+    // ---- M3: attribution
+    listSpeakers: ({ params, query }) => {
+      visible(params.id, query.includePrivate)
+      return { speakers: spk.list(params.id) }
+    },
+    renameSpeaker: ({ params, body }) => spk.rename(params.id, params.speakerId, body.label),
+    mergeSpeaker: ({ params, body }) => spk.merge(params.id, params.speakerId, body.into),
+    splitSpeaker: ({ params, body }) => spk.split(params.id, params.speakerId, body.segmentIds),
+    listVoiceprints: () => ({ voiceprints: spk.voiceprints() }),
+    deleteVoiceprint: ({ params }) => {
+      spk.deleteVoiceprint(params.id)
+      return { deleted: true as const }
+    },
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))
@@ -452,6 +473,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     calendar,
     control,
     dbus,
+    speakers: spk,
     get sseClients() {
       return sse.size
     },
