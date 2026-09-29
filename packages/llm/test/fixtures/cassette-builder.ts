@@ -1,6 +1,7 @@
 import { join } from 'node:path'
 import { type Cassette, normaliseRequest, replayResponse } from '@gnomeola/testkit/cassettes'
 import { AnthropicProvider } from '../../src/anthropic.ts'
+import type { TranscriptInput } from '../../src/types.ts'
 import { fixtureTranscripts, type Scenario } from './scenarios.ts'
 
 export const CASSETTE_DIR = join(import.meta.dirname, 'cassettes')
@@ -10,7 +11,9 @@ export const cassettePath = (name: string): string => join(CASSETTE_DIR, `${name
  * Build a hand-authored cassette: drive the real provider + real SDK against the authored responses and
  * record the requests it actually sends. Deterministic (no clock, no randomness in the request path).
  */
-export async function buildCassette(s: Scenario): Promise<Cassette> {
+export async function buildCassette(
+  s: Omit<Scenario, 'drive'> & { drive(p: AnthropicProvider, t: TranscriptInput[]): Promise<unknown> },
+): Promise<Cassette> {
   const cassette: Cassette = {
     version: 1,
     name: s.name,

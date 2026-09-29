@@ -1,6 +1,9 @@
 import {
   type DurableEvent,
   DurableEventData,
+  type Note,
+  type NoteTemplate,
+  type NoteVersion,
   type QaMessage,
   type SearchHit,
   type Segment,
@@ -28,7 +31,16 @@ import type {
 import { byKey, checkIngestOrder, decideIngest, ingestSubject, newSession, nextSegment } from '../domain.ts'
 import { StoreError } from '../errors.ts'
 import type { Migration } from '../migrations.ts'
-import { type Row, rowToChunk, rowToDevice, rowToQa, rowToSegment, rowToTrack, truthy } from '../rows.ts'
+import {
+  type Row,
+  rowToChunk,
+  rowToDevice,
+  rowToNoteVersion,
+  rowToQa,
+  rowToSegment,
+  rowToTrack,
+  truthy,
+} from '../rows.ts'
 import { parseQuery, searchText, snippet, toTsQuery } from '../search-text.ts'
 import { migratePg, pgMigrations } from './migrations.ts'
 
@@ -181,6 +193,8 @@ export class PgStore implements StoreApi {
       }
       case 'session.deleted': {
         const id = data.sessionId
+        await sql`DELETE FROM notes WHERE session_id = ${id}`.execute(e)
+        await sql`DELETE FROM note_versions WHERE session_id = ${id}`.execute(e)
         await sql`DELETE FROM qa_messages WHERE session_id = ${id}`.execute(e)
         await sql`DELETE FROM segments WHERE session_id = ${id}`.execute(e)
         await sql`DELETE FROM tracks WHERE session_id = ${id}`.execute(e)
@@ -193,6 +207,46 @@ export class PgStore implements StoreApi {
           ON CONFLICT (id) DO UPDATE SET value = excluded.value`.execute(e)
         return
       }
+      // ---- M7 notes: the same derivation as ../notes.ts applyNotesEvent, statement for statement
+      case 'note.version': {
+        const v = data.version
+        const meta = JSON.stringify({
+          enhancement: v.enhancement,
+          merge: v.merge,
+          restoredFrom: v.restoredFrom,
+        })
+        await sql`INSERT INTO note_versions (session_id, version, kind, markdown, base_version, created_at, meta)
+          VALUES (${v.sessionId}, ${v.version}, ${v.kind}, ${v.markdown}, ${v.baseVersion}, ${v.createdAt}, ${meta})`.execute(
+          e,
+        )
+        await sql`INSERT INTO notes (session_id, head, pending_enhancement) VALUES (${v.sessionId}, 0, NULL)
+          ON CONFLICT (session_id) DO NOTHING`.execute(e)
+        if (v.kind === 'enhanced') {
+          await sql`UPDATE notes SET pending_enhancement = ${v.version} WHERE session_id = ${v.sessionId}`.execute(
+            e,
+          )
+        } else {
+          await sql`UPDATE notes SET head = ${v.version} WHERE session_id = ${v.sessionId}`.execute(e)
+          if (v.merge)
+            await sql`UPDATE notes SET pending_enhancement = NULL
+              WHERE session_id = ${v.sessionId} AND pending_enhancement = ${v.merge.enhancedVersion}`.execute(
+              e,
+            )
+        }
+        return
+      }
+      case 'template.upserted': {
+        const t = data.template
+        await sql`INSERT INTO note_templates (id, name, keywords, body)
+          VALUES (${t.id}, ${t.name}, ${JSON.stringify(t.keywords)}, ${t.body})
+          ON CONFLICT (id) DO UPDATE SET name = excluded.name, keywords = excluded.keywords, body = excluded.body`.execute(
+          e,
+        )
+        return
+      }
+      case 'template.deleted':
+        await sql`DELETE FROM note_templates WHERE id = ${data.id}`.execute(e)
+        return
       default: {
         const never: never = data
         throw new Error(`unhandled event ${JSON.stringify(never)}`)
@@ -462,6 +516,51 @@ export class PgStore implements StoreApi {
     return r ? StoredSettings.parse(JSON.parse(r.value as string)) : null
   }
 
+  // ---------------------------------------------------------------------------------- notes
+
+  async getNotes(sessionId: string): Promise<Note> {
+    const row = await one(
+      this.db,
+      sql`SELECT head, pending_enhancement FROM notes WHERE session_id = ${sessionId}`,
+    )
+    const headNo = row ? Number(row.head) : 0
+    const head = headNo > 0 ? await this.noteVersion(sessionId, headNo) : null
+    return {
+      sessionId,
+      version: head?.version ?? 0,
+      markdown: head?.markdown ?? '',
+      updatedAt: head?.createdAt ?? null,
+      pendingEnhancement:
+        row?.pending_enhancement === null || row?.pending_enhancement === undefined
+          ? null
+          : Number(row.pending_enhancement),
+    }
+  }
+
+  async noteVersion(sessionId: string, version: number): Promise<NoteVersion | null> {
+    const r = await one(
+      this.db,
+      sql`SELECT * FROM note_versions WHERE session_id = ${sessionId} AND version = ${version}`,
+    )
+    return r ? rowToNoteVersion(r) : null
+  }
+
+  async noteVersions(sessionId: string): Promise<NoteVersion[]> {
+    return (
+      await rows(this.db, sql`SELECT * FROM note_versions WHERE session_id = ${sessionId} ORDER BY version`)
+    ).map(rowToNoteVersion)
+  }
+
+  async noteTemplates(): Promise<NoteTemplate[]> {
+    return (await rows(this.db, sql`SELECT * FROM note_templates ORDER BY id`)).map((r) => ({
+      id: r.id as string,
+      name: r.name as string,
+      builtIn: false,
+      keywords: JSON.parse(r.keywords as string) as string[],
+      body: r.body as string,
+    }))
+  }
+
   async snapshot(): Promise<DomainSnapshot> {
     const sessions = await this.toSessions(
       this.db,
@@ -469,7 +568,25 @@ export class PgStore implements StoreApi {
     )
     const segments = (await rows(this.db, sql`SELECT * FROM segments ORDER BY id`)).map(rowToSegment)
     const qa = (await rows(this.db, sql`SELECT * FROM qa_messages`)).map(rowToQa).sort(byKey((m) => m.id))
-    return { lastSeq: await this.lastSeq(), sessions, segments, qa, settings: await this.getSettings() }
+    const withNotes = (await rows(this.db, sql`SELECT session_id FROM notes ORDER BY session_id`)).map(
+      (r) => r.session_id as string,
+    )
+    const noteVersions: NoteVersion[] = []
+    const notes: Note[] = []
+    for (const id of withNotes) {
+      noteVersions.push(...(await this.noteVersions(id)))
+      notes.push(await this.getNotes(id))
+    }
+    return {
+      lastSeq: await this.lastSeq(),
+      sessions,
+      segments,
+      qa,
+      settings: await this.getSettings(),
+      noteVersions,
+      notes,
+      templates: await this.noteTemplates(),
+    }
   }
 
   // ------------------------------------------------------------------------------ sync (H-7)
@@ -497,6 +614,12 @@ export class PgStore implements StoreApi {
         const d = decideIngest(item.data, {
           sessionExists: subj.sessionId !== null && (await this.getSessionIn(trx, subj.sessionId)) !== null,
           prevSegment: subj.segmentId ? await this.getSegmentIn(trx, subj.segmentId) : null,
+          noteVersionExists:
+            subj.noteVersion !== undefined &&
+            (await one(
+              trx,
+              sql`SELECT 1 AS x FROM note_versions WHERE session_id = ${subj.sessionId} AND version = ${subj.noteVersion}`,
+            )) !== undefined,
         })
         if (d.kind === 'skip') out.skipped++
         else if (d.kind === 'reject')

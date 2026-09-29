@@ -1,0 +1,13 @@
+{
+  "session": {
+    "id": "ses_000000001aaaaaaaaaaa1",
+    "title": "Platform standup",
+    "createdAt": "<iso>",
+    "status": "stopped",
+    "durationMs": 720000
+  },
+  "version": 3,
+  "updatedAt": "<iso>",
+  "markdown": "## Decisions\n\n- retry budget?\n- Retry budget: three attempts, then dead-letter.\n- migration thursday\n- The migration lands Thursday, assuming staging is green.\n- Ana dashboard\n\n## Action items\n\n- [ ] Own the dashboard for the migration — owner: Ana — due: Thursday\n- [x] Settle the retry budget — owner: me\n",
+  "pendingEnhancement": null
+}

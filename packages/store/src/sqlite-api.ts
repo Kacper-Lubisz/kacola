@@ -1,5 +1,8 @@
 import type {
   DurableEvent,
+  Note,
+  NoteTemplate,
+  NoteVersion,
   QaMessage,
   Segment,
   Session,
@@ -23,6 +26,7 @@ import type {
   TranscriptWindow,
 } from './api.ts'
 import { byKey, checkIngestOrder, decideIngest, ingestSubject } from './domain.ts'
+import { NoteStore } from './notes.ts'
 import { type Row, rowToChunk, rowToDevice, rowToQa } from './rows.ts'
 import { Store, type StoreOptions } from './store.ts'
 
@@ -34,8 +38,11 @@ export class SqliteStoreApi implements StoreApi {
   readonly dialect = 'sqlite' as const
   readonly store: Store
 
+  private readonly notes: NoteStore
+
   constructor(store: Store) {
     this.store = store
+    this.notes = new NoteStore(store)
   }
 
   static open(path: string, opts: Omit<StoreOptions, 'path'> = {}): SqliteStoreApi {
@@ -109,6 +116,18 @@ export class SqliteStoreApi implements StoreApi {
   async getSettings(): Promise<StoredSettings | null> {
     return this.store.getSettings()
   }
+  async getNotes(sessionId: string): Promise<Note> {
+    return this.notes.get(sessionId)
+  }
+  async noteVersion(sessionId: string, version: number): Promise<NoteVersion | null> {
+    return this.notes.version(sessionId, version)
+  }
+  async noteVersions(sessionId: string): Promise<NoteVersion[]> {
+    return this.notes.versions(sessionId)
+  }
+  async noteTemplates(): Promise<NoteTemplate[]> {
+    return this.notes.templates()
+  }
 
   async snapshot(): Promise<DomainSnapshot> {
     const s = this.store
@@ -121,7 +140,21 @@ export class SqliteStoreApi implements StoreApi {
     const qa = (this.db.prepare('SELECT * FROM qa_messages').all() as Row[])
       .map(rowToQa)
       .sort(byKey((m) => m.id))
-    return { lastSeq: s.lastSeq(), sessions, segments, qa, settings: s.getSettings() }
+    const withNotes = (
+      this.db.prepare('SELECT session_id FROM notes ORDER BY session_id').all() as {
+        session_id: string
+      }[]
+    ).map((r) => r.session_id)
+    return {
+      lastSeq: s.lastSeq(),
+      sessions,
+      segments,
+      qa,
+      settings: s.getSettings(),
+      noteVersions: withNotes.flatMap((id) => this.notes.versions(id)),
+      notes: withNotes.map((id) => this.notes.get(id)),
+      templates: this.notes.templates(),
+    }
   }
 
   // ------------------------------------------------------------------------------- sync (H-7)
@@ -154,6 +187,8 @@ export class SqliteStoreApi implements StoreApi {
         const d = decideIngest(item.data, {
           sessionExists: subj.sessionId !== null && s.getSession(subj.sessionId) !== null,
           prevSegment: subj.segmentId ? s.getSegment(subj.segmentId) : null,
+          noteVersionExists:
+            subj.noteVersion !== undefined && this.notes.version(subj.sessionId!, subj.noteVersion) !== null,
         })
         if (d.kind === 'skip') out.skipped++
         else if (d.kind === 'reject')

@@ -1,6 +1,15 @@
-import type { QaMessage, StoredSettings, TrackKind } from '@gnomeola/protocol'
+import {
+  type DurableEvent,
+  defaultChoices,
+  diffNoteBlocks,
+  type QaMessage,
+  type StoredSettings,
+  type TrackKind,
+} from '@gnomeola/protocol'
 import { pick, randInt } from '@gnomeola/testkit/daemon'
 import type { StoreApi } from '../../src/api.ts'
+import { NoteStore } from '../../src/notes.ts'
+import { Store } from '../../src/store.ts'
 
 // Shared fixtures for the dialect contract suite. Everything is deterministic — ids included — so two
 // stores of different dialects driven with the same seed and clock must end up byte-identical.
@@ -143,4 +152,51 @@ export async function randomHistory(s: StoreApi, rnd: () => number, steps: numbe
     n++
   }
   return n
+}
+
+/**
+ * A device log WITH notes, written by the real notes writer (NoteStore over the SQLite Store): user
+ * edits, an enhancement awaiting review, a merge, a restore, custom templates, and a deleted session
+ * whose notes must vanish with it. StoreApi has no notes writes — hosted stores only receive notes by
+ * replay or sync — so this is how every dialect's notes path gets exercised.
+ */
+export function notesLog(): { store: Store; events: DurableEvent[] } {
+  const now = tickingClock()
+  const store = Store.open(':memory:', { now })
+  const notes = new NoteStore(store)
+  const a = store.createSession({ id: 'ses_notes0001', title: 'Standup' })
+  const b = store.createSession({ id: 'ses_notes0002', title: 'Retro' })
+  const gone = store.createSession({ id: 'ses_notes0003', title: 'Deleted later' })
+  notes.put(a.id, '# Standup\n\n- retry budget\n', 0, now())
+  notes.put(a.id, '# Standup\n\n- retry budget is three\n- [ ] Ana: ship Thursday\n', 1, now())
+  const enh = notes.addEnhanced(
+    a.id,
+    '# Standup\n\n## Decisions\n\n- Retry budget: three attempts [1]\n\n## Actions\n\n- [ ] Ana: ship Thursday\n',
+    2,
+    { templateId: 'standup', model: 'claude-opus-5', usage: null, stopReason: 'end_turn', citations: [] },
+    now(),
+  )
+  const hunks = diffNoteBlocks(notes.get(a.id).markdown, enh.markdown)
+  notes.merge(a.id, enh.version, 2, defaultChoices(hunks), now())
+  notes.restore(a.id, 1, notes.get(a.id).version, now())
+  notes.put(b.id, 'café naïve notes', 0, now())
+  notes.addEnhanced(
+    b.id,
+    '# Retro\n\ncafé',
+    1,
+    { templateId: 'retro', model: null, usage: null, stopReason: null, citations: [] },
+    now(),
+  )
+  notes.put(gone.id, 'soon gone', 0, now())
+  notes.putTemplate({
+    id: 'one-on-one',
+    name: '1:1',
+    builtIn: false,
+    keywords: ['1:1', 'one on one'],
+    body: '## Topics',
+  })
+  notes.putTemplate({ id: 'tmp', name: 'Temp', builtIn: false, keywords: [], body: 'x' })
+  notes.deleteTemplate('tmp')
+  store.deleteSession(gone.id)
+  return { store, events: store.eventsAfter(0) }
 }

@@ -1,5 +1,6 @@
 import { join } from 'node:path'
-import { Store } from '@gnomeola/store'
+import { defaultChoices, diffNoteBlocks } from '@gnomeola/protocol'
+import { NoteStore, Store } from '@gnomeola/store'
 
 // A seeded world for system tests, written through the store's own API (so the event log is exactly what
 // the daemon would have produced) before the daemon starts on the same data dir. The content mirrors the
@@ -89,7 +90,34 @@ export function seedMeetings(dataDir: string): void {
     [[10, 'mic', 'This is a private conversation about compensation.']],
     true,
   )
+  seedNotes(store)
   store.close()
+}
+
+/** What the user typed in the standup, and what enhancement proposed (canonical action-item lines). */
+export const STANDUP_NOTES = '- retry budget?\n- migration thursday\n- Ana dashboard\n'
+export const STANDUP_ENHANCED =
+  '## Decisions\n\n- retry budget?\n- Retry budget: three attempts, then dead-letter.\n- migration thursday\n' +
+  '- The migration lands Thursday, assuming staging is green.\n- Ana dashboard\n\n' +
+  '## Action items\n\n- [ ] Own the dashboard for the migration — owner: Ana — due: Thursday\n' +
+  '- [x] Settle the retry budget — owner: me\n'
+
+/**
+ * Notes as the window leaves them after a normal review: the user's lines (v1), an enhancement (v2),
+ * the default review merged (v3). The private session has notes too, which the CLI must never show.
+ */
+function seedNotes(store: Store): void {
+  const notes = new NoteStore(store)
+  notes.put(SEED.standup, STANDUP_NOTES, 0)
+  notes.addEnhanced(SEED.standup, STANDUP_ENHANCED, 1, {
+    templateId: 'standup',
+    model: 'claude-opus-5',
+    usage: null,
+    stopReason: 'end_turn',
+    citations: [],
+  })
+  notes.merge(SEED.standup, 2, 1, defaultChoices(diffNoteBlocks(STANDUP_NOTES, STANDUP_ENHANCED)))
+  notes.put(SEED.private, 'compensation numbers: private\n', 0)
 }
 
 /** Replace volatile values (timestamps, durations of wall-clock) so outputs can be compared to goldens. */

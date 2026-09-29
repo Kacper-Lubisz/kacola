@@ -1,5 +1,8 @@
 import type {
   DurableEvent,
+  Note,
+  NoteTemplate,
+  NoteVersion,
   QaMessage,
   SearchHit,
   Segment,
@@ -69,6 +72,10 @@ export type DomainSnapshot = {
   segments: Segment[]
   qa: QaMessage[]
   settings: StoredSettings | null
+  /** Every notes version (sorted by session, version), and each session's derived head/pending state. */
+  noteVersions: NoteVersion[]
+  notes: Note[]
+  templates: NoteTemplate[]
 }
 
 // ------------------------------------------------------------------ hosted bookkeeping
@@ -130,6 +137,11 @@ export interface StoreApi {
   search(opts: SearchOptions): Promise<{ hits: SearchHit[]; total: number }>
   qaHistory(sessionId: string): Promise<QaMessage[]>
   getSettings(): Promise<StoredSettings | null>
+  /** M7 notes, read side (a hosted store only ever receives notes through sync or replay). */
+  getNotes(sessionId: string): Promise<Note>
+  noteVersion(sessionId: string, version: number): Promise<NoteVersion | null>
+  noteVersions(sessionId: string): Promise<NoteVersion[]>
+  noteTemplates(): Promise<NoteTemplate[]>
   snapshot(): Promise<DomainSnapshot>
 
   // ---- H-7: hybrid sync (a device's log applied to this store, idempotently)

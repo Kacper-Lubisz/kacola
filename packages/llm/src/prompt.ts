@@ -87,6 +87,10 @@ export type AssembleOptions = {
   question: string
   /** Model's minimum cacheable prefix; below it no breakpoint is placed. */
   minCacheTokens?: number
+  /** Replace the frozen Q&A system prompt (notes enhancement has its own, equally frozen). */
+  system?: string
+  /** Replace the question block with this text (kept last and uncached, like the question). */
+  tail?: string
 }
 
 /**
@@ -95,6 +99,7 @@ export type AssembleOptions = {
  */
 export function assemblePrompt(opts: AssembleOptions): AssembledPrompt {
   const minCacheTokens = opts.minCacheTokens ?? DEFAULT_MIN_CACHE_TOKENS
+  const system = opts.system ?? SYSTEM_PROMPT
   const aliases = new Map<string, Citation>()
   const rendered: RenderedBlock[] = []
   let n = 0
@@ -145,14 +150,12 @@ export function assemblePrompt(opts: AssembleOptions): AssembledPrompt {
   while (lastStable >= 0 && rendered[lastStable]!.kind !== 'chunk') lastStable--
 
   const cumulativeChars: number[] = []
-  let chars = SYSTEM_PROMPT.length
+  let chars = system.length
   for (const b of rendered) {
     chars += b.text.length
     cumulativeChars.push(chars)
   }
-  const estimatedStableTokens = estimateTokens(
-    lastStable >= 0 ? cumulativeChars[lastStable]! : SYSTEM_PROMPT.length,
-  )
+  const estimatedStableTokens = estimateTokens(lastStable >= 0 ? cumulativeChars[lastStable]! : system.length)
   const cacheable = lastStable >= 0 && estimatedStableTokens >= minCacheTokens
 
   const breakAt = new Set<number>()
@@ -175,12 +178,12 @@ export function assemblePrompt(opts: AssembleOptions): AssembledPrompt {
   }))
   blocks.push({
     kind: 'question',
-    text: `<question>\n${opts.question.trim()}\n</question>\n${QUESTION_SUFFIX}`,
+    text: opts.tail ?? `<question>\n${opts.question.trim()}\n</question>\n${QUESTION_SUFFIX}`,
     cache: false,
   })
 
   return {
-    system: SYSTEM_PROMPT,
+    system,
     blocks,
     aliases,
     stats: {

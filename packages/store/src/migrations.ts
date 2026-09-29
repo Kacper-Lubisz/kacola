@@ -106,9 +106,38 @@ export const migrations: readonly Migration[] = [
     `,
   },
   {
+    version: 2,
+    name: 'notes',
+    up: `
+      -- M7: every version of a session's notes, append-only (see src/notes.ts).
+      CREATE TABLE note_versions (
+        session_id TEXT NOT NULL REFERENCES sessions (id) ON DELETE CASCADE,
+        version INTEGER NOT NULL,
+        kind TEXT NOT NULL,
+        markdown TEXT NOT NULL,
+        base_version INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        meta TEXT NOT NULL,
+        PRIMARY KEY (session_id, version)
+      ) STRICT;
+      -- which version is the head, and which enhanced version awaits review
+      CREATE TABLE notes (
+        session_id TEXT PRIMARY KEY REFERENCES sessions (id) ON DELETE CASCADE,
+        head INTEGER NOT NULL,
+        pending_enhancement INTEGER
+      ) STRICT;
+      CREATE TABLE note_templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        keywords TEXT NOT NULL,
+        body TEXT NOT NULL
+      ) STRICT;
+    `,
+  },
+  {
     // M8 (H-1/H-3/H-6/H-7). Server-local bookkeeping, not event-sourced (see BOOKKEEPING_TABLES).
     // Mirrored, same version and name, in ./pg/migrations.ts — a parity test keeps the lists aligned.
-    version: 2,
+    version: 3,
     name: 'hosted',
     up: `
       -- hybrid sync: the highest seq of each pushing device's log that this store has accounted for

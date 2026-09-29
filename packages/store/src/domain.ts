@@ -47,17 +47,23 @@ export function nextSegment(input: SegmentInput, prev: Segment | null, sessionEx
 // ------------------------------------------------------------------------------ H-7 ingest rules
 
 /** What the server needs to know about current state to decide one pushed item. */
-export type IngestFacts = { sessionExists: boolean; prevSegment: Segment | null }
+export type IngestFacts = {
+  sessionExists: boolean
+  prevSegment: Segment | null
+  /** For `note.version`: that session already has a version with this number. */
+  noteVersionExists?: boolean
+}
 
 export type IngestDecision =
   | { kind: 'apply'; sessionId: string | null; data: DurableEventData }
   | { kind: 'skip' }
   | { kind: 'reject'; reason: string }
 
-/** Which session an item's facts are about (null = none needed). */
+/** What an item's facts are about (nulls = not needed). */
 export function ingestSubject(data: DurableEventData): {
   sessionId: string | null
   segmentId: string | null
+  noteVersion?: number
 } {
   switch (data.type) {
     case 'session.upserted':
@@ -68,7 +74,11 @@ export function ingestSubject(data: DurableEventData): {
       return { sessionId: data.message.sessionId, segmentId: null }
     case 'session.deleted':
       return { sessionId: data.sessionId, segmentId: null }
+    case 'note.version':
+      return { sessionId: data.version.sessionId, segmentId: null, noteVersion: data.version.version }
     case 'settings.updated':
+    case 'template.upserted':
+    case 'template.deleted':
       return { sessionId: null, segmentId: null }
   }
 }
@@ -81,7 +91,9 @@ export function ingestSubject(data: DurableEventData): {
  *   - a segment revision at or below the one already stored is a no-op (snapshots and re-pushes);
  *   - anything that would break a store invariant (unknown session, final → live, track change,
  *     mic not `me`) is rejected, reported back, and does not stop the rest of the batch;
- *   - settings are device-local and never synced; deleting an absent session is a no-op.
+ *   - notes versions are append-only, so a version number already present is a no-op;
+ *   - settings and notes templates are device-local and never synced; deleting an absent session is a
+ *     no-op.
  */
 export function decideIngest(data: DurableEventData, facts: IngestFacts): IngestDecision {
   switch (data.type) {
@@ -110,7 +122,15 @@ export function decideIngest(data: DurableEventData, facts: IngestFacts): Ingest
     }
     case 'session.deleted':
       return facts.sessionExists ? { kind: 'apply', sessionId: data.sessionId, data } : { kind: 'skip' }
+    case 'note.version': {
+      const v = data.version
+      if (!facts.sessionExists) return { kind: 'reject', reason: `no session ${v.sessionId}` }
+      if (facts.noteVersionExists) return { kind: 'skip' }
+      return { kind: 'apply', sessionId: v.sessionId, data }
+    }
     case 'settings.updated':
+    case 'template.upserted':
+    case 'template.deleted':
       return { kind: 'skip' }
   }
 }

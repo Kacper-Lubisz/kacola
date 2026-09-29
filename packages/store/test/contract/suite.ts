@@ -10,7 +10,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { StoreApi } from '../../src/api.ts'
 import { StoreError } from '../../src/errors.ts'
 import { SNIPPET_MAX_CHARS } from '../../src/fts.ts'
-import { defaultsForTest, qa, randomHistory, tickingClock } from './history.ts'
+import { SqliteStoreApi } from '../../src/sqlite-api.ts'
+import { defaultsForTest, notesLog, qa, randomHistory, tickingClock } from './history.ts'
 
 // V-8 / H-1 — the dialect contract. ONE suite, run unchanged against every StoreApi implementation
 // (SQLite via SqliteStoreApi, Postgres via PGlite, and a real Postgres server when podman is available).
@@ -599,6 +600,61 @@ export function storeContract(dialect: string, factory: StoreFactory): void {
       expect(await srv.lastSeq()).toBe(seqBefore)
       expect(await srv.syncCursor('a')).toBe(6)
       expect((await srv.getSession('ses_dev000001'))?.title).toBe('from device')
+    })
+  })
+
+  describe(`[${dialect}] M7 notes, as a replica receives them`, () => {
+    it('replay of a notes log reproduces heads, pending reviews, every version and templates', async () => {
+      const { store: src, events } = notesLog()
+      const ref = new SqliteStoreApi(src)
+      const s = await make()
+      await s.replay(events, 4)
+      const want = await ref.snapshot()
+      expect(await s.snapshot()).toEqual(want)
+      expect(want.noteVersions.length).toBeGreaterThanOrEqual(7)
+      expect(want.templates.map((t) => t.id)).toEqual(['one-on-one'])
+      // the head was restored to version 1; the Retro enhancement still awaits review
+      expect(await s.getNotes('ses_notes0001')).toEqual(await ref.getNotes('ses_notes0001'))
+      expect((await s.getNotes('ses_notes0001')).markdown).toBe('# Standup\n\n- retry budget\n')
+      expect((await s.getNotes('ses_notes0002')).pendingEnhancement).toBe(2)
+      expect(await s.noteVersion('ses_notes0002', 2)).toEqual(await ref.noteVersion('ses_notes0002', 2))
+      expect(await s.noteVersions('ses_notes0003')).toEqual([]) // deleted with its session
+      expect(await s.getNotes('ses_nothing')).toEqual({
+        sessionId: 'ses_nothing',
+        version: 0,
+        markdown: '',
+        updatedAt: null,
+        pendingEnhancement: null,
+      })
+      src.close()
+    })
+
+    it('ingest applies note versions once, rejects orphans, and keeps templates device-local', async () => {
+      const { store: src, events } = notesLog()
+      const s = await make()
+      const items = events.map((e) => ({ seq: e.seq, data: e.data }))
+      const r = await s.ingest('laptop', items)
+      expect(r.rejected).toEqual([])
+      // pushing the same notes again under a fresh device cursor changes nothing (versions are append-only)
+      const seq = await s.lastSeq()
+      const again = await s.ingest(
+        'laptop-reinstalled',
+        items.filter((i) => i.data.type === 'note.version'),
+      )
+      expect(again.applied).toBe(0)
+      expect(await s.lastSeq()).toBe(seq)
+      const ref = await new SqliteStoreApi(src).snapshot()
+      const got = await s.snapshot()
+      expect(got.noteVersions).toEqual(ref.noteVersions)
+      expect(got.notes).toEqual(ref.notes)
+      expect(got.templates).toEqual([])
+      const first = items.map((i) => i.data).find((d) => d.type === 'note.version')
+      if (first?.type !== 'note.version') throw new Error('no note version in the log')
+      const r2 = await s.ingest('other', [
+        { seq: 1, data: { type: 'note.version', version: { ...first.version, sessionId: 'ses_unknown' } } },
+      ])
+      expect(r2.rejected.map((x) => x.reason)).toEqual(['no session ses_unknown'])
+      src.close()
     })
   })
 

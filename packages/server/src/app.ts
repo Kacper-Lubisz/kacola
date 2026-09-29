@@ -1,5 +1,6 @@
 import {
   type BodyOut,
+  extractActionItems,
   matchPath,
   type ParamsOf,
   parseSince,
@@ -221,6 +222,36 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
       health: await health(),
       logTail: [],
     }),
+
+    // ---- M7 notes: readable here (they arrive by hybrid sync); written only on the recording device,
+    // whose daemon has the LLM for enhancement and the built-in templates.
+    getNotes: async ({ params, query }) => {
+      await visible(params.id, query.includePrivate)
+      const note = await store.getNotes(params.id)
+      const enhanced = note.pendingEnhancement
+        ? await store.noteVersion(params.id, note.pendingEnhancement)
+        : null
+      return { note, enhanced }
+    },
+    listNoteVersions: async ({ params, query }) => {
+      await visible(params.id, query.includePrivate)
+      return { versions: await store.noteVersions(params.id) }
+    },
+    getActionItems: async ({ params, query }) => {
+      await visible(params.id, query.includePrivate)
+      const v = query.version !== undefined ? await store.noteVersion(params.id, query.version) : null
+      if (query.version !== undefined && !v)
+        throw new HttpError('not_found', `no version ${query.version} of these notes`)
+      const source = v ?? (await store.getNotes(params.id))
+      return { version: source.version, items: extractActionItems(source.markdown) }
+    },
+    putNotes: 'unsupported',
+    enhanceNotes: 'unsupported',
+    mergeNotes: 'unsupported',
+    restoreNoteVersion: 'unsupported',
+    listTemplates: 'unsupported',
+    putTemplate: 'unsupported',
+    deleteTemplate: 'unsupported',
 
     // ---- M8
     syncPush: async ({ body, principal }) => store.ingest(deviceIdFor(principal, body.deviceId), body.items),

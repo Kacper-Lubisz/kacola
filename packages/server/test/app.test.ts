@@ -53,6 +53,26 @@ describe('hosted contract: every route', () => {
       quality: 'final',
       confidence: 0.9,
     })
+    // notes arrive by sync (the hosted server never writes them itself)
+    await h.store.ingest('laptop', [
+      {
+        seq: 1,
+        data: {
+          type: 'note.version',
+          version: {
+            sessionId: s.id,
+            version: 1,
+            kind: 'user',
+            markdown: '# Standup\n\n- [ ] Ana: ship the retry budget by Thursday\n',
+            baseVersion: 0,
+            createdAt: '2026-09-01T10:00:00.000Z',
+            enhancement: null,
+            merge: null,
+            restoredFrom: null,
+          },
+        },
+      },
+    ])
     const params = { id: s.id }
     const pcm = new Uint8Array(3200)
     const sha = await sha256hex(pcm)
@@ -109,7 +129,7 @@ describe('hosted contract: every route', () => {
       syncCursor: async () =>
         expect(await c.call('syncCursor', { query: { deviceId: 'laptop' } })).toEqual({
           deviceId: 'laptop',
-          cursor: 0,
+          cursor: 1,
         }),
       pairStart: () => c.call('pairStart', { body: { name: 'phone' } }),
       pairApprove: async () => {
@@ -133,6 +153,34 @@ describe('hosted contract: every route', () => {
         }),
       getAudioStatus: () => c.call('getAudioStatus', { params }),
       finalizeAudio: () => c.call('finalizeAudio', { params, body: { chunkCount: 1, durationMs: 100 } }),
+
+      getNotes: async () => {
+        const n = await c.call('getNotes', { params })
+        expect(n.note).toMatchObject({ version: 1, pendingEnhancement: null })
+        expect(n.note.markdown).toContain('retry budget')
+        return n
+      },
+      listNoteVersions: async () =>
+        expect((await c.call('listNoteVersions', { params })).versions).toHaveLength(1),
+      getActionItems: async () => {
+        const r = await c.call('getActionItems', { params })
+        expect(r.items[0]).toMatchObject({ owner: 'Ana', done: false })
+        return r
+      },
+      putNotes: () => notHere(c.call('putNotes', { params, body: { markdown: 'x', baseVersion: 1 } })),
+      enhanceNotes: () => notHere(c.stream('enhanceNotes', { params, body: {} }).next()),
+      mergeNotes: () =>
+        notHere(c.call('mergeNotes', { params, body: { enhancedVersion: 2, baseVersion: 1, choices: [] } })),
+      restoreNoteVersion: () =>
+        notHere(
+          c.call('restoreNoteVersion', { params: { id: s.id, version: '1' }, body: { baseVersion: 1 } }),
+        ),
+      listTemplates: () => notHere(c.call('listTemplates')),
+      putTemplate: () =>
+        notHere(
+          c.call('putTemplate', { params: { id: 'mine' }, body: { name: 'x', keywords: [], body: 'y' } }),
+        ),
+      deleteTemplate: () => notHere(c.call('deleteTemplate', { params: { id: 'mine' } })),
     }
     const seen: RouteName[] = []
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {

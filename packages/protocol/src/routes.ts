@@ -14,6 +14,7 @@ import {
   SyncPushBody,
   SyncPushResult,
 } from './hosted.ts'
+import { notesRoutes } from './notes.ts'
 import {
   ApiError,
   AudioDevice,
@@ -186,6 +187,9 @@ export const routes = {
       logTail: z.array(z.string()),
     }),
   },
+
+  // ---- M7: notes + enhancement (schemas in notes.ts)
+  ...notesRoutes,
 
   // ---- M8: hosted — hybrid sync, pairing, chunked audio upload (schemas in ./hosted.ts)
   syncPush: { method: 'POST', path: '/sync/push', body: SyncPushBody, response: SyncPushResult },

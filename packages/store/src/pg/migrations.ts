@@ -97,7 +97,35 @@ export const pgMigrations: readonly Migration[] = [
     `,
   },
   {
+    // M7 notes (mirror of the SQLite migration of the same name)
     version: 2,
+    name: 'notes',
+    up: `
+      CREATE TABLE note_versions (
+        session_id text COLLATE "C" NOT NULL REFERENCES sessions (id) ON DELETE CASCADE,
+        version integer NOT NULL,
+        kind text NOT NULL,
+        markdown text NOT NULL,
+        base_version integer NOT NULL,
+        created_at text NOT NULL,
+        meta text NOT NULL,
+        PRIMARY KEY (session_id, version)
+      );
+      CREATE TABLE notes (
+        session_id text COLLATE "C" PRIMARY KEY REFERENCES sessions (id) ON DELETE CASCADE,
+        head integer NOT NULL,
+        pending_enhancement integer
+      );
+      CREATE TABLE note_templates (
+        id text COLLATE "C" PRIMARY KEY,
+        name text NOT NULL,
+        keywords text NOT NULL,
+        body text NOT NULL
+      );
+    `,
+  },
+  {
+    version: 3,
     name: 'hosted',
     up: `
       CREATE TABLE sync_devices (

@@ -1,0 +1,24 @@
+{
+  "session": {
+    "id": "ses_000000001aaaaaaaaaaa1",
+    "title": "Platform standup",
+    "createdAt": "<iso>",
+    "status": "stopped",
+    "durationMs": 720000
+  },
+  "version": 3,
+  "actionItems": [
+    {
+      "text": "Own the dashboard for the migration",
+      "owner": "Ana",
+      "due": "Thursday",
+      "done": false
+    },
+    {
+      "text": "Settle the retry budget",
+      "owner": "me",
+      "due": null,
+      "done": true
+    }
+  ]
+}

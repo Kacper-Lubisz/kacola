@@ -33,6 +33,10 @@ describe('golden outputs through the real daemon', () => {
       ['transcript', SEED.standup, '--around', 'seg_000000007eeeeeeeeeeee', '--context', '5s'],
     ],
     ['transcript-speaker', ['transcript', SEED.standup, '--from', '0:00', '--to', '3:10', '--speaker', 'me']],
+    // N-5: the notes the window left behind (seeded: typed, enhanced, reviewed, merged)
+    ['notes-head', ['notes', SEED.standup]],
+    ['notes-actions', ['notes', SEED.standup, '--actions']],
+    ['notes-versions', ['notes', SEED.standup, '--versions']],
   ])('%s', async (name, argv) => {
     const r = await gnomeola(argv, d.baseUrl)
     expect(r.stderr).toBe('')
@@ -73,6 +77,9 @@ describe('privacy through the real stack', () => {
     [['sessions', 'show', SEED.private], 4],
     [['transcript', SEED.private, '--around', '0:10'], 4],
     [['ask', 'q', '--session', SEED.private], 4],
+    [['notes', SEED.private], 4],
+    [['notes', SEED.private, '--actions'], 4],
+    [['notes', SEED.private, '--versions'], 4],
   ])('%j → exit %i', async (argv, code) => {
     expect((await gnomeola(argv as string[], d.baseUrl)).code).toBe(code)
   })
