@@ -132,6 +132,7 @@ describe('contract: every route, real server, typed client', () => {
         stt: { liveModel: expect.any(String), finalModel: expect.any(String), finalPass: 'during' },
         capture: { micDevice: 'default', systemDevice: 'default' },
         retention: { audio: 'keep', days: 30, archive: false },
+        autoRecord: { calendar: false, micActivity: false },
       })
       const patched = await c2.call('updateSettings', {
         body: { llm: { model: 'claude-sonnet-5' }, stt: { finalPass: 'after' } },

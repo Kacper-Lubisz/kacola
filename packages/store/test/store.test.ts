@@ -292,6 +292,7 @@ function defaultsForTest(): StoredSettings {
     stt: { liveModel: 'l', finalModel: 'f', finalPass: 'during' },
     capture: { micDevice: 'default', systemDevice: 'default' },
     retention: { audio: 'keep', days: 30, archive: false },
+    autoRecord: { calendar: false, micActivity: false },
   }
 }
 
