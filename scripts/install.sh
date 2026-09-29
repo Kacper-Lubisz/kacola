@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # gnomeola user-level installer (non-Flatpak; the plan's S-2 ships this first).
 #
-#   scripts/install.sh [--prefix DIR] [--node PATH] [--no-service] [--no-skill] [--dry-run]
+#   scripts/install.sh [--prefix DIR] [--node PATH] [--no-service] [--no-skill] [--no-extension] [--dry-run]
 #   scripts/install.sh --uninstall [--prefix DIR] [--purge]
 #
 # Installs, per user and without root:
@@ -12,6 +12,8 @@
 #   ~/.config/systemd/user/gnomeolad.service
 #   $PREFIX/share/applications/org.gnome.Gnomeola.desktop
 #   ~/.claude/skills/meeting-context/    the Claude Code skill (unless --no-skill)
+#   ${XDG_DATA_HOME:-~/.local/share}/gnome-shell/extensions/gnomeola@gnomeola.org/
+#                                        the top-bar extension: installed, NEVER enabled (unless --no-extension)
 #
 # Recordings, the database and models live in ${XDG_DATA_HOME:-~/.local/share}/gnomeola and are never touched
 # by install or a plain uninstall; --purge removes them too.
@@ -21,6 +23,7 @@ PREFIX="${HOME}/.local"
 NODE=""
 SERVICE=1
 SKILL=1
+EXTENSION=1
 DRY=0
 UNINSTALL=0
 PURGE=0
@@ -30,10 +33,11 @@ while [ $# -gt 0 ]; do
     --node) NODE="$2"; shift 2 ;;
     --no-service) SERVICE=0; shift ;;
     --no-skill) SKILL=0; shift ;;
+    --no-extension) EXTENSION=0; shift ;;
     --dry-run) DRY=1; shift ;;
     --uninstall) UNINSTALL=1; shift ;;
     --purge) PURGE=1; shift ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
     *) echo "install.sh: unknown option $1" >&2; exit 2 ;;
   esac
 done
@@ -45,6 +49,8 @@ UNIT_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/systemd/user"
 DESKTOP_DIR="${PREFIX}/share/applications"
 DATA="${XDG_DATA_HOME:-${HOME}/.local/share}/gnomeola"
 SKILLS="${HOME}/.claude/skills"
+EXT_UUID="gnomeola@gnomeola.org"
+EXT_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/gnome-shell/extensions/${EXT_UUID}"
 
 run() { if [ "$DRY" = 1 ]; then echo "+ $*"; else "$@"; fi; }
 say() { echo "gnomeola: $*"; }
@@ -64,6 +70,7 @@ if [ "$UNINSTALL" = 1 ]; then
     "${DESKTOP_DIR}/org.gnome.Gnomeola.desktop"
   run rm -rf "${PREFIX}/share/gnomeola"
   if [ -f "${SKILLS}/meeting-context/.gnomeola-installed" ]; then run rm -rf "${SKILLS}/meeting-context"; fi
+  run rm -rf "$EXT_DIR"
   systemctl_user daemon-reload
   if [ "$PURGE" = 1 ]; then run rm -rf "$DATA"; say "removed recordings and models in $DATA"; else say "kept your recordings in $DATA (use --purge to remove)"; fi
   say "uninstalled"
@@ -98,7 +105,7 @@ fi
 run mkdir -p "$APP" "$BIN" "$DESKTOP_DIR"
 if [ "$DRY" = 1 ]; then echo "+ copy runtime ${SRC} -> ${APP}"; else
   tar -C "$SRC" \
-    --exclude=./.git --exclude=./.claude --exclude=./notes --exclude=./reports --exclude=./.stryker-tmp \
+    --exclude=./.git --exclude=./.claude --exclude=./extensions/dist --exclude=./notes --exclude=./reports --exclude=./.stryker-tmp \
     --exclude='./packages/*/test' --exclude='*/__artifacts__' --exclude=./.github --exclude=./packages/e2e \
     -cf - . | tar -C "$APP" -xf -
 fi
@@ -153,6 +160,27 @@ WantedBy=default.target
 UNIT
   systemctl_user daemon-reload
   systemctl_user enable --now gnomeolad.service
+fi
+
+# ---- GNOME Shell extension (C-9) -------------------------------------------------------------------
+# Packed with the Shell's own `gnome-extensions pack`, then unpacked into the user's extensions dir with
+# its schemas compiled. This never talks to the running Shell and never enables anything: turning a Shell
+# extension on is the user's decision (and on Wayland it only takes effect after logging in again).
+if [ "$EXTENSION" = 1 ]; then
+  if ! command -v gnome-extensions >/dev/null || ! command -v unzip >/dev/null; then
+    say "warning: gnome-extensions or unzip not found — skipping the top-bar extension"
+  elif [ "$DRY" = 1 ]; then
+    echo "+ ${SRC}/extensions/pack.sh -> ${EXT_DIR}"
+  else
+    PACK_DIR="$(mktemp -d)"
+    ZIP="$(bash "${SRC}/extensions/pack.sh" "$PACK_DIR" | tail -n 1)"
+    rm -rf "$EXT_DIR"
+    mkdir -p "$EXT_DIR"
+    unzip -q -o "$ZIP" -d "$EXT_DIR"
+    glib-compile-schemas "${EXT_DIR}/schemas"
+    rm -rf "$PACK_DIR"
+    say "installed the top-bar extension (not enabled); to use it: gnome-extensions enable ${EXT_UUID}"
+  fi
 fi
 
 # ---- skill ------------------------------------------------------------------------------------------

@@ -1,0 +1,40 @@
+/* gnomeola indicator. Colours come from the Shell theme except the recording dot, which is the
+   conventional red so "is it recording?" is answerable at a glance. */
+.gnomeola-recording .system-status-icon {
+  color: #e01b24;
+}
+
+.gnomeola-paused .system-status-icon {
+  color: #f6d32d;
+}
+
+.gnomeola-offline .system-status-icon {
+  opacity: 0.5;
+}
+
+.gnomeola-elapsed {
+  font-feature-settings: "tnum";
+  padding-left: 4px;
+}
+
+.gnomeola-header {
+  font-weight: bold;
+}
+
+.gnomeola-status {
+  color: #999;
+}
+
+.gnomeola-meeting-detail {
+  font-size: smaller;
+  color: #999;
+}
+
+.gnomeola-meeting-verb {
+  font-weight: bold;
+  padding-left: 12px;
+}
+
+.gnomeola-meeting-now .gnomeola-meeting-title {
+  font-weight: bold;
+}
