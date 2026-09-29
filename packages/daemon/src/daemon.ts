@@ -19,7 +19,13 @@ import { Store } from '@gnomeola/store'
 import type { z } from 'zod'
 import pkg from '../package.json' with { type: 'json' }
 import { resolveScope, runAsk } from './ask.ts'
+import { AutoRecorder } from './auto-record.ts'
 import { EventBus } from './bus.ts'
+import { endOfLocalDay, localMidnight } from './calendar/meetings.ts'
+import { type CalendarProvider, NoCalendar } from './calendar/providers.ts'
+import { CalendarService } from './calendar/service.ts'
+import { RecordingControl } from './control.ts'
+import { DbusService } from './dbus/service.ts'
 import { apiErrorBody, DaemonError, toDaemonError } from './errors.ts'
 import { streamEvents } from './events-stream.ts'
 import { NoDevices, NoModels, UnavailablePipeline } from './fakes/providers.ts'
@@ -27,6 +33,7 @@ import { readJsonBody, SseWriter, sendJson } from './http.ts'
 import type { DeviceProvider, Keyring, ModelProvider, QaEngine, TranscriptionPipeline } from './interfaces.ts'
 import { NoKeyring } from './keyring.ts'
 import { Logger } from './logger.ts'
+import type { MicActivitySource } from './mic-activity.ts'
 import { SessionManager } from './sessions.ts'
 import { SettingsService } from './settings.ts'
 
@@ -56,6 +63,14 @@ export type DaemonOptions = {
   /** Browser origins allowed to call the API. Default none: any request carrying Origin is refused. */
   allowedOrigins?: string[]
   maxSseBufferedBytes?: number
+  // ---- M4
+  /** Where meetings come from. Default: none (calendar off). */
+  calendar?: CalendarProvider
+  /** Export org.gnome.Gnomeola on the session bus (via the GJS bridge). Default off. */
+  dbus?: { gjs?: string; env?: NodeJS.ProcessEnv; minBackoffMs?: number } | null
+  /** Microphone-activity source for the auto-record rule. Default: none (the rule then never fires). */
+  micActivity?: MicActivitySource
+  micIdleStopMs?: number
 }
 
 export type Daemon = {
@@ -67,6 +82,9 @@ export type Daemon = {
   readonly logger: Logger
   readonly sessions: SessionManager
   readonly settings: SettingsService
+  readonly calendar: CalendarService
+  readonly control: RecordingControl
+  readonly dbus: DbusService | null
   /** Open SSE connections. */
   readonly sseClients: number
   close(): Promise<void>
@@ -116,6 +134,17 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     dataDir: o.dataDir,
     settings: () => settings.get(),
   })
+  const calendar = new CalendarService({ provider: o.calendar ?? new NoCalendar(), bus, logger })
+  const control = new RecordingControl({ store, sessions, calendar, logger })
+  const autoRecord = new AutoRecorder({
+    calendar,
+    control,
+    settings,
+    bus,
+    logger,
+    mic: o.micActivity ?? { start() {}, stop() {} },
+    micIdleStopMs: o.micIdleStopMs,
+  })
   const heartbeatMs = o.heartbeatMs ?? 15_000
   const pageSize = o.replayPageSize ?? 500
   const allowedOrigins = new Set(o.allowedOrigins ?? [])
@@ -150,6 +179,12 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     } catch (err) {
       throw new DaemonError('bad_request', (err as Error).message)
     }
+  }
+  const bound = (v: string | undefined, name: string, def: Date): Date => {
+    if (v === undefined || v === '') return def
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(v) ? localMidnight(v) : new Date(v)
+    if (Number.isNaN(d.getTime())) throw new DaemonError('bad_request', `${name} must be an ISO time or date`)
+    return d
   }
   const llmReady = async () => {
     const s = settings.get().llm
@@ -254,6 +289,16 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
       health: await health(),
       logTail: logger.tail(200),
     }),
+
+    calendarStatus: () => calendar.status(),
+    listMeetings: ({ query }) => {
+      const from = bound(query.from, 'from', new Date())
+      const to = bound(query.to, 'to', endOfLocalDay(from))
+      if (to < from) throw new DaemonError('bad_request', 'to must not be before from')
+      return calendar.list(from, to, query.includeDeclined)
+    },
+    nextMeeting: () => calendar.next(),
+    joinMeeting: ({ params, body }) => control.join(params.id, { private: body.private }),
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))
@@ -348,14 +393,37 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     })
   })
   const port = (server.address() as AddressInfo).port
-  const urlHost = host.includes(':') ? `[${host}]` : host
   logger.info('listening', { host, port })
+  const url = `http://${host.includes(':') ? `[${host}]` : host}:${port}`
+
+  calendar.start()
+  autoRecord.start()
+  const dbus = o.dbus
+    ? new DbusService({
+        store,
+        bus,
+        sessions,
+        calendar,
+        control,
+        settings,
+        logger,
+        url,
+        version: VERSION,
+        gjs: o.dbus.gjs,
+        env: o.dbus.env,
+        minBackoffMs: o.dbus.minBackoffMs,
+      })
+    : null
+  dbus?.start()
 
   let closing: Promise<void> | null = null
   const close = () => {
     closing ??= (async () => {
       logger.info('shutting down')
       server.close()
+      autoRecord.stop()
+      await dbus?.stop()
+      await calendar.stop()
       await sessions.stopAll()
       for (const w of [...sse]) w.end()
       server.closeAllConnections()
@@ -367,7 +435,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
   }
 
   return {
-    url: `http://${urlHost}:${port}`,
+    url,
     port,
     host,
     store,
@@ -375,6 +443,9 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     logger,
     sessions,
     settings,
+    calendar,
+    control,
+    dbus,
     get sseClients() {
       return sse.size
     },

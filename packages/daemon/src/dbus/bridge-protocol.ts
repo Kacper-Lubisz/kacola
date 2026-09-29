@@ -56,6 +56,7 @@ export type DbusProps = {
   State: 'idle' | 'recording' | 'paused'
   SessionId: string
   SessionTitle: string
+  SessionMeetingId: string
   ElapsedMs: number
   RunningSince: number
   LastLine: string
