@@ -10,6 +10,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react'
+import { NotesFeed, type NotesFeedState } from './notes.ts'
 import { QaFeed, type QaFeedState } from './qa.ts'
 import type { Connection, SessionStore } from './store.ts'
 import { TranscriptFeed, type TranscriptFeedState } from './transcript.ts'
@@ -110,6 +111,31 @@ export function useQaFeed(sessionId: string): { state: QaFeedState; feed: QaFeed
   useEffect(() => {
     feed.start()
     return () => feed.dispose()
+  }, [feed])
+  return { state: useSyncExternalStore(feed.subscribe, feed.getSnapshot), feed }
+}
+
+/** One session's notes: draft + autosave, enhancement, review. A new feed per session id. */
+export function useNotesFeed(sessionId: string): { state: NotesFeedState; feed: NotesFeed } {
+  const store = useStore()
+  const feed = useMemo(
+    () =>
+      new NotesFeed(sessionId, {
+        load: (id, signal) => store.api.notes(id, signal),
+        put: (id, body) => store.api.putNotes(id, body),
+        enhance: (id, body, signal) => store.api.enhanceNotes(id, body, signal),
+        merge: (id, body) => store.api.mergeNotes(id, body),
+        templates: (id, signal) => store.api.templates(id, signal),
+        onEvent: (l) => store.onEvent(l),
+      }),
+    [store, sessionId],
+  )
+  useEffect(() => {
+    feed.start()
+    return () => {
+      // save what was typed before leaving the session, then let go
+      void feed.flush().finally(() => feed.dispose())
+    }
   }, [feed])
   return { state: useSyncExternalStore(feed.subscribe, feed.getSnapshot), feed }
 }
