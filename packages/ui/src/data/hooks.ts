@@ -12,6 +12,7 @@ import {
 } from 'react'
 import { NotesFeed, type NotesFeedState } from './notes.ts'
 import { QaFeed, type QaFeedState } from './qa.ts'
+import { SpeakersFeed, type SpeakersFeedState } from './speakers.ts'
 import type { Connection, SessionStore } from './store.ts'
 import { TranscriptFeed, type TranscriptFeedState } from './transcript.ts'
 
@@ -136,6 +137,24 @@ export function useNotesFeed(sessionId: string): { state: NotesFeedState; feed: 
       // save what was typed before leaving the session, then let go
       void feed.flush().finally(() => feed.dispose())
     }
+  }, [feed])
+  return { state: useSyncExternalStore(feed.subscribe, feed.getSnapshot), feed }
+}
+
+/** One session's speakers (M3): who spoke, their chip colours, and rename/merge/split results. */
+export function useSpeakersFeed(sessionId: string): { state: SpeakersFeedState; feed: SpeakersFeed } {
+  const store = useStore()
+  const feed = useMemo(
+    () =>
+      new SpeakersFeed(sessionId, {
+        load: (id, signal) => store.api.listSpeakers(id, signal),
+        onEvent: (l) => store.onEvent(l),
+      }),
+    [store, sessionId],
+  )
+  useEffect(() => {
+    feed.start()
+    return () => feed.dispose()
   }, [feed])
   return { state: useSyncExternalStore(feed.subscribe, feed.getSnapshot), feed }
 }

@@ -151,6 +151,8 @@ function Loaded({ settings, devices }: { settings: Settings; devices: AudioDevic
   const mics = deviceChoices(devices, 'source', settings.capture.micDevice)
   const outputs = deviceChoices(devices, 'sink', settings.capture.systemDevice)
   const { llm, stt, capture, retention, autoRecord } = settings
+  // optional in the schema (settings stored before M3): the daemon's defaults
+  const speakers = settings.speakers ?? { diarize: true, voiceprints: false }
 
   return (
     <>
@@ -201,6 +203,30 @@ function Loaded({ settings, devices }: { settings: Settings; devices: AudioDevic
             choices={finalPasses()}
             value={stt.finalPass}
             onChange={(finalPass) => patch({ stt: { finalPass } })}
+          />
+        </AdwPreferencesGroup>
+        <AdwPreferencesGroup
+          ref={nameGroupList(_('Speakers'))}
+          title={_('Speakers')}
+          description={_('Your microphone is always you. These decide what happens to the other side.')}
+        >
+          <AdwSwitchRow
+            title={_('Tell far-end speakers apart')}
+            subtitle={_('Label each voice on the other side as its own speaker')}
+            active={speakers.diarize}
+            onNotifyActive={(v) => {
+              if (Boolean(v) !== speakers.diarize) patch({ speakers: { diarize: Boolean(v) } })
+            }}
+          />
+          <AdwSwitchRow
+            title={_('Recognise people across meetings')}
+            subtitle={_(
+              'Remember the voices of people you name, so they are named in later meetings. Voices are stored only on this computer; turning this off forgets them all.',
+            )}
+            active={speakers.voiceprints}
+            onNotifyActive={(v) => {
+              if (Boolean(v) !== speakers.voiceprints) patch({ speakers: { voiceprints: Boolean(v) } })
+            }}
           />
         </AdwPreferencesGroup>
         <AdwPreferencesGroup

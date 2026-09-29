@@ -15,8 +15,21 @@ export function installStyles(): void {
     .transcript-line.group-start { padding-top: 12px; }
     .transcript-time { font-feature-settings: "tnum"; min-width: 4em; }
     .speaker { font-weight: bold; }
-    .speaker-me { color: var(--accent-color); }
-    .speaker-them { color: @purple_4; }
+    .speaker-chip { padding: 1px 8px; border-radius: 9px; }
+    .speaker-me { color: var(--accent-color); background: alpha(var(--accent-bg-color), 0.12); }
+    .speaker-them { color: alpha(currentColor, 0.7); background: alpha(currentColor, 0.06); }
+    /* M3: far-end speakers, by the daemon's palette slot (Speaker.colour mod 8, never the list order) */
+    .speaker-c0 { color: @blue_4; background: alpha(@blue_3, 0.14); }
+    .speaker-c1 { color: @orange_5; background: alpha(@orange_3, 0.16); }
+    .speaker-c2 { color: @green_5; background: alpha(@green_3, 0.14); }
+    .speaker-c3 { color: @purple_3; background: alpha(@purple_3, 0.14); }
+    .speaker-c4 { color: @red_3; background: alpha(@red_3, 0.12); }
+    .speaker-c5 { color: @brown_2; background: alpha(@brown_2, 0.16); }
+    .speaker-c6 { color: @yellow_5; background: alpha(@yellow_3, 0.18); }
+    .speaker-c7 { color: @dark_1; background: alpha(@light_5, 0.5); }
+    .speaker-swatch.speaker-chip, image.speaker-swatch { padding: 4px; border-radius: 50%; }
+    .speakers-error { color: @red_3; }
+    .line-actions { padding: 6px 18px 6px 12px; border-top: 1px solid alpha(currentColor, 0.1); }
     .transcript-text.provisional { font-style: italic; opacity: 0.72; }
     .transcript-text.partial { font-style: italic; opacity: 0.55; }
     .transcript > row:selected .transcript-line {
