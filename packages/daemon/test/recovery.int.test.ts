@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Segment } from '@gnomeola/protocol'
-import { Store } from '@gnomeola/store'
+import { migrations, Store } from '@gnomeola/store'
 import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
 import { assertNoViolations, checkEventLog, checkSegments, foldSegments } from '@gnomeola/testkit/invariants'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -167,7 +167,10 @@ describe('crash recovery', () => {
     d = await startDaemon()
     await d.kill('SIGTERM')
     const s = openDisk(d.dataDir)
-    s.db.prepare("INSERT INTO schema_migrations VALUES (2, 'from-the-future', '2030-01-01T00:00:00Z')").run()
+    // one past the newest migration this build knows (never a hard-coded number: milestones add migrations)
+    s.db
+      .prepare("INSERT INTO schema_migrations VALUES (?, 'from-the-future', '2030-01-01T00:00:00Z')")
+      .run(migrations.length + 1)
     s.close()
     await expect(d.restart()).rejects.toThrow(/newer than this build/)
   })

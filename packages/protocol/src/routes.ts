@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { notesRoutes } from './notes.ts'
 import {
   ApiError,
   AudioDevice,
@@ -171,6 +172,9 @@ export const routes = {
       logTail: z.array(z.string()),
     }),
   },
+
+  // ---- M7: notes + enhancement (schemas in notes.ts)
+  ...notesRoutes,
 } as const satisfies Record<string, RouteDef>
 
 export type Routes = typeof routes

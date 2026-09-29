@@ -1,6 +1,7 @@
 export * from './client.ts'
 export * from './events.ts'
 export * from './ids.ts'
+export * from './notes.ts'
 export * from './routes.ts'
 export * from './schemas.ts'
 export * from './sse.ts'

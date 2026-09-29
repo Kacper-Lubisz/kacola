@@ -27,6 +27,8 @@ import { readJsonBody, SseWriter, sendJson } from './http.ts'
 import type { DeviceProvider, Keyring, ModelProvider, QaEngine, TranscriptionPipeline } from './interfaces.ts'
 import { NoKeyring } from './keyring.ts'
 import { Logger } from './logger.ts'
+import type { NotesEngine } from './notes/engine.ts'
+import { notesHandlers } from './notes/handlers.ts'
 import { SessionManager } from './sessions.ts'
 import { SettingsService } from './settings.ts'
 
@@ -42,6 +44,8 @@ export type DaemonOptions = {
   port?: number
   pipeline?: TranscriptionPipeline
   qaEngine?: QaEngine | null
+  /** M7: notes enhancement. */
+  notesEngine?: NotesEngine | null
   keyring?: Keyring
   devices?: DeviceProvider
   models?: ModelProvider
@@ -254,6 +258,9 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
       health: await health(),
       logTail: logger.tail(200),
     }),
+
+    // ---- M7: notes + enhancement
+    ...notesHandlers({ store, engine: o.notesEngine ?? null, settings, logger, visible }),
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))
