@@ -440,6 +440,15 @@ export function createDemoSource(opts: DemoOptions = {}): DataSource & { dispose
       if (!m) throw new Error(`no model ${id}`)
       return m
     },
+    async calendarStatus() {
+      return {
+        state: 'ok' as const,
+        provider: 'demo',
+        detail: null,
+        calendars: [{ id: 'demo', name: 'Demo calendar' }],
+        updatedAt: new Date().toISOString(),
+      }
+    },
     dispose() {
       clearIv(tick)
       clearIv(churn)

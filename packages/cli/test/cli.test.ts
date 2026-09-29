@@ -278,6 +278,68 @@ describe('record', () => {
   })
 })
 
+describe('meetings (X-5)', () => {
+  it('--next (the default) gives the meeting in progress and the next one, compactly, declined skipped', async () => {
+    const r = await cli(['meetings', '--next'], { url: d.url })
+    expect(r.code).toBe(EXIT.OK)
+    const j = r.json()
+    expect(Object.keys(j)).toEqual(['current', 'next', 'calendar'])
+    expect(j.current).toMatchObject({
+      id: 'mtg_current',
+      title: 'Design review',
+      joinUrl: null,
+      provider: null,
+    })
+    expect(j.next).toEqual({
+      id: 'mtg_next',
+      title: 'Customer call',
+      start: expect.any(String),
+      end: expect.any(String),
+      allDay: false,
+      joinUrl: 'https://us02web.zoom.us/j/84518302211?pwd=abc',
+      provider: 'zoom',
+      calendar: 'Work',
+      response: 'accepted',
+    })
+    expect(j.calendar).toEqual({ state: 'ok', detail: null })
+    expect((await cli(['meetings'], { url: d.url })).json()).toEqual(j)
+  })
+  it('--today lists the day, and never prints descriptions', async () => {
+    const r = await cli(['meetings', '--today'], { url: d.url })
+    const j = r.json()
+    expect(j.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(j.meetings.map((m: { id: string }) => m.id)).not.toContain('mtg_declined')
+    for (const m of j.meetings) expect(Object.keys(m)).not.toContain('description')
+    const req = d.requests.findLast((x) => x.path === '/meetings')!
+    expect(new Date(req.query.from!).getHours()).toBe(0) // the local day, computed by the CLI
+  })
+  it('text at a terminal', async () => {
+    const r = await cli(['meetings', '--next'], { url: d.url, tty: true })
+    expect(r.stdout).toMatch(/^now {3}\d\d:\d\d–\d\d:\d\d {2}Design review\n/)
+    expect(r.stdout).toMatch(
+      /next .*Customer call {2}zoom: https:\/\/us02web\.zoom\.us\/j\/84518302211\?pwd=abc/,
+    )
+  })
+  it('calendar off or broken is exit 6 with the reason, not an empty calendar', async () => {
+    d.state.calendar = { ...d.state.calendar, state: 'off' }
+    const off = await cli(['meetings'], { url: d.url })
+    expect(off.code).toBe(EXIT.UNAVAILABLE)
+    expect(off.stderr).toMatch(/calendar reading is off/)
+    d.state.calendar = {
+      ...d.state.calendar,
+      state: 'unavailable',
+      detail: 'Evolution Data Server is not running',
+    }
+    const bad = await cli(['meetings', '--today'], { url: d.url })
+    expect(bad.code).toBe(EXIT.UNAVAILABLE)
+    expect(bad.stderr).toMatch(/Evolution Data Server is not running/)
+  })
+  it('usage errors', async () => {
+    expect((await cli(['meetings', '--next', '--today'], { url: d.url })).code).toBe(EXIT.USAGE)
+    expect((await cli(['meetings', 'join', 'x'], { url: d.url })).code).toBe(EXIT.USAGE)
+  })
+})
+
 describe('skill install', () => {
   it('installs, is idempotent, and refuses to clobber local edits without --force', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'gnomeola-skill-'))

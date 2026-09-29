@@ -67,5 +67,6 @@ export function createDaemonSource(opts: DaemonSourceOptions): DataSource {
       return (await client.call('listModels', { signal })).models
     },
     downloadModel: (id) => client.call('downloadModel', { params: { id } }),
+    calendarStatus: (signal) => client.call('calendarStatus', { signal }),
   }
 }

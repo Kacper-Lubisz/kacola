@@ -17,39 +17,39 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
-#: src/components/about.tsx:22
+#: src/components/about.tsx:23
 msgid ""
 "gnomeola is an independent clean-room project inspired by Granola. It is not "
 "affiliated with or endorsed by Granola."
 msgstr ""
 
-#: src/components/about.tsx:48
+#: src/components/about.tsx:49
 msgid "Third-Party Notices"
 msgstr ""
 
-#: src/components/about.tsx:49
+#: src/components/about.tsx:50
 msgid "Inspired by"
 msgstr ""
 
-#: src/components/about.tsx:51
+#: src/components/about.tsx:52
 msgid "Third-Party Components"
 msgstr ""
 
-#: src/components/about.tsx:54
+#: src/components/about.tsx:55
 msgid ""
 "gnomeola includes the following components under their own licences. The "
 "full list, with homepages, is in THIRD_PARTY_NOTICES.md."
 msgstr ""
 
-#: src/components/about.tsx:57
+#: src/components/about.tsx:62
 msgid "translator-credits"
 msgstr ""
 
-#: src/components/about.tsx:64 src/components/about.tsx:65
+#: src/components/about.tsx:69 src/components/about.tsx:70
 msgid "The gnomeola contributors"
 msgstr ""
 
-#: src/components/about.tsx:67
+#: src/components/about.tsx:72
 msgid ""
 "Record meetings, read live speaker-labelled transcripts, and ask questions "
 "about what was said."
@@ -165,7 +165,7 @@ msgstr ""
 msgid "Download {model}"
 msgstr ""
 
-#: src/components/onboarding.tsx:71
+#: src/components/onboarding.tsx:71 src/components/onboarding.tsx:99
 msgid "Checking…"
 msgstr ""
 
@@ -173,7 +173,7 @@ msgstr ""
 msgid "Available ({backend})"
 msgstr ""
 
-#: src/components/onboarding.tsx:74
+#: src/components/onboarding.tsx:74 src/components/onboarding.tsx:113
 msgid "Not available: {detail}"
 msgstr ""
 
@@ -193,53 +193,93 @@ msgstr ""
 msgid "Capture not available"
 msgstr ""
 
-#: src/components/onboarding.tsx:151
+#: src/components/onboarding.tsx:104
+msgid "Reading {calendars}"
+msgstr ""
+
+#: src/components/onboarding.tsx:107
+msgid "No calendars found. Add one in GNOME Calendar or Online Accounts."
+msgstr ""
+
+#: src/components/onboarding.tsx:109
+msgid "Connecting to your calendars…"
+msgstr ""
+
+#: src/components/onboarding.tsx:111
+msgid "Calendar reading is turned off"
+msgstr ""
+
+#: src/components/onboarding.tsx:121
+msgid "Calendar"
+msgstr ""
+
+#: src/components/onboarding.tsx:126
+msgid "Checking calendar access"
+msgstr ""
+
+#: src/components/onboarding.tsx:131
+msgid "Calendar available"
+msgstr ""
+
+#: src/components/onboarding.tsx:131
+msgid "Calendar not available"
+msgstr ""
+
+#: src/components/onboarding.tsx:213
 msgid "Welcome to gnomeola"
 msgstr ""
 
-#: src/components/onboarding.tsx:163
+#: src/components/onboarding.tsx:225
 msgid ""
 "gnomeola transcribes on this computer. It needs a few speech models first, "
 "and access to your microphone and system audio."
 msgstr ""
 
-#: src/components/onboarding.tsx:170
+#: src/components/onboarding.tsx:232
 msgid "Speech Models"
 msgstr ""
 
-#: src/components/onboarding.tsx:182
+#: src/components/onboarding.tsx:244
 msgid "Speech models"
 msgstr ""
 
-#: src/components/onboarding.tsx:191
+#: src/components/onboarding.tsx:253
 msgid "Something went wrong: {reason}"
 msgstr ""
 
-#: src/components/onboarding.tsx:200
+#: src/components/onboarding.tsx:262
 msgid "Audio Capture"
 msgstr ""
 
-#: src/components/onboarding.tsx:209
+#: src/components/onboarding.tsx:271
 msgid "Audio capture"
 msgstr ""
 
-#: src/components/onboarding.tsx:217
+#: src/components/onboarding.tsx:278
+msgid "Meetings"
+msgstr ""
+
+#: src/components/onboarding.tsx:287
+msgid "Calendar access"
+msgstr ""
+
+#: src/components/onboarding.tsx:295
 msgid "Done"
 msgstr ""
 
-#: src/components/onboarding.tsx:224
+#: src/components/onboarding.tsx:302
 msgid "Skip for Now"
 msgstr ""
 
-#: src/components/onboarding.tsx:231
+#: src/components/onboarding.tsx:309
 msgid "Download {size}"
 msgstr ""
 
-#: src/components/onboarding.tsx:234
+#: src/components/onboarding.tsx:312
 msgid "Downloading…"
 msgstr ""
 
-#: src/components/onboarding.tsx:236
+#: src/components/onboarding.tsx:314
 msgid "Download all models"
 msgstr ""
 
@@ -291,7 +331,7 @@ msgstr ""
 msgid "Could not save the setting: {reason}"
 msgstr ""
 
-#: src/components/preferences.tsx:157 src/components/preferences.tsx:301
+#: src/components/preferences.tsx:157 src/components/preferences.tsx:323
 msgid "General"
 msgstr ""
 
@@ -347,48 +387,74 @@ msgstr ""
 msgid "What the other people in the call sound like"
 msgstr ""
 
-#: src/components/preferences.tsx:226
+#: src/components/preferences.tsx:226 src/components/preferences.tsx:227
+msgid "Auto-record"
+msgstr ""
+
+#: src/components/preferences.tsx:228
+msgid ""
+"Start recording on its own. A recording that is already running is never "
+"interrupted."
+msgstr ""
+
+#: src/components/preferences.tsx:231
+msgid "When a Calendar Meeting Starts"
+msgstr ""
+
+#: src/components/preferences.tsx:232
+msgid "Meetings you declined, and all-day events, are skipped"
+msgstr ""
+
+#: src/components/preferences.tsx:239
+msgid "When Another App Uses the Microphone"
+msgstr ""
+
+#: src/components/preferences.tsx:240
+msgid "Stops again once the call has ended"
+msgstr ""
+
+#: src/components/preferences.tsx:248
 msgid "Storage"
 msgstr ""
 
-#: src/components/preferences.tsx:228 src/components/preferences.tsx:229
+#: src/components/preferences.tsx:250 src/components/preferences.tsx:251
 msgid "Recorded Audio"
 msgstr ""
 
-#: src/components/preferences.tsx:230
+#: src/components/preferences.tsx:252
 msgid ""
 "Transcripts are always kept. This only decides what happens to the audio."
 msgstr ""
 
-#: src/components/preferences.tsx:233
+#: src/components/preferences.tsx:255
 msgid "Audio"
 msgstr ""
 
-#: src/components/preferences.tsx:242 src/components/preferences.tsx:250
+#: src/components/preferences.tsx:264 src/components/preferences.tsx:272
 msgid "Days to keep audio"
 msgstr ""
 
-#: src/components/preferences.tsx:260
+#: src/components/preferences.tsx:282
 msgid "Archive audio"
 msgstr ""
 
-#: src/components/preferences.tsx:261
+#: src/components/preferences.tsx:283
 msgid "Keep a compressed copy (Opus) of each recording"
 msgstr ""
 
-#: src/components/preferences.tsx:284
+#: src/components/preferences.tsx:306
 msgid "The daemon did not return its settings."
 msgstr ""
 
-#: src/components/preferences.tsx:297 src/components/sidebar.tsx:60
+#: src/components/preferences.tsx:319 src/components/sidebar.tsx:60
 msgid "Preferences"
 msgstr ""
 
-#: src/components/preferences.tsx:302
+#: src/components/preferences.tsx:324
 msgid "Settings"
 msgstr ""
 
-#: src/components/preferences.tsx:306
+#: src/components/preferences.tsx:328
 msgid "Settings Unavailable"
 msgstr ""
 
@@ -476,7 +542,7 @@ msgstr ""
 msgid "Session details"
 msgstr ""
 
-#: src/components/session-detail.tsx:210 src/components/transcript-view.tsx:245
+#: src/components/session-detail.tsx:210 src/components/transcript-view.tsx:262
 msgid "Transcript"
 msgstr ""
 
@@ -568,55 +634,55 @@ msgstr ""
 msgid "Try Again"
 msgstr ""
 
-#: src/components/transcript-view.tsx:30
+#: src/components/transcript-view.tsx:31
 msgid "Me"
 msgstr ""
 
-#: src/components/transcript-view.tsx:30
+#: src/components/transcript-view.tsx:31
 msgid "Them"
 msgstr ""
 
-#: src/components/transcript-view.tsx:34
+#: src/components/transcript-view.tsx:35
 msgid "in progress"
 msgstr ""
 
-#: src/components/transcript-view.tsx:34
+#: src/components/transcript-view.tsx:35
 msgid "provisional"
 msgstr ""
 
-#: src/components/transcript-view.tsx:35
+#: src/components/transcript-view.tsx:36
 msgid "{speaker} at {time}: {text}"
 msgstr ""
 
-#: src/components/transcript-view.tsx:159
+#: src/components/transcript-view.tsx:160
 msgid "Loading Transcript…"
 msgstr ""
 
-#: src/components/transcript-view.tsx:169
+#: src/components/transcript-view.tsx:170
 msgid "Could Not Load the Transcript"
 msgstr ""
 
-#: src/components/transcript-view.tsx:179
+#: src/components/transcript-view.tsx:180
 msgid "Listening…"
 msgstr ""
 
-#: src/components/transcript-view.tsx:179
+#: src/components/transcript-view.tsx:180
 msgid "No Transcript"
 msgstr ""
 
-#: src/components/transcript-view.tsx:181
+#: src/components/transcript-view.tsx:182
 msgid "Lines appear here as people speak."
 msgstr ""
 
-#: src/components/transcript-view.tsx:181
+#: src/components/transcript-view.tsx:182
 msgid "Nothing was transcribed in this session."
 msgstr ""
 
-#: src/components/transcript-view.tsx:196
+#: src/components/transcript-view.tsx:197
 msgid "Scroll to the newest line and keep following"
 msgstr ""
 
-#: src/components/transcript-view.tsx:203
+#: src/components/transcript-view.tsx:204
 msgid "Jump to Live"
 msgstr ""
 

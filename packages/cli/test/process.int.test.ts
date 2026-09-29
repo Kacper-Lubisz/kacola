@@ -104,6 +104,7 @@ describe('gnomeola mcp — the same tools over MCP', () => {
     const { tools } = await client.listTools()
     expect(tools.map((t) => t.name).sort()).toEqual([
       'ask_meetings',
+      'calendar_meetings',
       'get_transcript_window',
       'list_sessions',
       'recording_status',
@@ -134,6 +135,13 @@ describe('gnomeola mcp — the same tools over MCP', () => {
     const r = await client.callTool({ name: 'get_transcript_window', arguments: { sessionId: IDS.standup } })
     expect(r.isError).toBe(true)
     expect((r.content as { text: string }[])[0]!.text).toMatch(/refusing.*\nhint: search first/)
+  })
+
+  it('calendar_meetings: next by default, or today', async () => {
+    const r = await client.callTool({ name: 'calendar_meetings', arguments: {} })
+    expect(JSON.parse((r.content as { text: string }[])[0]!.text).next.title).toBe('Customer call')
+    const t = await client.callTool({ name: 'calendar_meetings', arguments: { when: 'today' } })
+    expect(JSON.parse((t.content as { text: string }[])[0]!.text).meetings.length).toBeGreaterThan(0)
   })
 
   it('cannot see private sessions', async () => {

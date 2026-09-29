@@ -1,0 +1,28 @@
+{
+  "current": {
+    "id": "mtg_y6eXzpFIAR6qHRArcVe5no",
+    "title": "Design review",
+    "start": "<iso>",
+    "end": "<iso>",
+    "allDay": false,
+    "joinUrl": null,
+    "provider": null,
+    "calendar": "Work",
+    "response": null
+  },
+  "next": {
+    "id": "mtg_U9AypE6kusJSqwxip0AyzW",
+    "title": "Customer call",
+    "start": "<iso>",
+    "end": "<iso>",
+    "allDay": false,
+    "joinUrl": "https://us02web.zoom.us/j/84518302211?pwd=abc&from=addon",
+    "provider": "zoom",
+    "calendar": "Work",
+    "response": "accepted"
+  },
+  "calendar": {
+    "state": "ok",
+    "detail": null
+  }
+}

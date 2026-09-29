@@ -3,6 +3,7 @@ import type {
   AskStreamEvent,
   AudioDevice,
   BodyIn,
+  CalendarStatus,
   Health,
   ModelInfo,
   QaMessage,
@@ -56,4 +57,6 @@ export interface DataSource {
   listDevices(signal?: AbortSignal): Promise<AudioDevice[]>
   listModels(signal?: AbortSignal): Promise<ModelInfo[]>
   downloadModel(id: string): Promise<ModelInfo>
+  /** M4: whether the daemon can read the user's calendars (onboarding shows it). */
+  calendarStatus(signal?: AbortSignal): Promise<CalendarStatus>
 }
