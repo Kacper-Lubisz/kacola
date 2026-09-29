@@ -147,7 +147,7 @@ export interface StoreApi {
   // ---- H-7: hybrid sync (a device's log applied to this store, idempotently)
   syncCursor(deviceId: string): Promise<number>
   /** One transaction: skip items at/below the device's cursor, apply the rest, advance the cursor. */
-  ingest(deviceId: string, items: SyncItem[]): Promise<SyncPushResult>
+  ingest(deviceId: string, items: SyncItem[], opts?: { partial?: boolean }): Promise<SyncPushResult>
 
   // ---- H-6: pairing
   createPairing(p: PairingRecord): Promise<void>

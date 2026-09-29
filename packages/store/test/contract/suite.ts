@@ -603,6 +603,34 @@ export function storeContract(dialect: string, factory: StoreFactory): void {
     })
   })
 
+  describe(`[${dialect}] hybrid-sync ingest: groups split across pushes`, () => {
+    it('a partial push leaves its last seq open, so the rest of that group is applied next time', async () => {
+      const srv = await make()
+      const ses = await (await make()).createSession({ id: 'ses_group001', title: 'revealed' })
+      const segItem = (n: number) => ({
+        seq: 5,
+        data: {
+          type: 'segment.upserted' as const,
+          segment: { ...seg(ses.id, { id: `seg_g${n}`, startMs: n, endMs: n + 1 }), revision: 1 },
+        },
+      })
+      const first = await srv.ingest(
+        'd',
+        [{ seq: 5, data: { type: 'session.upserted', session: ses } }, segItem(1), segItem(2)],
+        { partial: true },
+      )
+      expect(first.cursor).toBe(4)
+      const second = await srv.ingest('d', [
+        segItem(2),
+        segItem(3),
+        { seq: 6, data: { type: 'session.deleted', sessionId: 'x' } },
+      ])
+      expect(second).toMatchObject({ cursor: 6, applied: 1, skipped: 2 }) // seg 2 again: same revision, no-op
+      expect((await srv.segments(ses.id)).map((g) => g.id)).toEqual(['seg_g1', 'seg_g2', 'seg_g3'])
+      expect(await srv.syncCursor('d')).toBe(6)
+    })
+  })
+
   describe(`[${dialect}] M7 notes, as a replica receives them`, () => {
     it('replay of a notes log reproduces heads, pending reviews, every version and templates', async () => {
       const { store: src, events } = notesLog()

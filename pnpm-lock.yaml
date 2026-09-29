@@ -37,6 +37,28 @@ importers:
         specifier: workspace:*
         version: link:../testkit
 
+  packages/capture-agent:
+    dependencies:
+      '@gnomeola/capture':
+        specifier: workspace:*
+        version: link:../capture
+      '@gnomeola/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+    devDependencies:
+      '@gnomeola/server':
+        specifier: workspace:*
+        version: link:../server
+      '@gnomeola/store':
+        specifier: workspace:*
+        version: link:../store
+      '@gnomeola/stt':
+        specifier: workspace:*
+        version: link:../stt
+      '@gnomeola/testkit':
+        specifier: workspace:*
+        version: link:../testkit
+
   packages/cli:
     dependencies:
       '@anthropic-ai/tokenizer':
@@ -57,12 +79,18 @@ importers:
       '@gnomeola/capture':
         specifier: workspace:*
         version: link:../capture
+      '@gnomeola/capture-agent':
+        specifier: workspace:*
+        version: link:../capture-agent
       '@gnomeola/llm':
         specifier: workspace:*
         version: link:../llm
       '@gnomeola/protocol':
         specifier: workspace:*
         version: link:../protocol
+      '@gnomeola/server':
+        specifier: workspace:*
+        version: link:../server
       '@gnomeola/store':
         specifier: workspace:*
         version: link:../store

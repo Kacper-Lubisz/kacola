@@ -179,7 +179,7 @@ describe('contract: every route, real server, typed client', () => {
         ),
       getAudioStatus: () => notHere(c.call('getAudioStatus', { params })),
       finalizeAudio: () =>
-        notHere(c.call('finalizeAudio', { params, body: { chunkCount: 0, durationMs: 0 } })),
+        notHere(c.call('finalizeAudio', { params, body: { chunks: { mic: 0, system: 0 }, durationMs: 0 } })),
     }
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {
       await expect(call(), name).resolves.toBeDefined()

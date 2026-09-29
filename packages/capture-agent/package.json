@@ -1,0 +1,28 @@
+{
+  "name": "@gnomeola/capture-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The local-only half (H-2): PipeWire capture with chunked, resumable upload to any gnomeola server, and the hybrid-sync pusher. Protocol client + capture only.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./sync": "./src/sync.ts"
+  },
+  "bin": {
+    "gnomeola-agent": "./src/main.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gnomeola/capture": "workspace:*",
+    "@gnomeola/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "@gnomeola/server": "workspace:*",
+    "@gnomeola/store": "workspace:*",
+    "@gnomeola/stt": "workspace:*",
+    "@gnomeola/testkit": "workspace:*"
+  }
+}

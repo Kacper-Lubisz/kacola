@@ -166,7 +166,11 @@ export class SqliteStoreApi implements StoreApi {
     return r?.cursor ?? 0
   }
 
-  async ingest(deviceId: string, items: SyncItem[]): Promise<SyncPushResult> {
+  async ingest(
+    deviceId: string,
+    items: SyncItem[],
+    opts: { partial?: boolean } = {},
+  ): Promise<SyncPushResult> {
     checkIngestOrder(items)
     const s = this.store
     return s.transaction(() => {
@@ -198,6 +202,7 @@ export class SqliteStoreApi implements StoreApi {
           out.applied++
         }
       }
+      if (opts.partial && items.length) out.cursor = Math.max(start, items.at(-1)!.seq - 1)
       this.db
         .prepare(
           `INSERT INTO sync_devices (device_id, cursor, updated_at) VALUES (?, ?, ?)

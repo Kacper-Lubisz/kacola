@@ -254,7 +254,8 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     deleteTemplate: 'unsupported',
 
     // ---- M8
-    syncPush: async ({ body, principal }) => store.ingest(deviceIdFor(principal, body.deviceId), body.items),
+    syncPush: async ({ body, principal }) =>
+      store.ingest(deviceIdFor(principal, body.deviceId), body.items, { partial: body.partial }),
     syncCursor: async ({ query, principal }) => {
       const deviceId = deviceIdFor(principal, query.deviceId)
       return { deviceId, cursor: await store.syncCursor(deviceId) }

@@ -5,6 +5,7 @@ import {
   type AudioChunkResult,
   type AudioStatus,
   chunkIndexOf,
+  chunkSeqFor,
   type FinalizeAudioBody,
   type Session,
   type Track,
@@ -130,11 +131,16 @@ export async function finalize(d: AudioDeps, sessionId: string, body: FinalizeAu
   const chunks = await d.store.audioChunks(sessionId)
   const have = new Set(chunks.map((c) => c.chunkSeq))
   const missing: number[] = []
-  for (let i = 0; i < body.chunkCount && missing.length < 20; i++) if (!have.has(i)) missing.push(i)
+  for (const track of ['mic', 'system'] as const)
+    for (let i = 0; i < body.chunks[track] && missing.length < 20; i++)
+      if (!have.has(chunkSeqFor(track, i))) missing.push(chunkSeqFor(track, i))
   if (missing.length) throw new HttpError('conflict', `missing chunks: ${missing.join(', ')}`)
-  const extra = chunks.filter((c) => c.chunkSeq >= body.chunkCount)
+  const extra = chunks.filter((c) => chunkIndexOf(c.chunkSeq).index >= body.chunks[c.track])
   if (extra.length)
-    throw new HttpError('conflict', `chunk ${extra[0]!.chunkSeq} is beyond chunkCount ${body.chunkCount}`)
+    throw new HttpError(
+      'conflict',
+      `chunk ${extra[0]!.chunkSeq} is beyond the ${extra[0]!.track} track's count`,
+    )
 
   const pcm: Record<TrackKind, Uint8Array> = { mic: new Uint8Array(0), system: new Uint8Array(0) }
   for (const track of ['mic', 'system'] as const) {

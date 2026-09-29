@@ -596,7 +596,11 @@ export class PgStore implements StoreApi {
     return r ? Number(r.cursor) : 0
   }
 
-  async ingest(deviceId: string, items: SyncItem[]): Promise<SyncPushResult> {
+  async ingest(
+    deviceId: string,
+    items: SyncItem[],
+    opts: { partial?: boolean } = {},
+  ): Promise<SyncPushResult> {
     checkIngestOrder(items)
     return this.write(async (trx, events) => {
       // Writer lock first (as every commit does), then this device's cursor row.
@@ -629,6 +633,7 @@ export class PgStore implements StoreApi {
           out.applied++
         }
       }
+      if (opts.partial && items.length) out.cursor = Math.max(start, items.at(-1)!.seq - 1)
       await sql`INSERT INTO sync_devices (device_id, cursor, updated_at)
         VALUES (${deviceId}, ${out.cursor}, ${this.now().toISOString()})
         ON CONFLICT (device_id) DO UPDATE SET cursor = excluded.cursor, updated_at = excluded.updated_at`.execute(

@@ -25,6 +25,11 @@ export const SyncPushBody = z.object({
   deviceId: z.string().min(1).max(100).optional(),
   /** Non-decreasing seq. Several items may share a seq (a snapshot expanded from one event). */
   items: z.array(SyncItem).max(SYNC_MAX_ITEMS),
+  /**
+   * The last seq's group continues in the next push (a snapshot too big for one request): apply these
+   * items but do not count that seq as done, so the rest of its group is not skipped as already seen.
+   */
+  partial: z.boolean().optional(),
 })
 export type SyncPushBody = z.infer<typeof SyncPushBody>
 
@@ -117,8 +122,8 @@ export const AudioStatus = z.object({
 export type AudioStatus = z.infer<typeof AudioStatus>
 
 export const FinalizeAudioBody = z.object({
-  /** How many chunks the agent sent in total; the server refuses to finalize with any missing. */
-  chunkCount: z.int().nonnegative(),
+  /** How many chunks of each track the agent sent; the server refuses to finalize with any missing. */
+  chunks: z.object({ mic: z.int().nonnegative(), system: z.int().nonnegative() }),
   durationMs: z.int().nonnegative(),
 })
 export type FinalizeAudioBody = z.infer<typeof FinalizeAudioBody>

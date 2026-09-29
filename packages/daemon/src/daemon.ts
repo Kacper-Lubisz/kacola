@@ -15,6 +15,7 @@ import {
   type Routes,
   routes,
 } from '@gnomeola/protocol'
+import type { AuthConfig } from '@gnomeola/server/auth'
 import { Store } from '@gnomeola/store'
 import type { z } from 'zod'
 import pkg from '../package.json' with { type: 'json' }
@@ -23,7 +24,7 @@ import { EventBus } from './bus.ts'
 import { apiErrorBody, DaemonError, toDaemonError } from './errors.ts'
 import { streamEvents } from './events-stream.ts'
 import { NoDevices, NoModels, UnavailablePipeline } from './fakes/providers.ts'
-import { hostedHandlers } from './hosted.ts'
+import { hostedHandlers, remoteAccess } from './hosted.ts'
 import { readJsonBody, SseWriter, sendJson } from './http.ts'
 import type { DeviceProvider, Keyring, ModelProvider, QaEngine, TranscriptionPipeline } from './interfaces.ts'
 import { NoKeyring } from './keyring.ts'
@@ -35,7 +36,7 @@ import { SettingsService } from './settings.ts'
 
 export const VERSION: string = pkg.version
 
-/** Loopback only. Binding anything else needs pairing auth first (see the plan's "Hosting" section). */
+/** Loopback. Binding anything else needs pairing auth (`auth`, H-6; see the plan's "Hosting" section). */
 export const LOOPBACK_HOSTS = new Set(['127.0.0.1', '::1', 'localhost'])
 
 export type DaemonOptions = {
@@ -61,6 +62,13 @@ export type DaemonOptions = {
   /** Browser origins allowed to call the API. Default none: any request carrying Origin is refused. */
   allowedOrigins?: string[]
   maxSseBufferedBytes?: number
+  /**
+   * H-6 pairing auth. Required to listen on anything but loopback; then remote requests need a device
+   * token and only loopback stays anonymous. null/undefined: loopback-only, as before.
+   */
+  auth?: AuthConfig | null
+  /** With auth: treat loopback requests as the owner without a token (default true). */
+  trustLoopback?: boolean
 }
 
 export type Daemon = {
@@ -100,14 +108,17 @@ export type Handlers = {
 
 export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
   const host = o.host ?? '127.0.0.1'
-  if (!LOOPBACK_HOSTS.has(host))
-    throw new Error(`refusing to listen on ${host}: gnomeolad only binds loopback until pairing auth exists`)
+  if (!LOOPBACK_HOSTS.has(host) && !o.auth)
+    throw new Error(
+      `refusing to listen on ${host} without pairing auth: remote requests must carry a token (start with --remote)`,
+    )
   mkdirSync(o.dataDir, { recursive: true, mode: 0o700 })
   const env = o.env ?? process.env
   const logger = o.logger ?? new Logger({ file: join(o.dataDir, 'logs', 'gnomeolad.log'), echo: o.echoLogs })
   const store = Store.open(join(o.dataDir, 'gnomeola.db'))
   const bus = new EventBus()
   store.onCommit((e) => bus.publish(e))
+  const access = remoteAccess(store, o.auth ?? null, o.trustLoopback ?? true)
   const pipeline = o.pipeline ?? new UnavailablePipeline()
   const models = o.models ?? new NoModels()
   const devices = o.devices ?? new NoDevices()
@@ -263,16 +274,17 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     // ---- M7: notes + enhancement
     ...notesHandlers({ store, engine: o.notesEngine ?? null, settings, logger, visible }),
 
-    ...hostedHandlers,
+    ...hostedHandlers(access),
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))
 
   async function dispatch(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1')
-    // DNS-rebinding and drive-by-CSRF guard: only loopback Host names, and no browser origins.
+    // DNS-rebinding and drive-by-CSRF guard: only loopback Host names (unless pairing auth is on, when
+    // any Host may connect but must authenticate), and no browser origins.
     const hostname = (req.headers.host ?? '').replace(/:\d+$/, '').replace(/^\[|\]$/g, '')
-    if (!LOOPBACK_HOSTS.has(hostname))
+    if (!access.auth && !LOOPBACK_HOSTS.has(hostname))
       throw new DaemonError('unauthorized', 'Host must be a loopback address')
     const origin = req.headers.origin
     if (origin !== undefined && !allowedOrigins.has(origin))
@@ -289,6 +301,13 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
       throw new DaemonError('bad_request', `method ${req.method} not allowed on ${url.pathname}`, 405)
     }
     const { name, def, params } = hit
+    // H-6: authenticate before parsing anything — an unauthenticated remote caller learns nothing.
+    try {
+      await access.authenticate(req, name)
+    } catch (err) {
+      res.setHeader('www-authenticate', 'Bearer realm="gnomeola"')
+      throw err
+    }
     const query = def.query ? def.query.parse(Object.fromEntries(url.searchParams)) : {}
     const body = def.body ? def.body.parse((await readJsonBody(req)) ?? {}) : undefined
     const ac = new AbortController()

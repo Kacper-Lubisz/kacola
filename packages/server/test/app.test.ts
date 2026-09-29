@@ -152,7 +152,8 @@ describe('hosted contract: every route', () => {
           },
         }),
       getAudioStatus: () => c.call('getAudioStatus', { params }),
-      finalizeAudio: () => c.call('finalizeAudio', { params, body: { chunkCount: 1, durationMs: 100 } }),
+      finalizeAudio: () =>
+        c.call('finalizeAudio', { params, body: { chunks: { mic: 1, system: 0 }, durationMs: 100 } }),
 
       getNotes: async () => {
         const n = await c.call('getNotes', { params })
@@ -241,7 +242,10 @@ describe('hosted contract: every route', () => {
     await expect(h.client.call('deleteSession', { params: { id: s.id } })).rejects.toMatchObject({
       status: 409,
     })
-    await h.client.call('finalizeAudio', { params: { id: s.id }, body: { chunkCount: 1, durationMs: 10 } })
+    await h.client.call('finalizeAudio', {
+      params: { id: s.id },
+      body: { chunks: { mic: 1, system: 0 }, durationMs: 10 },
+    })
     expect((await h.blobs.list(`audio/${s.id}/`)).map((b) => b.key.split('/')[2])).toContain('mic.wav')
     await h.client.call('deleteSession', { params: { id: s.id } })
     expect(await h.blobs.list(`audio/${s.id}/`)).toEqual([])
