@@ -67,6 +67,10 @@ function unusedApi(): Omit<DataSource, 'origin' | 'load' | 'subscribe'> {
     },
     mergeNotes: unused,
     templates: unused,
+    listSpeakers: unused,
+    renameSpeaker: unused,
+    mergeSpeaker: unused,
+    splitSpeaker: unused,
   }
 }
 

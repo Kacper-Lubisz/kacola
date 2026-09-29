@@ -8,6 +8,7 @@ import type {
   Session,
   SessionMeeting,
   SessionStatus,
+  SpeakerSummary,
   StoredSettings,
   SyncItem,
   SyncPushResult,
@@ -134,6 +135,9 @@ export class SqliteStoreApi implements StoreApi {
   async noteTemplates(): Promise<NoteTemplate[]> {
     return this.notes.templates()
   }
+  async speakerSummaries(sessionId: string): Promise<SpeakerSummary[]> {
+    return this.store.speakerSummaries(sessionId)
+  }
 
   async snapshot(): Promise<DomainSnapshot> {
     const s = this.store
@@ -160,6 +164,13 @@ export class SqliteStoreApi implements StoreApi {
       noteVersions: withNotes.flatMap((id) => this.notes.versions(id)),
       notes: withNotes.map((id) => this.notes.get(id)),
       templates: this.notes.templates(),
+      speakers: ids.flatMap((id) => s.speakers(id, { includeMerged: true })).sort(byKey((x) => x.id)),
+      attribution: (
+        this.db
+          .prepare('SELECT id, speaker_source FROM segments WHERE speaker_source IS NOT NULL ORDER BY id')
+          .all() as { id: string; speaker_source: string }[]
+      ).map((r) => ({ segmentId: r.id, source: r.speaker_source })),
+      voiceprints: s.voiceprints().sort(byKey((v) => v.id)),
     }
   }
 
@@ -199,6 +210,9 @@ export class SqliteStoreApi implements StoreApi {
           prevSegment: subj.segmentId ? s.getSegment(subj.segmentId) : null,
           noteVersionExists:
             subj.noteVersion !== undefined && this.notes.version(subj.sessionId!, subj.noteVersion) !== null,
+          speakersExist: (subj.speakerIds ?? []).every(
+            (id) => s.getSpeaker(id)?.sessionId === subj.sessionId,
+          ),
         })
         if (d.kind === 'skip') out.skipped++
         else if (d.kind === 'reject')

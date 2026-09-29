@@ -9,10 +9,13 @@ import type {
   Session,
   SessionMeeting,
   SessionStatus,
+  Speaker,
+  SpeakerSummary,
   StoredSettings,
   SyncItem,
   SyncPushResult,
   TrackKind,
+  Voiceprint,
 } from '@gnomeola/protocol'
 
 // H-1 — the store as an asynchronous interface, so one server can run on either dialect:
@@ -77,6 +80,10 @@ export type DomainSnapshot = {
   noteVersions: NoteVersion[]
   notes: Note[]
   templates: NoteTemplate[]
+  /** M3: every far-end speaker (merged tombstones included), by id; who attributed each segment. */
+  speakers: Speaker[]
+  attribution: { segmentId: string; source: string }[]
+  voiceprints: Voiceprint[]
 }
 
 // ------------------------------------------------------------------ hosted bookkeeping
@@ -148,6 +155,8 @@ export interface StoreApi {
   noteVersion(sessionId: string, version: number): Promise<NoteVersion | null>
   noteVersions(sessionId: string): Promise<NoteVersion[]>
   noteTemplates(): Promise<NoteTemplate[]>
+  /** M3: who speaks in a session (`me`, far-end speakers, `them`), as the speakers route answers. */
+  speakerSummaries(sessionId: string): Promise<SpeakerSummary[]>
   snapshot(): Promise<DomainSnapshot>
 
   // ---- H-7: hybrid sync (a device's log applied to this store, idempotently)

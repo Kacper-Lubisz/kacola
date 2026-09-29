@@ -1,6 +1,7 @@
 import {
   type DurableEvent,
   DurableEventData,
+  ME,
   type Note,
   type NoteTemplate,
   type NoteVersion,
@@ -10,9 +11,11 @@ import {
   type Session,
   type SessionMeeting,
   type SessionStatus,
+  type SpeakerSummary,
   StoredSettings,
   type SyncItem,
   type SyncPushResult,
+  THEM,
 } from '@gnomeola/protocol'
 import { type Kysely, type RawBuilder, sql, type Transaction } from 'kysely'
 import type {
@@ -39,6 +42,7 @@ import {
   rowToNoteVersion,
   rowToQa,
   rowToSegment,
+  rowToSpeaker,
   rowToTrack,
   truthy,
 } from '../rows.ts'
@@ -174,12 +178,15 @@ export class PgStore implements StoreApi {
       }
       case 'segment.upserted': {
         const g = data.segment
-        await sql`INSERT INTO segments (id, session_id, track, speaker, start_ms, end_ms, text, quality, revision, confidence, search_text)
-          VALUES (${g.id}, ${g.sessionId}, ${g.track}, ${g.speaker}, ${g.startMs}, ${g.endMs}, ${g.text}, ${g.quality}, ${g.revision}, ${g.confidence}, ${searchText(g.text)})
+        // speaker_source is set only for a new row (as ../store.ts does); later changes carry their own `by`
+        const speakerId = g.speakerId ?? null
+        await sql`INSERT INTO segments (id, session_id, track, speaker, start_ms, end_ms, text, quality, revision, confidence, search_text, speaker_id, speaker_source)
+          VALUES (${g.id}, ${g.sessionId}, ${g.track}, ${g.speaker}, ${g.startMs}, ${g.endMs}, ${g.text}, ${g.quality}, ${g.revision}, ${g.confidence}, ${searchText(g.text)},
+            ${speakerId}, ${speakerId ? 'auto' : null})
           ON CONFLICT (id) DO UPDATE SET session_id = excluded.session_id, track = excluded.track,
             speaker = excluded.speaker, start_ms = excluded.start_ms, end_ms = excluded.end_ms, text = excluded.text,
             quality = excluded.quality, revision = excluded.revision, confidence = excluded.confidence,
-            search_text = excluded.search_text`.execute(e)
+            search_text = excluded.search_text, speaker_id = excluded.speaker_id`.execute(e)
         return
       }
       case 'qa.message': {
@@ -196,6 +203,7 @@ export class PgStore implements StoreApi {
       }
       case 'session.deleted': {
         const id = data.sessionId
+        await sql`DELETE FROM speakers WHERE session_id = ${id}`.execute(e)
         await sql`DELETE FROM notes WHERE session_id = ${id}`.execute(e)
         await sql`DELETE FROM note_versions WHERE session_id = ${id}`.execute(e)
         await sql`DELETE FROM qa_messages WHERE session_id = ${id}`.execute(e)
@@ -249,6 +257,48 @@ export class PgStore implements StoreApi {
       }
       case 'template.deleted':
         await sql`DELETE FROM note_templates WHERE id = ${data.id}`.execute(e)
+        return
+      // ---- M3 attribution: the same writes as ../store.ts applySpeakerEvent
+      case 'speaker.upserted': {
+        const p = data.speaker
+        await sql`INSERT INTO speakers (id, session_id, label, named, colour, voiceprint_id, merged_into, created_at)
+          VALUES (${p.id}, ${p.sessionId}, ${p.label}, ${p.named}, ${p.colour}, ${p.voiceprintId}, ${p.mergedInto}, ${p.createdAt})
+          ON CONFLICT (id) DO UPDATE SET session_id = excluded.session_id, label = excluded.label, named = excluded.named,
+            colour = excluded.colour, voiceprint_id = excluded.voiceprint_id, merged_into = excluded.merged_into,
+            created_at = excluded.created_at`.execute(e)
+        await sql`UPDATE segments SET speaker = ${p.label} WHERE speaker_id = ${p.id}`.execute(e)
+        return
+      }
+      case 'speaker.merged': {
+        const into = await one(e, sql`SELECT id, label FROM speakers WHERE id = ${data.intoId}`)
+        await sql`UPDATE segments SET speaker_id = ${into!.id as string}, speaker = ${into!.label as string}, speaker_source = 'user'
+          WHERE speaker_id = ${data.fromId}`.execute(e)
+        await sql`UPDATE speakers SET merged_into = ${into!.id as string}
+          WHERE id = ${data.fromId} OR merged_into = ${data.fromId}`.execute(e)
+        return
+      }
+      case 'segments.attributed': {
+        if (!data.segmentIds.length) return
+        const spk = await one(e, sql`SELECT id, label FROM speakers WHERE id = ${data.speakerId}`)
+        await sql`UPDATE segments SET speaker_id = ${spk!.id as string}, speaker = ${spk!.label as string}, speaker_source = ${data.by}
+          WHERE session_id = ${data.sessionId} AND id IN (${sql.join(data.segmentIds)})`.execute(e)
+        return
+      }
+      case 'voiceprint.upserted': {
+        const v = data.voiceprint
+        await sql`INSERT INTO voiceprints (id, name, model, embedding, samples, created_at, updated_at)
+          VALUES (${v.id}, ${v.name}, ${v.model}, ${JSON.stringify(v.embedding)}, ${v.samples}, ${v.createdAt}, ${v.updatedAt})
+          ON CONFLICT (id) DO UPDATE SET name = excluded.name, model = excluded.model, embedding = excluded.embedding,
+            samples = excluded.samples, created_at = excluded.created_at, updated_at = excluded.updated_at`.execute(
+          e,
+        )
+        return
+      }
+      case 'voiceprint.deleted':
+        await sql`DELETE FROM voiceprints WHERE id = ${data.voiceprintId}`.execute(e)
+        await sql`UPDATE speakers SET voiceprint_id = NULL WHERE voiceprint_id = ${data.voiceprintId}`.execute(
+          e,
+        )
         return
       default: {
         const never: never = data
@@ -462,7 +512,9 @@ export class PgStore implements StoreApi {
     if (windowed && toMs < fromMs) throw new StoreError('bad_request', `toMs ${toMs} < fromMs ${fromMs}`)
     const where = [sql`session_id = ${sessionId}`]
     if (windowed) where.push(sql`start_ms <= ${toMs}`, sql`end_ms >= ${fromMs}`)
-    if (opts.speaker !== undefined) where.push(sql`lower(speaker) = lower(${opts.speaker})`)
+    // a label ("Ana", "me") or a speaker id (M3), as in ../store.ts
+    if (opts.speaker !== undefined)
+      where.push(sql`(lower(speaker) = lower(${opts.speaker}) OR speaker_id = ${opts.speaker})`)
     if (opts.track !== undefined) where.push(sql`track = ${opts.track}`)
     if (opts.quality === 'live' || opts.quality === 'final') where.push(sql`quality = ${opts.quality}`)
     const segs = await rows(
@@ -485,7 +537,8 @@ export class PgStore implements StoreApi {
     if (!opts.includePrivate) where.push(sql`ses.private = false`)
     if (opts.since) where.push(sql`ses.created_at >= ${opts.since.toISOString()}`)
     if (opts.sessionId !== undefined) where.push(sql`s.session_id = ${opts.sessionId}`)
-    if (opts.speaker !== undefined) where.push(sql`lower(s.speaker) = lower(${opts.speaker})`)
+    if (opts.speaker !== undefined)
+      where.push(sql`(lower(s.speaker) = lower(${opts.speaker}) OR s.speaker_id = ${opts.speaker})`)
     const cond = sql.join(where, sql` AND `)
     const from = sql`segments s JOIN sessions ses ON ses.id = s.session_id
       CROSS JOIN (SELECT to_tsquery('simple', ${tsq}) AS q) q`
@@ -595,7 +648,69 @@ export class PgStore implements StoreApi {
       noteVersions,
       notes,
       templates: await this.noteTemplates(),
+      speakers: (await rows(this.db, sql`SELECT * FROM speakers ORDER BY id`)).map(rowToSpeaker),
+      attribution: (
+        await rows(
+          this.db,
+          sql`SELECT id, speaker_source FROM segments WHERE speaker_source IS NOT NULL ORDER BY id`,
+        )
+      ).map((r) => ({ segmentId: r.id as string, source: r.speaker_source as string })),
+      voiceprints: (await rows(this.db, sql`SELECT * FROM voiceprints ORDER BY id`)).map((r) => ({
+        id: r.id as string,
+        name: r.name as string,
+        model: r.model as string,
+        embedding: JSON.parse(r.embedding as string) as number[],
+        samples: Number(r.samples),
+        createdAt: r.created_at as string,
+        updatedAt: r.updated_at as string,
+      })),
     }
+  }
+
+  /** As ../store.ts speakerSummaries: `me`, the live far-end speakers in creation order, then `them`. */
+  async speakerSummaries(sessionId: string): Promise<SpeakerSummary[]> {
+    const stats = await rows(
+      this.db,
+      sql`SELECT track, speaker_id, count(*) AS n, coalesce(sum(end_ms - start_ms), 0) AS ms
+          FROM segments WHERE session_id = ${sessionId} GROUP BY track, speaker_id`,
+    )
+    const stat = (track: string, id: string | null) => {
+      const r = stats.find((x) => x.track === track && (x.speaker_id ?? null) === id)
+      return { n: r ? Number(r.n) : 0, ms: r ? Number(r.ms) : 0 }
+    }
+    const pseudo = (id: string, track: 'mic' | 'system', st: { n: number; ms: number }): SpeakerSummary => ({
+      id,
+      label: id,
+      track,
+      named: false,
+      colour: null,
+      voiceprintId: null,
+      segments: st.n,
+      talkMs: st.ms,
+    })
+    const out: SpeakerSummary[] = [pseudo(ME, 'mic', stat('mic', null))]
+    const live = (
+      await rows(
+        this.db,
+        sql`SELECT * FROM speakers WHERE session_id = ${sessionId} AND merged_into IS NULL ORDER BY created_at, colour, id`,
+      )
+    ).map(rowToSpeaker)
+    for (const s of live) {
+      const st = stat('system', s.id)
+      out.push({
+        id: s.id,
+        label: s.label,
+        track: 'system',
+        named: s.named,
+        colour: s.colour,
+        voiceprintId: s.voiceprintId,
+        segments: st.n,
+        talkMs: st.ms,
+      })
+    }
+    const them = stat('system', null)
+    if (them.n) out.push(pseudo(THEM, 'system', them))
+    return out
   }
 
   // ------------------------------------------------------------------------------ sync (H-7)
@@ -627,6 +742,13 @@ export class PgStore implements StoreApi {
         const d = decideIngest(item.data, {
           sessionExists: subj.sessionId !== null && (await this.getSessionIn(trx, subj.sessionId)) !== null,
           prevSegment: subj.segmentId ? await this.getSegmentIn(trx, subj.segmentId) : null,
+          speakersExist: await (async () => {
+            for (const id of subj.speakerIds ?? []) {
+              const r = await one(trx, sql`SELECT session_id FROM speakers WHERE id = ${id}`)
+              if (r?.session_id !== subj.sessionId) return false
+            }
+            return true
+          })(),
           noteVersionExists:
             subj.noteVersion !== undefined &&
             (await one(

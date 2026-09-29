@@ -73,9 +73,11 @@ carries the **device's** seq; the server keeps a cursor per device and, in one t
 or below it, applies the rest and advances it. So a push is idempotent (a lost response is simply pushed
 again) and resumable (after any restart the agent asks for its cursor and continues).
 
-What syncs: sessions (local audio paths blanked), segments, per-session Q&A, notes versions.
-What never does: private sessions, audio, settings, notes templates, cross-session Q&A (an answer may
-quote a private meeting).
+What syncs: sessions (local audio paths blanked), segments, per-session Q&A, notes versions, and who
+spoke (M3 speakers, renames, merges, attributions — with the voiceprint link blanked).
+What never does: private sessions, audio, **voiceprints** (biometric: the agent never sends them and the
+server skips them even if pushed), settings, notes templates, cross-session Q&A (an answer may quote a
+private meeting).
 
 **Conflict rules** (`decideIngest` in `packages/store/src/domain.ts`, one pure function used by both
 dialects):
@@ -87,6 +89,7 @@ dialects):
   a track change, a mic segment not attributed to `me`) is rejected, reported back in `rejected`, and
   does not stop the rest of the batch; the cursor moves past it.
 - Notes versions are append-only: a version number already present is a no-op.
+- Speaker merges and attributions apply only when their session and every speaker they name exist.
 - Deleting an absent session is a no-op. Settings and templates are device-local and skipped.
 - Privacy is followed, not just filtered: making a synced session private pushes a delete; making it
   public again pushes a snapshot of its current state (split across pushes with `partial` when large).

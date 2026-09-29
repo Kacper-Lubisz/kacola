@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { CalendarStatus, Meeting } from './calendar.ts'
 import { NoteTemplate, NoteVersion } from './notes.ts'
 import { Iso, ModelInfo, QaMessage, Segment, Session, StoredSettings, TrackKind } from './schemas.ts'
+import { SpeakerEvents } from './speakers.ts'
 
 // Events come in two kinds, and the distinction is load-bearing:
 //
@@ -25,6 +26,8 @@ export const DurableEventData = z.discriminatedUnion('type', [
   /** A custom notes template was created or changed. */
   z.object({ type: z.literal('template.upserted'), template: NoteTemplate }),
   z.object({ type: z.literal('template.deleted'), id: z.string() }),
+  // ---- M3: attribution (speakers, attributions, voiceprints)
+  ...SpeakerEvents,
 ])
 export type DurableEventData = z.infer<typeof DurableEventData>
 

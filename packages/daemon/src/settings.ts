@@ -1,4 +1,10 @@
-import { DEFAULT_AUTO_RECORD, type Settings, type SettingsPatch, StoredSettings } from '@gnomeola/protocol'
+import {
+  DEFAULT_AUTO_RECORD,
+  DEFAULT_SPEAKER_SETTINGS,
+  type Settings,
+  type SettingsPatch,
+  StoredSettings,
+} from '@gnomeola/protocol'
 import type { Store } from '@gnomeola/store'
 import { DaemonError } from './errors.ts'
 import type { Keyring } from './interfaces.ts'
@@ -15,6 +21,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   capture: { micDevice: 'default', systemDevice: 'default' },
   retention: { audio: 'keep', days: 30, archive: false },
   autoRecord: DEFAULT_AUTO_RECORD,
+  speakers: DEFAULT_SPEAKER_SETTINGS,
 }
 
 /** Section-wise merge; unknown keys dropped by the schema, missing ones filled from `base`. */
@@ -28,6 +35,7 @@ export function mergeSettings(
     capture: { ...base.capture, ...patch.capture },
     retention: { ...base.retention, ...patch.retention },
     autoRecord: { ...base.autoRecord, ...patch.autoRecord },
+    speakers: { ...DEFAULT_SPEAKER_SETTINGS, ...base.speakers, ...patch.speakers },
   })
 }
 

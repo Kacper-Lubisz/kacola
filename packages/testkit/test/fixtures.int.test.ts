@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { listFixtures, loadFixture, SAMPLE_RATE } from '../src/fixtures/index.ts'
+import { FIXTURE_SCRIPTS, listFixtures, loadFixture, SAMPLE_RATE } from '../src/fixtures/index.ts'
 
 // Decodes every committed fixture with ffmpeg (into a throwaway cache) and checks that the ground
 // truth actually lines up with the audio: speech where it says speech, quiet where it says quiet,
@@ -43,12 +43,13 @@ describe.each(listFixtures())('fixture %s', (id) => {
         const b = us[i]!.startMs - 150
         if (b - a > 300) quiet.push(rms(slice(pcm, a, b)))
       }
-      // the crosstalk fixture leaks far-end speech into the mic, so gaps there are not silent
+      // the crosstalk fixtures leak far-end speech into the mic, so gaps there are not silent
       const floor = quiet.length ? Math.max(...quiet) : 0.001
+      const bleeds = FIXTURE_SCRIPTS.find((d) => d.id === id)?.bleedDb !== undefined
       for (const u of us) {
         const level = rms(slice(pcm, u.startMs, u.endMs))
         expect(level, `${track} "${u.text.slice(0, 30)}"`).toBeGreaterThan(0.03)
-        if (!(id === 'planning-3p-crosstalk' && track === 'mic'))
+        if (!(bleeds && track === 'mic'))
           expect(level / floor, `${track} speech-to-quiet ratio`).toBeGreaterThan(20)
       }
     }

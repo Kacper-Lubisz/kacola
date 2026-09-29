@@ -159,6 +159,28 @@ describe('hosted contract: every route', () => {
       finalizeAudio: () =>
         c.call('finalizeAudio', { params, body: { chunks: { mic: 1, system: 0 }, durationMs: 100 } }),
 
+      listSpeakers: async () => {
+        const r = await c.call('listSpeakers', { params })
+        expect(r.speakers.map((x) => x.id)).toEqual(['me', 'them'])
+        return r
+      },
+      renameSpeaker: () =>
+        notHere(
+          c.call('renameSpeaker', { params: { id: s.id, speakerId: 'spk_x' }, body: { label: 'Ana' } }),
+        ),
+      mergeSpeaker: () =>
+        notHere(
+          c.call('mergeSpeaker', { params: { id: s.id, speakerId: 'spk_x' }, body: { into: 'spk_y' } }),
+        ),
+      splitSpeaker: () =>
+        notHere(
+          c.call('splitSpeaker', {
+            params: { id: s.id, speakerId: 'them' },
+            body: { segmentIds: ['seg_h1'] },
+          }),
+        ),
+      listVoiceprints: () => notHere(c.call('listVoiceprints')),
+      deleteVoiceprint: () => notHere(c.call('deleteVoiceprint', { params: { id: 'vp_x' } })),
       calendarStatus: async () =>
         expect(await c.call('calendarStatus')).toMatchObject({
           state: 'off',

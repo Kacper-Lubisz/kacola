@@ -1,6 +1,9 @@
 import {
+  type AttributionSource,
   type DurableEvent,
   DurableEventData,
+  isReservedLabel,
+  ME,
   newId,
   type QaMessage,
   type SearchHit,
@@ -8,9 +11,14 @@ import {
   type Session,
   type SessionMeeting,
   type SessionStatus,
+  SPEAKER_COLOURS,
+  type Speaker,
+  type SpeakerSummary,
   StoredSettings,
+  THEM,
   type Track,
   type TrackKind,
+  type Voiceprint,
 } from '@gnomeola/protocol'
 import Database from 'better-sqlite3'
 import {
@@ -27,7 +35,7 @@ import { StoreError } from './errors.ts'
 import { capSnippet, SNIPPET_TOKENS, toFtsQuery } from './fts.ts'
 import { BOOKKEEPING_TABLES, migrations as defaultMigrations, type Migration, migrate } from './migrations.ts'
 import { applyNotesEvent, deleteNotesOf } from './notes.ts'
-import type { DB, QaRow, SegmentRow, SessionRow, TrackRow } from './schema.ts'
+import type { DB, QaRow, SegmentRow, SessionRow, SpeakerRow, TrackRow, VoiceprintRow } from './schema.ts'
 
 // The store. Two rules make the event log trustworthy:
 //
@@ -44,6 +52,11 @@ import type { DB, QaRow, SegmentRow, SessionRow, TrackRow } from './schema.ts'
 
 export { StoreError }
 
+/**
+ * What a producer upserts. `speakerId` only takes effect on a segment that has no speaker yet: once
+ * attributed, a segment changes speaker only through attributeSegments / merge / split, so a late
+ * live→final upsert can never undo a rename, a merge, or a person's correction.
+ */
 export type SegmentInput = Omit<Segment, 'revision'>
 
 export type ListSessionsOptions = {
@@ -103,12 +116,38 @@ function rowToSegment(r: SegmentRow): Segment {
     sessionId: r.session_id,
     track: r.track as TrackKind,
     speaker: r.speaker,
+    ...(r.speaker_id !== null ? { speakerId: r.speaker_id } : {}),
     startMs: r.start_ms,
     endMs: r.end_ms,
     text: r.text,
     quality: r.quality as Segment['quality'],
     revision: r.revision,
     confidence: r.confidence,
+  }
+}
+
+function rowToSpeaker(r: SpeakerRow): Speaker {
+  return {
+    id: r.id,
+    sessionId: r.session_id,
+    label: r.label,
+    named: r.named === 1,
+    colour: r.colour,
+    voiceprintId: r.voiceprint_id,
+    mergedInto: r.merged_into,
+    createdAt: r.created_at,
+  }
+}
+
+function rowToVoiceprint(r: VoiceprintRow): Voiceprint {
+  return {
+    id: r.id,
+    name: r.name,
+    model: r.model,
+    embedding: JSON.parse(r.embedding) as number[],
+    samples: r.samples,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
   }
 }
 
@@ -336,12 +375,14 @@ export class Store {
           quality: g.quality,
           revision: g.revision,
           confidence: g.confidence,
+          speaker_id: g.speakerId ?? null,
         }
         const { id: _id, ...rest } = row
         this.run(
           compiler
             .insertInto('segments')
-            .values(row)
+            // who attributed it is only ever set here for a new row; later changes carry their own `by`
+            .values({ ...row, speaker_source: g.speakerId ? 'auto' : null })
             .onConflict((oc) => oc.column('id').doUpdateSet(rest)),
         )
         return
@@ -372,6 +413,7 @@ export class Store {
       case 'session.deleted': {
         const id = data.sessionId
         deleteNotesOf(this.db, id)
+        this.run(compiler.deleteFrom('speakers').where('session_id', '=', id))
         this.run(compiler.deleteFrom('qa_messages').where('session_id', '=', id))
         this.run(compiler.deleteFrom('segments').where('session_id', '=', id))
         this.run(compiler.deleteFrom('tracks').where('session_id', '=', id))
@@ -393,6 +435,14 @@ export class Store {
       case 'template.upserted':
       case 'template.deleted':
         applyNotesEvent(this.db, data)
+        return
+      // ---- M3: attribution
+      case 'speaker.upserted':
+      case 'speaker.merged':
+      case 'segments.attributed':
+      case 'voiceprint.upserted':
+      case 'voiceprint.deleted':
+        this.applySpeakerEvent(data)
         return
       default: {
         const never: never = data
@@ -514,7 +564,26 @@ export class Store {
         if (prev.quality === 'final' && input.quality === 'live')
           throw new StoreError('conflict', `segment ${input.id}: cannot regress final -> live`)
       }
-      out = { ...input, revision: (prev?.revision ?? 0) + 1 }
+      // Attribution: a segment already attributed keeps its speaker (and current label); a new
+      // attribution resolves through merges and takes the speaker's label.
+      const { speakerId: wanted, ...rest } = input
+      let speaker = input.speaker
+      let speakerId = prev?.speakerId ?? wanted
+      if (speakerId !== undefined) {
+        if (input.track !== 'system')
+          throw new StoreError('bad_request', `segment ${input.id}: only far-end segments have a speaker id`)
+        const spk = this.resolveSpeaker(speakerId)
+        if (!spk || spk.sessionId !== input.sessionId)
+          throw new StoreError('bad_request', `segment ${input.id}: no speaker ${speakerId} in this session`)
+        speakerId = spk.id
+        speaker = spk.label
+      }
+      out = {
+        ...rest,
+        speaker,
+        ...(speakerId !== undefined ? { speakerId } : {}),
+        revision: (prev?.revision ?? 0) + 1,
+      }
       return { sessionId: input.sessionId, data: { type: 'segment.upserted', segment: out } }
     })
     return out!
@@ -671,7 +740,9 @@ export class Store {
     if (windowed && toMs < fromMs) throw new StoreError('bad_request', `toMs ${toMs} < fromMs ${fromMs}`)
     let q = compiler.selectFrom('segments').selectAll().where('session_id', '=', sessionId)
     if (windowed) q = q.where('start_ms', '<=', toMs).where('end_ms', '>=', fromMs)
-    if (opts.speaker !== undefined) q = q.where(sql<boolean>`speaker = ${opts.speaker} COLLATE NOCASE`)
+    // a label ("Ana", "me") or a speaker id, so a rename never breaks a saved filter
+    if (opts.speaker !== undefined)
+      q = q.where(sql<boolean>`(speaker = ${opts.speaker} COLLATE NOCASE OR speaker_id = ${opts.speaker})`)
     if (opts.track !== undefined) q = q.where('track', '=', opts.track)
     if (opts.quality === 'live' || opts.quality === 'final') q = q.where('quality', '=', opts.quality)
     q = q.orderBy('start_ms').orderBy('track').orderBy('id')
@@ -696,7 +767,8 @@ export class Store {
     if (!opts.includePrivate) filters.push(sql`ses.private = 0`)
     if (opts.since) filters.push(sql`ses.created_at >= ${opts.since.toISOString()}`)
     if (opts.sessionId !== undefined) filters.push(sql`s.session_id = ${opts.sessionId}`)
-    if (opts.speaker !== undefined) filters.push(sql`s.speaker = ${opts.speaker} COLLATE NOCASE`)
+    if (opts.speaker !== undefined)
+      filters.push(sql`(s.speaker = ${opts.speaker} COLLATE NOCASE OR s.speaker_id = ${opts.speaker})`)
     const where = sql.join(filters, sql` AND `)
     const from = sql`segments_fts
       JOIN segments s ON s.pk = segments_fts.rowid
@@ -746,6 +818,371 @@ export class Store {
       compiler.selectFrom('settings').select('value').where('id', '=', 1),
     )
     return r ? StoredSettings.parse(JSON.parse(r.value)) : null
+  }
+
+  // ------------------------------------------------------------- M3: attribution
+
+  /** Only called from applyEvent: the table writes for speaker, attribution and voiceprint events. */
+  private applySpeakerEvent(
+    data: Extract<
+      DurableEventData,
+      {
+        type:
+          | 'speaker.upserted'
+          | 'speaker.merged'
+          | 'segments.attributed'
+          | 'voiceprint.upserted'
+          | 'voiceprint.deleted'
+      }
+    >,
+  ): void {
+    switch (data.type) {
+      case 'speaker.upserted': {
+        const p = data.speaker
+        const row: SpeakerRow = {
+          id: p.id,
+          session_id: p.sessionId,
+          label: p.label,
+          named: bool(p.named),
+          colour: p.colour,
+          voiceprint_id: p.voiceprintId,
+          merged_into: p.mergedInto,
+          created_at: p.createdAt,
+        }
+        const { id: _id, ...rest } = row
+        this.run(
+          compiler
+            .insertInto('speakers')
+            .values(row)
+            .onConflict((oc) => oc.column('id').doUpdateSet(rest)),
+        )
+        this.run(compiler.updateTable('segments').set({ speaker: p.label }).where('speaker_id', '=', p.id))
+        return
+      }
+      case 'speaker.merged': {
+        const into = this.first<SpeakerRow>(
+          compiler.selectFrom('speakers').selectAll().where('id', '=', data.intoId),
+        )!
+        this.run(
+          compiler
+            .updateTable('segments')
+            .set({ speaker_id: into.id, speaker: into.label, speaker_source: 'user' })
+            .where('speaker_id', '=', data.fromId),
+        )
+        // keep tombstones pointing at a live speaker, so resolution is always one hop
+        this.run(
+          compiler
+            .updateTable('speakers')
+            .set({ merged_into: into.id })
+            .where((eb) => eb.or([eb('id', '=', data.fromId), eb('merged_into', '=', data.fromId)])),
+        )
+        return
+      }
+      case 'segments.attributed': {
+        if (!data.segmentIds.length) return
+        const spk = this.first<SpeakerRow>(
+          compiler.selectFrom('speakers').selectAll().where('id', '=', data.speakerId),
+        )!
+        this.run(
+          compiler
+            .updateTable('segments')
+            .set({ speaker_id: spk.id, speaker: spk.label, speaker_source: data.by })
+            .where('session_id', '=', data.sessionId)
+            .where('id', 'in', data.segmentIds),
+        )
+        return
+      }
+      case 'voiceprint.upserted': {
+        const v = data.voiceprint
+        const row: VoiceprintRow = {
+          id: v.id,
+          name: v.name,
+          model: v.model,
+          embedding: JSON.stringify(v.embedding),
+          samples: v.samples,
+          created_at: v.createdAt,
+          updated_at: v.updatedAt,
+        }
+        const { id: _id, ...rest } = row
+        this.run(
+          compiler
+            .insertInto('voiceprints')
+            .values(row)
+            .onConflict((oc) => oc.column('id').doUpdateSet(rest)),
+        )
+        return
+      }
+      case 'voiceprint.deleted': {
+        this.run(compiler.deleteFrom('voiceprints').where('id', '=', data.voiceprintId))
+        this.run(
+          compiler
+            .updateTable('speakers')
+            .set({ voiceprint_id: null })
+            .where('voiceprint_id', '=', data.voiceprintId),
+        )
+        return
+      }
+    }
+  }
+
+  getSpeaker(id: string): Speaker | null {
+    const r = this.first<SpeakerRow>(compiler.selectFrom('speakers').selectAll().where('id', '=', id))
+    return r ? rowToSpeaker(r) : null
+  }
+
+  /** A speaker id as a producer may still hold it: follows a merge to the speaker that survived. */
+  resolveSpeaker(id: string): Speaker | null {
+    const s = this.getSpeaker(id)
+    if (!s?.mergedInto) return s
+    return this.getSpeaker(s.mergedInto)
+  }
+
+  /** Far-end speakers of a session in creation order; merged tombstones only when asked for. */
+  speakers(sessionId: string, opts: { includeMerged?: boolean } = {}): Speaker[] {
+    let q = compiler.selectFrom('speakers').selectAll().where('session_id', '=', sessionId)
+    if (!opts.includeMerged) q = q.where('merged_into', 'is', null)
+    return this.all<SpeakerRow>(q.orderBy('created_at').orderBy('colour').orderBy('id')).map(rowToSpeaker)
+  }
+
+  private assertLabelFree(sessionId: string, label: string, except?: string): void {
+    if (isReservedLabel(label))
+      throw new StoreError('bad_request', `"${label.trim()}" is reserved for the user / unattributed speech`)
+    const clash = this.speakers(sessionId).find(
+      (s) => s.id !== except && s.label.toLowerCase() === label.trim().toLowerCase(),
+    )
+    if (clash)
+      throw new StoreError(
+        'conflict',
+        `another speaker in this session is already called "${clash.label}" — merge them instead`,
+      )
+  }
+
+  /**
+   * A new far-end speaker. Unnamed speakers are "Speaker N" with N one past the highest in use; the
+   * colour is the next palette slot in creation order (merged speakers keep theirs, so colours never
+   * shift under a reader's eyes).
+   */
+  createSpeaker(
+    sessionId: string,
+    opts: { label?: string; voiceprintId?: string | null; id?: string } = {},
+  ): Speaker {
+    let out: Speaker | undefined
+    this.commit(() => {
+      if (!this.sessionExists(sessionId)) throw new StoreError('not_found', `no session ${sessionId}`)
+      const all = this.speakers(sessionId, { includeMerged: true })
+      let label = opts.label?.trim()
+      if (label) this.assertLabelFree(sessionId, label)
+      else {
+        const used = all.map((s) => Number(/^Speaker (\d+)$/.exec(s.label)?.[1] ?? 0))
+        label = `Speaker ${Math.max(0, ...used) + 1}`
+      }
+      const now = this.now()
+      out = {
+        id: opts.id ?? newId('spk', now.getTime()),
+        sessionId,
+        label,
+        named: Boolean(opts.label?.trim()),
+        colour: all.length % SPEAKER_COLOURS,
+        voiceprintId: opts.voiceprintId ?? null,
+        mergedInto: null,
+        createdAt: now.toISOString(),
+      }
+      if (this.getSpeaker(out.id)) throw new StoreError('conflict', `speaker ${out.id} exists`)
+      return { sessionId, data: { type: 'speaker.upserted', speaker: out } }
+    })
+    return out!
+  }
+
+  /** Read-modify-write of a live (unmerged) speaker. */
+  private updateSpeaker(sessionId: string, id: string, change: (s: Speaker) => Speaker): Speaker {
+    let out: Speaker | undefined
+    this.commit(() => {
+      const cur = this.getSpeaker(id)
+      if (!cur || cur.sessionId !== sessionId)
+        throw new StoreError('not_found', `no speaker ${id} in session ${sessionId}`)
+      if (cur.mergedInto) throw new StoreError('conflict', `speaker ${id} was merged into ${cur.mergedInto}`)
+      const next = change(cur)
+      out = { ...next, id: cur.id, sessionId: cur.sessionId, createdAt: cur.createdAt, mergedInto: null }
+      return { sessionId, data: { type: 'speaker.upserted', speaker: out } }
+    })
+    return out!
+  }
+
+  /** Name a speaker. Labels are unique per session (case-insensitive) and never `me` / `them`. */
+  renameSpeaker(sessionId: string, id: string, label: string): Speaker {
+    return this.updateSpeaker(sessionId, id, (s) => {
+      this.assertLabelFree(sessionId, label, id)
+      return { ...s, label: label.trim(), named: true }
+    })
+  }
+
+  /** Link (or unlink) a speaker to a voiceprint; `label` renames at the same time (recognition). */
+  linkVoiceprint(sessionId: string, id: string, voiceprintId: string | null, label?: string): Speaker {
+    return this.updateSpeaker(sessionId, id, (s) => {
+      if (voiceprintId !== null && !this.getVoiceprint(voiceprintId))
+        throw new StoreError('not_found', `no voiceprint ${voiceprintId}`)
+      if (label === undefined || label.trim() === s.label) return { ...s, voiceprintId }
+      this.assertLabelFree(sessionId, label, id)
+      return { ...s, voiceprintId, label: label.trim(), named: true }
+    })
+  }
+
+  /** Fold `fromId` into `intoId`. Every segment of `from` is now `into`'s, as a person's decision. */
+  mergeSpeakers(sessionId: string, fromId: string, intoId: string): Speaker {
+    this.commit(() => {
+      if (fromId === intoId) throw new StoreError('bad_request', 'cannot merge a speaker into itself')
+      for (const id of [fromId, intoId]) {
+        const s = this.getSpeaker(id)
+        if (!s || s.sessionId !== sessionId)
+          throw new StoreError('not_found', `no speaker ${id} in session ${sessionId}`)
+        if (s.mergedInto) throw new StoreError('conflict', `speaker ${id} was already merged`)
+      }
+      return { sessionId, data: { type: 'speaker.merged', sessionId, fromId, intoId } }
+    })
+    return this.getSpeaker(intoId)!
+  }
+
+  /**
+   * Attribute far-end segments to a speaker. `auto` (the diarizer) never overrides a person's decision:
+   * segments a person attributed are skipped, and so are ids already on that speaker. Returns the ids
+   * that actually moved (the event carries exactly those, so a replay needs no judgement). Nothing is
+   * written when nothing moves.
+   */
+  attributeSegments(
+    sessionId: string,
+    speakerId: string,
+    segmentIds: readonly string[],
+    by: AttributionSource,
+  ): string[] {
+    const spk = this.resolveSpeaker(speakerId)
+    if (!spk || spk.sessionId !== sessionId)
+      throw new StoreError('not_found', `no speaker ${speakerId} in session ${sessionId}`)
+    let moved: string[] = []
+    const plan = () => {
+      const ids = [...new Set(segmentIds)]
+      const rows = ids.length
+        ? this.all<SegmentRow>(
+            compiler
+              .selectFrom('segments')
+              .selectAll()
+              .where('session_id', '=', sessionId)
+              .where('id', 'in', ids),
+          )
+        : []
+      if (by === 'user' && rows.length !== ids.length) {
+        const found = new Set(rows.map((r) => r.id))
+        throw new StoreError(
+          'not_found',
+          `no segment ${ids.find((id) => !found.has(id))} in session ${sessionId}`,
+        )
+      }
+      for (const r of rows)
+        if (r.track !== 'system')
+          throw new StoreError('bad_request', `segment ${r.id} is the user's (mic): it is always "${ME}"`)
+      return rows
+        .filter((r) => r.speaker_id !== spk.id && !(by === 'auto' && r.speaker_source === 'user'))
+        .map((r) => r.id)
+        .sort()
+    }
+    if (!plan().length) return []
+    this.commit(() => {
+      moved = plan()
+      return {
+        sessionId,
+        data: { type: 'segments.attributed', sessionId, speakerId: spk.id, segmentIds: moved, by },
+      }
+    })
+    return moved
+  }
+
+  /**
+   * Split: move `segmentIds` (all currently `fromId`'s — or unattributed, for `them`) to a brand-new
+   * speaker, as a person's decision. Everything is validated before anything is written.
+   */
+  splitSpeaker(sessionId: string, fromId: string, segmentIds: readonly string[]): Speaker {
+    if (!this.sessionExists(sessionId)) throw new StoreError('not_found', `no session ${sessionId}`)
+    if (fromId !== THEM) {
+      const from = this.getSpeaker(fromId)
+      if (!from || from.sessionId !== sessionId || from.mergedInto)
+        throw new StoreError('not_found', `no speaker ${fromId} in session ${sessionId}`)
+    }
+    const ids = [...new Set(segmentIds)]
+    if (!ids.length) throw new StoreError('bad_request', 'nothing to split off')
+    for (const id of ids) {
+      const seg = this.getSegment(id)
+      if (!seg || seg.sessionId !== sessionId)
+        throw new StoreError('not_found', `no segment ${id} in session ${sessionId}`)
+      if (seg.track !== 'system')
+        throw new StoreError('bad_request', `segment ${id} is the user's (mic): it is always "${ME}"`)
+      if ((seg.speakerId ?? THEM) !== fromId)
+        throw new StoreError(
+          'bad_request',
+          `segment ${id} is not ${fromId}'s (it is ${seg.speakerId ?? THEM})`,
+        )
+    }
+    const spk = this.createSpeaker(sessionId)
+    this.attributeSegments(sessionId, spk.id, ids, 'user')
+    return this.getSpeaker(spk.id)!
+  }
+
+  /** Who speaks in a session and how much: `me`, the far-end speakers, and `them` if any is left. */
+  speakerSummaries(sessionId: string): SpeakerSummary[] {
+    const stats = this.all<{ track: string; speaker_id: string | null; n: number; ms: number }>(
+      sql`SELECT track, speaker_id, count(*) AS n, coalesce(sum(end_ms - start_ms), 0) AS ms
+          FROM segments WHERE session_id = ${sessionId} GROUP BY track, speaker_id`,
+    )
+    const stat = (track: string, id: string | null) =>
+      stats.find((r) => r.track === track && r.speaker_id === id) ?? { n: 0, ms: 0 }
+    const pseudo = (id: string, track: TrackKind, st: { n: number; ms: number }): SpeakerSummary => ({
+      id,
+      label: id,
+      track,
+      named: false,
+      colour: null,
+      voiceprintId: null,
+      segments: st.n,
+      talkMs: st.ms,
+    })
+    const out: SpeakerSummary[] = [pseudo(ME, 'mic', stat('mic', null))]
+    for (const s of this.speakers(sessionId)) {
+      const st = stat('system', s.id)
+      out.push({
+        id: s.id,
+        label: s.label,
+        track: 'system',
+        named: s.named,
+        colour: s.colour,
+        voiceprintId: s.voiceprintId,
+        segments: st.n,
+        talkMs: st.ms,
+      })
+    }
+    const them = stat('system', null)
+    if (them.n) out.push(pseudo(THEM, 'system', them))
+    return out
+  }
+
+  upsertVoiceprint(v: Voiceprint): Voiceprint {
+    this.commit(() => ({ sessionId: null, data: { type: 'voiceprint.upserted', voiceprint: v } }))
+    return v
+  }
+
+  deleteVoiceprint(id: string): void {
+    this.commit(() => {
+      if (!this.getVoiceprint(id)) throw new StoreError('not_found', `no voiceprint ${id}`)
+      return { sessionId: null, data: { type: 'voiceprint.deleted', voiceprintId: id } }
+    })
+  }
+
+  getVoiceprint(id: string): Voiceprint | null {
+    const r = this.first<VoiceprintRow>(compiler.selectFrom('voiceprints').selectAll().where('id', '=', id))
+    return r ? rowToVoiceprint(r) : null
+  }
+
+  voiceprints(): Voiceprint[] {
+    return this.all<VoiceprintRow>(
+      compiler.selectFrom('voiceprints').selectAll().orderBy('name').orderBy('id'),
+    ).map(rowToVoiceprint)
   }
 
   // ------------------------------------------------------------- verification

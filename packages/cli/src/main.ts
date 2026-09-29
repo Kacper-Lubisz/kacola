@@ -10,6 +10,7 @@ import { recordStart, recordStatus, recordStop, recordUsage } from './commands/r
 import { search } from './commands/search.ts'
 import { sessionsList, sessionsShow } from './commands/sessions.ts'
 import { skillInstall } from './commands/skill.ts'
+import { speakers } from './commands/speakers.ts'
 import { status } from './commands/status.ts'
 import { transcript } from './commands/transcript.ts'
 import { type Ctx, makeClient } from './context.ts'
@@ -24,6 +25,7 @@ usage: gnomeola <command> [options]
 
   sessions list [--since 7d] [--limit N]      recent meetings
   sessions show <id>                          one meeting: status, segments, gaps
+  speakers <id>                               who spoke and how much (the names --speaker matches)
   search "<query>" [--since D] [--speaker S] [--session ID] [--limit N]
                                               ranked snippets + ids (start here)
   ask "<question>" [--session ID | --since D] [--effort low|medium|high]
@@ -196,6 +198,12 @@ export async function run(argv: string[], io: Io): Promise<number> {
         if (v.next && v.today) throw usage('pass one of --next or --today')
         if (v.today) await meetingsToday(ctxFor(v))
         else await meetingsNext(ctxFor(v))
+        break
+      }
+      case 'speakers': {
+        const { values: v, positionals: p } = parse(rest, {})
+        if (helpOr(v)) return EXIT.OK
+        await speakers(ctxFor(v), p[0])
         break
       }
       case 'status': {

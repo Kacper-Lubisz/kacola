@@ -1,0 +1,160 @@
+{
+  "id": "crosstalk-bleed-3p",
+  "title": "Cross-talk on both tracks, loud speaker bleed",
+  "description": "The user on laptop speakers with no echo cancellation: the far end leaks into the mic through a reverberant room at −12 dB. The two far-end people talk over each other on the system track, and the user talks over them.",
+  "sampleRate": 16000,
+  "durationMs": 63439,
+  "tracks": {
+    "mic": "mic.opus",
+    "system": "system.opus"
+  },
+  "speakers": [
+    {
+      "name": "Theo",
+      "track": "mic",
+      "source": "librispeech:908"
+    },
+    {
+      "name": "Maya",
+      "track": "system",
+      "source": "librispeech:3570"
+    },
+    {
+      "name": "Ravi",
+      "track": "system",
+      "source": "librispeech:5105"
+    }
+  ],
+  "utterances": [
+    {
+      "track": "system",
+      "speaker": "Maya",
+      "startMs": 1854,
+      "endMs": 4574,
+      "text": "THERE IS A MORE OR LESS ELABORATE SYSTEM OF RANK AND GRADES",
+      "source": "librispeech:3570-5694-0012"
+    },
+    {
+      "track": "system",
+      "speaker": "Ravi",
+      "startMs": 4977,
+      "endMs": 8737,
+      "text": "LENGTH OF SERVICE FOURTEEN YEARS THREE MONTHS AND FIVE DAYS",
+      "source": "librispeech:5105-28233-0000"
+    },
+    {
+      "track": "mic",
+      "speaker": "Theo",
+      "startMs": 7837,
+      "endMs": 10316,
+      "text": "O LIFE OF THIS OUR SPRING",
+      "source": "librispeech:908-157963-0001"
+    },
+    {
+      "track": "system",
+      "speaker": "Maya",
+      "startMs": 10869,
+      "endMs": 14243,
+      "text": "BUT THE GENERAL DISTINCTION IS NOT ON THAT ACCOUNT TO BE OVERLOOKED",
+      "source": "librispeech:3570-5694-0019"
+    },
+    {
+      "track": "system",
+      "speaker": "Ravi",
+      "startMs": 13043,
+      "endMs": 16619,
+      "text": "EXCLAIMED SERVADAC KEEPING HIS EYE UNMOVED AT HIS TELESCOPE",
+      "source": "librispeech:5105-28240-0002"
+    },
+    {
+      "track": "mic",
+      "speaker": "Theo",
+      "startMs": 17325,
+      "endMs": 24050,
+      "text": "LIKE THE DOVES VOICE LIKE TRANSIENT DAY LIKE MUSIC IN THE AIR AH",
+      "source": "librispeech:908-157963-0005"
+    },
+    {
+      "track": "system",
+      "speaker": "Ravi",
+      "startMs": 24455,
+      "endMs": 29263,
+      "text": "SHE IS UNDER SAIL BUT SHE IS COUNT TIMASCHEFF'S YACHT HE WAS RIGHT",
+      "source": "librispeech:5105-28240-0003"
+    },
+    {
+      "track": "system",
+      "speaker": "Maya",
+      "startMs": 28263,
+      "endMs": 31823,
+      "text": "THE LIVERY BECOMES OBNOXIOUS TO NEARLY ALL WHO ARE REQUIRED TO WEAR IT",
+      "source": "librispeech:3570-5694-0022"
+    },
+    {
+      "track": "mic",
+      "speaker": "Theo",
+      "startMs": 31123,
+      "endMs": 33425,
+      "text": "WHY FADES THE LOTUS OF THE WATER",
+      "source": "librispeech:908-157963-0002"
+    },
+    {
+      "track": "system",
+      "speaker": "Ravi",
+      "startMs": 34114,
+      "endMs": 38096,
+      "text": "SERVADAC TOOK IT FOR GRANTED THAT THE DOBRYNA WAS ENDEAVORING TO PUT IN",
+      "source": "librispeech:5105-28240-0007"
+    },
+    {
+      "track": "system",
+      "speaker": "Maya",
+      "startMs": 38692,
+      "endMs": 42969,
+      "text": "IN A GENERAL WAY THOUGH NOT WHOLLY NOR CONSISTENTLY THESE TWO GROUPS COINCIDE",
+      "source": "librispeech:3570-5695-0000"
+    },
+    {
+      "track": "mic",
+      "speaker": "Theo",
+      "startMs": 43509,
+      "endMs": 47391,
+      "text": "WHY SHOULD THE MISTRESS OF THE VALES OF HAR UTTER A SIGH",
+      "source": "librispeech:908-157963-0009"
+    },
+    {
+      "track": "system",
+      "speaker": "Maya",
+      "startMs": 47591,
+      "endMs": 51992,
+      "text": "EACH WILL THEREFORE SERVE ABOUT EQUALLY WELL DURING THE EARLIER STAGES OF SOCIAL GROWTH",
+      "source": "librispeech:3570-5695-0009"
+    },
+    {
+      "track": "system",
+      "speaker": "Ravi",
+      "startMs": 51192,
+      "endMs": 55732,
+      "text": "NEVER MIND NOW INTERPOSED THE CAPTAIN WE WILL TALK OF THAT BY AND BY",
+      "source": "librispeech:5105-28240-0012"
+    },
+    {
+      "track": "mic",
+      "speaker": "Theo",
+      "startMs": 56169,
+      "endMs": 61939,
+      "text": "SHE CEASD AND SMILD IN TEARS THEN SAT DOWN IN HER SILVER SHRINE",
+      "source": "librispeech:908-157963-0010"
+    }
+  ],
+  "gaps": [],
+  "silences": [],
+  "facts": [],
+  "injections": [],
+  "license": "LibriSpeech test-clean (Panayotov et al., 2015), CC BY 4.0, https://www.openslr.org/12 — utterances as listed in `source`.",
+  "generator": {
+    "script": "packages/testkit/scripts/generate-fixtures.ts",
+    "sherpaOnnx": "1.13.8",
+    "generatedAt": "2026-09-29T12:08:14.495Z"
+  }
+}

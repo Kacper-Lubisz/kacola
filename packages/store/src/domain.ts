@@ -45,6 +45,9 @@ export function nextSegment(input: SegmentInput, prev: Segment | null, sessionEx
   const shape = segmentShapeProblem(input)
   if (shape) throw new StoreError('bad_request', shape)
   if (!sessionExists) throw new StoreError('not_found', `no session ${input.sessionId}`)
+  if (input.speakerId !== undefined)
+    // M3 attribution is written by the recording device (./store.ts) and reaches a replica by sync
+    throw new StoreError('bad_request', `segment ${input.id}: speaker attribution is not written here`)
   if (prev) {
     if (prev.sessionId !== input.sessionId || prev.track !== input.track)
       throw new StoreError('conflict', `segment ${input.id}: session/track cannot change`)
@@ -62,6 +65,8 @@ export type IngestFacts = {
   prevSegment: Segment | null
   /** For `note.version`: that session already has a version with this number. */
   noteVersionExists?: boolean
+  /** For speaker events: every speaker id the item names exists, in the item's session. */
+  speakersExist?: boolean
 }
 
 export type IngestDecision =
@@ -74,6 +79,7 @@ export function ingestSubject(data: DurableEventData): {
   sessionId: string | null
   segmentId: string | null
   noteVersion?: number
+  speakerIds?: string[]
 } {
   switch (data.type) {
     case 'session.upserted':
@@ -86,6 +92,14 @@ export function ingestSubject(data: DurableEventData): {
       return { sessionId: data.sessionId, segmentId: null }
     case 'note.version':
       return { sessionId: data.version.sessionId, segmentId: null, noteVersion: data.version.version }
+    case 'speaker.upserted':
+      return { sessionId: data.speaker.sessionId, segmentId: null }
+    case 'speaker.merged':
+      return { sessionId: data.sessionId, segmentId: null, speakerIds: [data.fromId, data.intoId] }
+    case 'segments.attributed':
+      return { sessionId: data.sessionId, segmentId: null, speakerIds: [data.speakerId] }
+    case 'voiceprint.upserted':
+    case 'voiceprint.deleted':
     case 'settings.updated':
     case 'template.upserted':
     case 'template.deleted':
@@ -102,6 +116,8 @@ export function ingestSubject(data: DurableEventData): {
  *   - anything that would break a store invariant (unknown session, final → live, track change,
  *     mic not `me`) is rejected, reported back, and does not stop the rest of the batch;
  *   - notes versions are append-only, so a version number already present is a no-op;
+ *   - M3 speakers, merges and attributions apply when their session (and every speaker they name)
+ *     exists; voiceprints are biometric, device-local data and are never stored here, even if pushed;
  *   - settings and notes templates are device-local and never synced; deleting an absent session is a
  *     no-op.
  */
@@ -138,6 +154,22 @@ export function decideIngest(data: DurableEventData, facts: IngestFacts): Ingest
       if (facts.noteVersionExists) return { kind: 'skip' }
       return { kind: 'apply', sessionId: v.sessionId, data }
     }
+    case 'speaker.upserted':
+      if (!facts.sessionExists) return { kind: 'reject', reason: `no session ${data.speaker.sessionId}` }
+      // a voiceprint link is meaningless (and identifying) without the print, which never leaves the device
+      return {
+        kind: 'apply',
+        sessionId: data.speaker.sessionId,
+        data: { ...data, speaker: { ...data.speaker, voiceprintId: null } },
+      }
+    case 'speaker.merged':
+    case 'segments.attributed':
+      if (!facts.sessionExists) return { kind: 'reject', reason: `no session ${data.sessionId}` }
+      if (!facts.speakersExist)
+        return { kind: 'reject', reason: `unknown speaker in session ${data.sessionId}` }
+      return { kind: 'apply', sessionId: data.sessionId, data }
+    case 'voiceprint.upserted':
+    case 'voiceprint.deleted':
     case 'settings.updated':
     case 'template.upserted':
     case 'template.deleted':

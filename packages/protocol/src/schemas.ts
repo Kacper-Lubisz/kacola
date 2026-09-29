@@ -20,7 +20,10 @@ export type Quality = z.infer<typeof Quality>
 export const SessionStatus = z.enum(['idle', 'recording', 'paused', 'stopped', 'recovered', 'failed'])
 export type SessionStatus = z.infer<typeof SessionStatus>
 
-/** Speaker labels. Track A is always `me`. Without diarization (M3) the far end is `them`. */
+/**
+ * Speaker labels. Track A is always `me`. Far-end speech not (yet) attributed to a diarized speaker is
+ * `them`; a diarized segment's label is its speaker's display name (see ./speakers.ts).
+ */
 export const ME = 'me'
 export const THEM = 'them'
 export const speakerForTrack = (t: TrackKind): string => (t === 'mic' ? ME : THEM)
@@ -64,7 +67,13 @@ export const Segment = z.object({
   id: z.string(),
   sessionId: z.string(),
   track: TrackKind,
+  /** Display label: `me`, `them`, or the far-end speaker's name. What `--speaker` filters match. */
   speaker: z.string(),
+  /**
+   * The diarized far-end speaker (M3), when there is one. Absent (not null) otherwise, so segments
+   * from before diarization — and every event already in a log — keep their exact shape.
+   */
+  speakerId: z.string().optional(),
   startMs: z.int().nonnegative(),
   endMs: z.int().nonnegative(),
   text: z.string(),
@@ -132,13 +141,20 @@ export type AudioDevice = z.infer<typeof AudioDevice>
 
 export const ModelInfo = z.object({
   id: z.string(),
-  role: z.enum(['live', 'final', 'vad']),
+  role: z.enum(['live', 'final', 'vad', 'segmentation', 'embedding']),
   title: z.string(),
   sizeBytes: z.int().nonnegative(),
   state: z.enum(['missing', 'downloading', 'ready', 'corrupt']),
   progress: z.number().min(0).max(1).nullable(),
 })
 export type ModelInfo = z.infer<typeof ModelInfo>
+
+/**
+ * M3 — attribution. `diarize` splits the far end into speakers; `voiceprints` (opt-in) remembers the
+ * voices of people you name, locally, and recognises them in later sessions.
+ */
+export const SpeakerSettings = z.object({ diarize: z.boolean(), voiceprints: z.boolean() })
+export const DEFAULT_SPEAKER_SETTINGS: z.infer<typeof SpeakerSettings> = { diarize: true, voiceprints: false }
 
 export const Settings = z.object({
   llm: z.object({
@@ -162,6 +178,8 @@ export const Settings = z.object({
   }),
   /** M4 (C-8). Defaulted so settings written before auto-record existed still parse (and replay). */
   autoRecord: AutoRecordSettings.default(DEFAULT_AUTO_RECORD),
+  // Optional so settings stored (and logged) before M3 still parse; the daemon always fills it in.
+  speakers: SpeakerSettings.optional(),
 })
 export type Settings = z.infer<typeof Settings>
 
@@ -175,6 +193,7 @@ export const SettingsPatch = z.object({
   capture: Settings.shape.capture.partial().optional(),
   retention: Settings.shape.retention.partial().optional(),
   autoRecord: AutoRecordSettings.partial().optional(),
+  speakers: SpeakerSettings.partial().optional(),
 })
 export type SettingsPatch = z.infer<typeof SettingsPatch>
 

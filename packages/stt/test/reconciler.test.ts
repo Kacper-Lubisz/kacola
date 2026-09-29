@@ -238,6 +238,63 @@ describe('reconciler — scripted lifecycle', () => {
     expect(r.segments()[1]!.startMs).toBe(1000)
   })
 
+  it('a split cuts a closed segment at speaker changes: words follow time, each piece gets tier 2', () => {
+    const r = mk()
+    const out = run(r, [
+      { type: 'vad.start', track: 'system', atMs: 0 },
+      hyp('endpoint', 'system', words('okay lets start', 100)),
+      hyp('endpoint', 'system', words('i looked at the numbers', 2100)),
+      { type: 'vad.end', track: 'system', startMs: 0, endMs: 3800 },
+    ])
+    expect(out.find((o) => o.type === 'closed')).toEqual({
+      type: 'closed',
+      segmentId: 'seg_0001',
+      track: 'system',
+      startMs: 0,
+      endMs: 3800,
+    })
+    const split = r.step({ type: 'split', segmentId: 'seg_0001', atMs: [2000, 99_999] })
+    const ups = upserts(split)
+    expect(ups.map((u) => [u.id, u.text, u.startMs, u.endMs, u.revision])).toEqual([
+      ['seg_0001', 'okay lets start', 0, 2000, 4], // two endpoints and the close published it
+      ['seg_0002', 'i looked at the numbers', 2000, 3800, 1],
+    ])
+    expect(split.filter((o) => o.type === 'closed')).toEqual([
+      {
+        type: 'closed',
+        segmentId: 'seg_0002',
+        track: 'system',
+        startMs: 2000,
+        endMs: 3800,
+        splitFrom: 'seg_0001',
+      },
+    ])
+    expect(finalizes(split).map((f) => [f.segmentId, f.startMs, f.endMs])).toEqual([
+      ['seg_0001', 0, 2000],
+      ['seg_0002', 2000, 3800],
+    ])
+    expect(r.stats.splits).toBe(1)
+    // a final is never revised: splitting after it landed is ignored
+    r.step({ type: 'final', segmentId: 'seg_0001', text: 'Okay, let us start.', confidence: 0.9 })
+    expect(r.step({ type: 'split', segmentId: 'seg_0001', atMs: [1000] })).toEqual([])
+    assertNoViolations(checkSegments(r.segments()))
+  })
+
+  it("finalPass 'after': a split replaces the deferred request with one per piece", () => {
+    const r = mk('after')
+    run(r, [
+      { type: 'vad.start', track: 'system', atMs: 0 },
+      hyp('endpoint', 'system', words('one two three four five six', 0, 500)),
+      { type: 'vad.end', track: 'system', startMs: 0, endMs: 3000 },
+    ])
+    expect(finalizes(r.step({ type: 'split', segmentId: 'seg_0001', atMs: [1500] }))).toEqual([])
+    const end = finalizes(r.step({ type: 'end', atMs: 4000 }))
+    expect(end.map((f) => [f.segmentId, f.startMs, f.endMs])).toEqual([
+      ['seg_0001', 0, 1500],
+      ['seg_0002', 1500, 3000],
+    ])
+  })
+
   it('is deterministic: the same inputs give byte-identical outputs', () => {
     const script: ReconcilerInput[] = [
       { type: 'vad.start', track: 'mic', atMs: 0 },
@@ -284,6 +341,7 @@ const VOCAB = [
 ]
 
 type Sim = {
+  splits: number
   inputs: ReconcilerInput[]
   outputs: ReconcilerOutput[]
   durationMs: number
@@ -304,11 +362,15 @@ function simulate(seed: number, finalPass: FinalPass): Sim {
   const outputs: ReconcilerOutput[] = []
   const requested: string[] = []
   const failed = new Set<string>()
+  const closed: { id: string; startMs: number; endMs: number }[] = []
   const feed = (i: ReconcilerInput) => {
     inputs.push(i)
     const o = r.step(i)
     outputs.push(...o)
-    for (const x of o) if (x.type === 'finalize') requested.push(x.segmentId)
+    for (const x of o) {
+      if (x.type === 'finalize') requested.push(x.segmentId)
+      if (x.type === 'closed') closed.push({ id: x.segmentId, startMs: x.startMs, endMs: x.endMs })
+    }
   }
   const speech: Record<TrackKind, number | null> = { mic: null, system: null }
   const randomWords = (from: number, to: number): TimedWord[] => {
@@ -365,8 +427,13 @@ function simulate(seed: number, finalPass: FinalPass): Sim {
       const dur = R.int(0, 3000)
       feed({ type: 'gap', track: R.chance(0.3) ? null : track, atMs: now, durationMs: dur, reason: 'test' })
       now = Math.min(durationMs, now + dur)
-    } else if (roll < 0.96) {
+    } else if (roll < 0.945) {
       feed({ type: 'final', segmentId: `seg_bogus_${R.int(0, 9)}`, text: 'ghost', confidence: 2 })
+    } else if (roll < 0.96 && closed.length) {
+      // a speaker change found inside a closed segment (possibly already final, or with junk points)
+      const c = R.pick(closed)
+      const pts = Array.from({ length: R.int(1, 3) }, () => R.int(c.startMs - 500, c.endMs + 500))
+      feed({ type: 'split', segmentId: c.id, atMs: pts })
     } else {
       // time going backwards: a stale event from a lagging engine
       feed(hyp('endpoint', track, randomWords(Math.max(0, now - 20_000), now - 5_000), now))
@@ -375,7 +442,7 @@ function simulate(seed: number, finalPass: FinalPass): Sim {
   feed({ type: 'end', atMs: durationMs })
   // Tier 2 drains after the session ends, in random order.
   while (requested.length) deliverFinal()
-  return { inputs, outputs, durationMs, failed }
+  return { inputs, outputs, durationMs, failed, splits: r.stats.splits }
 }
 
 describe('reconciler — property: invariants hold for any interleaving', () => {
@@ -384,8 +451,10 @@ describe('reconciler — property: invariants hold for any interleaving', () => 
     it(`${SEEDS} random sessions, finalPass=${finalPass}`, () => {
       let totalUpserts = 0
       let totalFinal = 0
+      let totalSplits = 0
       for (let seed = 1; seed <= SEEDS; seed++) {
         const sim = simulate(seed * 7919 + finalPass.length, finalPass)
+        totalSplits += sim.splits
         const ctx = `seed ${seed} (${finalPass})`
         const ups = upserts(sim.outputs)
         totalUpserts += ups.length
@@ -421,6 +490,7 @@ describe('reconciler — property: invariants hold for any interleaving', () => 
       }
       // guard against a vacuous pass: the generator must actually exercise the machine
       expect(totalUpserts).toBeGreaterThan(SEEDS * 3)
+      expect(totalSplits).toBeGreaterThan(SEEDS / 4)
       if (finalPass !== 'off') expect(totalFinal).toBeGreaterThan(SEEDS)
     })
   }

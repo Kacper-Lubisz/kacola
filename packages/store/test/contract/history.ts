@@ -221,3 +221,68 @@ export function notesLog(): { store: Store; events: DurableEvent[] } {
   store.deleteSession(gone.id)
   return { store, events: store.eventsAfter(0) }
 }
+
+/**
+ * A device log WITH M3 attribution, written by the real writer (the SQLite Store): diarized speakers,
+ * segments attributed automatically and by a person, a rename, a merge, a split, voiceprints linked,
+ * upserted and deleted, and a deleted session whose speakers must vanish with it.
+ */
+export function speakersLog(): { store: Store; events: DurableEvent[] } {
+  const store = Store.open(':memory:', { now: tickingClock() })
+  const a = store.createSession({ id: 'ses_spk0001', title: 'Standup with Ana and Ben' })
+  const gone = store.createSession({ id: 'ses_spk0002', title: 'Deleted later' })
+  const s1 = store.createSpeaker(a.id, { id: 'spk_a1' })
+  const s2 = store.createSpeaker(a.id, { id: 'spk_a2' })
+  const s3 = store.createSpeaker(a.id, { id: 'spk_a3' })
+  store.createSpeaker(gone.id, { id: 'spk_g1' })
+  const seg = (id: string, n: number, speakerId?: string) =>
+    store.upsertSegment({
+      id,
+      sessionId: a.id,
+      track: 'system',
+      speaker: 'them',
+      ...(speakerId ? { speakerId } : {}),
+      startMs: n * 1000,
+      endMs: n * 1000 + 900,
+      text: `far end line ${n} about the retry budget`,
+      quality: 'live',
+      confidence: null,
+    })
+  seg('seg_s1', 1, s1.id)
+  seg('seg_s2', 2, s2.id)
+  seg('seg_s3', 3, s3.id)
+  seg('seg_s4', 4)
+  seg('seg_s5', 5)
+  store.upsertSegment({
+    id: 'seg_m1',
+    sessionId: a.id,
+    track: 'mic',
+    speaker: 'me',
+    startMs: 6000,
+    endMs: 6500,
+    text: 'my own words',
+    quality: 'final',
+    confidence: 0.9,
+  })
+  store.attributeSegments(a.id, s1.id, ['seg_s4'], 'auto')
+  store.attributeSegments(a.id, s2.id, ['seg_s5'], 'user')
+  store.renameSpeaker(a.id, s1.id, 'Ana')
+  store.mergeSpeakers(a.id, s3.id, s2.id)
+  store.renameSpeaker(a.id, s2.id, 'Ben')
+  store.splitSpeaker(a.id, s2.id, ['seg_s5'])
+  const vp = {
+    id: 'vp_ana',
+    name: 'Ana',
+    model: 'embed-test',
+    embedding: [0.25, -0.5, 0.125],
+    samples: 1,
+    createdAt: '2026-09-01T09:00:00.000Z',
+    updatedAt: '2026-09-01T09:00:00.000Z',
+  }
+  store.upsertVoiceprint(vp)
+  store.linkVoiceprint(a.id, s1.id, vp.id)
+  store.upsertVoiceprint({ ...vp, id: 'vp_tmp', name: 'Temp' })
+  store.deleteVoiceprint('vp_tmp')
+  store.deleteSession(gone.id)
+  return { store, events: store.eventsAfter(0) }
+}

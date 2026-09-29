@@ -15,29 +15,21 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
+import { type RouteDef, routes } from '@gnomeola/protocol'
 import { build } from 'esbuild'
 import { buildViewer } from '../../web/scripts/build.ts'
 import { type FunctionName, MAX_DURATION } from '../src/app.ts'
 
 const pkgRoot = resolve(import.meta.dirname, '..')
 
-/** Top-level paths of the protocol's routes (the viewer owns `/` and its three static files). */
-export const API_PREFIXES = [
-  'health',
-  'devices',
-  'sessions',
-  'search',
-  'ask',
-  'events',
-  'models',
-  'settings',
-  'diagnostics',
-  'calendar',
-  'meetings',
-  'templates',
-  'sync',
-  'pair',
-]
+/**
+ * Top-level paths of the protocol's routes, derived from the route table itself, so a route added to the
+ * protocol is routed to a function without anyone remembering to list it here. The viewer owns `/` and
+ * its static files.
+ */
+export const API_PREFIXES: string[] = [
+  ...new Set(Object.values(routes as Record<string, RouteDef>).map((r) => r.path.split('/')[1]!)),
+].sort()
 
 export const RUNTIME = 'nodejs22.x'
 

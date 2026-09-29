@@ -11,7 +11,7 @@ import type { StoreApi } from '../../src/api.ts'
 import { StoreError } from '../../src/errors.ts'
 import { SNIPPET_MAX_CHARS } from '../../src/fts.ts'
 import { SqliteStoreApi } from '../../src/sqlite-api.ts'
-import { defaultsForTest, notesLog, qa, randomHistory, tickingClock } from './history.ts'
+import { defaultsForTest, notesLog, qa, randomHistory, speakersLog, tickingClock } from './history.ts'
 
 // V-8 / H-1 — the dialect contract. ONE suite, run unchanged against every StoreApi implementation
 // (SQLite via SqliteStoreApi, Postgres via PGlite, and a real Postgres server when podman is available).
@@ -628,6 +628,56 @@ export function storeContract(dialect: string, factory: StoreFactory): void {
       expect(second).toMatchObject({ cursor: 6, applied: 1, skipped: 2 }) // seg 2 again: same revision, no-op
       expect((await srv.segments(ses.id)).map((g) => g.id)).toEqual(['seg_g1', 'seg_g2', 'seg_g3'])
       expect(await srv.syncCursor('d')).toBe(6)
+    })
+  })
+
+  describe(`[${dialect}] M3 attribution, as a replica receives it`, () => {
+    it('replay reproduces speakers, merges, attribution sources, labels and voiceprints', async () => {
+      const { store: src, events } = speakersLog()
+      const ref = new SqliteStoreApi(src)
+      const s = await make()
+      await s.replay(events, 5)
+      const want = await ref.snapshot()
+      expect(await s.snapshot()).toEqual(want)
+      expect(want.speakers.map((x) => x.id)).toContain('spk_a3') // the merged tombstone is kept
+      expect(want.attribution.length).toBeGreaterThan(3)
+      expect(want.voiceprints.map((v) => v.id)).toEqual(['vp_ana'])
+      expect(await s.speakerSummaries('ses_spk0001')).toEqual(await ref.speakerSummaries('ses_spk0001'))
+      // --speaker matches a label or a speaker id, on both dialects
+      const byLabel = await s.transcript('ses_spk0001', { speaker: 'ana' })
+      const byId = await s.transcript('ses_spk0001', { speaker: 'spk_a1' })
+      expect(byLabel.segments.map((g) => g.id)).toEqual(['seg_s1', 'seg_s4'])
+      expect(byId.segments).toEqual(byLabel.segments)
+      expect((await s.search({ q: 'retry', speaker: 'Ben' })).hits.map((h) => h.segmentId).sort()).toEqual(
+        (await ref.search({ q: 'retry', speaker: 'Ben' })).hits.map((h) => h.segmentId).sort(),
+      )
+      src.close()
+    })
+
+    it('ingest keeps who spoke but never voiceprints (biometric, device-local)', async () => {
+      const { store: src, events } = speakersLog()
+      const s = await make()
+      const r = await s.ingest(
+        'laptop',
+        events.map((e) => ({ seq: e.seq, data: e.data })),
+      )
+      expect(r.rejected).toEqual([])
+      const ref = await new SqliteStoreApi(src).snapshot()
+      const got = await s.snapshot()
+      expect(got.voiceprints).toEqual([])
+      expect(got.speakers).toEqual(ref.speakers.map((x) => ({ ...x, voiceprintId: null })))
+      expect(got.segments).toEqual(ref.segments)
+      expect(got.attribution).toEqual(ref.attribution)
+      expect(JSON.stringify(await s.eventsAfter(0))).not.toMatch(/vp_ana|embedding/)
+      // a merge naming a speaker the replica does not have is refused, not guessed
+      const bad = await s.ingest('other', [
+        {
+          seq: 1,
+          data: { type: 'speaker.merged', sessionId: 'ses_spk0001', fromId: 'spk_nope', intoId: 'spk_a1' },
+        },
+      ])
+      expect(bad.rejected.map((x) => x.reason)).toEqual(['unknown speaker in session ses_spk0001'])
+      src.close()
     })
   })
 

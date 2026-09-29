@@ -1,0 +1,27 @@
+{
+  "fixture": "three-far-4p",
+  "config": "pipeline_live=live-nemo-fastconformer-en-80ms-int8+final=final-parakeet-tdt-110m-en-int8+pass=during",
+  "metrics": {
+    "wer": 0.02097902097902098,
+    "wer_mic": 0,
+    "wer_system": 0.026785714285714284,
+    "rtf": 0.39960046954912226
+  },
+  "bands": {
+    "wer": {
+      "abs": 0.03
+    },
+    "wer_mic": {
+      "abs": 0.05
+    },
+    "wer_system": {
+      "abs": 0.05
+    },
+    "rtf": {
+      "rel": 3,
+      "abs": 0.05
+    }
+  },
+  "recordedAt": "2026-09-29T12:25:38.021Z",
+  "notes": "12th Gen Intel(R) Core(TM) i9-12900KF × 24; sherpa-onnx 1.13.8; node v24.21.0"
+}

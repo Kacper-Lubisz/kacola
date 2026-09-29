@@ -125,7 +125,7 @@ msgstr ""
 msgid "Question"
 msgstr ""
 
-#: src/components/ask-pane.tsx:274 src/components/session-detail.tsx:227
+#: src/components/ask-pane.tsx:274 src/components/session-detail.tsx:260
 msgid "Ask"
 msgstr ""
 
@@ -137,7 +137,7 @@ msgstr ""
 msgid "Sessions"
 msgstr ""
 
-#: src/components/notes-editor.tsx:60 src/components/session-detail.tsx:217
+#: src/components/notes-editor.tsx:60 src/components/session-detail.tsx:250
 msgid "Notes"
 msgstr ""
 
@@ -554,130 +554,159 @@ msgstr ""
 msgid "Could not save the setting: {reason}"
 msgstr ""
 
-#: src/components/preferences.tsx:157 src/components/preferences.tsx:325
+#: src/components/preferences.tsx:159 src/components/preferences.tsx:351
 msgid "General"
 msgstr ""
 
-#: src/components/preferences.tsx:159 src/components/preferences.tsx:160
+#: src/components/preferences.tsx:161 src/components/preferences.tsx:162
 msgid "Questions and Answers"
 msgstr ""
 
-#: src/components/preferences.tsx:161
+#: src/components/preferences.tsx:163
 msgid "The language model that answers questions about your meetings."
 msgstr ""
 
-#: src/components/preferences.tsx:164
+#: src/components/preferences.tsx:166
 msgid "Provider"
 msgstr ""
 
-#: src/components/preferences.tsx:171
+#: src/components/preferences.tsx:173
 msgid "Model"
 msgstr ""
 
-#: src/components/preferences.tsx:182
+#: src/components/preferences.tsx:184
 msgid "Ollama URL"
 msgstr ""
 
-#: src/components/preferences.tsx:195 src/components/preferences.tsx:196
+#: src/components/preferences.tsx:197 src/components/preferences.tsx:198
 msgid "Transcription"
 msgstr ""
 
-#: src/components/preferences.tsx:197
+#: src/components/preferences.tsx:199
 msgid "A second, more accurate pass replaces the live transcript line by line."
 msgstr ""
 
-#: src/components/preferences.tsx:200
+#: src/components/preferences.tsx:202
 msgid "Accurate pass"
 msgstr ""
 
-#: src/components/preferences.tsx:207 src/components/preferences.tsx:208
+#: src/components/preferences.tsx:209 src/components/preferences.tsx:210
+#: src/components/session-detail.tsx:188 src/components/session-detail.tsx:189
+#: src/components/speakers.tsx:207 src/components/speakers.tsx:229
+msgid "Speakers"
+msgstr ""
+
+#: src/components/preferences.tsx:211
+msgid ""
+"Your microphone is always you. These decide what happens to the other side."
+msgstr ""
+
+#: src/components/preferences.tsx:214
+msgid "Tell far-end speakers apart"
+msgstr ""
+
+#: src/components/preferences.tsx:215
+msgid "Label each voice on the other side as its own speaker"
+msgstr ""
+
+#: src/components/preferences.tsx:222
+msgid "Recognise people across meetings"
+msgstr ""
+
+#: src/components/preferences.tsx:224
+msgid ""
+"Remember the voices of people you name, so they are named in later meetings. "
+"Voices are stored only on this computer; turning this off forgets them all."
+msgstr ""
+
+#: src/components/preferences.tsx:233 src/components/preferences.tsx:234
 msgid "Capture"
 msgstr ""
 
-#: src/components/preferences.tsx:209
+#: src/components/preferences.tsx:235
 msgid "Used for recordings started from now on."
 msgstr ""
 
-#: src/components/preferences.tsx:212 src/components/session-detail.tsx:33
+#: src/components/preferences.tsx:238 src/components/session-detail.tsx:42
 msgid "Microphone"
 msgstr ""
 
-#: src/components/preferences.tsx:218 src/components/session-detail.tsx:34
+#: src/components/preferences.tsx:244 src/components/session-detail.tsx:43
 msgid "System audio"
 msgstr ""
 
-#: src/components/preferences.tsx:219
+#: src/components/preferences.tsx:245
 msgid "What the other people in the call sound like"
 msgstr ""
 
-#: src/components/preferences.tsx:226 src/components/preferences.tsx:227
+#: src/components/preferences.tsx:252 src/components/preferences.tsx:253
 msgid "Auto-record"
 msgstr ""
 
-#: src/components/preferences.tsx:229
+#: src/components/preferences.tsx:255
 msgid ""
 "Start recording on its own. A recording that is already running is never "
 "interrupted."
 msgstr ""
 
-#: src/components/preferences.tsx:233
+#: src/components/preferences.tsx:259
 msgid "When a Calendar Meeting Starts"
 msgstr ""
 
-#: src/components/preferences.tsx:234
+#: src/components/preferences.tsx:260
 msgid "Meetings you declined, and all-day events, are skipped"
 msgstr ""
 
-#: src/components/preferences.tsx:241
+#: src/components/preferences.tsx:267
 msgid "When Another App Uses the Microphone"
 msgstr ""
 
-#: src/components/preferences.tsx:242
+#: src/components/preferences.tsx:268
 msgid "Stops again once the call has ended"
 msgstr ""
 
-#: src/components/preferences.tsx:250
+#: src/components/preferences.tsx:276
 msgid "Storage"
 msgstr ""
 
-#: src/components/preferences.tsx:252 src/components/preferences.tsx:253
+#: src/components/preferences.tsx:278 src/components/preferences.tsx:279
 msgid "Recorded Audio"
 msgstr ""
 
-#: src/components/preferences.tsx:254
+#: src/components/preferences.tsx:280
 msgid ""
 "Transcripts are always kept. This only decides what happens to the audio."
 msgstr ""
 
-#: src/components/preferences.tsx:257
+#: src/components/preferences.tsx:283
 msgid "Audio"
 msgstr ""
 
-#: src/components/preferences.tsx:266 src/components/preferences.tsx:274
+#: src/components/preferences.tsx:292 src/components/preferences.tsx:300
 msgid "Days to keep audio"
 msgstr ""
 
-#: src/components/preferences.tsx:284
+#: src/components/preferences.tsx:310
 msgid "Archive audio"
 msgstr ""
 
-#: src/components/preferences.tsx:285
+#: src/components/preferences.tsx:311
 msgid "Keep a compressed copy (Opus) of each recording"
 msgstr ""
 
-#: src/components/preferences.tsx:308
+#: src/components/preferences.tsx:334
 msgid "The daemon did not return its settings."
 msgstr ""
 
-#: src/components/preferences.tsx:321 src/components/sidebar.tsx:60
+#: src/components/preferences.tsx:347 src/components/sidebar.tsx:60
 msgid "Preferences"
 msgstr ""
 
-#: src/components/preferences.tsx:326
+#: src/components/preferences.tsx:352
 msgid "Settings"
 msgstr ""
 
-#: src/components/preferences.tsx:330
+#: src/components/preferences.tsx:356
 msgid "Settings Unavailable"
 msgstr ""
 
@@ -713,67 +742,75 @@ msgstr ""
 msgid "Record"
 msgstr ""
 
-#: src/components/session-detail.tsx:74
+#: src/components/session-detail.tsx:83
 msgid "Levels"
 msgstr ""
 
-#: src/components/session-detail.tsx:84
+#: src/components/session-detail.tsx:93
 msgid "level"
 msgstr ""
 
-#: src/components/session-detail.tsx:116 src/components/session-detail.tsx:237
+#: src/components/session-detail.tsx:125 src/components/session-detail.tsx:270
 msgid "Details"
 msgstr ""
 
-#: src/components/session-detail.tsx:117
+#: src/components/session-detail.tsx:126
 msgid "Status"
 msgstr ""
 
-#: src/components/session-detail.tsx:119
+#: src/components/session-detail.tsx:128
 msgid "Started"
 msgstr ""
 
-#: src/components/session-detail.tsx:120 src/data/format.ts:60
+#: src/components/session-detail.tsx:129 src/data/format.ts:60
 msgid "Not started"
 msgstr ""
 
-#: src/components/session-detail.tsx:122
+#: src/components/session-detail.tsx:131
 msgid "Duration"
 msgstr ""
 
-#: src/components/session-detail.tsx:124
+#: src/components/session-detail.tsx:133
 msgid "Tracks"
 msgstr ""
 
-#: src/components/session-detail.tsx:125
+#: src/components/session-detail.tsx:134
 msgid "None"
 msgstr ""
 
-#: src/components/session-detail.tsx:128
+#: src/components/session-detail.tsx:137
 msgid "Visibility"
 msgstr ""
 
-#: src/components/session-detail.tsx:128
+#: src/components/session-detail.tsx:137
 msgid "Private: hidden from the CLI"
 msgstr ""
 
-#: src/components/session-detail.tsx:130
+#: src/components/session-detail.tsx:139
 msgid "Error"
 msgstr ""
 
-#: src/components/session-detail.tsx:185
+#: src/components/session-detail.tsx:190
+msgid "Name, merge and split the people in this session"
+msgstr ""
+
+#: src/components/session-detail.tsx:206
 msgid "Session details"
 msgstr ""
 
-#: src/components/session-detail.tsx:212 src/components/transcript-view.tsx:262
+#: src/components/session-detail.tsx:233 src/components/transcript-view.tsx:292
 msgid "Transcript"
 msgstr ""
 
-#: src/components/session-detail.tsx:254
+#: src/components/session-detail.tsx:244
+msgid "Could not change the speaker: {reason}"
+msgstr ""
+
+#: src/components/session-detail.tsx:294
 msgid "No Session Selected"
 msgstr ""
 
-#: src/components/session-detail.tsx:255
+#: src/components/session-detail.tsx:295
 msgid "Pick a session in the sidebar, or press Record to start one."
 msgstr ""
 
@@ -835,6 +872,87 @@ msgstr ""
 msgid "Press Record to capture your first meeting."
 msgstr ""
 
+#: src/components/speakers.tsx:38
+msgid "{speaker}, {colour}"
+msgstr ""
+
+#: src/components/speakers.tsx:72
+msgid "New name for {speaker}"
+msgstr ""
+
+#: src/components/speakers.tsx:108
+msgid "Merge Into Another Speaker"
+msgstr ""
+
+#: src/components/speakers.tsx:109
+msgid "Merge {speaker} into…"
+msgstr ""
+
+#: src/components/speakers.tsx:114
+msgid "Same person as…"
+msgstr ""
+
+#: src/components/speakers.tsx:124
+msgid "Merge {speaker} into {other}"
+msgstr ""
+
+#: src/components/speakers.tsx:152
+msgid "{n} line · {time}"
+msgid_plural "{n} lines · {time}"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/components/speakers.tsx:156
+msgid "No lines yet"
+msgstr ""
+
+#: src/components/speakers.tsx:159
+msgid "You (microphone)"
+msgstr ""
+
+#: src/components/speakers.tsx:161
+msgid "Far end, not yet told apart"
+msgstr ""
+
+#: src/components/speakers.tsx:163
+msgid "Recognised from an earlier meeting"
+msgstr ""
+
+#: src/components/speakers.tsx:181
+msgid "Rename"
+msgstr ""
+
+#: src/components/speakers.tsx:182
+msgid "Rename {speaker}"
+msgstr ""
+
+#: src/components/speakers.tsx:214
+msgid ""
+"Your microphone is always you. The other side is told apart by voice: name "
+"people, merge two that are the same person, or split a line off from the "
+"transcript."
+msgstr ""
+
+#: src/components/speakers.tsx:265
+msgid "{speaker} at {time}"
+msgstr ""
+
+#: src/components/speakers.tsx:271
+msgid "Selected line"
+msgstr ""
+
+#: src/components/speakers.tsx:273
+msgid "{line} — your microphone is always you"
+msgstr ""
+
+#: src/components/speakers.tsx:281
+msgid "Someone Else Said This"
+msgstr ""
+
+#: src/components/speakers.tsx:283
+msgid "Give the line {line} to a new speaker"
+msgstr ""
+
 #: src/components/status-pages.tsx:14
 msgid "Connecting…"
 msgstr ""
@@ -857,55 +975,67 @@ msgstr ""
 msgid "Try Again"
 msgstr ""
 
-#: src/components/transcript-view.tsx:31
+#: src/components/transcript-view.tsx:41
 msgid "Me"
 msgstr ""
 
-#: src/components/transcript-view.tsx:31
+#: src/components/transcript-view.tsx:41
 msgid "Them"
 msgstr ""
 
-#: src/components/transcript-view.tsx:35
+#: src/components/transcript-view.tsx:45
 msgid "in progress"
 msgstr ""
 
-#: src/components/transcript-view.tsx:35
+#: src/components/transcript-view.tsx:45
 msgid "provisional"
 msgstr ""
 
-#: src/components/transcript-view.tsx:36
+#: src/components/transcript-view.tsx:46
 msgid "{speaker} at {time}: {text}"
 msgstr ""
 
-#: src/components/transcript-view.tsx:160
+#: src/components/transcript-view.tsx:57
+msgid "your colour"
+msgstr ""
+
+#: src/components/transcript-view.tsx:59
+msgid "no colour"
+msgstr ""
+
+#: src/components/transcript-view.tsx:60
+msgid "colour {n}"
+msgstr ""
+
+#: src/components/transcript-view.tsx:187
 msgid "Loading Transcript…"
 msgstr ""
 
-#: src/components/transcript-view.tsx:170
+#: src/components/transcript-view.tsx:197
 msgid "Could Not Load the Transcript"
 msgstr ""
 
-#: src/components/transcript-view.tsx:180
+#: src/components/transcript-view.tsx:207
 msgid "Listening…"
 msgstr ""
 
-#: src/components/transcript-view.tsx:180
+#: src/components/transcript-view.tsx:207
 msgid "No Transcript"
 msgstr ""
 
-#: src/components/transcript-view.tsx:182
+#: src/components/transcript-view.tsx:209
 msgid "Lines appear here as people speak."
 msgstr ""
 
-#: src/components/transcript-view.tsx:182
+#: src/components/transcript-view.tsx:209
 msgid "Nothing was transcribed in this session."
 msgstr ""
 
-#: src/components/transcript-view.tsx:197
+#: src/components/transcript-view.tsx:227
 msgid "Scroll to the newest line and keep following"
 msgstr ""
 
-#: src/components/transcript-view.tsx:204
+#: src/components/transcript-view.tsx:234
 msgid "Jump to Live"
 msgstr ""
 
@@ -1007,4 +1137,12 @@ msgstr ""
 
 #: src/data/settings.ts:92
 msgid "Voice detection"
+msgstr ""
+
+#: src/data/settings.ts:93
+msgid "Speaker turns"
+msgstr ""
+
+#: src/data/settings.ts:94
+msgid "Speaker recognition"
 msgstr ""

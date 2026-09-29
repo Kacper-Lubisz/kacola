@@ -137,8 +137,16 @@ export class SyncAgent {
           : []
       case 'note.version':
         return push && this.privacy.get(d.version.sessionId) === false ? [item(d)] : []
+      // M3: who spoke goes up; the voiceprint link does not (the print itself never leaves the device)
+      case 'speaker.upserted':
+        return push && this.privacy.get(d.speaker.sessionId) === false
+          ? [item({ ...d, speaker: { ...d.speaker, voiceprintId: null } })]
+          : []
+      case 'speaker.merged':
+      case 'segments.attributed':
+        return push && this.privacy.get(d.sessionId) === false ? [item(d)] : []
       default:
-        return [] // settings, templates: device-local
+        return [] // settings, templates, voiceprints: device-local
     }
   }
 
@@ -148,9 +156,30 @@ export class SyncAgent {
     const t = await local.call('getTranscript', { params: { id }, query: { includePrivate: true } })
     const qa = await local.call('getQaHistory', { params: { id }, query: { includePrivate: true } })
     const notes = await local.call('listNoteVersions', { params: { id }, query: { includePrivate: true } })
+    const who = await local.call('listSpeakers', { params: { id }, query: { includePrivate: true } })
     // The current state may already be ahead of this event; later events are then no-ops or converge.
+    // Speakers are rebuilt from their summaries (live ones only: segments already point at survivors).
+    const speakers = who.speakers.filter((x) => x.track === 'system' && x.colour !== null)
     return [
       { seq, data: { type: 'session.upserted', session: scrub({ ...t.session, private: false }) } },
+      ...speakers.map(
+        (x): SyncItem => ({
+          seq,
+          data: {
+            type: 'speaker.upserted',
+            speaker: {
+              id: x.id,
+              sessionId: id,
+              label: x.label,
+              named: x.named,
+              colour: x.colour!,
+              voiceprintId: null,
+              mergedInto: null,
+              createdAt: t.session.createdAt,
+            },
+          },
+        }),
+      ),
       ...t.segments.map((segment): SyncItem => ({ seq, data: { type: 'segment.upserted', segment } })),
       ...qa.messages.map((message): SyncItem => ({ seq, data: { type: 'qa.message', message } })),
       ...notes.versions.map((version): SyncItem => ({ seq, data: { type: 'note.version', version } })),

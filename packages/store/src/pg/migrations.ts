@@ -133,7 +133,38 @@ export const pgMigrations: readonly Migration[] = [
     `,
   },
   {
+    // M3 (mirror of the SQLite migration of the same name). The voiceprints table exists for parity; a
+    // hosted store never receives rows for it (sync skips voiceprint events).
     version: 4,
+    name: 'speakers',
+    up: `
+      CREATE TABLE speakers (
+        id text COLLATE "C" PRIMARY KEY,
+        session_id text COLLATE "C" NOT NULL REFERENCES sessions (id) ON DELETE CASCADE,
+        label text NOT NULL,
+        named boolean NOT NULL,
+        colour integer NOT NULL,
+        voiceprint_id text,
+        merged_into text,
+        created_at text COLLATE "C" NOT NULL
+      );
+      CREATE INDEX speakers_session ON speakers (session_id);
+      ALTER TABLE segments ADD COLUMN speaker_id text COLLATE "C";
+      ALTER TABLE segments ADD COLUMN speaker_source text;
+      CREATE INDEX segments_speaker ON segments (speaker_id);
+      CREATE TABLE voiceprints (
+        id text COLLATE "C" PRIMARY KEY,
+        name text COLLATE "C" NOT NULL,
+        model text NOT NULL,
+        embedding text NOT NULL,
+        samples integer NOT NULL,
+        created_at text NOT NULL,
+        updated_at text NOT NULL
+      );
+    `,
+  },
+  {
+    version: 5,
     name: 'hosted',
     up: `
       CREATE TABLE sync_devices (

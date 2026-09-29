@@ -1,4 +1,4 @@
-import type { NoteVersion, QaMessage, Segment, Track, TrackKind } from '@gnomeola/protocol'
+import type { NoteVersion, QaMessage, Segment, Speaker, Track, TrackKind } from '@gnomeola/protocol'
 import type { AudioChunkRecord, DeviceRecord } from './api.ts'
 
 // Row → protocol mapping shared by the StoreApi implementations. Both dialects store the same column
@@ -30,6 +30,7 @@ export function rowToSegment(r: Row): Segment {
     sessionId: r.session_id as string,
     track: r.track as TrackKind,
     speaker: r.speaker as string,
+    ...(r.speaker_id !== null && r.speaker_id !== undefined ? { speakerId: r.speaker_id as string } : {}),
     startMs: Number(r.start_ms),
     endMs: Number(r.end_ms),
     text: r.text as string,
@@ -83,5 +84,18 @@ export function rowToNoteVersion(r: Row): NoteVersion {
     enhancement: meta.enhancement ?? null,
     merge: meta.merge ?? null,
     restoredFrom: meta.restoredFrom ?? null,
+  }
+}
+
+export function rowToSpeaker(r: Row): Speaker {
+  return {
+    id: r.id as string,
+    sessionId: r.session_id as string,
+    label: r.label as string,
+    named: truthy(r.named),
+    colour: Number(r.colour),
+    voiceprintId: r.voiceprint_id as string | null,
+    mergedInto: r.merged_into as string | null,
+    createdAt: r.created_at as string,
   }
 }

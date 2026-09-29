@@ -235,6 +235,18 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     nextMeeting: 'unsupported',
     joinMeeting: 'unsupported',
 
+    // ---- M3: who spoke is readable here (it arrives by sync); naming, merging and splitting happen on the
+    // recording device, and voiceprints — biometric — never leave it.
+    listSpeakers: async ({ params, query }) => {
+      await visible(params.id, query.includePrivate)
+      return { speakers: await store.speakerSummaries(params.id) }
+    },
+    renameSpeaker: 'unsupported',
+    mergeSpeaker: 'unsupported',
+    splitSpeaker: 'unsupported',
+    listVoiceprints: 'unsupported',
+    deleteVoiceprint: 'unsupported',
+
     // ---- M7 notes: readable here (they arrive by hybrid sync); written only on the recording device,
     // whose daemon has the LLM for enhancement and the built-in templates.
     getNotes: async ({ params, query }) => {

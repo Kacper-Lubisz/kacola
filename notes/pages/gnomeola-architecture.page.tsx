@@ -1034,14 +1034,14 @@ for the retrieval surface:
         ]} />
 
         <Tasks phase="M3" title="Attribution — 6 d · ships who said what" items={[
-          { text: <><strong>A-1</strong> <code>DiarizerProvider</code> interface, <code>speaker</code> table, <code>segment.speaker_id</code>. <em>blocked by: T-2</em></> },
-          { text: <><strong>A-2</strong> pyannote segmentation + speaker-embedding extraction on track B. <em>blocked by: A-1, T-1</em></> },
-          { text: <><strong>A-3</strong> Online clustering and speaker-count estimation, ids stable within a session. <em>blocked by: A-2</em></> },
-          { text: <><strong>A-4</strong> &quot;You&quot; from track A, plus cross-talk handling when both tracks are hot at once. <em>blocked by: A-3, R-2</em></> },
-          { text: <><strong>A-5</strong> UI: speaker chips with stable colours, inline rename, merge and split speakers. <em>blocked by: A-3, T-6</em></> },
-          { text: <><strong>A-6</strong> Voiceprint store — recognise named people across sessions. <em>blocked by: A-5. Deferrable past 1.0.</em></> },
-          { text: <><strong>A-7</strong> DER eval on fixtures, so clustering changes are measurable. <em>blocked by: A-3, T-8</em></> },
-          { text: <><strong>V-3</strong> Extends A-7: DER baselines on deliberately hostile fixtures (three speakers, cross-talk, one bad connection), plus the absolute invariant that every track-A segment is attributed to &quot;me&quot; and no far-end segment is. <em>blocked by: A-7, V-2a. Exit: attribution is never wrong about you, only ever about them.</em></> },
+          { done: true, text: <><strong>A-1</strong> <code>DiarizerProvider</code> interface, <code>speaker</code> table, <code>segment.speaker_id</code>. <em>blocked by: T-2</em></> },
+          { done: true, text: <><strong>A-2</strong> pyannote segmentation + speaker-embedding extraction on track B. <em>blocked by: A-1, T-1</em></> },
+          { done: true, text: <><strong>A-3</strong> Online clustering and speaker-count estimation, ids stable within a session. <em>blocked by: A-2</em></> },
+          { done: true, text: <><strong>A-4</strong> &quot;You&quot; from track A, plus cross-talk handling when both tracks are hot at once. <em>blocked by: A-3, R-2</em></> },
+          { done: true, text: <><strong>A-5</strong> UI: speaker chips with stable colours, inline rename, merge and split speakers. <em>blocked by: A-3, T-6</em></> },
+          { done: true, text: <><strong>A-6</strong> Voiceprint store — recognise named people across sessions. <em>blocked by: A-5. Deferrable past 1.0.</em></> },
+          { done: true, text: <><strong>A-7</strong> DER eval on fixtures, so clustering changes are measurable. <em>blocked by: A-3, T-8</em></> },
+          { done: true, text: <><strong>V-3</strong> Extends A-7: DER baselines on deliberately hostile fixtures (three speakers, cross-talk, one bad connection), plus the absolute invariant that every track-A segment is attributed to &quot;me&quot; and no far-end segment is. <em>blocked by: A-7, V-2a. Exit: attribution is never wrong about you, only ever about them.</em></> },
         ]} />
 
         <Tasks phase="M4" title="Top bar + calendar — 10 d · ships the daily driver" items={[

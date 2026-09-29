@@ -2,10 +2,12 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { newId, type Track, type TrackKind } from '@gnomeola/protocol'
 import type {
+  KnownVoice,
   PipelineSink,
   PipelineStartOptions,
   RecordingHandle,
   SegmentUpsert,
+  SpeakerVoices,
   TranscriptionPipeline,
 } from '../interfaces.ts'
 
@@ -33,7 +35,22 @@ export type FakePipelineOptions = {
   startDelayMs?: number
   /** Make start() reject with this message. */
   failStart?: string
+  /**
+   * Diarize the far end (M3): system segments cycle through FAKE_VOICES speakers in a fixed pattern,
+   * each voice a fixed embedding, recognised against the recording's known voices like the real thing.
+   */
+  diarize?: boolean
 }
+
+/** The fake far end's voices: one-hot embeddings of the `fake-embedding` model. */
+export const FAKE_EMBEDDING_MODEL = 'fake-embedding'
+export const FAKE_VOICES = [
+  [1, 0, 0, 0],
+  [0, 1, 0, 0],
+  [0, 0, 1, 0],
+]
+/** Which fake voice speaks the n-th far-end segment. */
+export const fakeVoiceFor = (n: number): number => [0, 1, 1, 0, 2, 0, 1][n % 7]!
 
 const WORDS = (
   'the retry budget is three attempts then dead letter we ship the migration on thursday ' +
@@ -42,8 +59,8 @@ const WORDS = (
 ).split(' ')
 
 export class FakePipeline implements TranscriptionPipeline {
-  readonly opts: Required<Omit<FakePipelineOptions, 'failAfterMs' | 'gapAtMs' | 'failStart'>> &
-    Pick<FakePipelineOptions, 'failAfterMs' | 'gapAtMs' | 'failStart'>
+  readonly opts: Required<Omit<FakePipelineOptions, 'failAfterMs' | 'gapAtMs' | 'failStart' | 'diarize'>> &
+    Pick<FakePipelineOptions, 'failAfterMs' | 'gapAtMs' | 'failStart' | 'diarize'>
   /** Every recording this pipeline started, for assertions. */
   readonly recordings: FakeRecording[] = []
 
@@ -89,6 +106,13 @@ export class FakeRecording implements RecordingHandle {
   private failed = false
   private gapped = false
   private readonly open = new Map<TrackKind, OpenSeg>()
+  private readonly known: KnownVoice[]
+  private farSegments = 0
+  /** The option, and the user's setting (settings.speakers.diarize), both on. */
+  private readonly diarize: boolean
+  /** Fake voice index → the known voice it was recognised as (null: nobody we know). */
+  private readonly recognised = new Map<number, string | null>()
+  private readonly heard = new Map<number, string>()
   stopped = false
   paused = false
   emitted = 0
@@ -96,6 +120,8 @@ export class FakeRecording implements RecordingHandle {
   constructor(opts: PipelineStartOptions, sink: PipelineSink, o: FakePipeline['opts']) {
     this.sink = sink
     this.o = o
+    this.diarize = Boolean(o.diarize) && (opts.settings.speakers?.diarize ?? true)
+    this.known = (opts.voices ?? []).filter((v) => v.model === FAKE_EMBEDDING_MODEL)
     mkdirSync(opts.sessionDir, { recursive: true })
     this.tracks = opts.tracks.map((t) => {
       const audioPath = join(opts.sessionDir, `${t.kind}.wav`)
@@ -187,6 +213,7 @@ export class FakeRecording implements RecordingHandle {
       }
       this.sink.segment(live)
       this.emitted++
+      if (track === 'system' && this.diarize) this.attribute(live.id)
       const fin: SegmentUpsert = { ...live, text: capitalise(live.text), quality: 'final', confidence: 0.92 }
       this.pendingFinal.set(live.id, fin)
       const timer = setTimeout(() => {
@@ -196,6 +223,31 @@ export class FakeRecording implements RecordingHandle {
       this.finalizers.add(timer)
     }
     this.open.set(track, { startMs: t, words: [], nextCloseAt: t + this.o.segmentEveryMs, lastPartialAt: t })
+  }
+
+  /** The far-end segment just published: which (fake) voice it is, as the real diarizer would say. */
+  private attribute(segmentId: string): void {
+    const v = fakeVoiceFor(this.farSegments++)
+    if (!this.recognised.has(v)) {
+      const match = this.known.find((k) => cos(k.embedding, FAKE_VOICES[v]!) >= 0.6)
+      this.recognised.set(v, match?.id ?? null)
+    }
+    const speakerId = this.sink.speaker({ key: String(v), voiceprintId: this.recognised.get(v)! })
+    if (!speakerId) return
+    this.heard.set(v, speakerId)
+    this.sink.attribute({ speakerId, segmentIds: [segmentId] })
+  }
+
+  voices(): SpeakerVoices | null {
+    if (!this.diarize) return null
+    return {
+      model: FAKE_EMBEDDING_MODEL,
+      voices: [...this.heard].map(([v, speakerId]) => ({
+        speakerId,
+        embedding: FAKE_VOICES[v]!,
+        weightMs: 1000,
+      })),
+    }
   }
 
   private finalise(id: string): void {
@@ -227,7 +279,22 @@ export class FakeRecording implements RecordingHandle {
     for (const timer of this.finalizers) clearTimeout(timer)
     this.finalizers.clear()
     for (const id of [...this.pendingFinal.keys()]) this.finalise(id)
+    const v = this.voices()
+    if (v) this.sink.voices(v)
   }
+}
+
+function cos(a: readonly number[], b: readonly number[]): number {
+  if (a.length !== b.length) return 0
+  let d = 0
+  let na = 0
+  let nb = 0
+  for (let i = 0; i < a.length; i++) {
+    d += a[i]! * b[i]!
+    na += a[i]! * a[i]!
+    nb += b[i]! * b[i]!
+  }
+  return na && nb ? d / Math.sqrt(na * nb) : 0
 }
 
 const speaker = (t: TrackKind) => (t === 'mic' ? 'me' : 'them')

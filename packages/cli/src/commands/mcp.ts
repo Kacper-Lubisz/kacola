@@ -11,6 +11,7 @@ import { notes } from './notes.ts'
 import { recordStatus } from './record.ts'
 import { search } from './search.ts'
 import { sessionsList } from './sessions.ts'
+import { speakers } from './speakers.ts'
 import { transcript } from './transcript.ts'
 
 // The same operations as typed MCP tools, for clients that are not Claude Code. Each tool runs the exact
@@ -150,6 +151,19 @@ export function buildMcpServer(client: GnomeolaClient, env: Io['env'], version: 
       inputSchema: { when: z.enum(['next', 'today']).optional() },
     },
     async (a) => run((ctx) => (a.when === 'today' ? meetingsToday(ctx) : meetingsNext(ctx))),
+  )
+
+  server.registerTool(
+    'list_speakers',
+    {
+      title: 'Who spoke in a meeting',
+      description:
+        'The people in one meeting: `me` (the user, always the microphone), each far-end speaker by name ' +
+        '(or "Speaker N" until named), and how much each said. Use the names with the speaker filter of ' +
+        'search_meetings and get_transcript_window.',
+      inputSchema: { sessionId: z.string() },
+    },
+    async (a) => run((ctx) => speakers(ctx, a.sessionId)),
   )
 
   server.registerTool(
