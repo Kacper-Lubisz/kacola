@@ -1,5 +1,6 @@
 import type { CalendarState, CalendarStatus, Meeting, MeetingList, NextMeeting } from '@gnomeola/protocol'
 import type { EventBus } from '../bus.ts'
+import { DaemonError } from '../errors.ts'
 import type { Logger } from '../logger.ts'
 import { currentAndNext, endOfLocalDay, inWindow, isTimedMeeting, toMeetings, upcoming } from './meetings.ts'
 import type { CalendarInfo, CalendarProvider } from './providers.ts'
@@ -20,6 +21,10 @@ export const ANNOUNCE_MS = 60_000
 export const WINDOW_AHEAD_DAYS = 15
 /** How often the window is rolled forward (and the provider asked to re-expand). */
 export const ROLL_EVERY_MS = 3_600_000
+/** The longest range one query may ask the provider to expand. */
+export const MAX_QUERY_DAYS = 366
+/** How long a query outside the window waits for the provider to re-expand. */
+const WIDEN_TIMEOUT_MS = 15_000
 /** A meeting revealed by a snapshot up to this long after its start still counts as beginning now. */
 const BEGIN_GRACE_MS = 5_000
 
@@ -49,6 +54,8 @@ export class CalendarService {
   private rollTimer: NodeJS.Timeout | null = null
   private started = false
   private firstSnapshot = true
+  private window: { from: Date; to: Date } | null = null
+  private snapshotWaiters: (() => void)[] = []
 
   constructor(deps: CalendarServiceDeps) {
     this.d = deps
@@ -68,6 +75,7 @@ export class CalendarService {
         this.calendars = s.calendars
         this.updatedAt = this.now().toISOString()
         this.onMeetingsChanged()
+        for (const w of this.snapshotWaiters.splice(0)) w()
       },
       status: (state, detail) => {
         if (state === this.state && detail === this.detail) return
@@ -101,6 +109,7 @@ export class CalendarService {
     const now = this.now()
     const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
     const to = new Date(now.getFullYear(), now.getMonth(), now.getDate() + WINDOW_AHEAD_DAYS)
+    this.window = { from, to }
     this.d.provider.setWindow(from, to)
     if (this.rollTimer) clearTimeout(this.rollTimer)
     this.rollTimer = setTimeout(() => this.roll(), ROLL_EVERY_MS)
@@ -127,13 +136,35 @@ export class CalendarService {
     return this.meetings.find((m) => m.id === id) ?? null
   }
 
-  list(from: Date, to: Date, includeDeclined = false): MeetingList {
+  /**
+   * Meetings overlapping [from, to). A range outside the rolling window is expanded on demand: the
+   * window is widened to cover it and the query waits for the provider's next snapshot. (The hourly
+   * roll shrinks it back; a later query just widens it again.)
+   */
+  async list(from: Date, to: Date, includeDeclined = false): Promise<MeetingList> {
+    await this.cover(from, to)
     return {
       from: from.toISOString(),
       to: to.toISOString(),
       meetings: inWindow(this.meetings, from, to, includeDeclined),
       calendar: this.status(),
     }
+  }
+
+  private async cover(from: Date, to: Date): Promise<void> {
+    const w = this.window
+    if (!w || !this.d.provider.expands || this.state === 'off') return
+    if (from >= w.from && to <= w.to) return
+    if (to.getTime() - from.getTime() > MAX_QUERY_DAYS * 86_400_000)
+      throw new DaemonError('bad_request', `a meetings query may span at most ${MAX_QUERY_DAYS} days`)
+    const wider = { from: from < w.from ? from : w.from, to: to > w.to ? to : w.to }
+    this.window = wider
+    const got = new Promise<void>((resolve) => {
+      this.snapshotWaiters.push(resolve)
+      setTimeout(resolve, WIDEN_TIMEOUT_MS).unref()
+    })
+    this.d.provider.setWindow(wider.from, wider.to)
+    await got
   }
 
   next(): NextMeeting {

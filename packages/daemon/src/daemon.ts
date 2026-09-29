@@ -291,7 +291,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     }),
 
     calendarStatus: () => calendar.status(),
-    listMeetings: ({ query }) => {
+    listMeetings: async ({ query }) => {
       const from = bound(query.from, 'from', new Date())
       const to = bound(query.to, 'to', endOfLocalDay(from))
       if (to < from) throw new DaemonError('bad_request', 'to must not be before from')

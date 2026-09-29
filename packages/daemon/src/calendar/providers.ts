@@ -25,6 +25,8 @@ export type ProviderListener = {
 
 export interface CalendarProvider {
   readonly name: string
+  /** Whether the provider expands recurrences over a window (so a query outside it needs a new one). */
+  readonly expands: boolean
   start(listener: ProviderListener): void
   /** The range recurrences are expanded over. Providers without expansion may ignore it. */
   setWindow(from: Date, to: Date): void
@@ -34,6 +36,7 @@ export interface CalendarProvider {
 
 export class NoCalendar implements CalendarProvider {
   readonly name = 'none'
+  readonly expands = false
   start(l: ProviderListener): void {
     l.status('off', null)
   }
@@ -45,6 +48,10 @@ export class NoCalendar implements CalendarProvider {
 /** Scripted provider for tests: push snapshots and states by hand. */
 export class ManualCalendarProvider implements CalendarProvider {
   readonly name = 'manual'
+  readonly expands: boolean
+  constructor(o: { expands?: boolean } = {}) {
+    this.expands = o.expands ?? false
+  }
   private l: ProviderListener | null = null
   window: { from: Date; to: Date } | null = null
   refreshes = 0
@@ -90,6 +97,7 @@ export function parseCalendarFile(text: string): CalendarSnapshot {
 
 export class FileCalendarProvider implements CalendarProvider {
   readonly name = 'file'
+  readonly expands = false
   private readonly path: string
   private readonly pollMs: number
   private l: ProviderListener | null = null
@@ -159,6 +167,7 @@ export type EdsProviderOptions = {
 
 export class EdsCalendarProvider implements CalendarProvider {
   readonly name = 'eds'
+  readonly expands = true
   private readonly o: EdsProviderOptions
   private child: LineChild | null = null
   private l: ProviderListener | null = null

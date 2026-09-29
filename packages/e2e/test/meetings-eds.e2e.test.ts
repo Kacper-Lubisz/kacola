@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import type { Meeting } from '@gnomeola/protocol'
 import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
 import {
@@ -19,11 +17,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 // window use. The exhaustive occurrence-by-occurrence checks (DST, recurrences, exceptions) live at the
 // agent level (packages/daemon/test/cal-agent.e2e.test.ts); here: nothing is lost or mis-timed on the way
 // through, the join links come out extracted, and "current / next" is right against the wall clock.
-//
-// Merge gate: this suite needs the daemon's calendar service (the M4 daemon side). Until daemon.ts
-// handles `listMeetings` it is skipped; delete the gate once merged.
-const DAEMON_TS = join(import.meta.dirname, '..', '..', 'daemon', 'src', 'daemon.ts')
-const wired = readFileSync(DAEMON_TS, 'utf8').includes('listMeetings:')
 
 let eds: EdsHandle
 let daemon: DaemonHandle
@@ -47,7 +40,7 @@ const warsawMidnight = (date: string) => {
   throw new Error(`no midnight for ${date}`)
 }
 
-describe.skipIf(!wired)('meetings from EDS through the real daemon', () => {
+describe('meetings from EDS through the real daemon', () => {
   beforeAll(async () => {
     live = liveFixture(new Date())
     eds = await startEds({ calendars: [...CALENDARS, live.calendar] })
@@ -104,7 +97,8 @@ describe.skipIf(!wired)('meetings from EDS through the real daemon', () => {
     expect(ms(allDay!.start)).toBe(warsawMidnight(live.today))
   })
 
-  // The fixed-date fixtures lie in Oct–Nov 2026. Only meaningful while the daemon's window covers them.
+  // The fixed-date fixtures lie in Oct–Nov 2026, mostly outside the daemon's rolling window: asking for
+  // their range makes the daemon widen the window and wait for cal-agent to re-expand.
   it('carries the fixed fixtures through unchanged when asked for their window', async () => {
     const r = await daemon.client.call('listMeetings', {
       query: { from: WINDOW.from, to: WINDOW.to, includeDeclined: true },

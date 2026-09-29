@@ -301,7 +301,7 @@ describe('CalendarService moments', () => {
     expect(svc.next()).toMatchObject({ current: null, next: null })
   })
 
-  it('publishes calendar.updated on snapshots and state changes, with the status', () => {
+  it('publishes calendar.updated on snapshots and state changes, with the status', async () => {
     svc.start()
     provider.state('unavailable', 'EDS is not running')
     expect(svc.status()).toMatchObject({
@@ -314,7 +314,38 @@ describe('CalendarService moments', () => {
     const updates = events.filter((e) => e.data.type === 'calendar.updated')
     expect(updates.length).toBeGreaterThanOrEqual(3)
     expect(svc.status().updatedAt).toBe(new Date(T0).toISOString())
-    expect(svc.list(new Date(T0), new Date(T0 + 3600_000 * 2)).meetings.map((m) => m.title)).toEqual(['A'])
+    expect((await svc.list(new Date(T0), new Date(T0 + 3600_000 * 2))).meetings.map((m) => m.title)).toEqual([
+      'A',
+    ])
+  })
+
+  it('a query outside the window widens it and waits for the re-expanded snapshot', async () => {
+    const wide = new ManualCalendarProvider({ expands: true })
+    const s2 = new CalendarService({
+      provider: wide,
+      bus,
+      logger: new Logger(),
+      now: () => new Date(Date.now()),
+    })
+    s2.start()
+    const before = wide.window!
+    const far = { from: new Date(T0 + 40 * 86_400_000), to: new Date(T0 + 41 * 86_400_000) }
+    const pending = s2.list(far.from, far.to)
+    expect(wide.window!.from).toEqual(before.from)
+    expect(wide.window!.to).toEqual(far.to)
+    wide.push({
+      calendars: [],
+      occurrences: [occ({ summary: 'Far', start: at(T0, 40 * 1440 + 60), end: at(T0, 40 * 1440 + 90) })],
+    })
+    expect((await pending).meetings.map((m) => m.title)).toEqual(['Far'])
+    // inside the (now wider) window: no new expansion
+    const setWindow = vi.spyOn(wide, 'setWindow')
+    await s2.list(far.from, far.to)
+    expect(setWindow).not.toHaveBeenCalled()
+    await expect(s2.list(new Date(T0), new Date(T0 + 400 * 86_400_000))).rejects.toMatchObject({
+      code: 'bad_request',
+    })
+    await s2.stop()
   })
 })
 
