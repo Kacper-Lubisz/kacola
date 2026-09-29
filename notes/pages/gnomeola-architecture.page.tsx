@@ -1045,18 +1045,18 @@ for the retrieval surface:
         ]} />
 
         <Tasks phase="M4" title="Top bar + calendar — 10 d · ships the daily driver" items={[
-          { text: <><strong>C-1</strong> <code>CalendarProvider</code> interface, <code>calendar_event</code> table, join-URL extraction for Meet / Zoom / Teams. <em>blocked by: G-3</em></> },
-          { text: <><strong>C-2</strong> <code>cal-agent</code>: small GJS helper reading ECal-2.0, emitting JSON lines, watching for changes. <em>blocked by: C-1</em></> },
-          { text: <><strong>C-3</strong> Calendar service in the daemon: watch, compute current/next meeting, expose over HTTP. <em>blocked by: C-2</em></> },
-          { text: <><strong>C-4</strong> D-Bus interface <code>org.gnome.Gnomeola</code> — properties (state, nextMeeting), methods (Start, Stop, Join), signals. <em>blocked by: G-4, C-3</em></> },
-          { text: <><strong>C-5</strong> Shell extension skeleton for GNOME 50 (ESM), top-bar indicator + popover menu + prefs. <em>blocked by: C-4</em></> },
-          { text: <><strong>C-6</strong> Upcoming meetings in the popover, Join opens the link and starts recording in one action. <em>blocked by: C-5</em></> },
-          { text: <><strong>C-7</strong> Live state in the panel: recording dot, elapsed time, last partial line, click to open the window. <em>blocked by: C-5</em></> },
-          { text: <><strong>C-8</strong> Auto-record rules: on calendar-meeting start, or when another app opens the mic. <em>blocked by: C-6</em></> },
-          { text: <><strong>C-9</strong> Extension packaging, <code>metadata.json</code> for Shell 50, <code>gnome-extensions pack</code>. <em>blocked by: C-6, C-7</em></> },
-          { text: <><strong>V-4a</strong> D-Bus contract tests against a real session bus: every property, method and signal of <code>org.gnome.Gnomeola</code>, including the states the extension must render. This is where most extension behaviour is actually verified. <em>blocked by: C-4, V-0</em></> },
-          { text: <><strong>V-4b</strong> Nested-Shell e2e: boot <code>gnome-shell --headless --virtual-monitor</code>, install and enable the extension, drive it, and introspect the indicator via <code>Eval</code>; assert next-meeting rendering, the recording state, and that Join both opens the URL and starts a session. <em>blocked by: C-9, V-4a</em></> },
-          { text: <><strong>V-4c</strong> Calendar fixtures: a seeded EDS source with recurring events, all-day events, timezone edges, declined invitations, and Meet/Zoom/Teams join-link shapes to extract. <em>blocked by: C-3. Exit: no meeting is missed or mis-timed across a DST boundary.</em></> },
+          { done: true, text: <><strong>C-1</strong> <code>CalendarProvider</code> interface, <code>calendar_event</code> table, join-URL extraction for Meet / Zoom / Teams. <em>blocked by: G-3</em></> },
+          { done: true, text: <><strong>C-2</strong> <code>cal-agent</code>: small GJS helper reading ECal-2.0, emitting JSON lines, watching for changes. <em>blocked by: C-1</em></> },
+          { done: true, text: <><strong>C-3</strong> Calendar service in the daemon: watch, compute current/next meeting, expose over HTTP. <em>blocked by: C-2</em></> },
+          { done: true, text: <><strong>C-4</strong> D-Bus interface <code>org.gnome.Gnomeola</code> — properties (state, nextMeeting), methods (Start, Stop, Join), signals. <em>blocked by: G-4, C-3</em></> },
+          { done: true, text: <><strong>C-5</strong> Shell extension skeleton for GNOME 50 (ESM), top-bar indicator + popover menu + prefs. <em>blocked by: C-4</em></> },
+          { done: true, text: <><strong>C-6</strong> Upcoming meetings in the popover, Join opens the link and starts recording in one action. <em>blocked by: C-5</em></> },
+          { done: true, text: <><strong>C-7</strong> Live state in the panel: recording dot, elapsed time, last partial line, click to open the window. <em>blocked by: C-5</em></> },
+          { done: true, text: <><strong>C-8</strong> Auto-record rules: on calendar-meeting start, or when another app opens the mic. <em>blocked by: C-6</em></> },
+          { done: true, text: <><strong>C-9</strong> Extension packaging, <code>metadata.json</code> for Shell 50, <code>gnome-extensions pack</code>. <em>blocked by: C-6, C-7</em></> },
+          { done: true, text: <><strong>V-4a</strong> D-Bus contract tests against a real session bus: every property, method and signal of <code>org.gnome.Gnomeola</code>, including the states the extension must render. This is where most extension behaviour is actually verified. <em>blocked by: C-4, V-0</em></> },
+          { done: true, text: <><strong>V-4b</strong> Nested-Shell e2e: boot <code>gnome-shell --headless --virtual-monitor</code>, install and enable the extension, drive it, and introspect the indicator via <code>Eval</code>; assert next-meeting rendering, the recording state, and that Join both opens the URL and starts a session. <em>blocked by: C-9, V-4a</em></> },
+          { done: true, text: <><strong>V-4c</strong> Calendar fixtures: a seeded EDS source with recurring events, all-day events, timezone edges, declined invitations, and Meet/Zoom/Teams join-link shapes to extract. <em>blocked by: C-3. Exit: no meeting is missed or mis-timed across a DST boundary.</em></> },
         ]} />
 
         <Tasks phase="M5" title="Transcript Q&A — 7 d · ships ask-anything" items={[
