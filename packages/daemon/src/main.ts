@@ -62,7 +62,8 @@ async function main(): Promise<void> {
         ? new FileCalendarProvider(cfg.calendar.path)
         : new NoCalendar()
   opts.dbus = cfg.dbus ? { gjs: cfg.gjs } : null
-  if (cfg.micActivity === 'pipewire') opts.micActivity = new PwDumpMicActivity()
+  if (cfg.micActivity.kind === 'pipewire')
+    opts.micActivity = new PwDumpMicActivity({ onlyTarget: cfg.micActivity.target })
   opts.micIdleStopMs = cfg.micIdleStopMs
   if (cfg.fakes) {
     opts.pipeline = new FakePipeline(cfg.fakePipeline)

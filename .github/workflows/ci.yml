@@ -22,7 +22,7 @@ jobs:
     container: { image: 'registry.fedoraproject.org/fedora:44', options: '--privileged' }
     needs: check
     steps:
-      - run: dnf install -y nodejs24 pnpm git pipewire pipewire-utils wireplumber gnome-shell mutter gtk4-devel libadwaita-devel glib2-devel ffmpeg-free python3-gobject at-spi2-core dbus-daemon tar bzip2 util-linux coreutils desktop-file-utils systemd
+      - run: dnf install -y nodejs24 pnpm git pipewire pipewire-utils wireplumber gnome-shell mutter gtk4-devel libadwaita-devel glib2-devel ffmpeg-free python3-gobject at-spi2-core dbus-daemon tar bzip2 util-linux coreutils desktop-file-utils systemd gjs evolution-data-server unzip
       - uses: actions/checkout@v4
       - run: pnpm install --frozen-lockfile
       # No audio hardware in a container: stand-in default devices with high priority so the rig has

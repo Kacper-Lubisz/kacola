@@ -25,8 +25,12 @@ type PwObject = {
 
 const truthy = (v: unknown) => v === true || v === 'true' || v === 1 || v === '1'
 
-/** The capture streams of other applications that are live right now, in a pw-dump snapshot. */
-export function otherMicUsers(dump: unknown): MicUser[] {
+/**
+ * The capture streams of other applications that are live right now, in a pw-dump snapshot. With
+ * `onlyTarget`, only streams aimed at that source node (target.object) count — the e2e test uses it to
+ * watch just the rig's virtual microphone on a desktop where something else may be capturing too.
+ */
+export function otherMicUsers(dump: unknown, opts: { onlyTarget?: string } = {}): MicUser[] {
   if (!Array.isArray(dump)) return []
   const out: MicUser[] = []
   for (const o of dump as PwObject[]) {
@@ -37,6 +41,7 @@ export function otherMicUsers(dump: unknown): MicUser[] {
     const nodeName = typeof p['node.name'] === 'string' ? p['node.name'] : ''
     if (nodeName.startsWith('gnomeola-')) continue
     if (truthy(p['stream.capture.sink']) || truthy(p['stream.monitor'])) continue
+    if (opts.onlyTarget !== undefined && p['target.object'] !== opts.onlyTarget) continue
     const app =
       [p['application.name'], p['application.process.binary'], nodeName].find(
         (v): v is string => typeof v === 'string' && v.length > 0,
@@ -52,9 +57,11 @@ export class PwDumpMicActivity implements MicActivitySource {
   private last = ''
   private readonly pollMs: number
   private busy = false
+  private readonly onlyTarget: string | undefined
 
-  constructor(opts: { pollMs?: number } = {}) {
+  constructor(opts: { pollMs?: number; onlyTarget?: string } = {}) {
     this.pollMs = opts.pollMs ?? 2000
+    this.onlyTarget = opts.onlyTarget
   }
 
   start(onChange: (users: MicUser[]) => void): void {
@@ -67,7 +74,7 @@ export class PwDumpMicActivity implements MicActivitySource {
         if (err || this.timer === null) return
         let users: MicUser[]
         try {
-          users = otherMicUsers(JSON.parse(stdout))
+          users = otherMicUsers(JSON.parse(stdout), { onlyTarget: this.onlyTarget })
         } catch {
           return
         }

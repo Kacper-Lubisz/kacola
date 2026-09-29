@@ -384,5 +384,10 @@ describe('otherMicUsers (pw-dump)', () => {
       { id: 47, app: 'teams', pid: null },
     ])
     expect(otherMicUsers({})).toEqual([])
+    const aimed = [
+      node(50, { 'media.class': 'Stream/Input/Audio', 'application.name': 'A', 'target.object': 'rig-mic' }),
+      node(51, { 'media.class': 'Stream/Input/Audio', 'application.name': 'B', 'target.object': 'yeti' }),
+    ]
+    expect(otherMicUsers(aimed, { onlyTarget: 'rig-mic' }).map((u) => u.app)).toEqual(['A'])
   })
 })

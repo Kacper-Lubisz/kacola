@@ -33,8 +33,8 @@ export type MainConfig = {
   calendar: { kind: 'eds' } | { kind: 'file'; path: string } | { kind: 'off' }
   /** Own org.gnome.Gnomeola on the session bus. */
   dbus: boolean
-  /** Source for the microphone auto-record rule. */
-  micActivity: 'pipewire' | 'off'
+  /** Source for the microphone auto-record rule; `target` restricts it to streams on one source node. */
+  micActivity: { kind: 'pipewire'; target?: string } | { kind: 'off' }
   micIdleStopMs: number
   gjs: string
 }
@@ -53,7 +53,7 @@ environment:
   ANTHROPIC_API_KEY        takes precedence over the keyring
   GNOMEOLA_CALENDAR        eds | off | file:PATH  (default eds; off with --fake)
   GNOMEOLA_DBUS            session | off           (default session; off with --fake)
-  GNOMEOLA_MIC_ACTIVITY    pipewire | off          (default pipewire; off with --fake)
+  GNOMEOLA_MIC_ACTIVITY    pipewire[:SOURCE] | off (default pipewire; off with --fake)
   GNOMEOLA_MIC_IDLE_STOP_MS stop a mic-triggered recording after this long idle (default 30000)
   GNOMEOLA_GJS             gjs binary for cal-agent and the D-Bus bridge (default gjs)
 `
@@ -108,8 +108,12 @@ export function parseConfig(argv: string[], env: NodeJS.ProcessEnv = process.env
   const dbusEnv = env.GNOMEOLA_DBUS ?? (fakes ? 'off' : 'session')
   if (dbusEnv !== 'session' && dbusEnv !== 'off') throw new UsageError('GNOMEOLA_DBUS must be session or off')
   const mic = env.GNOMEOLA_MIC_ACTIVITY ?? (fakes ? 'off' : 'pipewire')
-  if (mic !== 'pipewire' && mic !== 'off')
-    throw new UsageError('GNOMEOLA_MIC_ACTIVITY must be pipewire or off')
+  let micActivity: MainConfig['micActivity']
+  if (mic === 'off') micActivity = { kind: 'off' }
+  else if (mic === 'pipewire') micActivity = { kind: 'pipewire' }
+  else if (mic.startsWith('pipewire:') && mic.length > 9)
+    micActivity = { kind: 'pipewire', target: mic.slice(9) }
+  else throw new UsageError('GNOMEOLA_MIC_ACTIVITY must be pipewire, pipewire:SOURCE or off')
   const keyring = (env.GNOMEOLA_KEYRING ?? 'secret-tool') as KeyringKind
   if (!['secret-tool', 'memory', 'none'].includes(keyring))
     throw new UsageError(`unknown GNOMEOLA_KEYRING ${keyring}`)
@@ -132,7 +136,7 @@ export function parseConfig(argv: string[], env: NodeJS.ProcessEnv = process.env
     echoLogs: env.GNOMEOLA_ECHO_LOGS === '1' || env.INVOCATION_ID !== undefined, // INVOCATION_ID: under systemd
     calendar,
     dbus: dbusEnv === 'session',
-    micActivity: mic,
+    micActivity,
     micIdleStopMs: int(env.GNOMEOLA_MIC_IDLE_STOP_MS, 'GNOMEOLA_MIC_IDLE_STOP_MS', 30_000, 0),
     gjs: env.GNOMEOLA_GJS || 'gjs',
   }
