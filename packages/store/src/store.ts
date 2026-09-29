@@ -32,6 +32,7 @@ import {
 } from 'kysely'
 import { capSnippet, SNIPPET_TOKENS, toFtsQuery } from './fts.ts'
 import { migrations as defaultMigrations, type Migration, migrate } from './migrations.ts'
+import { applyNotesEvent, deleteNotesOf } from './notes.ts'
 import type { DB, QaRow, SegmentRow, SessionRow, SpeakerRow, TrackRow, VoiceprintRow } from './schema.ts'
 
 // The store. Two rules make the event log trustworthy:
@@ -391,6 +392,7 @@ export class Store {
       }
       case 'session.deleted': {
         const id = data.sessionId
+        deleteNotesOf(this.db, id)
         this.run(compiler.deleteFrom('speakers').where('session_id', '=', id))
         this.run(compiler.deleteFrom('qa_messages').where('session_id', '=', id))
         this.run(compiler.deleteFrom('segments').where('session_id', '=', id))
@@ -408,6 +410,12 @@ export class Store {
         )
         return
       }
+      // ---- M7: notes + enhancement
+      case 'note.version':
+      case 'template.upserted':
+      case 'template.deleted':
+        applyNotesEvent(this.db, data)
+        return
       // ---- M3: attribution
       case 'speaker.upserted':
       case 'speaker.merged':

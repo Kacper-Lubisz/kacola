@@ -20,13 +20,22 @@ describe('concurrent writers on one database file', () => {
     const WORKERS = 6
     const COUNT = 300
     const barrier = new SharedArrayBuffer(4)
+    const progress = new SharedArrayBuffer(4 * WORKERS)
     const results = await Promise.all(
       Array.from(
         { length: WORKERS },
         (_, worker) =>
           new Promise<number[]>((resolve, reject) => {
             const w = new Worker(new URL('./writer.worker.ts', import.meta.url), {
-              workerData: { path, sessionId: session.id, count: COUNT, worker, barrier, workers: WORKERS },
+              workerData: {
+                path,
+                sessionId: session.id,
+                count: COUNT,
+                worker,
+                barrier,
+                progress,
+                workers: WORKERS,
+              },
             })
             w.once('message', resolve)
             w.once('error', reject)
@@ -35,8 +44,8 @@ describe('concurrent writers on one database file', () => {
       ),
     )
     const events = s.eventsAfter(0)
-    // Every assertion carries the run's stats: this test failed once in ~27 runs under a loaded full gate
-    // (2026-09-28) with its message lost, so a recurrence must explain itself.
+    // Every assertion carries the run's stats. (A 2026-09 flake turned out to be the interleave check
+    // below failing under load — no event was ever lost; the workers now run in lockstep instead.)
     const writerOfAll = events
       .slice(1)
       .map((e) => (e.data.type === 'segment.upserted' ? e.data.segment.id.split('_')[1] : '?'))

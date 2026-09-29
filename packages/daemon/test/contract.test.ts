@@ -5,6 +5,10 @@ import {
   AnyEvent,
   AskStreamEvent,
   createClient,
+  defaultChoices,
+  diffNoteBlocks,
+  type EnhanceStreamEvent,
+  enhanceEvents,
   type GnomeolaClient,
   type RouteName,
   routes,
@@ -12,6 +16,7 @@ import {
 import { waitFor } from '@gnomeola/testkit/daemon'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createDaemon, type Daemon, type Handlers } from '../src/daemon.ts'
+import { FakeNotesEngine } from '../src/fakes/notes.ts'
 import { FakePipeline } from '../src/fakes/pipeline.ts'
 import { FakeDevices, FakeModels, FakeQaEngine } from '../src/fakes/providers.ts'
 import { MemoryKeyring } from '../src/keyring.ts'
@@ -46,6 +51,7 @@ describe('contract: every route, real server, typed client', () => {
       devices: new FakeDevices(),
       models: new FakeModels({ stepMs: 5 }),
       qaEngine: new FakeQaEngine({ delayMs: 0 }),
+      notesEngine: new FakeNotesEngine({ delayMs: 0 }),
       keyring: new MemoryKeyring(),
       env: {},
       heartbeatMs: 50,
@@ -91,6 +97,39 @@ describe('contract: every route, real server, typed client', () => {
         expect(events.filter((e) => e.type === 'delta').length).toBeGreaterThan(0)
         return events
       },
+      // ---- M7: notes + enhancement, in the order a user goes through them
+      putNotes: () => c.call('putNotes', { params, body: { markdown: '- retry budget?\n', baseVersion: 0 } }),
+      getNotes: () => c.call('getNotes', { params }),
+      listTemplates: () =>
+        c.call('listTemplates', { query: { sessionId: s.id, calendarTitle: 'Daily standup' } }),
+      enhanceNotes: async () => {
+        const events: EnhanceStreamEvent[] = []
+        for await (const e of enhanceEvents(c.stream('enhanceNotes', { params, body: {} }))) events.push(e)
+        expect(events.map((e) => e.type).filter((t) => t !== 'delta')).toEqual(['started', 'done'])
+        return events
+      },
+      mergeNotes: async () => {
+        const { note, enhanced } = await c.call('getNotes', { params })
+        const hunks = diffNoteBlocks(note.markdown, enhanced!.markdown)
+        return c.call('mergeNotes', {
+          params,
+          body: {
+            enhancedVersion: enhanced!.version,
+            baseVersion: note.version,
+            choices: defaultChoices(hunks),
+          },
+        })
+      },
+      listNoteVersions: () => c.call('listNoteVersions', { params }),
+      restoreNoteVersion: () =>
+        c.call('restoreNoteVersion', { params: { id: s.id, version: '1' }, body: { baseVersion: 3 } }),
+      getActionItems: () => c.call('getActionItems', { params, query: { version: 2 } }),
+      putTemplate: () =>
+        c.call('putTemplate', {
+          params: { id: 'retro' },
+          body: { name: 'Retro', keywords: ['retro'], body: '## Went well\n## To improve' },
+        }),
+      deleteTemplate: () => c.call('deleteTemplate', { params: { id: 'retro' } }),
       events: async () => {
         const ac = new AbortController()
         const got: AnyEvent[] = []

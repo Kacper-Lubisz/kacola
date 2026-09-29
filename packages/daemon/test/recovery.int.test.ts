@@ -167,6 +167,7 @@ describe('crash recovery', () => {
     d = await startDaemon()
     await d.kill('SIGTERM')
     const s = openDisk(d.dataDir)
+    // one past the newest migration this build knows (never a hard-coded number: milestones add migrations)
     s.db
       .prepare("INSERT INTO schema_migrations VALUES (?, 'from-the-future', '2030-01-01T00:00:00Z')")
       .run(migrations.length + 1)

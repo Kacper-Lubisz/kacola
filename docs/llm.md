@@ -1,7 +1,8 @@
 # Transcript Q&A (`@gnomeola/llm`)
 
 How gnomeola answers questions about recorded meetings: the prompt layout and why, the cache strategy,
-citations, refusals, cost, and how the tests and cassettes work.
+citations, refusals, cost, and how the tests and cassettes work. Notes enhancement (M7) reuses the same
+layout, caching, citations and refusal handling with its own system prompt: see docs/notes.md.
 
 ## Public API
 

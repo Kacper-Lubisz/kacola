@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { notesRoutes } from './notes.ts'
 import {
   ApiError,
   AudioDevice,
@@ -180,6 +181,8 @@ export const routes = {
     }),
   },
 
+  // ---- M7: notes + enhancement (schemas in notes.ts)
+  ...notesRoutes,
   // ---- M3: attribution
   /** Everyone who speaks in a session: `me`, each far-end speaker, and `them` for unattributed speech. */
   listSpeakers: {

@@ -22,10 +22,11 @@ import {
   statusLabel,
   statusSummary,
 } from '../data/format.ts'
-import { useEvents, useNow, useQaFeed, useTranscriptFeed } from '../data/hooks.ts'
+import { useEvents, useNotesFeed, useNow, useQaFeed, useTranscriptFeed } from '../data/hooks.ts'
 import { _ } from '../i18n/index.ts'
 import { AskPane } from './ask-pane.tsx'
 import { useDialogs } from './dialogs.tsx'
+import { NotesPane } from './notes-pane.tsx'
 import { type TranscriptFocus, TranscriptView } from './transcript-view.tsx'
 
 const TRACK_LABEL: Record<TrackKind, () => string> = {
@@ -139,10 +140,10 @@ function StatusLine({ session }: { session: Session }) {
   return <GtkLabel label={statusSummary(session, now)} cssClasses={['dim-label']} xalign={0} />
 }
 
-export type DetailPage = 'transcript' | 'ask' | 'details'
+export type DetailPage = 'transcript' | 'notes' | 'ask' | 'details'
 
 /**
- * One session: a heading, then Transcript / Ask / Details as an AdwViewStack with a view switcher
+ * One session: a heading, then Transcript / Notes / Ask / Details as an AdwViewStack with a view switcher
  * in the header bar (and at the bottom when the window is narrow). Mounted with key={session.id},
  * so every per-session feed starts fresh when the selection changes.
  */
@@ -150,6 +151,7 @@ export function SessionDetail({ session, narrow }: { session: Session; narrow: b
   const live = session.status === 'recording' || session.status === 'paused'
   const transcript = useTranscriptFeed(session.id)
   const qa = useQaFeed(session.id)
+  const notes = useNotesFeed(session.id)
   const dialogs = useDialogs()
   const [stack, setStack] = useState<Adw.ViewStack | null>(null)
   const [page, setPage] = useState<DetailPage>('transcript')
@@ -201,7 +203,7 @@ export function SessionDetail({ session, narrow }: { session: Session; narrow: b
           vexpand
           visibleChildName={page}
           onNotifyVisibleChildName={(v) => {
-            if (v === 'transcript' || v === 'ask' || v === 'details') setPage(v)
+            if (v === 'transcript' || v === 'notes' || v === 'ask' || v === 'details') setPage(v)
           }}
         >
           {/* Each page's content sits in a stable GtkBox: a lazy AdwViewStackPage is bound to its
@@ -210,6 +212,16 @@ export function SessionDetail({ session, narrow }: { session: Session; narrow: b
           <AdwViewStackPage name="transcript" title={_('Transcript')} iconName="view-list-symbolic">
             <GtkBox orientation={Gtk.Orientation.VERTICAL}>
               <TranscriptView feed={transcript} live={live} focus={focus} />
+            </GtkBox>
+          </AdwViewStackPage>
+          <AdwViewStackPage name="notes" title={_('Notes')} iconName="document-edit-symbolic">
+            <GtkBox orientation={Gtk.Orientation.VERTICAL}>
+              <NotesPane
+                session={session}
+                state={notes.state}
+                feed={notes.feed}
+                onOpenPreferences={() => dialogs.open('preferences')}
+              />
             </GtkBox>
           </AdwViewStackPage>
           <AdwViewStackPage name="ask" title={_('Ask')} iconName="chat-message-new-symbolic">
