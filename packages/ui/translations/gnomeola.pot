@@ -17,39 +17,39 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
-#: src/components/about.tsx:22
+#: src/components/about.tsx:23
 msgid ""
 "gnomeola is an independent clean-room project inspired by Granola. It is not "
 "affiliated with or endorsed by Granola."
 msgstr ""
 
-#: src/components/about.tsx:48
+#: src/components/about.tsx:49
 msgid "Third-Party Notices"
 msgstr ""
 
-#: src/components/about.tsx:49
+#: src/components/about.tsx:50
 msgid "Inspired by"
 msgstr ""
 
-#: src/components/about.tsx:51
+#: src/components/about.tsx:52
 msgid "Third-Party Components"
 msgstr ""
 
-#: src/components/about.tsx:54
+#: src/components/about.tsx:55
 msgid ""
 "gnomeola includes the following components under their own licences. The "
 "full list, with homepages, is in THIRD_PARTY_NOTICES.md."
 msgstr ""
 
-#: src/components/about.tsx:57
+#: src/components/about.tsx:62
 msgid "translator-credits"
 msgstr ""
 
-#: src/components/about.tsx:64 src/components/about.tsx:65
+#: src/components/about.tsx:69 src/components/about.tsx:70
 msgid "The gnomeola contributors"
 msgstr ""
 
-#: src/components/about.tsx:67
+#: src/components/about.tsx:72
 msgid ""
 "Record meetings, read live speaker-labelled transcripts, and ask questions "
 "about what was said."
@@ -476,7 +476,7 @@ msgstr ""
 msgid "Session details"
 msgstr ""
 
-#: src/components/session-detail.tsx:210 src/components/transcript-view.tsx:245
+#: src/components/session-detail.tsx:210 src/components/transcript-view.tsx:262
 msgid "Transcript"
 msgstr ""
 
@@ -568,55 +568,55 @@ msgstr ""
 msgid "Try Again"
 msgstr ""
 
-#: src/components/transcript-view.tsx:30
+#: src/components/transcript-view.tsx:31
 msgid "Me"
 msgstr ""
 
-#: src/components/transcript-view.tsx:30
+#: src/components/transcript-view.tsx:31
 msgid "Them"
 msgstr ""
 
-#: src/components/transcript-view.tsx:34
+#: src/components/transcript-view.tsx:35
 msgid "in progress"
 msgstr ""
 
-#: src/components/transcript-view.tsx:34
+#: src/components/transcript-view.tsx:35
 msgid "provisional"
 msgstr ""
 
-#: src/components/transcript-view.tsx:35
+#: src/components/transcript-view.tsx:36
 msgid "{speaker} at {time}: {text}"
 msgstr ""
 
-#: src/components/transcript-view.tsx:159
+#: src/components/transcript-view.tsx:160
 msgid "Loading Transcript…"
 msgstr ""
 
-#: src/components/transcript-view.tsx:169
+#: src/components/transcript-view.tsx:170
 msgid "Could Not Load the Transcript"
 msgstr ""
 
-#: src/components/transcript-view.tsx:179
+#: src/components/transcript-view.tsx:180
 msgid "Listening…"
 msgstr ""
 
-#: src/components/transcript-view.tsx:179
+#: src/components/transcript-view.tsx:180
 msgid "No Transcript"
 msgstr ""
 
-#: src/components/transcript-view.tsx:181
+#: src/components/transcript-view.tsx:182
 msgid "Lines appear here as people speak."
 msgstr ""
 
-#: src/components/transcript-view.tsx:181
+#: src/components/transcript-view.tsx:182
 msgid "Nothing was transcribed in this session."
 msgstr ""
 
-#: src/components/transcript-view.tsx:196
+#: src/components/transcript-view.tsx:197
 msgid "Scroll to the newest line and keep following"
 msgstr ""
 
-#: src/components/transcript-view.tsx:203
+#: src/components/transcript-view.tsx:204
 msgid "Jump to Live"
 msgstr ""
 
@@ -718,4 +718,12 @@ msgstr ""
 
 #: src/data/settings.ts:92
 msgid "Voice detection"
+msgstr ""
+
+#: src/data/settings.ts:93
+msgid "Speaker turns"
+msgstr ""
+
+#: src/data/settings.ts:94
+msgid "Speaker recognition"
 msgstr ""

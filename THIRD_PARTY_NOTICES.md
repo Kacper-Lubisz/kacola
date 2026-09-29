@@ -177,6 +177,9 @@ tree; do not edit it by hand.
 | NeMo streaming FastConformer transducer (en, 80 ms, int8) | CC-BY-4.0 | NVIDIA NeMo via k2-fsa/sherpa-onnx releases | default live (tier-1) model; downloaded at first run |
 | NeMo Parakeet TDT transducer 110M (en, int8) | CC-BY-4.0 | NVIDIA NeMo via k2-fsa/sherpa-onnx releases | default final (tier-2) model; downloaded at first run |
 | Silero VAD | MIT | snakers4/silero-vad via k2-fsa/sherpa-onnx releases | voice activity detection; downloaded at first run |
+| pyannote speaker segmentation 3.0 | MIT | pyannote/segmentation-3.0 (CNRS) via k2-fsa/sherpa-onnx releases | far-end speaker turns (M3); downloaded at first run |
+| NeMo TitaNet-small speaker embeddings (en) | CC-BY-4.0 | NVIDIA NeMo via k2-fsa/sherpa-onnx releases | default speaker embedding model (M3); downloaded at first run |
+| WeSpeaker ResNet34 speaker embeddings (VoxCeleb) | CC-BY-4.0 | wenet-e2e/wespeaker via k2-fsa/sherpa-onnx releases | optional alternative embedding model, benchmarked in docs/stt.md |
 | Whisper / Moonshine / Zipformer alternatives | MIT | k2-fsa/sherpa-onnx releases | optional, selectable in Preferences (icefall Zipformers are Apache-2.0) |
 | Piper voices joe, sam / LJSpeech, cori | CC0-1.0 | rhasspy/piper-voices | test fixtures only (sam: Apache-2.0; ljspeech, cori: public domain) |
 | LibriSpeech test-clean excerpts | CC-BY-4.0 | Panayotov et al., openslr.org/12 | test fixture librispeech-3p |

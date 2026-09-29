@@ -38,6 +38,31 @@ export type SegmentRow = {
   quality: string
   revision: number
   confidence: number | null
+  speaker_id: string | null
+  /** 'auto' | 'user' | null — who last attributed the segment to `speaker_id`. */
+  speaker_source: string | null
+}
+
+export type SpeakerRow = {
+  id: string
+  session_id: string
+  label: string
+  named: number
+  colour: number
+  voiceprint_id: string | null
+  merged_into: string | null
+  created_at: string
+}
+
+export type VoiceprintRow = {
+  id: string
+  name: string
+  model: string
+  /** JSON array of numbers */
+  embedding: string
+  samples: number
+  created_at: string
+  updated_at: string
 }
 
 export type QaRow = {
@@ -71,6 +96,8 @@ export type DB = {
   tracks: TrackRow
   segments: SegmentRow & { pk: Generated<number> }
   qa_messages: QaRow
+  speakers: SpeakerRow
+  voiceprints: VoiceprintRow
   settings: { id: number; value: string }
   schema_migrations: { version: number; name: string; applied_at: string }
 }

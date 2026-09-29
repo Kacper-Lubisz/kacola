@@ -100,11 +100,50 @@ export function checkEventLog(events: readonly Pick<DurableEvent, 'seq'>[], afte
   return v
 }
 
-/** Fold segment.upserted events into the latest state per segment — what a replay must reproduce. */
+/**
+ * Fold the log into the latest state per segment — what a replay must reproduce. An independent
+ * reading of the attribution events (M3): a speaker's label follows every rename onto their segments, a
+ * merge moves one speaker's segments onto another, and an attribution moves exactly the listed ids.
+ */
 export function foldSegments(events: readonly DurableEvent[]): Map<string, Segment> {
   const out = new Map<string, Segment>()
-  for (const e of events) if (e.data.type === 'segment.upserted') out.set(e.data.segment.id, e.data.segment)
+  const labels = new Map<string, string>()
+  const relabel = (pred: (s: Segment) => boolean, speakerId: string) => {
+    for (const [id, s] of out)
+      if (pred(s)) out.set(id, { ...s, speakerId, speaker: labels.get(speakerId) ?? s.speaker })
+  }
+  for (const e of events) {
+    const d = e.data
+    if (d.type === 'segment.upserted') out.set(d.segment.id, d.segment)
+    else if (d.type === 'speaker.upserted') {
+      labels.set(d.speaker.id, d.speaker.label)
+      relabel((s) => s.speakerId === d.speaker.id, d.speaker.id)
+    } else if (d.type === 'speaker.merged') relabel((s) => s.speakerId === d.fromId, d.intoId)
+    else if (d.type === 'segments.attributed') {
+      const ids = new Set(d.segmentIds)
+      relabel((s) => ids.has(s.id), d.speakerId)
+    }
+  }
   return out
+}
+
+/**
+ * The absolute attribution invariant (V-3): every microphone segment is the user's and carries no
+ * far-end speaker id; no far-end segment is ever the user's. Checked on any segment list — a pipeline's
+ * output, a store's transcript, or the fold of a log.
+ */
+export function checkAttribution(segments: readonly Segment[]): Violation[] {
+  const v: Violation[] = []
+  for (const s of segments) {
+    if (s.track === 'mic' && (s.speaker !== ME || s.speakerId !== undefined))
+      v.push({
+        rule: 'mic-is-me',
+        detail: `${s.id}: mic segment is ${JSON.stringify(s.speaker)}${s.speakerId ? ` (${s.speakerId})` : ''}`,
+      })
+    if (s.track === 'system' && s.speaker.trim().toLowerCase() === ME)
+      v.push({ rule: 'system-is-not-me', detail: `${s.id}: far-end segment attributed to me` })
+  }
+  return v
 }
 
 /** Throw with every violation listed — for use as a single assertion in tests. */

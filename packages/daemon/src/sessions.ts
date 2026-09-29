@@ -5,7 +5,13 @@ import type { Session, StoredSettings } from '@gnomeola/protocol'
 import type { Store } from '@gnomeola/store'
 import type { EventBus } from './bus.ts'
 import { DaemonError } from './errors.ts'
-import type { PipelineSink, RecordingHandle, TranscriptionPipeline } from './interfaces.ts'
+import type {
+  KnownVoice,
+  PipelineSink,
+  RecordingHandle,
+  SpeakerVoices,
+  TranscriptionPipeline,
+} from './interfaces.ts'
 import { isActive, type LifecycleAction, nextStatus } from './lifecycle.ts'
 import type { Logger } from './logger.ts'
 
@@ -20,6 +26,8 @@ type Active = {
   /** Wall-clock ms when the current recording stretch began; null while paused. */
   runningSince: number | null
   accumulatedMs: number
+  /** Diarizer cluster key → far-end speaker id, for this recording (M3). */
+  speakers: Map<string, string>
 }
 
 export type SessionManagerDeps = {
@@ -30,6 +38,10 @@ export type SessionManagerDeps = {
   dataDir: string
   settings: () => StoredSettings
   now?: () => number
+  /** Remembered voices to recognise in a new recording (M3; empty unless voiceprints are on). */
+  knownVoices?: () => KnownVoice[]
+  /** A recording's far-end voices at its end (M3: the speaker service decides what to keep). */
+  onVoices?: (sessionId: string, v: SpeakerVoices) => void
 }
 
 export class SessionManager {
@@ -44,7 +56,11 @@ export class SessionManager {
   }
 
   sessionDir(id: string): string {
-    return join(this.d.dataDir, 'sessions', id)
+    return join(this.sessionsDir, id)
+  }
+
+  get sessionsDir(): string {
+    return join(this.d.dataDir, 'sessions')
   }
 
   get activeCount(): number {
@@ -75,16 +91,22 @@ export class SessionManager {
     return a.accumulatedMs + (a.runningSince === null ? 0 : this.now() - a.runningSince)
   }
 
+  /** The far-end voices of a running recording (for naming a speaker mid-meeting). */
+  liveVoices(id: string): SpeakerVoices | null {
+    return this.active.get(id)?.handle?.voices?.() ?? null
+  }
+
   private sink(id: string, a: Active): PipelineSink {
     const { store, bus, logger } = this.d
     const guard =
-      <A extends unknown[]>(what: string, fn: (...args: A) => void) =>
-      (...args: A) => {
-        if (a.closed) return
+      <A extends unknown[], R = void>(what: string, fn: (...args: A) => R) =>
+      (...args: A): R | undefined => {
+        if (a.closed) return undefined
         try {
-          fn(...args)
+          return fn(...args)
         } catch (err) {
           logger.error(`pipeline ${what} rejected`, { sessionId: id, err })
+          return undefined
         }
       }
     return {
@@ -112,7 +134,44 @@ export class SessionManager {
         logger.error('pipeline error', { sessionId: id, message: e.message, fatal: e.fatal })
         if (e.fatal) void this.fail(id, e.message)
       }),
+      speaker: (e) => guard('speaker', () => this.speakerFor(id, a, e.key, e.voiceprintId))() ?? null,
+      attribute: guard('attribute', (e) => {
+        store.attributeSegments(id, e.speakerId, e.segmentIds, 'auto')
+      }),
+      voices: (v) => {
+        // called while stopping, so not guarded by `closed`
+        try {
+          this.d.onVoices?.(id, v)
+        } catch (err) {
+          logger.error('pipeline voices rejected', { sessionId: id, err })
+        }
+      },
     }
+  }
+
+  /**
+   * The far-end speaker behind a diarizer cluster: created on first sight — named after the voiceprint
+   * it was recognised as, when that name is free — and linked later if recognition comes late.
+   */
+  private speakerFor(id: string, a: Active, key: string, voiceprintId: string | null): string {
+    const { store } = this.d
+    const vp = voiceprintId ? store.getVoiceprint(voiceprintId) : null
+    const free = (label: string) =>
+      !store.speakers(id).some((s) => s.label.toLowerCase() === label.toLowerCase())
+    const known = a.speakers.get(key)
+    if (known) {
+      const cur = store.resolveSpeaker(known)
+      if (cur && vp && !cur.voiceprintId && !cur.named)
+        store.linkVoiceprint(id, cur.id, vp.id, free(vp.name) ? vp.name : undefined)
+      return cur?.id ?? known
+    }
+    const spk = store.createSpeaker(id, {
+      ...(vp && free(vp.name) ? { label: vp.name } : {}),
+      voiceprintId: vp?.id ?? null,
+    })
+    a.speakers.set(key, spk.id)
+    this.d.logger.info('far-end speaker', { sessionId: id, speakerId: spk.id, recognised: Boolean(vp) })
+    return spk.id
   }
 
   async start(id: string): Promise<Session> {
@@ -121,7 +180,13 @@ export class SessionManager {
       const dir = this.sessionDir(id)
       mkdirSync(dir, { recursive: true })
       const settings = this.d.settings()
-      const a: Active = { handle: null, closed: false, runningSince: null, accumulatedMs: 0 }
+      const a: Active = {
+        handle: null,
+        closed: false,
+        runningSince: null,
+        accumulatedMs: 0,
+        speakers: new Map(),
+      }
       this.active.set(id, a)
       let handle: RecordingHandle
       try {
@@ -134,6 +199,7 @@ export class SessionManager {
               { kind: 'system', device: settings.capture.systemDevice },
             ],
             settings,
+            voices: this.d.knownVoices?.() ?? [],
           },
           this.sink(id, a),
         )

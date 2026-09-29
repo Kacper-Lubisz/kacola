@@ -90,4 +90,6 @@ export const roleLabel = (role: ModelInfo['role']): string =>
     live: _('Live transcription'),
     final: _('Accurate transcription'),
     vad: _('Voice detection'),
+    segmentation: _('Speaker turns'),
+    embedding: _('Speaker recognition'),
   })[role]

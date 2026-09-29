@@ -112,6 +112,9 @@ describe('fake pipeline', () => {
       },
       gap: () => {},
       error: () => {},
+      speaker: () => null,
+      attribute: () => {},
+      voices: () => {},
     }
     const dir = mkdtempSync(join(tmpdir(), 'gnomeola-fake-'))
     try {

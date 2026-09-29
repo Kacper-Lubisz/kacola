@@ -29,6 +29,7 @@ export function sherpaVersion(): { version: string; gitSha1: string } {
   return { version: s.version, gitSha1: s.gitSha1 }
 }
 
+export { createDiarizer, SherpaDiarizationEngine, type SherpaDiarizationOptions } from './diarize.ts'
 export { cleanFinalText } from './final.ts'
 export { displayText, wordsFromTokens } from './live.ts'
 export { SherpaFinalTranscriber, SherpaLiveRecognizer, SherpaTts, SileroVad }

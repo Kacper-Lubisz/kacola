@@ -60,6 +60,18 @@ export interface OfflineTts {
   generate(req: { text: string; sid: number; speed: number; enableExternalBuffer?: boolean }): Waveform
 }
 
+export interface SpeakerEmbeddingExtractor {
+  readonly dim: number
+  createStream(): OnlineStream
+  isReady(s: OnlineStream): boolean
+  compute(s: OnlineStream, enableExternalBuffer?: boolean): Float32Array
+}
+export type DiarizationSegment = { start: number; end: number; speaker: number }
+export interface OfflineSpeakerDiarization {
+  readonly sampleRate: number
+  process(samples: Float32Array): DiarizationSegment[]
+}
+
 export type SherpaModule = {
   version: string
   gitSha1: string
@@ -71,6 +83,8 @@ export type SherpaModule = {
   }
   Vad: new (config: Record<string, unknown>, bufferSizeInSeconds: number) => Vad
   OfflineTts: new (config: Record<string, unknown>) => OfflineTts
+  SpeakerEmbeddingExtractor: new (config: Record<string, unknown>) => SpeakerEmbeddingExtractor
+  OfflineSpeakerDiarization: new (config: Record<string, unknown>) => OfflineSpeakerDiarization
   readWave(path: string, enableExternalBuffer?: boolean): Waveform
   writeWave(path: string, w: Waveform): boolean
 }

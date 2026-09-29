@@ -8,6 +8,11 @@ import type { LiveHypothesis, TimedWord } from './types.ts'
 //            pause / resume / recorded gaps · end of session
 //   outputs  `transcript.partial` (ephemeral) · `segment.upserted` (durable) · `finalize` requests
 //            (asks the caller to run tier 2 over [startMs, endMs) of a track and feed the result back)
+//            · `closed` (a segment's speech is over: its bounds are known, e.g. for diarization)
+//
+// A closed segment can be `split` at speaker changes (A-2) until its final lands: the first piece keeps
+// the id, later pieces get new ids, words go to the piece they were spoken in, and each piece gets its
+// own tier-2 request.
 //
 // Segment boundaries come from the VAD — it sees the audio directly and is the same for every tier.
 // Tier-1 words are attached to segments by their timestamps; tier 2 replaces a closed segment's text
@@ -34,6 +39,8 @@ export type ReconcilerInput =
   | { type: 'resume'; atMs: number }
   | { type: 'gap'; track: TrackKind | null; atMs: number; durationMs: number; reason: string }
   | { type: 'end'; atMs: number }
+  /** Split a closed, not-yet-final segment at these session times (speaker changes). */
+  | { type: 'split'; segmentId: string; atMs: number[] }
 
 export type PartialOut = {
   type: 'transcript.partial'
@@ -49,8 +56,23 @@ export type FinalizeRequest = {
   track: TrackKind
   startMs: number
   endMs: number
+  /**
+   * Context padding must not reach past these (set on split pieces: across a split is another
+   * speaker's voice, which tier 2 would happily transcribe into this piece).
+   */
+  contextFromMs?: number
+  contextToMs?: number
 }
-export type ReconcilerOutput = PartialOut | UpsertOut | FinalizeRequest
+export type ClosedOut = {
+  type: 'closed'
+  segmentId: string
+  track: TrackKind
+  startMs: number
+  endMs: number
+  /** Set on the pieces a split creates: the segment they were cut from. */
+  splitFrom?: string
+}
+export type ReconcilerOutput = PartialOut | UpsertOut | FinalizeRequest | ClosedOut
 
 export type ReconcilerOptions = {
   sessionId: string
@@ -92,6 +114,7 @@ export type ReconcilerStats = {
   finalFailures: number
   droppedLiveWords: number
   ignoredInputs: number
+  splits: number
   gaps: { track: TrackKind | null; atMs: number; durationMs: number; reason: string }[]
 }
 
@@ -120,6 +143,7 @@ export class Reconciler {
     finalFailures: 0,
     droppedLiveWords: 0,
     ignoredInputs: 0,
+    splits: 0,
     gaps: [],
   }
 
@@ -210,6 +234,9 @@ export class Reconciler {
         this.paused = false
         out.push(...this.deferred.splice(0))
         break
+      case 'split':
+        this.onSplit(input.segmentId, input.atMs, out)
+        break
     }
     return out
   }
@@ -297,6 +324,15 @@ export class Reconciler {
     s.endMs = Math.max(s.startMs, endMs)
     s.status = 'closed'
     this.publishLive(s, out, true)
+    out.push({ type: 'closed', segmentId: s.id, track: s.track, startMs: s.startMs, endMs: s.endMs })
+    this.requestFinal(s, out)
+  }
+
+  private requestFinal(
+    s: SegState,
+    out: ReconcilerOutput[],
+    limits: { from?: number; to?: number } = {},
+  ): void {
     if (this.finalPass === 'off') return
     s.finalizeRequested = true
     const req: FinalizeRequest = {
@@ -305,9 +341,84 @@ export class Reconciler {
       track: s.track,
       startMs: s.startMs,
       endMs: s.endMs,
+      ...(limits.from !== undefined ? { contextFromMs: limits.from } : {}),
+      ...(limits.to !== undefined ? { contextToMs: limits.to } : {}),
     }
-    if (this.finalPass === 'during') out.push(req)
+    if (this.finalPass === 'during' || this.ended) out.push(req)
     else this.deferred.push(req)
+  }
+
+  /**
+   * Split a closed segment at speaker changes. Points outside (start, end) are ignored; a split after
+   * the final has landed is ignored (a final is never revised). The first piece keeps the id and is
+   * republished with its new bounds even if no words are left in it, so the old extent never lingers.
+   */
+  private onSplit(id: string, points: number[], out: ReconcilerOutput[]): void {
+    const s = this.byId.get(id)
+    const cuts = [...new Set(points.map(clampMs))]
+      .filter((p) => s && p > s.startMs && p < s.endMs)
+      .sort((a, b) => a - b)
+    if (s?.status !== 'closed' || !cuts.length) {
+      this.stats.ignoredInputs++
+      return
+    }
+    const t = this.track(s.track)
+    const bounds = [s.startMs, ...cuts, s.endMs]
+    const pieceOf = (w: TimedWord) => {
+      let k = 0
+      while (k + 1 < cuts.length + 1 && w.startMs >= bounds[k + 1]!) k++
+      return k
+    }
+    const words = s.committed
+    const pieces: SegState[] = [s]
+    for (let k = 1; k < bounds.length - 1; k++) {
+      const p: SegState = {
+        id: this.newSegmentId(),
+        track: s.track,
+        startMs: bounds[k]!,
+        endMs: bounds[k + 1]!,
+        status: 'closed',
+        committed: words.filter((w) => pieceOf(w) === k),
+        revision: 0,
+        published: null,
+        finalizeRequested: false,
+        finalFailed: false,
+        confidence: null,
+      }
+      this.byId.set(p.id, p)
+      this.stats.segmentsOpened++
+      pieces.push(p)
+    }
+    s.committed = words.filter((w) => pieceOf(w) === 0)
+    s.endMs = bounds[1]!
+    t.segments.splice(t.segments.indexOf(s) + 1, 0, ...pieces.slice(1))
+    this.stats.splits++
+    // the first piece: republish with its new bounds (forced — even with no words left)
+    if (s.published) this.upsert(s, this.liveText(s), out)
+    for (const p of pieces.slice(1)) {
+      this.publishLive(p, out, true)
+      out.push({
+        type: 'closed',
+        segmentId: p.id,
+        track: p.track,
+        startMs: p.startMs,
+        endMs: p.endMs,
+        splitFrom: s.id,
+      })
+    }
+    // tier 2 for every piece: drop the stale request, ask again with the new bounds
+    const stale = this.deferred.findIndex((d) => d.segmentId === s.id)
+    if (stale >= 0) this.deferred.splice(stale, 1)
+    // (a piece is new audio to tier 2, so a failure on the whole is worth a retry per piece)
+    if (s.finalizeRequested) {
+      s.finalFailed = false
+      pieces.forEach((p, k) => {
+        this.requestFinal(p, out, {
+          ...(k > 0 ? { from: p.startMs } : {}),
+          ...(k < pieces.length - 1 ? { to: p.endMs } : {}),
+        })
+      })
+    }
   }
 
   private onLive(h: LiveHypothesis, out: ReconcilerOutput[]): void {

@@ -5,7 +5,7 @@
 // is present with the size recorded at install time — a half-extracted or tampered directory is
 // `corrupt`, never silently used.
 
-export type ModelRole = 'live' | 'final' | 'vad' | 'tts'
+export type ModelRole = 'live' | 'final' | 'vad' | 'tts' | 'segmentation' | 'embedding'
 
 /** How a sherpa-onnx engine is configured from the files in the model directory (paths are relative). */
 export type EngineSpec =
@@ -15,6 +15,8 @@ export type EngineSpec =
   | { kind: 'offline-nemo-transducer'; encoder: string; decoder: string; joiner: string; tokens: string }
   | { kind: 'silero-vad'; model: string }
   | { kind: 'vits'; model: string; tokens: string; dataDir: string }
+  | { kind: 'pyannote-segmentation'; model: string }
+  | { kind: 'speaker-embedding'; model: string }
 
 export type CatalogEntry = {
   id: string
@@ -37,6 +39,9 @@ export type CatalogEntry = {
 
 const ASR = 'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models'
 const TTS = 'https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models'
+const SEGMENTATION = 'https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models'
+// (sic: the release tag is spelled this way upstream)
+const SPEAKER = 'https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models'
 
 const transducerFiles = (prefix: string, suffix: string) => ({
   encoder: `${prefix}encoder${suffix}`,
@@ -221,6 +226,52 @@ export const CATALOG: readonly CatalogEntry[] = [
     licenseUrl: 'https://github.com/snakers4/silero-vad/blob/master/LICENSE',
   },
 
+  // ------------------------------------------------------------------ diarization (M3)
+  // Measured on the fixture meetings (packages/stt/scripts/diarize-bench.ts, numbers in docs/stt.md):
+  // TitaNet-small separated every fixture's speakers across the widest range of thresholds, at half the
+  // cost of the next best (WeSpeaker ResNet34); CAM++ and ERes2Net over-split badly.
+  {
+    id: 'segmentation-pyannote-3.0',
+    role: 'segmentation',
+    title: 'pyannote speaker segmentation 3.0',
+    url: `${SEGMENTATION}/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2`,
+    sha256: '24615ee884c897d9d2ba09bb4d30da6bb1b15e685065962db5b02e76e4996488',
+    sizeBytes: 6958444,
+    format: 'tar.bz2',
+    requiredFiles: ['model.onnx', 'LICENSE'],
+    engine: { kind: 'pyannote-segmentation', model: 'model.onnx' },
+    license: 'MIT',
+    licenseUrl: 'https://huggingface.co/pyannote/segmentation-3.0',
+  },
+  {
+    id: 'embedding-titanet-small-en',
+    role: 'embedding',
+    title: 'NVIDIA TitaNet-small speaker embeddings, English',
+    url: `${SPEAKER}/nemo_en_titanet_small.onnx`,
+    sha256: 'ad4a1802485d8b34c722d2a9d04249662f2ece5d28a7a039063ca22f515a789e',
+    sizeBytes: 40257283,
+    format: 'file',
+    fileName: 'nemo_en_titanet_small.onnx',
+    requiredFiles: ['nemo_en_titanet_small.onnx'],
+    engine: { kind: 'speaker-embedding', model: 'nemo_en_titanet_small.onnx' },
+    license: 'CC-BY-4.0',
+    licenseUrl: 'https://huggingface.co/nvidia/speakerverification_en_titanet_small',
+  },
+  {
+    id: 'embedding-wespeaker-resnet34-en',
+    role: 'embedding',
+    title: 'WeSpeaker ResNet34 speaker embeddings (VoxCeleb)',
+    url: `${SPEAKER}/wespeaker_en_voxceleb_resnet34.onnx`,
+    sha256: '5ef208a9da1453335308a6b6f4e6dfbd7e183a38b604de0a57664f45d257fe94',
+    sizeBytes: 26534365,
+    format: 'file',
+    fileName: 'wespeaker_en_voxceleb_resnet34.onnx',
+    requiredFiles: ['wespeaker_en_voxceleb_resnet34.onnx'],
+    engine: { kind: 'speaker-embedding', model: 'wespeaker_en_voxceleb_resnet34.onnx' },
+    license: 'CC-BY-4.0 (model trained on VoxCeleb); code Apache-2.0',
+    licenseUrl: 'https://github.com/wenet-e2e/wespeaker/blob/master/docs/pretrained.md',
+  },
+
   // ------------------------------------------------------------------ TTS (fixture synthesis only)
   // Voices chosen for licence clarity and intelligibility: each scores <5% WER with Parakeet on the
   // fixture script (packages/stt/scripts/voice-check.ts), and each is trained on public-domain, CC0 or
@@ -256,6 +307,8 @@ export const DEFAULT_MODELS = {
   live: 'live-nemo-fastconformer-en-80ms-int8',
   final: 'final-parakeet-tdt-110m-en-int8',
   vad: 'vad-silero',
+  segmentation: 'segmentation-pyannote-3.0',
+  embedding: 'embedding-titanet-small-en',
 } as const
 
 export function catalogEntry(id: string, catalog: readonly CatalogEntry[] = CATALOG): CatalogEntry {

@@ -41,6 +41,7 @@ describe('contract: every route, real server, typed client', () => {
         finalizeAfterMs: 30,
         partialEveryMs: 20,
         levelEveryMs: 20,
+        diarize: true,
       }),
       devices: new FakeDevices(),
       models: new FakeModels({ stepMs: 5 }),
@@ -108,6 +109,47 @@ describe('contract: every route, real server, typed client', () => {
       updateSettings: () => c.call('updateSettings', { body: { retention: { days: 7 } } }),
       setApiKey: () => c.call('setApiKey', { body: { key: 'sk-ant-contract-test-0000' } }),
       diagnostics: () => c.call('diagnostics'),
+      // ---- M3 (the session above was recorded with a diarizing fake: it has far-end speakers)
+      listSpeakers: async () => {
+        const r = await c.call('listSpeakers', { params })
+        expect(r.speakers[0]).toMatchObject({ id: 'me', track: 'mic' })
+        expect(r.speakers.filter((x) => x.id.startsWith('spk_')).length).toBeGreaterThanOrEqual(2)
+        return r
+      },
+      renameSpeaker: async () => {
+        const first = (await c.call('listSpeakers', { params })).speakers.find((x) =>
+          x.id.startsWith('spk_'),
+        )!
+        const r = await c.call('renameSpeaker', {
+          params: { ...params, speakerId: first.id },
+          body: { label: 'Ana' },
+        })
+        expect(r.label).toBe('Ana')
+        return r
+      },
+      splitSpeaker: async () => {
+        const t = await c.call('getTranscript', { params })
+        const seg = t.segments.find((x) => x.speaker === 'Ana')!
+        return c.call('splitSpeaker', {
+          params: { ...params, speakerId: seg.speakerId! },
+          body: { segmentIds: [seg.id] },
+        })
+      },
+      mergeSpeaker: async () => {
+        const spk = (await c.call('listSpeakers', { params })).speakers.filter((x) => x.id.startsWith('spk_'))
+        return c.call('mergeSpeaker', {
+          params: { ...params, speakerId: spk.at(-1)!.id },
+          body: { into: spk[0]!.id },
+        })
+      },
+      listVoiceprints: () => c.call('listVoiceprints'),
+      deleteVoiceprint: async () => {
+        // none exist (voiceprints are off by default): the typed 404 is the contract here
+        await expect(c.call('deleteVoiceprint', { params: { id: 'vp_nope' } })).rejects.toMatchObject({
+          status: 404,
+        })
+        return true
+      },
       deleteSession: () => c.call('deleteSession', { params: { id: priv.id } }),
     }
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {
@@ -132,6 +174,7 @@ describe('contract: every route, real server, typed client', () => {
         stt: { liveModel: expect.any(String), finalModel: expect.any(String), finalPass: 'during' },
         capture: { micDevice: 'default', systemDevice: 'default' },
         retention: { audio: 'keep', days: 30, archive: false },
+        speakers: { diarize: true, voiceprints: false },
       })
       const patched = await c2.call('updateSettings', {
         body: { llm: { model: 'claude-sonnet-5' }, stt: { finalPass: 'after' } },

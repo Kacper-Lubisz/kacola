@@ -29,6 +29,17 @@ export type PipelineStartOptions = {
   sessionDir: string
   tracks: TrackRequest[]
   settings: StoredSettings
+  /** Voices remembered from earlier sessions (A-6); empty unless voiceprints are switched on. */
+  voices?: KnownVoice[]
+}
+
+/** A person's voice as the diarizer needs it: an embedding from one model. */
+export type KnownVoice = { id: string; model: string; embedding: number[] }
+
+/** The voice of each far-end speaker of a recording, from the diarizer's clusters. */
+export type SpeakerVoices = {
+  model: string
+  voices: { speakerId: string; embedding: number[]; weightMs: number }[]
 }
 
 /**
@@ -54,6 +65,17 @@ export interface PipelineSink {
   gap(e: { track: TrackKind; atMs: number; durationMs: number; reason: string }): void
   /** `fatal: true` means the recording cannot continue: the daemon stops it and marks it failed. */
   error(e: { message: string; fatal: boolean }): void
+  // ---- M3: attribution. Only far-end speech is ever diarized; the mic is `me` by construction.
+  /**
+   * A far-end speaker the diarizer found. `key` is stable for the recording (its cluster); the daemon
+   * returns the speaker id to attribute with (the same id for the same key), or null if it could not
+   * create one. `voiceprintId`: the remembered voice the diarizer recognised, if any.
+   */
+  speaker(e: { key: string; voiceprintId: string | null }): string | null
+  /** Far-end segments now attributed to a speaker id from `speaker()` (online, or re-clustered). */
+  attribute(e: { speakerId: string; segmentIds: string[] }): void
+  /** End of recording: each far-end speaker's voice (the daemon decides whether to keep any of it). */
+  voices(v: SpeakerVoices): void
 }
 
 export interface RecordingHandle {
@@ -66,6 +88,8 @@ export interface RecordingHandle {
    * segments / finals through the sink) before resolving.
    */
   stop(): Promise<void>
+  /** The far-end voices heard so far (for naming a speaker mid-meeting), if the pipeline diarizes. */
+  voices?(): SpeakerVoices | null
 }
 
 /** Capture + live/final STT composed: one recording per session. */

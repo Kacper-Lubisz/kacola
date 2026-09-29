@@ -64,6 +64,24 @@ export const DATA: { name: string; licence: string; source: string; note: string
     note: 'voice activity detection; downloaded at first run',
   },
   {
+    name: 'pyannote speaker segmentation 3.0',
+    licence: 'MIT',
+    source: 'pyannote/segmentation-3.0 (CNRS) via k2-fsa/sherpa-onnx releases',
+    note: 'far-end speaker turns (M3); downloaded at first run',
+  },
+  {
+    name: 'NeMo TitaNet-small speaker embeddings (en)',
+    licence: 'CC-BY-4.0',
+    source: 'NVIDIA NeMo via k2-fsa/sherpa-onnx releases',
+    note: 'default speaker embedding model (M3); downloaded at first run',
+  },
+  {
+    name: 'WeSpeaker ResNet34 speaker embeddings (VoxCeleb)',
+    licence: 'CC-BY-4.0',
+    source: 'wenet-e2e/wespeaker via k2-fsa/sherpa-onnx releases',
+    note: 'optional alternative embedding model, benchmarked in docs/stt.md',
+  },
+  {
     name: 'Whisper / Moonshine / Zipformer alternatives',
     licence: 'MIT',
     source: 'k2-fsa/sherpa-onnx releases',

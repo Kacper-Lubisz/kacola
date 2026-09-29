@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { Iso, ModelInfo, QaMessage, Segment, Session, StoredSettings, TrackKind } from './schemas.ts'
+import { SpeakerEvents } from './speakers.ts'
 
 // Events come in two kinds, and the distinction is load-bearing:
 //
@@ -17,6 +18,8 @@ export const DurableEventData = z.discriminatedUnion('type', [
   z.object({ type: z.literal('session.deleted'), sessionId: z.string() }),
   /** Persisted settings changed. Never carries secrets (the API key lives in the keyring, not here). */
   z.object({ type: z.literal('settings.updated'), settings: StoredSettings }),
+  // ---- M3: attribution (speakers, attributions, voiceprints)
+  ...SpeakerEvents,
 ])
 export type DurableEventData = z.infer<typeof DurableEventData>
 
