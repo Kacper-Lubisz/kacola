@@ -31,5 +31,12 @@ export function installStyles(): void {
     .qa-notice.qa-refusal { background: alpha(@orange_3, 0.18); }
     .qa-notice.qa-error { background: alpha(@red_3, 0.12); }
     .qa-notice.qa-info { background: alpha(@blue_3, 0.12); }
+    .notes-editor { font-size: 1.05em; }
+    .notes-editor, .notes-editor > text { background: transparent; }
+    .review-change { padding: 12px; }
+    .review-side { padding: 8px; border-radius: 6px; }
+    .review-side.chosen { background: alpha(var(--accent-bg-color), 0.12); }
+    .review-side:not(.chosen) label:not(.caption-heading) { opacity: 0.6; }
+    .review-same { padding: 0 12px; }
   `)
 }

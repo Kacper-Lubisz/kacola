@@ -12,8 +12,10 @@ import { spawnSync } from 'node:child_process'
 import { ModelManager } from '@gnomeola/stt'
 import { parseConfig, UsageError } from './config.ts'
 import { createDaemon, type DaemonOptions } from './daemon.ts'
+import { LlmNotesEngine } from './engines/enhance.ts'
 import { LlmQaEngine } from './engines/llm.ts'
 import { PipeWireDevices, RecordingPipeline, SttModels } from './engines/recording.ts'
+import { FakeNotesEngine } from './fakes/notes.ts'
 import { FakePipeline } from './fakes/pipeline.ts'
 import { FakeDevices, FakeModels, FakeQaEngine } from './fakes/providers.ts'
 import type { Keyring } from './interfaces.ts'
@@ -58,6 +60,7 @@ async function main(): Promise<void> {
     opts.models = new SttModels(models)
   }
   opts.qaEngine = cfg.fakeQa ? new FakeQaEngine() : new LlmQaEngine()
+  opts.notesEngine = cfg.fakeQa ? new FakeNotesEngine() : new LlmNotesEngine()
 
   const daemon = await createDaemon(opts)
   process.stdout.write(
