@@ -150,7 +150,7 @@ function Loaded({ settings, devices }: { settings: Settings; devices: AudioDevic
   const [days] = useState(() => Gtk.Adjustment.new(settings.retention.days, 1, 3650, 1, 7, 0))
   const mics = deviceChoices(devices, 'source', settings.capture.micDevice)
   const outputs = deviceChoices(devices, 'sink', settings.capture.systemDevice)
-  const { llm, stt, capture, retention } = settings
+  const { llm, stt, capture, retention, autoRecord } = settings
 
   return (
     <>
@@ -220,6 +220,30 @@ function Loaded({ settings, devices }: { settings: Settings; devices: AudioDevic
             choices={outputs}
             value={capture.systemDevice}
             onChange={(systemDevice) => patch({ capture: { systemDevice } })}
+          />
+        </AdwPreferencesGroup>
+        <AdwPreferencesGroup
+          ref={nameGroupList(_('Auto-record'))}
+          title={_('Auto-record')}
+          description={_(
+            'Start recording on its own. A recording that is already running is never interrupted.',
+          )}
+        >
+          <AdwSwitchRow
+            title={_('When a Calendar Meeting Starts')}
+            subtitle={_('Meetings you declined, and all-day events, are skipped')}
+            active={autoRecord.calendar}
+            onNotifyActive={(v) => {
+              if (Boolean(v) !== autoRecord.calendar) patch({ autoRecord: { calendar: Boolean(v) } })
+            }}
+          />
+          <AdwSwitchRow
+            title={_('When Another App Uses the Microphone')}
+            subtitle={_('Stops again once the call has ended')}
+            active={autoRecord.micActivity}
+            onNotifyActive={(v) => {
+              if (Boolean(v) !== autoRecord.micActivity) patch({ autoRecord: { micActivity: Boolean(v) } })
+            }}
           />
         </AdwPreferencesGroup>
       </AdwPreferencesPage>

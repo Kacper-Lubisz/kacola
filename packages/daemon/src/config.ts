@@ -28,6 +28,15 @@ export type MainConfig = {
   /** The libsecret `service` attribute; tests use a unique one. */
   keyringService: string
   echoLogs: boolean
+  // ---- M4
+  /** Where meetings come from: Evolution Data Server, a JSON file, or nowhere. */
+  calendar: { kind: 'eds' } | { kind: 'file'; path: string } | { kind: 'off' }
+  /** Own org.gnome.Gnomeola on the session bus. */
+  dbus: boolean
+  /** Source for the microphone auto-record rule; `target` restricts it to streams on one source node. */
+  micActivity: { kind: 'pipewire'; target?: string } | { kind: 'off' }
+  micIdleStopMs: number
+  gjs: string
   /**
    * H-6: accept remote devices (pairing auth on). The HMAC secret comes from GNOMEOLA_AUTH_SECRET, else
    * from `<dataDir>/auth-secret` (created on first use, mode 0600). Required for a non-loopback --host.
@@ -56,6 +65,11 @@ environment:
   GNOMEOLA_HEARTBEAT_MS    SSE heartbeat period (default 15000)
   GNOMEOLA_REPLAY_PAGE_SIZE events per replay page on /events (default 500)
   ANTHROPIC_API_KEY        takes precedence over the keyring
+  GNOMEOLA_CALENDAR        eds | off | file:PATH  (default eds; off with --fake)
+  GNOMEOLA_DBUS            session | off           (default session; off with --fake)
+  GNOMEOLA_MIC_ACTIVITY    pipewire[:SOURCE] | off (default pipewire; off with --fake)
+  GNOMEOLA_MIC_IDLE_STOP_MS stop a mic-triggered recording after this long idle (default 30000)
+  GNOMEOLA_GJS             gjs binary for cal-agent and the D-Bus bridge (default gjs)
   GNOMEOLA_AUTH_SECRET     HMAC key for device tokens (implies --remote; else <data-dir>/auth-secret)
   GNOMEOLA_ADMIN_TOKEN     optional owner token that can approve pairings remotely
   GNOMEOLA_SYNC_URL        hybrid sync: push transcripts and notes to this hosted server
@@ -103,6 +117,22 @@ export function parseConfig(argv: string[], env: NodeJS.ProcessEnv = process.env
     }
   }
   const fakes = values.fake === true || env.GNOMEOLA_FAKES === '1'
+  // M4 integrations touch the desktop session (EDS, the session bus, PipeWire's graph), so the fakes —
+  // which every test harness uses — leave them off unless a test asks for one explicitly.
+  const cal = env.GNOMEOLA_CALENDAR ?? (fakes ? 'off' : 'eds')
+  let calendar: MainConfig['calendar']
+  if (cal === 'eds' || cal === 'off') calendar = { kind: cal }
+  else if (cal.startsWith('file:') && cal.length > 5) calendar = { kind: 'file', path: cal.slice(5) }
+  else throw new UsageError(`GNOMEOLA_CALENDAR must be eds, off or file:PATH (got ${cal})`)
+  const dbusEnv = env.GNOMEOLA_DBUS ?? (fakes ? 'off' : 'session')
+  if (dbusEnv !== 'session' && dbusEnv !== 'off') throw new UsageError('GNOMEOLA_DBUS must be session or off')
+  const mic = env.GNOMEOLA_MIC_ACTIVITY ?? (fakes ? 'off' : 'pipewire')
+  let micActivity: MainConfig['micActivity']
+  if (mic === 'off') micActivity = { kind: 'off' }
+  else if (mic === 'pipewire') micActivity = { kind: 'pipewire' }
+  else if (mic.startsWith('pipewire:') && mic.length > 9)
+    micActivity = { kind: 'pipewire', target: mic.slice(9) }
+  else throw new UsageError('GNOMEOLA_MIC_ACTIVITY must be pipewire, pipewire:SOURCE or off')
   const keyring = (env.GNOMEOLA_KEYRING ?? 'secret-tool') as KeyringKind
   if (!['secret-tool', 'memory', 'none'].includes(keyring))
     throw new UsageError(`unknown GNOMEOLA_KEYRING ${keyring}`)
@@ -123,6 +153,11 @@ export function parseConfig(argv: string[], env: NodeJS.ProcessEnv = process.env
     keyring,
     keyringService: env.GNOMEOLA_KEYRING_SERVICE || 'gnomeola',
     echoLogs: env.GNOMEOLA_ECHO_LOGS === '1' || env.INVOCATION_ID !== undefined, // INVOCATION_ID: under systemd
+    calendar,
+    dbus: dbusEnv === 'session',
+    micActivity,
+    micIdleStopMs: int(env.GNOMEOLA_MIC_IDLE_STOP_MS, 'GNOMEOLA_MIC_IDLE_STOP_MS', 30_000, 0),
+    gjs: env.GNOMEOLA_GJS || 'gjs',
     remote: values.remote === true || Boolean(env.GNOMEOLA_AUTH_SECRET),
     authSecret: env.GNOMEOLA_AUTH_SECRET || null,
     adminToken: env.GNOMEOLA_ADMIN_TOKEN || null,

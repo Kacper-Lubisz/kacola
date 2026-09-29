@@ -35,7 +35,15 @@ export async function resolveSessionId(ctx: Ctx, input: string | undefined): Pro
 
 /** The fields an agent needs to pick a session — tracks and gap detail are for `sessions show`. */
 export function briefSession(s: Session) {
-  return { id: s.id, title: s.title, createdAt: s.createdAt, status: s.status, durationMs: s.durationMs }
+  return {
+    id: s.id,
+    title: s.title,
+    createdAt: s.createdAt,
+    status: s.status,
+    durationMs: s.durationMs,
+    // M4: the calendar meeting it was recorded for, when there was one (absent otherwise)
+    ...(s.meeting ? { meeting: { id: s.meeting.id, title: s.meeting.title, start: s.meeting.start } } : {}),
+  }
 }
 
 export function mapApiError(err: unknown): never {

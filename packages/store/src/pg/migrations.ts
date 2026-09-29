@@ -125,7 +125,15 @@ export const pgMigrations: readonly Migration[] = [
     `,
   },
   {
+    // M4 (mirror of the SQLite migration of the same name)
     version: 3,
+    name: 'session-meeting',
+    up: `
+      ALTER TABLE sessions ADD COLUMN meeting text;
+    `,
+  },
+  {
+    version: 4,
     name: 'hosted',
     up: `
       CREATE TABLE sync_devices (

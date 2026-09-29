@@ -135,9 +135,17 @@ export const migrations: readonly Migration[] = [
     `,
   },
   {
+    version: 3,
+    name: 'session-meeting',
+    up: `
+      -- M4: the calendar meeting a session was recorded for (JSON SessionMeeting), or NULL.
+      ALTER TABLE sessions ADD COLUMN meeting TEXT;
+    `,
+  },
+  {
     // M8 (H-1/H-3/H-6/H-7). Server-local bookkeeping, not event-sourced (see BOOKKEEPING_TABLES).
     // Mirrored, same version and name, in ./pg/migrations.ts — a parity test keeps the lists aligned.
-    version: 3,
+    version: 4,
     name: 'hosted',
     up: `
       -- hybrid sync: the highest seq of each pushing device's log that this store has accounted for

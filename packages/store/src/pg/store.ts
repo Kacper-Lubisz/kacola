@@ -8,6 +8,7 @@ import {
   type SearchHit,
   type Segment,
   type Session,
+  type SessionMeeting,
   type SessionStatus,
   StoredSettings,
   type SyncItem,
@@ -155,11 +156,13 @@ export class PgStore implements StoreApi {
     switch (data.type) {
       case 'session.upserted': {
         const s = data.session
-        await sql`INSERT INTO sessions (id, title, created_at, started_at, ended_at, status, private, duration_ms, error)
-          VALUES (${s.id}, ${s.title}, ${s.createdAt}, ${s.startedAt}, ${s.endedAt}, ${s.status}, ${s.private}, ${s.durationMs}, ${s.error})
+        const meeting = s.meeting ? JSON.stringify(s.meeting) : null
+        await sql`INSERT INTO sessions (id, title, created_at, started_at, ended_at, status, private, duration_ms, error, meeting)
+          VALUES (${s.id}, ${s.title}, ${s.createdAt}, ${s.startedAt}, ${s.endedAt}, ${s.status}, ${s.private}, ${s.durationMs}, ${s.error}, ${meeting})
           ON CONFLICT (id) DO UPDATE SET title = excluded.title, created_at = excluded.created_at,
             started_at = excluded.started_at, ended_at = excluded.ended_at, status = excluded.status,
-            private = excluded.private, duration_ms = excluded.duration_ms, error = excluded.error`.execute(e)
+            private = excluded.private, duration_ms = excluded.duration_ms, error = excluded.error,
+            meeting = excluded.meeting`.execute(e)
         await sql`DELETE FROM tracks WHERE session_id = ${s.id}`.execute(e)
         for (const [position, t] of s.tracks.entries()) {
           await sql`INSERT INTO tracks (session_id, position, kind, device, sample_rate, audio_path, archive_path, gaps)
@@ -284,7 +287,12 @@ export class PgStore implements StoreApi {
 
   // ------------------------------------------------------------------------- domain writes
 
-  async createSession(input: { title?: string; private?: boolean; id?: string }): Promise<Session> {
+  async createSession(input: {
+    title?: string
+    private?: boolean
+    id?: string
+    meeting?: SessionMeeting
+  }): Promise<Session> {
     const session = newSession(input, this.now())
     await this.commit(async (trx) => {
       if (await this.getSessionIn(trx, session.id))
@@ -388,6 +396,7 @@ export class PgStore implements StoreApi {
       durationMs: Number(r.duration_ms),
       tracks: tracks.get(r.id as string) ?? [],
       error: r.error as string | null,
+      ...(r.meeting ? { meeting: JSON.parse(r.meeting as string) as Session['meeting'] } : {}),
     }))
   }
 

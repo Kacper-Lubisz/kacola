@@ -223,6 +223,18 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
       logTail: [],
     }),
 
+    // ---- M4: calendars are read on the laptop (cal-agent over EDS), never by a hosted server
+    calendarStatus: () => ({
+      state: 'off' as const,
+      provider: 'hosted',
+      detail: 'calendars are read on the device that records, not by a hosted server',
+      calendars: [],
+      updatedAt: null,
+    }),
+    listMeetings: 'unsupported',
+    nextMeeting: 'unsupported',
+    joinMeeting: 'unsupported',
+
     // ---- M7 notes: readable here (they arrive by hybrid sync); written only on the recording device,
     // whose daemon has the LLM for enhancement and the built-in templates.
     getNotes: async ({ params, query }) => {

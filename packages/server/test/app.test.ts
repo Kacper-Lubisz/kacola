@@ -155,6 +155,16 @@ describe('hosted contract: every route', () => {
       finalizeAudio: () =>
         c.call('finalizeAudio', { params, body: { chunks: { mic: 1, system: 0 }, durationMs: 100 } }),
 
+      calendarStatus: async () =>
+        expect(await c.call('calendarStatus')).toMatchObject({
+          state: 'off',
+          provider: 'hosted',
+          calendars: [],
+        }),
+      listMeetings: () => notHere(c.call('listMeetings', { query: {} })),
+      nextMeeting: () => notHere(c.call('nextMeeting')),
+      joinMeeting: () => notHere(c.call('joinMeeting', { params: { id: 'm' }, body: {} })),
+
       getNotes: async () => {
         const n = await c.call('getNotes', { params })
         expect(n.note).toMatchObject({ version: 1, pendingEnhancement: null })

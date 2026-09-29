@@ -6,6 +6,7 @@ import {
   type SearchHit,
   type Segment,
   type Session,
+  type SessionMeeting,
   type SessionStatus,
   StoredSettings,
   type Track,
@@ -296,6 +297,7 @@ export class Store {
           private: bool(s.private),
           duration_ms: s.durationMs,
           error: s.error,
+          meeting: s.meeting ? JSON.stringify(s.meeting) : null,
         }
         const { id: _id, ...rest } = row
         this.run(
@@ -435,7 +437,12 @@ export class Store {
 
   // ----------------------------------------------------------- domain writes
 
-  createSession(input: { title?: string; private?: boolean; id?: string }): Session {
+  createSession(input: {
+    title?: string
+    private?: boolean
+    id?: string
+    meeting?: SessionMeeting
+  }): Session {
     const now = this.now()
     const session: Session = {
       id: input.id ?? newId('ses', now.getTime()),
@@ -448,6 +455,7 @@ export class Store {
       durationMs: 0,
       tracks: [],
       error: null,
+      ...(input.meeting ? { meeting: input.meeting } : {}),
     }
     this.commit(() => {
       if (this.getSession(session.id)) throw new StoreError('conflict', `session ${session.id} exists`)
@@ -581,6 +589,7 @@ export class Store {
       durationMs: r.duration_ms,
       tracks: tracks.get(r.id) ?? [],
       error: r.error,
+      ...(r.meeting ? { meeting: JSON.parse(r.meeting) as Session['meeting'] } : {}),
     }))
   }
 

@@ -15,6 +15,7 @@ import { join } from 'node:path'
 import { SyncAgent } from '@gnomeola/capture-agent/sync'
 import { createClient } from '@gnomeola/protocol'
 import { ModelManager } from '@gnomeola/stt'
+import { EdsCalendarProvider, FileCalendarProvider, NoCalendar } from './calendar/providers.ts'
 import { parseConfig, UsageError } from './config.ts'
 import { createDaemon, type DaemonOptions } from './daemon.ts'
 import { LlmNotesEngine } from './engines/enhance.ts'
@@ -25,6 +26,8 @@ import { FakePipeline } from './fakes/pipeline.ts'
 import { FakeDevices, FakeModels, FakeQaEngine } from './fakes/providers.ts'
 import type { Keyring } from './interfaces.ts'
 import { MemoryKeyring, NoKeyring, SecretToolKeyring } from './keyring.ts'
+import { Logger } from './logger.ts'
+import { PwDumpMicActivity } from './mic-activity.ts'
 
 /** The daemon's own token-signing key, generated once and kept beside the database (0600). */
 function loadOrCreateSecret(dataDir: string): string {
@@ -70,6 +73,19 @@ async function main(): Promise<void> {
     keyring: keyringFor(cfg.keyring, cfg.keyringService),
     echoLogs: cfg.echoLogs,
   }
+  // M4: the logger is created here (not by createDaemon) because the calendar provider needs it too
+  mkdirSync(cfg.dataDir, { recursive: true, mode: 0o700 })
+  opts.logger = new Logger({ file: join(cfg.dataDir, 'logs', 'gnomeolad.log'), echo: cfg.echoLogs })
+  opts.calendar =
+    cfg.calendar.kind === 'eds'
+      ? new EdsCalendarProvider({ logger: opts.logger, gjs: cfg.gjs })
+      : cfg.calendar.kind === 'file'
+        ? new FileCalendarProvider(cfg.calendar.path)
+        : new NoCalendar()
+  opts.dbus = cfg.dbus ? { gjs: cfg.gjs } : null
+  if (cfg.micActivity.kind === 'pipewire')
+    opts.micActivity = new PwDumpMicActivity({ onlyTarget: cfg.micActivity.target })
+  opts.micIdleStopMs = cfg.micIdleStopMs
   if (cfg.fakes) {
     opts.pipeline = new FakePipeline(cfg.fakePipeline)
     opts.devices = new FakeDevices()

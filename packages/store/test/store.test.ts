@@ -139,6 +139,27 @@ describe('sessions', () => {
     expect(s.listSessions({ since: new Date(b.createdAt) }).map((x) => x.id)).toEqual([c.id])
   })
 
+  it('round-trips the calendar meeting a session was recorded for (M4), and keeps it through updates', () => {
+    const s = mem()
+    const meeting = {
+      id: 'mtg_x',
+      uid: 'abc@google.com',
+      title: 'Weekly sync',
+      start: '2026-10-26T08:00:00.000Z',
+      end: '2026-10-26T08:30:00.000Z',
+      join: { url: 'https://meet.google.com/abc-defg-hij', provider: 'meet' as const },
+      calendar: 'Work',
+    }
+    const x = s.createSession({ title: 'Weekly sync', meeting })
+    expect(s.getSession(x.id)!.meeting).toEqual(meeting)
+    s.updateSession(x.id, (cur) => ({ ...cur, status: 'recording' }))
+    expect(s.getSession(x.id)!.meeting).toEqual(meeting)
+    // a session without one has no `meeting` key at all (so pre-M4 JSON shapes are unchanged)
+    const plain = s.createSession({})
+    expect('meeting' in plain).toBe(false)
+    expect('meeting' in s.getSession(plain.id)!).toBe(false)
+  })
+
   it('round-trips tracks and gaps', () => {
     const s = mem()
     const a = s.createSession({})
@@ -292,6 +313,7 @@ function defaultsForTest(): StoredSettings {
     stt: { liveModel: 'l', finalModel: 'f', finalPass: 'during' },
     capture: { micDevice: 'default', systemDevice: 'default' },
     retention: { audio: 'keep', days: 30, archive: false },
+    autoRecord: { calendar: false, micActivity: false },
   }
 }
 
@@ -333,7 +355,23 @@ function randomHistory(s: Store, rnd: () => number, steps: number): number {
     const sessions = [...cursor.keys()]
     const r = rnd()
     if (!sessions.length || r < 0.08) {
-      const x = s.createSession({ title: text(), private: rnd() < 0.3 })
+      // M4: some sessions are recorded for a calendar meeting; the link must replay like everything else
+      const meeting =
+        rnd() < 0.3
+          ? {
+              id: `mtg_${randInt(rnd, 0, 1e6)}`,
+              uid: `uid-${randInt(rnd, 0, 1e6)}@example.com`,
+              title: text(),
+              start: '2026-10-26T08:00:00.000Z',
+              end: '2026-10-26T08:30:00.000Z',
+              join:
+                rnd() < 0.5
+                  ? { url: 'https://meet.google.com/abc-defg-hij', provider: 'meet' as const }
+                  : null,
+              calendar: 'Work',
+            }
+          : undefined
+      const x = s.createSession({ title: text(), private: rnd() < 0.3, meeting })
       cursor.set(x.id, { mic: 0, system: 0 })
       segIds.set(x.id, [])
     } else if (r < 0.15) {
@@ -356,6 +394,7 @@ function randomHistory(s: Store, rnd: () => number, steps: number): number {
     } else if (r < 0.24) {
       const v = defaultsForTest()
       v.retention.days = randInt(rnd, 1, 90)
+      v.autoRecord = { calendar: rnd() < 0.5, micActivity: rnd() < 0.5 }
       s.putSettings(v)
     } else {
       const id = pick(rnd, sessions)

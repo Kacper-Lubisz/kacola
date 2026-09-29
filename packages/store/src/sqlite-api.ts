@@ -6,6 +6,7 @@ import type {
   QaMessage,
   Segment,
   Session,
+  SessionMeeting,
   SessionStatus,
   StoredSettings,
   SyncItem,
@@ -70,7 +71,12 @@ export class SqliteStoreApi implements StoreApi {
     return this.store.replay(events, batchSize)
   }
 
-  async createSession(input: { title?: string; private?: boolean; id?: string }): Promise<Session> {
+  async createSession(input: {
+    title?: string
+    private?: boolean
+    id?: string
+    meeting?: SessionMeeting
+  }): Promise<Session> {
     return this.store.createSession(input)
   }
   async updateSession(id: string, change: (s: Session) => Session): Promise<Session> {

@@ -83,6 +83,7 @@ export const DEMO_DEFAULT_SETTINGS: Settings = {
   stt: { liveModel: 'demo-live', finalModel: 'demo-final', finalPass: 'during' },
   capture: { micDevice: 'default', systemDevice: 'default' },
   retention: { audio: 'keep', days: 30, archive: false },
+  autoRecord: { calendar: false, micActivity: false },
 }
 
 const DEMO_DEVICES: AudioDevice[] = [
@@ -364,6 +365,7 @@ export function createDemoSource(opts: DemoOptions = {}): DataSource & { dispose
       stt: { ...settings.stt, ...p.stt },
       capture: { ...settings.capture, ...p.capture },
       retention: { ...settings.retention, ...p.retention },
+      autoRecord: { ...settings.autoRecord, ...p.autoRecord },
     }
     const { apiKeyConfigured: _configured, ...llm } = settings.llm
     durable(null, { type: 'settings.updated', settings: { ...settings, llm } })
@@ -473,6 +475,15 @@ export function createDemoSource(opts: DemoOptions = {}): DataSource & { dispose
       const m = DEMO_MODELS.find((x) => x.id === id)
       if (!m) throw new Error(`no model ${id}`)
       return m
+    },
+    async calendarStatus() {
+      return {
+        state: 'ok' as const,
+        provider: 'demo',
+        detail: null,
+        calendars: [{ id: 'demo', name: 'Demo calendar' }],
+        updatedAt: new Date().toISOString(),
+      }
     },
     async notes(id: string) {
       return { note: noteOf(id), enhanced: null }

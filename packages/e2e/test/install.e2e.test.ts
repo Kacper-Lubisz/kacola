@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { createClient } from '@gnomeola/protocol'
 import { loadFixture } from '@gnomeola/testkit/fixtures'
 import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@gnomeola/testkit/rig'
+import { extensionState, GNOMEOLA_UUID } from '@gnomeola/testkit/shell'
 import { startHeadlessDisplay } from '@gnomeola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { APP, markOnboarded, waitForWindow } from '../src/ui.ts'
@@ -30,8 +31,13 @@ const ENV: NodeJS.ProcessEnv = {
   XDG_DATA_HOME: join(HOME, '.local', 'share'),
   GNOMEOLA_INSTALL_NO_SYSTEMCTL: '1',
   GNOMEOLA_MODELS_DIR: REAL_MODELS,
+  // the installed daemon runs with the caller's session env: keep it off the real session bus and EDS
+  GNOMEOLA_CALENDAR: 'off',
+  GNOMEOLA_DBUS: 'off',
+  GNOMEOLA_MIC_ACTIVITY: 'off',
 }
 const bin = (n: string) => join(PREFIX, 'bin', n)
+const EXT_DIR = join(HOME, '.local', 'share', 'gnome-shell', 'extensions', GNOMEOLA_UUID)
 const run = (cmd: string, args: string[], env: NodeJS.ProcessEnv = ENV) =>
   execFileSync(cmd, args, { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
 
@@ -85,6 +91,42 @@ describe('install', () => {
       /^---\nname: meeting-context/,
     )
   })
+})
+
+describe('the top-bar extension (C-9)', () => {
+  it('is unpacked from the gnome-extensions pack zip into the sandboxed home, schemas compiled', () => {
+    const meta = JSON.parse(readFileSync(join(EXT_DIR, 'metadata.json'), 'utf8'))
+    expect(meta).toMatchObject({
+      uuid: GNOMEOLA_UUID,
+      'shell-version': ['50'],
+      'settings-schema': 'org.gnome.shell.extensions.gnomeola',
+    })
+    for (const f of ['extension.js', 'prefs.js', 'model.js', 'dbus.js', 'stylesheet.css'])
+      expect(existsSync(join(EXT_DIR, f)), f).toBe(true)
+    expect(existsSync(join(EXT_DIR, 'schemas', 'gschemas.compiled'))).toBe(true)
+  })
+
+  it('is never enabled by the installer: nothing was written to settings in the sandboxed home', () => {
+    expect(existsSync(join(HOME, '.config', 'dconf'))).toBe(false)
+    expect(existsSync(join(HOME, '.config', 'glib-2.0', 'settings', 'keyfile'))).toBe(false)
+  })
+
+  it('the INSTALLED copy loads in a nested GNOME Shell 50 without errors', async () => {
+    const display = await startHeadlessDisplay({ extensions: [EXT_DIR] })
+    try {
+      const st = await display.waitFor(
+        async () => {
+          const s = await extensionState(display.env, GNOMEOLA_UUID)
+          return s && s.stateName !== 'initialized' && s.stateName !== 'activating' && s
+        },
+        20_000,
+        'the extension to settle',
+      )
+      expect(st).toMatchObject({ stateName: 'active', error: null })
+    } finally {
+      await display.close()
+    }
+  }, 120_000)
 })
 
 describe('launched from the install', () => {
@@ -176,6 +218,7 @@ describe('uninstall', () => {
     expect(existsSync(join(PREFIX, 'share', 'gnomeola'))).toBe(false)
     expect(existsSync(join(HOME, '.config', 'systemd', 'user', 'gnomeolad.service'))).toBe(false)
     expect(existsSync(join(HOME, '.claude', 'skills', 'meeting-context'))).toBe(false)
+    expect(existsSync(EXT_DIR)).toBe(false)
     expect(existsSync(data), 'recordings kept').toBe(true)
     run('bash', [INSTALL, '--uninstall', '--purge', '--prefix', PREFIX])
     expect(existsSync(data)).toBe(false)

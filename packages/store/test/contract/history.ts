@@ -28,6 +28,7 @@ export function defaultsForTest(): StoredSettings {
     stt: { liveModel: 'l', finalModel: 'f', finalPass: 'during' },
     capture: { micDevice: 'default', systemDevice: 'default' },
     retention: { audio: 'keep', days: 30, archive: false },
+    autoRecord: { calendar: false, micActivity: false },
   }
 }
 
@@ -78,7 +79,27 @@ export async function randomHistory(s: StoreApi, rnd: () => number, steps: numbe
     const sessions = [...cursor.keys()]
     const r = rnd()
     if (!sessions.length || r < 0.08) {
-      const x = await s.createSession({ id: id('ses'), title: text(), private: rnd() < 0.3 })
+      const sid = id('ses')
+      const withMeeting = rnd() < 0.3
+      const x = await s.createSession({
+        id: sid,
+        title: text(),
+        private: rnd() < 0.3,
+        // M4: some sessions are recorded for a calendar meeting
+        ...(withMeeting
+          ? {
+              meeting: {
+                id: `mtg_${sid}`,
+                uid: `${sid}@example.com`,
+                title: text(),
+                start: '2026-09-01T10:00:00.000Z',
+                end: '2026-09-01T10:30:00.000Z',
+                join: null,
+                calendar: 'Work',
+              },
+            }
+          : {}),
+      })
       cursor.set(x.id, { mic: 0, system: 0 })
       segIds.set(x.id, [])
     } else if (r < 0.15) {

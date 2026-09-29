@@ -84,6 +84,41 @@ describe('config', () => {
     expect(() => parseConfig([], { GNOMEOLA_KEYRING: 'kwallet' })).toThrow(UsageError)
     expect(() => parseConfig([], { GNOMEOLA_FAKE_PIPELINE: '{' })).toThrow(UsageError)
   })
+
+  it('M4 desktop integrations: on for real runs, off under fakes, each overridable', () => {
+    expect(parseConfig([], {})).toMatchObject({
+      calendar: { kind: 'eds' },
+      dbus: true,
+      micActivity: { kind: 'pipewire' },
+      micIdleStopMs: 30_000,
+      gjs: 'gjs',
+    })
+    expect(parseConfig(['--fake'], {})).toMatchObject({
+      calendar: { kind: 'off' },
+      dbus: false,
+      micActivity: { kind: 'off' },
+    })
+    expect(
+      parseConfig(['--fake'], {
+        GNOMEOLA_CALENDAR: 'file:/tmp/cal.json',
+        GNOMEOLA_DBUS: 'session',
+        GNOMEOLA_MIC_ACTIVITY: 'pipewire:rig-mic',
+        GNOMEOLA_GJS: '/opt/gjs',
+      }),
+    ).toMatchObject({
+      calendar: { kind: 'file', path: '/tmp/cal.json' },
+      dbus: true,
+      micActivity: { kind: 'pipewire', target: 'rig-mic' },
+      gjs: '/opt/gjs',
+    })
+    for (const env of [
+      { GNOMEOLA_CALENDAR: 'google' },
+      { GNOMEOLA_CALENDAR: 'file:' },
+      { GNOMEOLA_DBUS: 'system' },
+      { GNOMEOLA_MIC_ACTIVITY: 'pulse' },
+    ])
+      expect(() => parseConfig([], env), JSON.stringify(env)).toThrow(UsageError)
+  })
 })
 
 describe('settings', () => {

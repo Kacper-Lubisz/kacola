@@ -1,4 +1,10 @@
-import { type DurableEventData, newId, type Segment, type Session } from '@gnomeola/protocol'
+import {
+  type DurableEventData,
+  newId,
+  type Segment,
+  type Session,
+  type SessionMeeting,
+} from '@gnomeola/protocol'
 import type { SegmentInput } from './api.ts'
 import { StoreError } from './errors.ts'
 
@@ -6,7 +12,10 @@ import { StoreError } from './errors.ts'
 // (./store.ts keeps its own, older copy of the segment rules inline; the contract suite running on
 // both dialects is what keeps the two identical).
 
-export function newSession(input: { title?: string; private?: boolean; id?: string }, now: Date): Session {
+export function newSession(
+  input: { title?: string; private?: boolean; id?: string; meeting?: SessionMeeting },
+  now: Date,
+): Session {
   return {
     id: input.id ?? newId('ses', now.getTime()),
     title: input.title?.trim() || `Meeting ${now.toISOString().slice(0, 16).replace('T', ' ')}`,
@@ -18,6 +27,7 @@ export function newSession(input: { title?: string; private?: boolean; id?: stri
     durationMs: 0,
     tracks: [],
     error: null,
+    ...(input.meeting ? { meeting: input.meeting } : {}),
   }
 }
 

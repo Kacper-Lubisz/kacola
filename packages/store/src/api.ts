@@ -7,6 +7,7 @@ import type {
   SearchHit,
   Segment,
   Session,
+  SessionMeeting,
   SessionStatus,
   StoredSettings,
   SyncItem,
@@ -120,7 +121,12 @@ export interface StoreApi {
   replay(events: Iterable<DurableEvent>, batchSize?: number): Promise<number>
 
   // ---- domain writes (each is exactly one durable event)
-  createSession(input: { title?: string; private?: boolean; id?: string }): Promise<Session>
+  createSession(input: {
+    title?: string
+    private?: boolean
+    id?: string
+    meeting?: SessionMeeting
+  }): Promise<Session>
   updateSession(id: string, change: (s: Session) => Session): Promise<Session>
   deleteSession(id: string, guard?: (s: Session) => void): Promise<void>
   upsertSegment(input: SegmentInput): Promise<Segment>
