@@ -15,11 +15,13 @@ import {
 } from '@gnomeola/protocol'
 import { waitFor } from '@gnomeola/testkit/daemon'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { ManualCalendarProvider } from '../src/calendar/providers.ts'
 import { createDaemon, type Daemon, type Handlers } from '../src/daemon.ts'
 import { FakeNotesEngine } from '../src/fakes/notes.ts'
 import { FakePipeline } from '../src/fakes/pipeline.ts'
 import { FakeDevices, FakeModels, FakeQaEngine } from '../src/fakes/providers.ts'
 import { MemoryKeyring } from '../src/keyring.ts'
+import { at, occ } from './calendar-helpers.ts'
 
 // T1 contract: the real server, driven through the typed protocol client, for every route in the
 // table. The client validates every JSON response against the route's response schema, and every SSE
@@ -35,6 +37,7 @@ describe('contract: every route, real server, typed client', () => {
   let dir: string
   let daemon: Daemon
   let c: GnomeolaClient
+  const cal = new ManualCalendarProvider()
 
   beforeAll(async () => {
     dir = mkdtempSync(join(tmpdir(), 'gnomeola-contract-'))
@@ -54,8 +57,22 @@ describe('contract: every route, real server, typed client', () => {
       keyring: new MemoryKeyring(),
       env: {},
       heartbeatMs: 50,
+      calendar: cal,
     })
     c = createClient({ baseUrl: daemon.url, timeoutMs: 5_000 })
+    const now = Date.now()
+    cal.push({
+      calendars: [{ id: 'cal-work', name: 'Work' }],
+      occurrences: [
+        occ({
+          summary: 'Sync',
+          start: at(now, 30),
+          end: at(now, 60),
+          location: 'https://meet.google.com/abc-defg-hij',
+        }),
+      ],
+    })
+    cal.state('ok')
   })
   afterAll(async () => {
     await daemon?.close()
@@ -147,6 +164,28 @@ describe('contract: every route, real server, typed client', () => {
       updateSettings: () => c.call('updateSettings', { body: { retention: { days: 7 } } }),
       setApiKey: () => c.call('setApiKey', { body: { key: 'sk-ant-contract-test-0000' } }),
       diagnostics: () => c.call('diagnostics'),
+      calendarStatus: async () => {
+        const st = await c.call('calendarStatus')
+        expect(st).toMatchObject({ state: 'ok', provider: 'manual', calendars: [{ id: 'cal-work' }] })
+        return st
+      },
+      listMeetings: async () => {
+        const r = await c.call('listMeetings', { query: { to: at(Date.now(), 24 * 60) } })
+        expect(r.meetings.map((m) => m.title)).toEqual(['Sync'])
+        return r
+      },
+      nextMeeting: async () => {
+        const r = await c.call('nextMeeting')
+        expect(r.next?.join).toEqual({ url: 'https://meet.google.com/abc-defg-hij', provider: 'meet' })
+        return r
+      },
+      joinMeeting: async () => {
+        const { next } = await c.call('nextMeeting')
+        const r = await c.call('joinMeeting', { params: { id: next!.id }, body: {} })
+        expect(r.joinUrl).toBe('https://meet.google.com/abc-defg-hij')
+        expect(r.session).toMatchObject({ title: 'Sync', status: 'recording', meeting: { id: next!.id } })
+        return r
+      },
       deleteSession: () => c.call('deleteSession', { params: { id: priv.id } }),
     }
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {
@@ -171,6 +210,7 @@ describe('contract: every route, real server, typed client', () => {
         stt: { liveModel: expect.any(String), finalModel: expect.any(String), finalPass: 'during' },
         capture: { micDevice: 'default', systemDevice: 'default' },
         retention: { audio: 'keep', days: 30, archive: false },
+        autoRecord: { calendar: false, micActivity: false },
       })
       const patched = await c2.call('updateSettings', {
         body: { llm: { model: 'claude-sonnet-5' }, stt: { finalPass: 'after' } },

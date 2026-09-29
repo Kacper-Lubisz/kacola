@@ -134,6 +134,14 @@ export const migrations: readonly Migration[] = [
       ) STRICT;
     `,
   },
+  {
+    version: 3,
+    name: 'session-meeting',
+    up: `
+      -- M4: the calendar meeting a session was recorded for (JSON SessionMeeting), or NULL.
+      ALTER TABLE sessions ADD COLUMN meeting TEXT;
+    `,
+  },
 ]
 
 function validateList(list: readonly Migration[]): void {

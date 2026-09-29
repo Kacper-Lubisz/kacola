@@ -1,0 +1,10 @@
+{
+  "uuid": "gnomeola@gnomeola.org",
+  "name": "gnomeola",
+  "description": "Meeting recorder in the top bar: recording state, elapsed time and the live transcript line; upcoming meetings from your calendars with one-click Join that opens the call and starts recording. Needs the gnomeola daemon (gnomeolad).",
+  "shell-version": ["50"],
+  "url": "https://github.com/kacperlubisz/gnomeola",
+  "settings-schema": "org.gnome.shell.extensions.gnomeola",
+  "gettext-domain": "gnomeola",
+  "version-name": "0.1.0"
+}

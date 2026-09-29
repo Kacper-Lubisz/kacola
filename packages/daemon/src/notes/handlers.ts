@@ -84,7 +84,7 @@ export function notesHandlers(deps: NotesDeps): Pick<Handlers, NotesRouteName> {
       return {
         templates: allTemplates(custom),
         suggested: suggestTemplate(
-          { sessionTitle: session?.title, calendarTitle: query.calendarTitle },
+          { sessionTitle: session?.title, calendarTitle: query.calendarTitle ?? session?.meeting?.title },
           custom,
         ),
       }
@@ -108,7 +108,10 @@ export function notesHandlers(deps: NotesDeps): Pick<Handlers, NotesRouteName> {
       const custom = notes.templates()
       const templateId =
         body.templateId ??
-        suggestTemplate({ sessionTitle: session.title, calendarTitle: body.calendarTitle }, custom).templateId
+        suggestTemplate(
+          { sessionTitle: session.title, calendarTitle: body.calendarTitle ?? session.meeting?.title },
+          custom,
+        ).templateId
       const template = findTemplate(templateId)
       const head = notes.get(params.id)
       const segments = store.segments(params.id).filter((s) => s.text.trim())

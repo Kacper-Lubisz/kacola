@@ -1,0 +1,82 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!--
+  C-4: org.gnome.Gnomeola — the daemon's face on the session bus, for the GNOME Shell extension (and
+  anything else on the desktop). Exported by gnomeolad's D-Bus bridge at /org/gnome/Gnomeola.
+
+  This file is the contract. The bridge (packages/daemon/gjs/dbus-bridge.js) exports exactly this
+  file; the Shell extension embeds a copy, and a unit test fails if the copy drifts from it.
+
+  Conventions
+    * Times are Unix epoch milliseconds (int64); 0 means "none".
+    * A meeting is an a{sv} with: id s, title s, start x, end x, allDay b, joinUrl s ('' = none),
+      provider s ('' = none), calendar s, location s, response s ('' = not an attendee).
+      An EMPTY dict means "no meeting".
+    * Every property emits org.freedesktop.DBus.Properties.PropertiesChanged when it changes.
+-->
+<node>
+  <interface name="org.gnome.Gnomeola">
+    <!-- Recording state of the active session: idle | recording | paused. -->
+    <property name="State" type="s" access="read"/>
+    <!-- The active (recording or paused) session; '' when idle. -->
+    <property name="SessionId" type="s" access="read"/>
+    <property name="SessionTitle" type="s" access="read"/>
+    <!-- The calendar meeting the active session was recorded for (a meeting id, as in the dicts); '' if none. -->
+    <property name="SessionMeetingId" type="s" access="read"/>
+    <!-- Elapsed recording time = ElapsedMs + (State == 'recording' ? now - RunningSince : 0). -->
+    <property name="ElapsedMs" type="t" access="read"/>
+    <property name="RunningSince" type="x" access="read"/>
+    <!-- The newest transcript line of the active session (live partial or segment); '' if none. -->
+    <property name="LastLine" type="s" access="read"/>
+    <property name="LastSpeaker" type="s" access="read"/>
+    <!-- A timed meeting in progress now, and the next one that has not started. -->
+    <property name="CurrentMeeting" type="a{sv}" access="read"/>
+    <property name="NextMeeting" type="a{sv}" access="read"/>
+    <!-- Timed meetings from now until the end of tomorrow (in progress ones first), at most 12. -->
+    <property name="UpcomingMeetings" type="aa{sv}" access="read"/>
+    <!-- off | starting | ok | unavailable, and why. -->
+    <property name="CalendarState" type="s" access="read"/>
+    <property name="CalendarDetail" type="s" access="read"/>
+    <!-- Auto-record rules currently enabled: a subset of ['calendar', 'micActivity']. -->
+    <property name="AutoRecord" type="as" access="read"/>
+    <!-- The daemon's HTTP base URL and version. -->
+    <property name="DaemonUrl" type="s" access="read"/>
+    <property name="Version" type="s" access="read"/>
+
+    <!-- Create and start a session ('' title = default). Fails if one is already recording. -->
+    <method name="Start">
+      <arg name="title" type="s" direction="in"/>
+      <arg name="session_id" type="s" direction="out"/>
+    </method>
+    <!-- Stop the active session. Fails if nothing is recording. -->
+    <method name="Stop">
+      <arg name="session_id" type="s" direction="out"/>
+    </method>
+    <!-- Pause / resume the active session. -->
+    <method name="Pause"/>
+    <method name="Resume"/>
+    <!-- Start a session linked to (and titled after) the meeting, and return its join link ('' if none)
+         for the caller to open. Recording starts first, so the opening seconds are never lost. -->
+    <method name="Join">
+      <arg name="meeting_id" type="s" direction="in"/>
+      <arg name="session_id" type="s" direction="out"/>
+      <arg name="join_url" type="s" direction="out"/>
+    </method>
+
+    <!-- A session started (by anyone: the window, the CLI, Join, an auto-record rule). -->
+    <signal name="SessionStarted">
+      <arg name="session_id" type="s"/>
+      <arg name="title" type="s"/>
+      <!-- manual | join | calendar | mic-activity -->
+      <arg name="reason" type="s"/>
+    </signal>
+    <signal name="SessionStopped">
+      <arg name="session_id" type="s"/>
+      <arg name="status" type="s"/>
+    </signal>
+    <!-- A timed meeting starts within the next minute (once per occurrence). -->
+    <signal name="MeetingStarting">
+      <arg name="meeting" type="a{sv}"/>
+    </signal>
+  </interface>
+</node>
