@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { CalendarStatus, Meeting } from './calendar.ts'
 import { NoteTemplate, NoteVersion } from './notes.ts'
 import { Iso, ModelInfo, QaMessage, Segment, Session, StoredSettings, TrackKind } from './schemas.ts'
 import { SpeakerEvents } from './speakers.ts'
@@ -57,6 +58,11 @@ export const EphemeralEventData = z.discriminatedUnion('type', [
   z.object({ type: z.literal('qa.delta'), requestId: z.string(), text: z.string() }),
   z.object({ type: z.literal('model.progress'), model: ModelInfo }),
   z.object({ type: z.literal('heartbeat'), lastSeq: z.int().nonnegative() }),
+  // ---- M4: calendar
+  /** The meetings changed (or the provider's state did): refetch /meetings. */
+  z.object({ type: z.literal('calendar.updated'), calendar: CalendarStatus }),
+  /** A timed meeting is about to start (sent once per occurrence, shortly before its start). */
+  z.object({ type: z.literal('meeting.starting'), meeting: Meeting }),
 ])
 export type EphemeralEventData = z.infer<typeof EphemeralEventData>
 

@@ -1,4 +1,4 @@
-import type { Health, ModelInfo } from '@gnomeola/protocol'
+import type { CalendarStatus, Health, ModelInfo } from '@gnomeola/protocol'
 import * as Gtk from '@gtkx/gi/gtk'
 import { AdwActionRow, AdwClamp, AdwDialog, AdwHeaderBar, AdwSpinner, AdwToolbarView } from '@gtkx/jsx/adw'
 import {
@@ -92,12 +92,57 @@ function CaptureRow({ health }: { health: Health | null }) {
   )
 }
 
+// S-1 follow-up (M4): whether meetings can be read from the user's calendars. Nothing to grant here —
+// the daemon reads GNOME's own calendars (Evolution Data Server) — but the user should know whether it
+// works, and where the calendars come from.
+function calendarText(c: CalendarStatus | null): { subtitle: string; ok: boolean | null } {
+  if (!c) return { subtitle: _('Checking…'), ok: null }
+  switch (c.state) {
+    case 'ok':
+      return c.calendars.length
+        ? {
+            subtitle: fmt(_('Reading {calendars}'), { calendars: c.calendars.map((x) => x.name).join(', ') }),
+            ok: true,
+          }
+        : { subtitle: _('No calendars found. Add one in GNOME Calendar or Online Accounts.'), ok: false }
+    case 'starting':
+      return { subtitle: _('Connecting to your calendars…'), ok: null }
+    case 'off':
+      return { subtitle: _('Calendar reading is turned off'), ok: false }
+    case 'unavailable':
+      return { subtitle: fmt(_('Not available: {detail}'), { detail: c.detail ?? c.provider }), ok: false }
+  }
+}
+
+function CalendarRow({ calendar }: { calendar: CalendarStatus | null }) {
+  const { subtitle, ok } = calendarText(calendar)
+  return (
+    <AdwActionRow
+      title={_('Calendar')}
+      subtitle={subtitle}
+      useMarkup={false}
+      suffix={
+        ok === null ? (
+          <AdwSpinner accessibleLabel={_('Checking calendar access')} />
+        ) : (
+          <GtkImage
+            iconName={ok ? 'object-select-symbolic' : 'dialog-warning-symbolic'}
+            cssClasses={[ok ? 'success' : 'warning']}
+            accessibleLabel={ok ? _('Calendar available') : _('Calendar not available')}
+          />
+        )
+      }
+    />
+  )
+}
+
 export function OnboardingDialog({ onFinished }: { onFinished: (skippedMissing: string[] | null) => void }) {
   const store = useStore()
   const settings = useSettings()
   const [models, setModels] = useState<ModelInfo[] | null>(null)
   const [health, setHealth] = useState<Health | null>(store.getSnapshot().health)
   const [error, setError] = useState<string | null>(null)
+  const [calendar, setCalendar] = useState<CalendarStatus | null>(null)
   const finished = useRef(false)
 
   useEffect(() => {
@@ -113,11 +158,28 @@ export function OnboardingDialog({ onFinished }: { onFinished: (skippedMissing: 
     store.refreshHealth().then((h) => {
       if (h && !ac.signal.aborted) setHealth(h)
     })
+    // a daemon without the M4 routes (or a failing one) simply leaves the row saying so
+    store.api
+      .calendarStatus(ac.signal)
+      .then((c) => {
+        if (!ac.signal.aborted) setCalendar(c)
+      })
+      .catch((e: unknown) => {
+        if (!ac.signal.aborted)
+          setCalendar({
+            state: 'unavailable',
+            provider: 'daemon',
+            detail: e instanceof Error ? e.message : String(e),
+            calendars: [],
+            updatedAt: null,
+          })
+      })
     return () => ac.abort()
   }, [store])
 
   // live progress for every model, from whichever client started the download
   useEvents((e) => {
+    if (e.data.type === 'calendar.updated') setCalendar(e.data.calendar)
     if (e.data.type !== 'model.progress') return
     const m = e.data.model
     setModels((cur) => (cur ? cur.map((x) => (x.id === m.id ? m : x)) : cur))
@@ -209,6 +271,22 @@ export function OnboardingDialog({ onFinished }: { onFinished: (skippedMissing: 
                   accessibleLabel={_('Audio capture')}
                 >
                   <CaptureRow health={health} />
+                </GtkListBox>
+              </GtkBox>
+              <GtkBox orientation={Gtk.Orientation.VERTICAL} spacing={12}>
+                <GtkLabel
+                  label={_('Meetings')}
+                  cssClasses={['heading']}
+                  xalign={0}
+                  accessibleRole={Gtk.AccessibleRole.HEADING}
+                  accessibleLevel={2}
+                />
+                <GtkListBox
+                  cssClasses={['boxed-list']}
+                  selectionMode={Gtk.SelectionMode.NONE}
+                  accessibleLabel={_('Calendar access')}
+                >
+                  <CalendarRow calendar={calendar} />
                 </GtkListBox>
               </GtkBox>
               <GtkBox spacing={12} halign={Gtk.Align.END}>

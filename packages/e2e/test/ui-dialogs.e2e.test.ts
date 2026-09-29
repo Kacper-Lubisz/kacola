@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
@@ -194,6 +194,34 @@ describe('questions without a key, Preferences, About', () => {
       5000,
       'micDevice=fake.mic persisted',
     )
+    // M4 auto-record rules: off by default, a click turns one on in the daemon, and a change made
+    // elsewhere flips the other switch live
+    const onMeeting = await d.findOne({
+      app: APP,
+      role: 'switch',
+      name: 'When a Calendar Meeting Starts',
+      states: ['showing'],
+    })
+    expect(onMeeting.states).not.toContain('checked')
+    await d.click(onMeeting)
+    await d.waitFor(
+      async () => (await daemon.client.call('getSettings')).autoRecord.calendar,
+      5000,
+      'autoRecord.calendar on',
+    )
+    await daemon.client.call('updateSettings', { body: { autoRecord: { micActivity: true } } })
+    await d.waitFor(
+      async () =>
+        (
+          await d.findOne({ app: APP, role: 'switch', name: 'When Another App Uses the Microphone' })
+        ).states.includes('checked'),
+      5000,
+      'the microphone switch to follow the daemon',
+    )
+    expect((await daemon.client.call('getSettings')).autoRecord).toEqual({
+      calendar: true,
+      micActivity: true,
+    })
     await capture(d, 'prefs-general')
 
     // a change made by another client (the CLI, say) shows up while the dialog is open
@@ -322,12 +350,14 @@ describe('questions without a key, Preferences, About', () => {
 describe('first-run onboarding (slow fake model downloads)', () => {
   let d: HeadlessDisplay
   let daemon: DaemonHandle
+  const calendarFile = join(mkdtempSync(join(tmpdir(), 'gnomeola-onboarding-cal-')), 'calendar.json')
+  writeFileSync(calendarFile, JSON.stringify({ calendars: [{ id: 'work', name: 'Work' }], occurrences: [] }))
 
   beforeAll(async () => {
     buildUi()
     daemon = await startDaemon({
       entry: join(import.meta.dirname, '..', 'src', 'slow-models-daemon.ts'),
-      env: { GNOMEOLA_E2E_MODEL_STEP_MS: '700' },
+      env: { GNOMEOLA_E2E_MODEL_STEP_MS: '700', GNOMEOLA_CALENDAR: `file:${calendarFile}` },
     })
     d = await startHeadlessDisplay({ size: '1280x800' })
   })
@@ -354,6 +384,15 @@ describe('first-run onboarding (slow fake model downloads)', () => {
       ''
     expect(await subtitle()).toBe('Accurate transcription · 1 MB · Not downloaded')
     await d.findOne({ app: APP, role: 'label', name: 'Available (fake)' }) // capture check from health()
+    // S-1 follow-up: calendar access — which calendars are read, and a broken calendar shows live
+    await d.findOne({ app: APP, role: 'label', name: 'Reading Work' }, 10_000)
+    writeFileSync(calendarFile, '{ broken')
+    await d.findOne({ app: APP, role: 'label', nameContains: 'Not available: calendar file' }, 10_000)
+    writeFileSync(
+      calendarFile,
+      JSON.stringify({ calendars: [{ id: 'work', name: 'Work' }], occurrences: [] }),
+    )
+    await d.findOne({ app: APP, role: 'label', name: 'Reading Work' }, 10_000)
     expect(await unnamedInteractive(d)).toEqual([])
     await capture(d, 'onboarding')
 

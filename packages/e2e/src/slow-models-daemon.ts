@@ -9,6 +9,7 @@ import {
   FakeDevices,
   FakeModels,
   FakePipeline,
+  FileCalendarProvider,
   MemoryKeyring,
   parseConfig,
 } from '@gnomeola/daemon'
@@ -27,6 +28,8 @@ const daemon = await createDaemon({
   pipeline: new FakePipeline(cfg.fakePipeline),
   devices: new FakeDevices(),
   models: new FakeModels({ stepMs }),
+  // M4: onboarding shows calendar access; GNOMEOLA_CALENDAR=file:… feeds it
+  calendar: cfg.calendar.kind === 'file' ? new FileCalendarProvider(cfg.calendar.path) : undefined,
 })
 process.stdout.write(
   `${JSON.stringify({ event: 'listening', url: daemon.url, port: daemon.port, pid: process.pid })}\n`,

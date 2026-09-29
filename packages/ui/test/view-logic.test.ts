@@ -110,6 +110,7 @@ describe('settings model', () => {
       stt: { liveModel: 'l', finalModel: 'f', finalPass: 'off' },
       capture: { micDevice: 'default', systemDevice: 'default' },
       retention: { audio: 'keep', days: 30, archive: false },
+      autoRecord: { calendar: false, micActivity: false },
     })
     expect(next.llm.apiKeyConfigured).toBe(true)
     expect(next.llm.provider).toBe('none')

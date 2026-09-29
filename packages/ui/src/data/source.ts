@@ -3,6 +3,7 @@ import type {
   AskStreamEvent,
   AudioDevice,
   BodyIn,
+  CalendarStatus,
   EnhanceStreamEvent,
   Health,
   ModelInfo,
@@ -63,6 +64,8 @@ export interface DataSource {
   listDevices(signal?: AbortSignal): Promise<AudioDevice[]>
   listModels(signal?: AbortSignal): Promise<ModelInfo[]>
   downloadModel(id: string): Promise<ModelInfo>
+  /** M4: whether the daemon can read the user's calendars (onboarding shows it). */
+  calendarStatus(signal?: AbortSignal): Promise<CalendarStatus>
 
   // ---- M7: notes + enhancement (private sessions included: this is the window)
   notes(sessionId: string, signal?: AbortSignal): Promise<NotesState>

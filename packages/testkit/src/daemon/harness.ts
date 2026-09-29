@@ -69,6 +69,11 @@ export async function startDaemon(opts: StartDaemonOptions = {}): Promise<Daemon
       ANTHROPIC_API_KEY: undefined,
       GNOMEOLA_KEYRING: 'memory',
       GNOMEOLA_FAKES: opts.fake === false ? undefined : '1',
+      // M4 desktop integrations (EDS, the session bus, the PipeWire graph) stay off unless a test opts in:
+      // a test daemon must never read the user's calendars or claim a name on their session bus.
+      GNOMEOLA_CALENDAR: 'off',
+      GNOMEOLA_DBUS: 'off',
+      GNOMEOLA_MIC_ACTIVITY: 'off',
       ...opts.env,
     }
     for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k]

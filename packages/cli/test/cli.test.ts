@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { EXIT } from '../src/errors.ts'
 import { BUDGET, countTokens } from '../src/tokens.ts'
-import { type FakeDaemon, IDS, seed, startFakeDaemon } from './fake-daemon.ts'
+import { type FakeDaemon, IDS, SPEAKERS, seed, startFakeDaemon } from './fake-daemon.ts'
 import { cli } from './helpers.ts'
 
 let d: FakeDaemon
@@ -234,7 +234,7 @@ describe('ask', () => {
     expect(r.code).toBe(0)
     const j = r.json()
     expect(j.answer).toMatch(/three attempts/)
-    expect(j.citations[0]).toMatchObject({ sessionId: IDS.standup, t: '1:06', speaker: 'them' })
+    expect(j.citations[0]).toMatchObject({ sessionId: IDS.standup, t: '1:06', speaker: 'Ana' })
     expect(r.stdout).not.toMatch(/Ana owns the dashboard/)
     expect(countTokens(r.stdout)).toBeLessThanOrEqual(BUDGET.ask)
   })
@@ -253,7 +253,7 @@ describe('ask', () => {
   it('streams text to a terminal and lists sources', async () => {
     const r = await cli(['ask', 'retries?', '--session', IDS.standup], { url: d.url, tty: true })
     expect(r.stdout).toMatch(
-      /^The retry budget is three attempts, then dead-letter \[s1\]\.\n\nsources:\n {2}\[1\] 1:06 them/,
+      /^The retry budget is three attempts, then dead-letter \[s1\]\.\n\nsources:\n {2}\[1\] 1:06 Ana/,
     )
   })
   it('validates its arguments', async () => {
@@ -275,6 +275,68 @@ describe('record', () => {
     expect((await cli(['record', 'stop'], { url: d.url })).json()).toMatchObject({ status: 'stopped' })
     expect((await cli(['record', 'status'], { url: d.url })).json().recording).toEqual([])
     expect((await cli(['record', 'stop'], { url: d.url })).code).toBe(EXIT.NOT_FOUND)
+  })
+})
+
+describe('meetings (X-5)', () => {
+  it('--next (the default) gives the meeting in progress and the next one, compactly, declined skipped', async () => {
+    const r = await cli(['meetings', '--next'], { url: d.url })
+    expect(r.code).toBe(EXIT.OK)
+    const j = r.json()
+    expect(Object.keys(j)).toEqual(['current', 'next', 'calendar'])
+    expect(j.current).toMatchObject({
+      id: 'mtg_current',
+      title: 'Design review',
+      joinUrl: null,
+      provider: null,
+    })
+    expect(j.next).toEqual({
+      id: 'mtg_next',
+      title: 'Customer call',
+      start: expect.any(String),
+      end: expect.any(String),
+      allDay: false,
+      joinUrl: 'https://us02web.zoom.us/j/84518302211?pwd=abc',
+      provider: 'zoom',
+      calendar: 'Work',
+      response: 'accepted',
+    })
+    expect(j.calendar).toEqual({ state: 'ok', detail: null })
+    expect((await cli(['meetings'], { url: d.url })).json()).toEqual(j)
+  })
+  it('--today lists the day, and never prints descriptions', async () => {
+    const r = await cli(['meetings', '--today'], { url: d.url })
+    const j = r.json()
+    expect(j.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(j.meetings.map((m: { id: string }) => m.id)).not.toContain('mtg_declined')
+    for (const m of j.meetings) expect(Object.keys(m)).not.toContain('description')
+    const req = d.requests.findLast((x) => x.path === '/meetings')!
+    expect(new Date(req.query.from!).getHours()).toBe(0) // the local day, computed by the CLI
+  })
+  it('text at a terminal', async () => {
+    const r = await cli(['meetings', '--next'], { url: d.url, tty: true })
+    expect(r.stdout).toMatch(/^now {3}\d\d:\d\d–\d\d:\d\d {2}Design review\n/)
+    expect(r.stdout).toMatch(
+      /next .*Customer call {2}zoom: https:\/\/us02web\.zoom\.us\/j\/84518302211\?pwd=abc/,
+    )
+  })
+  it('calendar off or broken is exit 6 with the reason, not an empty calendar', async () => {
+    d.state.calendar = { ...d.state.calendar, state: 'off' }
+    const off = await cli(['meetings'], { url: d.url })
+    expect(off.code).toBe(EXIT.UNAVAILABLE)
+    expect(off.stderr).toMatch(/calendar reading is off/)
+    d.state.calendar = {
+      ...d.state.calendar,
+      state: 'unavailable',
+      detail: 'Evolution Data Server is not running',
+    }
+    const bad = await cli(['meetings', '--today'], { url: d.url })
+    expect(bad.code).toBe(EXIT.UNAVAILABLE)
+    expect(bad.stderr).toMatch(/Evolution Data Server is not running/)
+  })
+  it('usage errors', async () => {
+    expect((await cli(['meetings', '--next', '--today'], { url: d.url })).code).toBe(EXIT.USAGE)
+    expect((await cli(['meetings', 'join', 'x'], { url: d.url })).code).toBe(EXIT.USAGE)
   })
 })
 
@@ -306,5 +368,58 @@ describe('bug-report', () => {
     expect(existsSync(out)).toBe(true)
     expect(statSync(out).mode & 0o777).toBe(0o600)
     expect(JSON.parse(readFileSync(out, 'utf8')).logTail).toEqual(['a', 'b'])
+  })
+})
+
+describe('speakers (M3)', () => {
+  it('lists who spoke — me, each named far-end speaker — with the labels --speaker matches', async () => {
+    const r = await cli(['speakers', IDS.standup], { url: d.url })
+    expect(r.code).toBe(EXIT.OK)
+    const j = r.json()
+    expect(j.session).toMatchObject({ id: IDS.standup, title: 'Platform standup' })
+    expect(
+      j.speakers.map((s: { id: string; label: string; segments: number }) => [s.id, s.label, s.segments]),
+    ).toEqual([
+      ['me', 'me', 4],
+      [SPEAKERS.ana, 'Ana', 2],
+      [SPEAKERS.ben, 'Speaker 2', 2],
+    ])
+    expect(j.speakers[1]).toMatchObject({ track: 'system', named: true, talkMs: 8000, talk: '0:08' })
+  })
+
+  it('reads well at a terminal', async () => {
+    const r = await cli(['speakers', IDS.standup], { url: d.url, tty: true })
+    expect(r.code).toBe(EXIT.OK)
+    expect(r.stdout).toMatch(/^Platform standup · ses_\w+ · 3 speakers\n/)
+    expect(r.stdout).toMatch(/ {2}me +4 segments +0:16 {2}\(you: the microphone\)/)
+    expect(r.stdout).toMatch(/ {2}Ana +2 segments +0:08\n/)
+    expect(r.stdout).toMatch(/ {2}Speaker 2 +2 segments +0:08 {2}\(unnamed\)/)
+  })
+
+  it('--speaker filters by a far-end name (any case) in transcript and search', async () => {
+    const t = await cli(['transcript', IDS.standup, '--from', '0:00', '--to', '10:00', '--speaker', 'ana'], {
+      url: d.url,
+    })
+    expect(t.code).toBe(EXIT.OK)
+    const segs = t.json().segments as { speaker: string; text: string }[]
+    expect(segs.map((x) => x.speaker)).toEqual(['Ana', 'Ana'])
+    expect(segs[1]!.text).toBe('Ana owns the dashboard.')
+    const s = await cli(['search', 'retry', '--speaker', 'Ana'], { url: d.url })
+    expect(s.code).toBe(EXIT.OK)
+    const hits = s.json().hits as { speaker: string }[]
+    expect(hits.length).toBeGreaterThan(0)
+    expect(new Set(hits.map((h) => h.speaker))).toEqual(new Set(['Ana']))
+  })
+
+  it('keeps private sessions invisible, and is read-only', async () => {
+    expect((await cli(['speakers', IDS.private], { url: d.url })).code).toBe(EXIT.NOT_FOUND)
+    expect((await cli(['speakers', 'ses_nope'], { url: d.url })).code).toBe(EXIT.NOT_FOUND)
+    expect((await cli(['speakers'], { url: d.url })).code).toBe(EXIT.USAGE)
+    // there is no verb to rename, merge or split from the CLI (the window does that)
+    for (const argv of [
+      ['speakers', 'rename', IDS.standup, 'x'],
+      ['speakers', IDS.standup, '--rename', 'x'],
+    ])
+      expect((await cli(argv, { url: d.url })).code, argv.join(' ')).not.toBe(EXIT.OK)
   })
 })

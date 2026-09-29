@@ -1,4 +1,5 @@
 import {
+  DEFAULT_AUTO_RECORD,
   DEFAULT_SPEAKER_SETTINGS,
   type Settings,
   type SettingsPatch,
@@ -19,6 +20,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   },
   capture: { micDevice: 'default', systemDevice: 'default' },
   retention: { audio: 'keep', days: 30, archive: false },
+  autoRecord: DEFAULT_AUTO_RECORD,
   speakers: DEFAULT_SPEAKER_SETTINGS,
 }
 
@@ -32,6 +34,7 @@ export function mergeSettings(
     stt: { ...base.stt, ...patch.stt },
     capture: { ...base.capture, ...patch.capture },
     retention: { ...base.retention, ...patch.retention },
+    autoRecord: { ...base.autoRecord, ...patch.autoRecord },
     speakers: { ...DEFAULT_SPEAKER_SETTINGS, ...base.speakers, ...patch.speakers },
   })
 }
