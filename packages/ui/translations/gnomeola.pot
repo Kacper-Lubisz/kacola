@@ -592,7 +592,7 @@ msgstr ""
 
 #: src/components/preferences.tsx:209 src/components/preferences.tsx:210
 #: src/components/session-detail.tsx:188 src/components/session-detail.tsx:189
-#: src/components/speakers.tsx:204 src/components/speakers.tsx:226
+#: src/components/speakers.tsx:207 src/components/speakers.tsx:229
 msgid "Speakers"
 msgstr ""
 
@@ -872,84 +872,84 @@ msgstr ""
 msgid "Press Record to capture your first meeting."
 msgstr ""
 
-#: src/components/speakers.tsx:37
+#: src/components/speakers.tsx:38
 msgid "{speaker}, {colour}"
 msgstr ""
 
-#: src/components/speakers.tsx:69
+#: src/components/speakers.tsx:72
 msgid "New name for {speaker}"
 msgstr ""
 
-#: src/components/speakers.tsx:105
+#: src/components/speakers.tsx:108
 msgid "Merge Into Another Speaker"
 msgstr ""
 
-#: src/components/speakers.tsx:106
+#: src/components/speakers.tsx:109
 msgid "Merge {speaker} into…"
 msgstr ""
 
-#: src/components/speakers.tsx:111
+#: src/components/speakers.tsx:114
 msgid "Same person as…"
 msgstr ""
 
-#: src/components/speakers.tsx:121
+#: src/components/speakers.tsx:124
 msgid "Merge {speaker} into {other}"
 msgstr ""
 
-#: src/components/speakers.tsx:149
+#: src/components/speakers.tsx:152
 msgid "{n} line · {time}"
 msgid_plural "{n} lines · {time}"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/components/speakers.tsx:153
+#: src/components/speakers.tsx:156
 msgid "No lines yet"
 msgstr ""
 
-#: src/components/speakers.tsx:156
+#: src/components/speakers.tsx:159
 msgid "You (microphone)"
 msgstr ""
 
-#: src/components/speakers.tsx:158
+#: src/components/speakers.tsx:161
 msgid "Far end, not yet told apart"
 msgstr ""
 
-#: src/components/speakers.tsx:160
+#: src/components/speakers.tsx:163
 msgid "Recognised from an earlier meeting"
 msgstr ""
 
-#: src/components/speakers.tsx:178
+#: src/components/speakers.tsx:181
 msgid "Rename"
 msgstr ""
 
-#: src/components/speakers.tsx:179
+#: src/components/speakers.tsx:182
 msgid "Rename {speaker}"
 msgstr ""
 
-#: src/components/speakers.tsx:211
+#: src/components/speakers.tsx:214
 msgid ""
 "Your microphone is always you. The other side is told apart by voice: name "
 "people, merge two that are the same person, or split a line off from the "
 "transcript."
 msgstr ""
 
-#: src/components/speakers.tsx:262
+#: src/components/speakers.tsx:265
 msgid "{speaker} at {time}"
 msgstr ""
 
-#: src/components/speakers.tsx:268
+#: src/components/speakers.tsx:271
 msgid "Selected line"
 msgstr ""
 
-#: src/components/speakers.tsx:270
+#: src/components/speakers.tsx:273
 msgid "{line} — your microphone is always you"
 msgstr ""
 
-#: src/components/speakers.tsx:278
+#: src/components/speakers.tsx:281
 msgid "Someone Else Said This"
 msgstr ""
 
-#: src/components/speakers.tsx:280
+#: src/components/speakers.tsx:283
 msgid "Give the line {line} to a new speaker"
 msgstr ""
 

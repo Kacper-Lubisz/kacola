@@ -34,6 +34,7 @@ function Swatch({ s }: { s: SpeakerSummary }) {
     <GtkImage
       iconName={s.id === ME ? 'audio-input-microphone-symbolic' : 'avatar-default-symbolic'}
       cssClasses={['speaker-swatch', speakerClass(s, s.label)]}
+      valign={Gtk.Align.CENTER}
       accessibleLabel={fmt(_('{speaker}, {colour}'), {
         speaker: speakerName(s.label),
         colour: colourDescription(s.colour, s.label),
@@ -57,8 +58,10 @@ function RenameEntry({
   const entry = useRef<Gtk.Entry | null>(null)
   const busy = useRef(false)
   // the entry appears because Rename was pressed: take the keyboard straight to it
+  // (deferred: during the commit the entry is not mapped yet, and grab_focus is a no-op)
   useEffect(() => {
-    entry.current?.grabFocus()
+    const h = setTimeout(() => entry.current?.grabFocus(), 0)
+    return () => clearTimeout(h)
   }, [])
   return (
     <GtkEntry
