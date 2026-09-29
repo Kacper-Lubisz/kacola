@@ -59,7 +59,7 @@ export type OnlineClustererOptions = {
 
 export type Assignment = { cluster: number; similarity: number; created: boolean }
 
-export const DEFAULT_CLUSTER_THRESHOLD = 0.5
+export const DEFAULT_CLUSTER_THRESHOLD = 0.4
 export const DEFAULT_VOICE_THRESHOLD = 0.6
 
 export class OnlineClusterer {

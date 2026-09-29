@@ -1,0 +1,160 @@
+{
+  "id": "bad-connection-3p",
+  "title": "One far-end speaker on a bad connection",
+  "description": "Two far-end speakers: Lena on a clean line, Joel on a bad one — telephone band, a starved 6 kbit/s codec and lost packets — with a noisy far-end mix.",
+  "sampleRate": 16000,
+  "durationMs": 69857,
+  "tracks": {
+    "mic": "mic.opus",
+    "system": "system.opus"
+  },
+  "speakers": [
+    {
+      "name": "Owen",
+      "track": "mic",
+      "source": "librispeech:672"
+    },
+    {
+      "name": "Lena",
+      "track": "system",
+      "source": "librispeech:8463"
+    },
+    {
+      "name": "Joel",
+      "track": "system",
+      "source": "librispeech:7176"
+    }
+  ],
+  "utterances": [
+    {
+      "track": "system",
+      "speaker": "Lena",
+      "startMs": 2310,
+      "endMs": 6417,
+      "text": "THIS WAS WHAT DID THE MISCHIEF SO FAR AS THE RUNNING AWAY WAS CONCERNED",
+      "source": "librispeech:8463-287645-0000"
+    },
+    {
+      "track": "system",
+      "speaker": "Joel",
+      "startMs": 6847,
+      "endMs": 11464,
+      "text": "ONCE FAIRLY A WING HOWEVER HE WHEELED AND MADE BACK HURRIEDLY FOR HIS PERCH",
+      "source": "librispeech:7176-88083-0005"
+    },
+    {
+      "track": "mic",
+      "speaker": "Owen",
+      "startMs": 12301,
+      "endMs": 15532,
+      "text": "OUT IN THE WOODS STOOD A NICE LITTLE FIR TREE",
+      "source": "librispeech:672-122797-0000"
+    },
+    {
+      "track": "system",
+      "speaker": "Joel",
+      "startMs": 16179,
+      "endMs": 19039,
+      "text": "IN DESPAIR HE HURLED HIMSELF DOWNWARD TOO SOON",
+      "source": "librispeech:7176-88083-0008"
+    },
+    {
+      "track": "system",
+      "speaker": "Lena",
+      "startMs": 19289,
+      "endMs": 24768,
+      "text": "JOHN WESLEY COMBASH JACOB TAYLOR AND THOMAS EDWARD SKINNER",
+      "source": "librispeech:8463-287645-0004"
+    },
+    {
+      "track": "mic",
+      "speaker": "Owen",
+      "startMs": 25312,
+      "endMs": 29580,
+      "text": "BUT THIS WAS WHAT THE TREE COULD NOT BEAR TO HEAR",
+      "source": "librispeech:672-122797-0003"
+    },
+    {
+      "track": "system",
+      "speaker": "Joel",
+      "startMs": 30293,
+      "endMs": 34099,
+      "text": "THE GREAT HAWK FOLLOWED HURRIEDLY TO RETRIEVE HIS PREY FROM THE GROUND",
+      "source": "librispeech:7176-88083-0009"
+    },
+    {
+      "track": "system",
+      "speaker": "Lena",
+      "startMs": 34614,
+      "endMs": 37154,
+      "text": "AS USUAL NOTHING WAS DONE IN THE WAY OF PUNISHMENT",
+      "source": "librispeech:8463-287645-0008"
+    },
+    {
+      "track": "mic",
+      "speaker": "Owen",
+      "startMs": 37669,
+      "endMs": 43941,
+      "text": "IN AUTUMN THE WOOD CUTTERS ALWAYS CAME AND FELLED SOME OF THE LARGEST TREES",
+      "source": "librispeech:672-122797-0007"
+    },
+    {
+      "track": "system",
+      "speaker": "Joel",
+      "startMs": 44141,
+      "endMs": 48872,
+      "text": "THE HAWK ALIGHTED ON THE DEAD BRANCH AND SAT UPRIGHT MOTIONLESS AS IF SURPRISED",
+      "source": "librispeech:7176-88083-0012"
+    },
+    {
+      "track": "system",
+      "speaker": "Lena",
+      "startMs": 49122,
+      "endMs": 52385,
+      "text": "I NEVER KNEW OF BUT ONE MAN WHO COULD EVER PLEASE HIM",
+      "source": "librispeech:8463-287645-0009"
+    },
+    {
+      "track": "mic",
+      "speaker": "Owen",
+      "startMs": 53027,
+      "endMs": 56788,
+      "text": "REJOICE IN THY GROWTH SAID THE SUNBEAMS",
+      "source": "librispeech:672-122797-0010"
+    },
+    {
+      "track": "system",
+      "speaker": "Joel",
+      "startMs": 57308,
+      "endMs": 59643,
+      "text": "ALMOST INSTANTLY HE WAS FORCED TO THE TOP",
+      "source": "librispeech:7176-88083-0015"
+    },
+    {
+      "track": "system",
+      "speaker": "Lena",
+      "startMs": 60085,
+      "endMs": 64951,
+      "text": "SUBSTANTIALLY THIS WAS JACOB'S UNVARNISHED DESCRIPTION OF HIS MASTER AND MISTRESS",
+      "source": "librispeech:8463-287645-0012"
+    },
+    {
+      "track": "mic",
+      "speaker": "Owen",
+      "startMs": 65808,
+      "endMs": 68357,
+      "text": "WERE I BUT ALREADY ON THE CART",
+      "source": "librispeech:672-122797-0014"
+    }
+  ],
+  "gaps": [],
+  "silences": [],
+  "facts": [],
+  "injections": [],
+  "license": "LibriSpeech test-clean (Panayotov et al., 2015), CC BY 4.0, https://www.openslr.org/12 — utterances as listed in `source`.",
+  "generator": {
+    "script": "packages/testkit/scripts/generate-fixtures.ts",
+    "sherpaOnnx": "1.13.8",
+    "generatedAt": "2026-09-29T12:08:18.162Z"
+  }
+}

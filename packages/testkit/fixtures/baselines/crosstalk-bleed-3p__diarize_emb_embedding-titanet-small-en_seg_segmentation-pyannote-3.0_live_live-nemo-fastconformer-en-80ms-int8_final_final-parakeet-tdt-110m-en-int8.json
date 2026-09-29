@@ -1,0 +1,38 @@
+{
+  "fixture": "crosstalk-bleed-3p",
+  "config": "diarize_emb=embedding-titanet-small-en+seg=segmentation-pyannote-3.0+live=live-nemo-fastconformer-en-80ms-int8+final=final-parakeet-tdt-110m-en-int8",
+  "metrics": {
+    "der_system": 0.07323053100200012,
+    "der_system_online": 0.07323053100200012,
+    "confusion_system": 0,
+    "der_all": 0.05069665939231156,
+    "speaker_count_error": 0,
+    "phantom_me_ms": 0
+  },
+  "bands": {
+    "der_system": {
+      "abs": 0.04,
+      "rel": 0.2
+    },
+    "der_system_online": {
+      "abs": 0.06,
+      "rel": 0.2
+    },
+    "confusion_system": {
+      "abs": 0.04,
+      "rel": 0.2
+    },
+    "der_all": {
+      "abs": 0.04,
+      "rel": 0.2
+    },
+    "speaker_count_error": {
+      "abs": 0
+    },
+    "phantom_me_ms": {
+      "abs": 500
+    }
+  },
+  "recordedAt": "2026-09-29T12:10:53.540Z",
+  "notes": "12th Gen Intel(R) Core(TM) i9-12900KF × 24; sherpa-onnx 1.13.8; node v24.21.0"
+}

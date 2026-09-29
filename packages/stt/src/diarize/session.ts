@@ -48,7 +48,7 @@ export type EmbeddingDiarizerOptions = {
 
 export const DIARIZATION_DEFAULTS = {
   threshold: DEFAULT_CLUSTER_THRESHOLD,
-  reclusterThreshold: 0.5,
+  reclusterThreshold: 0.4,
   minFoundMs: 1000,
   minEmbedMs: 300,
   splitMinMs: 2000,

@@ -1,0 +1,173 @@
+{
+  "id": "three-far-4p",
+  "title": "Three far-end speakers, quick turns",
+  "description": "Real speech (LibriSpeech) from four people: the user plus three far-end speakers — two women and a man — handing over with short pauses, so voice activity alone merges turns and the diarizer has to split them.",
+  "sampleRate": 16000,
+  "durationMs": 55647,
+  "tracks": {
+    "mic": "mic.opus",
+    "system": "system.opus"
+  },
+  "speakers": [
+    {
+      "name": "Marco",
+      "track": "mic",
+      "source": "librispeech:2830"
+    },
+    {
+      "name": "Wren",
+      "track": "system",
+      "source": "librispeech:4970"
+    },
+    {
+      "name": "Paul",
+      "track": "system",
+      "source": "librispeech:61"
+    },
+    {
+      "name": "Dana",
+      "track": "system",
+      "source": "librispeech:1284"
+    }
+  ],
+  "utterances": [
+    {
+      "track": "system",
+      "speaker": "Wren",
+      "startMs": 2231,
+      "endMs": 4521,
+      "text": "YOU'LL NEVER DIG IT OUT OF THE ASTOR LIBRARY",
+      "source": "librispeech:4970-29093-0000"
+    },
+    {
+      "track": "system",
+      "speaker": "Paul",
+      "startMs": 4771,
+      "endMs": 7730,
+      "text": "A GOLDEN FORTUNE AND A HAPPY LIFE",
+      "source": "librispeech:61-70968-0002"
+    },
+    {
+      "track": "mic",
+      "speaker": "Marco",
+      "startMs": 8368,
+      "endMs": 12406,
+      "text": "LET US BEGIN WITH THAT HIS COMMENTARY ON GALATIANS",
+      "source": "librispeech:2830-3979-0002"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 12947,
+      "endMs": 16218,
+      "text": "AND YOU MUST BE OJO THE UNLUCKY SHE ADDED",
+      "source": "librispeech:1284-1180-0013"
+    },
+    {
+      "track": "system",
+      "speaker": "Wren",
+      "startMs": 16468,
+      "endMs": 19121,
+      "text": "HE WAS UNABLE TO DECIDE EXACTLY WHAT IT SHOULD BE",
+      "source": "librispeech:4970-29093-0004"
+    },
+    {
+      "track": "system",
+      "speaker": "Paul",
+      "startMs": 19476,
+      "endMs": 23086,
+      "text": "GIVE NOT SO EARNEST A MIND TO THESE MUMMERIES CHILD",
+      "source": "librispeech:61-70968-0001"
+    },
+    {
+      "track": "mic",
+      "speaker": "Marco",
+      "startMs": 23464,
+      "endMs": 24798,
+      "text": "THE WORK HAD TO BE CONDENSED",
+      "source": "librispeech:2830-3979-0005"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 25561,
+      "endMs": 28925,
+      "text": "I AM MY DEAR AND ALL STRANGERS ARE WELCOME TO MY HOME",
+      "source": "librispeech:1284-1180-0011"
+    },
+    {
+      "track": "system",
+      "speaker": "Paul",
+      "startMs": 29175,
+      "endMs": 32725,
+      "text": "SISTER NELL DO YOU HEAR THESE MARVELS",
+      "source": "librispeech:61-70968-0007"
+    },
+    {
+      "track": "system",
+      "speaker": "Wren",
+      "startMs": 32975,
+      "endMs": 35987,
+      "text": "HE WANTED TO BEGIN AT THE TOP OF THE LADDER",
+      "source": "librispeech:4970-29093-0008"
+    },
+    {
+      "track": "mic",
+      "speaker": "Marco",
+      "startMs": 36697,
+      "endMs": 39172,
+      "text": "BUT THE ESSENCE OF LUTHER'S LECTURES IS THERE",
+      "source": "librispeech:2830-3979-0010"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 39712,
+      "endMs": 42672,
+      "text": "OJO HAD NEVER EATEN SUCH A FINE MEAL IN ALL HIS LIFE",
+      "source": "librispeech:1284-1180-0014"
+    },
+    {
+      "track": "system",
+      "speaker": "Wren",
+      "startMs": 42922,
+      "endMs": 44906,
+      "text": "I'VE BEEN READY TO GO ANYWHERE FOR SIX MONTHS",
+      "source": "librispeech:4970-29093-0017"
+    },
+    {
+      "track": "system",
+      "speaker": "Paul",
+      "startMs": 45156,
+      "endMs": 47733,
+      "text": "CRIES OF A NOTTINGHAM A NOTTINGHAM",
+      "source": "librispeech:61-70968-0012"
+    },
+    {
+      "track": "mic",
+      "speaker": "Marco",
+      "startMs": 48170,
+      "endMs": 50820,
+      "text": "THE WORD OF OUR GOD SHALL STAND FOREVER",
+      "source": "librispeech:2830-3979-0012"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 51424,
+      "endMs": 54147,
+      "text": "I'M AFRAID I DON'T KNOW MUCH ABOUT THE LAND OF OZ",
+      "source": "librispeech:1284-1180-0022"
+    }
+  ],
+  "gaps": [],
+  "silences": [],
+  "facts": [],
+  "injections": [],
+  "license": "LibriSpeech test-clean (Panayotov et al., 2015), CC BY 4.0, https://www.openslr.org/12 — utterances as listed in `source`.",
+  "generator": {
+    "script": "packages/testkit/scripts/generate-fixtures.ts",
+    "sherpaOnnx": "1.13.8",
+    "generatedAt": "2026-09-29T12:08:11.999Z"
+  }
+}
