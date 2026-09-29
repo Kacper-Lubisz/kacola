@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="gnomeola">
+  <schema id="org.gnome.shell.extensions.gnomeola" path="/org/gnome/shell/extensions/gnomeola/">
+    <key name="show-elapsed" type="b">
+      <default>true</default>
+      <summary>Show the elapsed recording time in the top bar</summary>
+    </key>
+    <key name="show-last-line" type="b">
+      <default>true</default>
+      <summary>Show the newest transcript line in the menu while recording</summary>
+    </key>
+    <key name="notify-meetings" type="b">
+      <default>true</default>
+      <summary>Notify when a calendar meeting is about to start</summary>
+      <description>A notification with a Join action, shortly before each timed meeting.</description>
+    </key>
+  </schema>
+</schemalist>
