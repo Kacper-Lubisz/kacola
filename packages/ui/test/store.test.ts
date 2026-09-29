@@ -55,6 +55,7 @@ function unusedApi(): Omit<DataSource, 'origin' | 'load' | 'subscribe'> {
     listDevices: unused,
     listModels: unused,
     downloadModel: unused,
+    calendarStatus: unused,
     notes: unused,
     putNotes: unused,
     // biome-ignore lint/correctness/useYield: never iterated

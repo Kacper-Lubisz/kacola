@@ -1,0 +1,42 @@
+{
+  "date": "<date>",
+  "meetings": [
+    {
+      "id": "mtg_oV1c8h3_C97IbJKIeWbYFw",
+      "title": "Team offsite",
+      "start": "<iso>",
+      "end": "<iso>",
+      "allDay": true,
+      "joinUrl": null,
+      "provider": null,
+      "calendar": "Work",
+      "response": null
+    },
+    {
+      "id": "mtg_56zSlC73NYXTLYeU1HB9EQ",
+      "title": "Standup",
+      "start": "<iso>",
+      "end": "<iso>",
+      "allDay": false,
+      "joinUrl": "https://meet.google.com/xqc-bnvd-kpt",
+      "provider": "meet",
+      "calendar": "Work",
+      "response": null
+    },
+    {
+      "id": "mtg_Qo41mOlkzAPgwJYADkB1e-",
+      "title": "Planning sync",
+      "start": "<iso>",
+      "end": "<iso>",
+      "allDay": false,
+      "joinUrl": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc%40thread.v2/0?context=%7b%7d",
+      "provider": "teams",
+      "calendar": "Work",
+      "response": "tentative"
+    }
+  ],
+  "calendar": {
+    "state": "ok",
+    "detail": null
+  }
+}

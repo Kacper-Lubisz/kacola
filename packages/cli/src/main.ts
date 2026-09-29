@@ -3,6 +3,7 @@ import { type ParseArgsConfig, parseArgs } from 'node:util'
 import { DaemonUnreachableError, PROTOCOL_VERSION } from '@gnomeola/protocol'
 import { ask } from './commands/ask.ts'
 import { bugReport } from './commands/bugreport.ts'
+import { meetingsNext, meetingsToday } from './commands/meetings.ts'
 import { notes } from './commands/notes.ts'
 import { recordStart, recordStatus, recordStop, recordUsage } from './commands/record.ts'
 import { search } from './commands/search.ts'
@@ -34,6 +35,7 @@ usage: gnomeola <command> [options]
   notes <id> [--actions | --versions | --version N] [--full]
                                               the meeting's notes (yours, enhanced); action items
   record start [--title T] | stop [id] | status
+  meetings [--next | --today]                 your calendar: what is on now / next, or today
   status                                      daemon, models and LLM health
   skill install [--dir DIR] [--force]         install the Claude Code skill
   bug-report [--out FILE]                     write a diagnostics bundle
@@ -178,6 +180,19 @@ export async function run(argv: string[], io: Io): Promise<number> {
         else if (p[0] === 'stop') await recordStop(ctx, p[1])
         else if (p[0] === 'status' || p[0] === undefined) await recordStatus(ctx)
         else recordUsage()
+        break
+      }
+      case 'meetings': {
+        const { values: v, positionals: p } = parse(rest, {
+          next: { type: 'boolean' },
+          today: { type: 'boolean' },
+        })
+        if (helpOr(v)) return EXIT.OK
+        if (p.length)
+          throw usage(`unexpected argument: ${p[0]}`, 'usage: gnomeola meetings [--next | --today]')
+        if (v.next && v.today) throw usage('pass one of --next or --today')
+        if (v.today) await meetingsToday(ctxFor(v))
+        else await meetingsNext(ctxFor(v))
         break
       }
       case 'speakers': {

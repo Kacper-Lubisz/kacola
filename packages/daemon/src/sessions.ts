@@ -67,6 +67,12 @@ export class SessionManager {
     return this.active.size
   }
 
+  /** Recording time of a live session: accumulated before the current stretch, and when it began. */
+  timing(id: string): { accumulatedMs: number; runningSince: number | null } | null {
+    const a = this.active.get(id)
+    return a ? { accumulatedMs: a.accumulatedMs, runningSince: a.runningSince } : null
+  }
+
   /** Run `fn` after every earlier operation on the same session has settled. */
   private serial<T>(id: string, fn: () => Promise<T>): Promise<T> {
     const prev = this.queues.get(id) ?? Promise.resolve()

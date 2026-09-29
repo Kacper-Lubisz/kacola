@@ -23,5 +23,8 @@ and this file (filled in) committed under `docs/releases/<version>.md`.
 | 12 | **No key, no problem** | Remove the API key in Preferences. | Everything except Ask works; Ask explains why it's unavailable instead of failing obscurely. |
 | 13 | **Fresh install** | On a clean user account: `scripts/install.sh`, open the app. | First-run flow downloads models with progress, checks mic and system audio, and records a test meeting end to end. |
 | 14 | **Uninstall** | `scripts/install.sh --uninstall`. | Service, desktop entry, CLI shim and skill removed; your recordings are kept unless you chose to delete them. |
+| 15 | **Top bar, real session** | `gnome-extensions enable gnomeola@gnomeola.org`, log out and in. | The mic icon is in the top bar; the menu lists today's meetings from GNOME Calendar / Online Accounts with the right local times; Join opens the call in the browser *and* the icon turns red with a ticking time and the live line; Stop from the menu ends it. |
+| 16 | **Real calendars** | With a Google or Microsoft 365 account in Online Accounts, check `gnomeola meetings --today` against GNOME Calendar. | Same meetings, same times (incl. recurring ones and any you declined being hidden); Meet/Teams/Zoom links found. |
+| 17 | **Auto-record** | Turn on *When another app uses the microphone*, start a browser call; then turn on *When a calendar meeting starts* before a meeting. | A recording starts on its own each time (named after the meeting when one is on), the call ending stops the mic-triggered one ~30 s later; nothing starts while a recording is already running. |
 
 Sign-off: name, date, version, machine (CPU / RAM / GNOME version), and the filled table.

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { AutoRecordSettings, DEFAULT_AUTO_RECORD, SessionMeeting } from './calendar.ts'
 
 // ---------------------------------------------------------------- primitives
 
@@ -57,6 +58,8 @@ export const Session = z.object({
   durationMs: z.int().nonnegative(),
   tracks: z.array(Track),
   error: z.string().nullable(),
+  /** M4: the calendar meeting this session was recorded for. Absent when it was not started from one. */
+  meeting: SessionMeeting.optional(),
 })
 export type Session = z.infer<typeof Session>
 
@@ -173,6 +176,8 @@ export const Settings = z.object({
     days: z.int().positive(),
     archive: z.boolean(),
   }),
+  /** M4 (C-8). Defaulted so settings written before auto-record existed still parse (and replay). */
+  autoRecord: AutoRecordSettings.default(DEFAULT_AUTO_RECORD),
   // Optional so settings stored (and logged) before M3 still parse; the daemon always fills it in.
   speakers: SpeakerSettings.optional(),
 })
@@ -187,6 +192,7 @@ export const SettingsPatch = z.object({
   stt: Settings.shape.stt.partial().optional(),
   capture: Settings.shape.capture.partial().optional(),
   retention: Settings.shape.retention.partial().optional(),
+  autoRecord: AutoRecordSettings.partial().optional(),
   speakers: SpeakerSettings.partial().optional(),
 })
 export type SettingsPatch = z.infer<typeof SettingsPatch>

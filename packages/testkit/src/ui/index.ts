@@ -1,5 +1,15 @@
+import { spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { type AccessibleNode, AtspiDriver, type FindQuery, refOf } from './driver.ts'
@@ -35,6 +45,22 @@ export type HeadlessOptions = {
   startupTimeoutS?: number
   /** Keep the temp dir (logs, settings) after close(), for debugging. */
   keepTempDir?: boolean
+  /**
+   * Shell extension source directories (each with a metadata.json) to install into the private
+   * XDG_DATA_HOME and enable in this Shell only. Schemas under `schemas/` are compiled in the copy.
+   */
+  extensions?: string[]
+  /** Called with the private directories before anything starts, to seed files (e.g. a URL handler). */
+  prepare?: (dirs: HeadlessDirs) => void
+}
+
+export type HeadlessDirs = {
+  run: string
+  home: string
+  config: string
+  data: string
+  cache: string
+  state: string
 }
 
 export type LaunchOptions = {
@@ -58,6 +84,7 @@ export type HeadlessDisplay = {
   /** The private environment: pass it (or a superset) to anything that must talk to this display. */
   env: Record<string, string>
   tempDir: string
+  dirs: HeadlessDirs
   launchApp: (opts: LaunchOptions) => AppHandle
   /** Full-screen PNG of the virtual monitor (`kind: 'window'` captures the focused window with its frame). */
   screenshot: (path: string, opts?: { kind?: 'screen' | 'window' }) => Promise<string>
@@ -197,9 +224,18 @@ export async function startHeadlessDisplay(opts: HeadlessOptions = {}): Promise<
   }
   for (const d of Object.values(dirs)) mkdirSync(d, { recursive: true, mode: 0o700 })
   mkdirSync(join(dirs.config, 'glib-2.0', 'settings'), { recursive: true })
-  writeFileSync(join(dirs.config, 'glib-2.0', 'settings', 'keyfile'), KEYFILE)
+  const uuids = (opts.extensions ?? []).map((src) => installExtension(src, dirs.data))
+  const keyfile = uuids.length
+    ? KEYFILE.replace(
+        '[org/gnome/shell]\n',
+        `[org/gnome/shell]\ndisable-user-extensions=false\nenabled-extensions=[${uuids.map((u) => `'${u}'`).join(', ')}]\n`,
+      )
+    : KEYFILE
+  writeFileSync(join(dirs.config, 'glib-2.0', 'settings', 'keyfile'), keyfile)
   mkdirSync(join(dirs.shellData, 'gnome-shell', 'modes'), { recursive: true })
   writeFileSync(join(dirs.shellData, 'gnome-shell', 'modes', `${SESSION_MODE}.json`), SESSION_MODE_JSON)
+
+  opts.prepare?.(dirs)
 
   const sockets = {
     session: join(run, 'bus'),
@@ -370,6 +406,7 @@ export async function startHeadlessDisplay(opts: HeadlessOptions = {}): Promise<
   return {
     env,
     tempDir,
+    dirs,
     launchApp,
     async screenshot(path, o = {}) {
       mkdirSync(dirname(path), { recursive: true })
@@ -449,6 +486,18 @@ export async function startHeadlessDisplay(opts: HeadlessOptions = {}): Promise<
     logs: () => Object.fromEntries([...all].map(([k, p]) => [k, p.log()])),
     close,
   }
+}
+
+/** Copy an extension into `<dataHome>/gnome-shell/extensions/<uuid>`, compiling its schemas. Returns the uuid. */
+function installExtension(src: string, dataHome: string): string {
+  const { uuid } = JSON.parse(readFileSync(join(src, 'metadata.json'), 'utf8')) as { uuid: string }
+  const dest = join(dataHome, 'gnome-shell', 'extensions', uuid)
+  cpSync(src, dest, { recursive: true })
+  if (existsSync(join(dest, 'schemas'))) {
+    const r = spawnSync('glib-compile-schemas', ['--strict', join(dest, 'schemas')], { encoding: 'utf8' })
+    if (r.status !== 0) throw new Error(`glib-compile-schemas failed for ${uuid}: ${r.stderr}`)
+  }
+  return uuid
 }
 
 /** Flatten an accessible tree depth-first. */

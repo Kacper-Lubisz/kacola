@@ -135,8 +135,16 @@ export const migrations: readonly Migration[] = [
     `,
   },
   {
-    // M3 — attribution.
     version: 3,
+    name: 'session-meeting',
+    up: `
+      -- M4: the calendar meeting a session was recorded for (JSON SessionMeeting), or NULL.
+      ALTER TABLE sessions ADD COLUMN meeting TEXT;
+    `,
+  },
+  {
+    // M3 — attribution.
+    version: 4,
     name: 'speakers',
     up: `
       -- far-end speakers, per session. A merged speaker stays as a tombstone (merged_into) so a late

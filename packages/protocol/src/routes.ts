@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { CalendarStatus, JoinMeetingBody, ListMeetingsQuery, MeetingList, NextMeeting } from './calendar.ts'
 import { notesRoutes } from './notes.ts'
 import {
   ApiError,
@@ -181,6 +182,18 @@ export const routes = {
     }),
   },
 
+  // ---- M4: top bar + calendar
+  calendarStatus: { method: 'GET', path: '/calendar', response: CalendarStatus },
+  listMeetings: { method: 'GET', path: '/meetings', query: ListMeetingsQuery, response: MeetingList },
+  nextMeeting: { method: 'GET', path: '/meetings/next', response: NextMeeting },
+  /** Create a session titled and linked to the meeting, start recording it, and hand back the join link
+   *  for the caller to open (the caller owns the desktop: the Shell extension, the window). */
+  joinMeeting: {
+    method: 'POST',
+    path: '/meetings/:id/join',
+    body: JoinMeetingBody,
+    response: z.object({ session: Session, joinUrl: z.string().nullable() }),
+  },
   // ---- M7: notes + enhancement (schemas in notes.ts)
   ...notesRoutes,
   // ---- M3: attribution

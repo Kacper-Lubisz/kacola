@@ -13,6 +13,8 @@ export type SessionRow = {
   private: number
   duration_ms: number
   error: string | null
+  /** JSON SessionMeeting, or null (M4). */
+  meeting: string | null
 }
 
 export type TrackRow = {

@@ -13,7 +13,10 @@
     "./metrics": "./src/metrics/index.ts",
     "./cassettes": "./src/cassettes/index.ts",
     "./daemon": "./src/daemon/index.ts",
-    "./ui": "./src/ui/index.ts"
+    "./ui": "./src/ui/index.ts",
+    "./shell": "./src/shell/index.ts",
+    "./dbus": "./src/dbus/index.ts",
+    "./eds": "./src/eds/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
