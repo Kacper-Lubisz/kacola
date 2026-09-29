@@ -12,10 +12,20 @@ import {
   GtkScrolledWindow,
 } from '@gtkx/jsx/gtk'
 import { useProperty, useSignal } from '@gtkx/react'
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+  memo,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { Follow } from '../data/follow.ts'
 import { escapeMarkup } from '../data/format.ts'
 import { perf } from '../data/perf.ts'
+import { type SpeakersState, speakerClass } from '../data/speakers.ts'
 import { type TranscriptFeedState, type TranscriptRow, transcriptRows } from '../data/transcript.ts'
 import { _, fmt } from '../i18n/index.ts'
 import { VirtualList } from './virtual-list.tsx'
@@ -41,8 +51,16 @@ export function rowAccessibleName(r: TranscriptRow): string {
   return state ? `${base} (${state})` : base
 }
 
+/** A speaker chip's colour, for screen readers and the e2e tests (the palette slot is the daemon's). */
+export const colourDescription = (colour: number | null, speaker: string): string =>
+  speaker === 'me'
+    ? _('your colour')
+    : colour === null
+      ? _('no colour')
+      : fmt(_('colour {n}'), { n: colour + 1 })
+
 const Line = memo(function Line({ row }: { row: TranscriptRow }) {
-  const who = row.speaker === 'me' ? 'speaker-me' : 'speaker-them'
+  const who = speakerClass(row.speakerId ? { id: row.speakerId, colour: row.colour } : undefined, row.speaker)
   const textClasses = ['transcript-text']
   if (row.kind === 'partial') textClasses.push('partial')
   else if (row.provisional) textClasses.push('provisional')
@@ -61,7 +79,12 @@ const Line = memo(function Line({ row }: { row: TranscriptRow }) {
       />
       <GtkBox orientation={Gtk.Orientation.VERTICAL} spacing={2} hexpand>
         {row.groupStart ? (
-          <GtkLabel label={speakerName(row.speaker)} cssClasses={['speaker', who]} xalign={0} />
+          <GtkLabel
+            label={speakerName(row.speaker)}
+            cssClasses={['speaker', 'speaker-chip', who]}
+            halign={Gtk.Align.START}
+            accessibleDescription={colourDescription(row.colour, row.speaker)}
+          />
         ) : null}
         <GtkLabel
           label={row.kind === 'partial' ? `${row.text}…` : row.text}
@@ -86,10 +109,14 @@ export type TranscriptViewProps = {
   live: boolean
   /** Scroll to and select this segment (a citation was followed). */
   focus: TranscriptFocus | null
+  /** The session's speakers (M3): chip colours and current names. */
+  speakers?: SpeakersState
+  /** Actions for the selected line (M3: "Someone else said this"), shown under the list. */
+  lineActions?: (row: TranscriptRow) => ReactNode
 }
 
-export function TranscriptView({ feed, live, focus }: TranscriptViewProps) {
-  const rows = useMemo(() => transcriptRows(feed.transcript), [feed.transcript])
+export function TranscriptView({ feed, live, focus, speakers, lineActions }: TranscriptViewProps) {
+  const rows = useMemo(() => transcriptRows(feed.transcript, speakers), [feed.transcript, speakers])
   const list = useRef<Gtk.ListView | null>(null)
   // state, not a ref: the scrolled window mounts only once the transcript has loaded, and the
   // adjustment subscription below must follow it
@@ -185,84 +212,89 @@ export function TranscriptView({ feed, live, focus }: TranscriptViewProps) {
     )
   }
 
+  const selectedRow = selected ? rows.find((r) => r.id === selected) : undefined
+  const actions = selectedRow && lineActions ? lineActions(selectedRow) : null
   return (
-    <GtkOverlay
-      vexpand
-      overlays={
-        live && detached ? (
-          <GtkButton
-            halign={Gtk.Align.CENTER}
-            valign={Gtk.Align.END}
-            cssClasses={['pill', 'suggested-action', 'jump-to-live']}
-            tooltipText={_('Scroll to the newest line and keep following')}
-            onClicked={() => {
-              follow.attach()
-              sync()
-              scrollToEnd()
-            }}
-          >
-            <AdwButtonContent iconName="go-bottom-symbolic" label={_('Jump to Live')} />
-          </GtkButton>
-        ) : null
-      }
-    >
-      <GtkScrolledWindow
-        ref={setScrolled}
+    <GtkBox orientation={Gtk.Orientation.VERTICAL} vexpand>
+      <GtkOverlay
         vexpand
-        hscrollbarPolicy={Gtk.PolicyType.NEVER}
-        // user intent for Follow: wheel/touchpad and keys, seen before the list handles them
-        controllers={
-          <>
-            <GtkEventControllerScroll
-              flags={Gtk.EventControllerScrollFlags.VERTICAL}
-              propagationPhase={Gtk.PropagationPhase.CAPTURE}
-              onScroll={(_dx, dy) => {
-                follow.userScrolled(dy)
+        overlays={
+          live && detached ? (
+            <GtkButton
+              halign={Gtk.Align.CENTER}
+              valign={Gtk.Align.END}
+              cssClasses={['pill', 'suggested-action', 'jump-to-live']}
+              tooltipText={_('Scroll to the newest line and keep following')}
+              onClicked={() => {
+                follow.attach()
                 sync()
-                return false
+                scrollToEnd()
               }}
-            />
-            <GtkEventControllerKey
-              propagationPhase={Gtk.PropagationPhase.CAPTURE}
-              onKeyPressed={(keyval) => {
-                follow.userKey(keyval)
-                sync()
-                return false
-              }}
-            />
-            {/* Keyboard focus entering a followed transcript goes to the newest line. With
+            >
+              <AdwButtonContent iconName="go-bottom-symbolic" label={_('Jump to Live')} />
+            </GtkButton>
+          ) : null
+        }
+      >
+        <GtkScrolledWindow
+          ref={setScrolled}
+          vexpand
+          hscrollbarPolicy={Gtk.PolicyType.NEVER}
+          // user intent for Follow: wheel/touchpad and keys, seen before the list handles them
+          controllers={
+            <>
+              <GtkEventControllerScroll
+                flags={Gtk.EventControllerScrollFlags.VERTICAL}
+                propagationPhase={Gtk.PropagationPhase.CAPTURE}
+                onScroll={(_dx, dy) => {
+                  follow.userScrolled(dy)
+                  sync()
+                  return false
+                }}
+              />
+              <GtkEventControllerKey
+                propagationPhase={Gtk.PropagationPhase.CAPTURE}
+                onKeyPressed={(keyval) => {
+                  follow.userKey(keyval)
+                  sync()
+                  return false
+                }}
+              />
+              {/* Keyboard focus entering a followed transcript goes to the newest line. With
                 tabBehavior=ITEM a GtkListView focuses its keyboard *cursor* item — the first line,
                 scrolled far away while we follow the live end — so focus used to land on a line
                 nobody could see (and AT-SPI did not expose). */}
-            <GtkEventControllerFocus
-              onEnter={() => {
-                if (!follow.following) return
-                // after GTK has finished moving focus to its cursor item, not during `enter`
-                setTimeout(() => {
-                  const n = latest.current.rows.length
-                  if (follow.following && n > 0) {
-                    list.current?.scrollTo(n - 1, Gtk.ListScrollFlags.FOCUS, null)
-                  }
-                }, 0)
-              }}
+              <GtkEventControllerFocus
+                onEnter={() => {
+                  if (!follow.following) return
+                  // after GTK has finished moving focus to its cursor item, not during `enter`
+                  setTimeout(() => {
+                    const n = latest.current.rows.length
+                    if (follow.following && n > 0) {
+                      list.current?.scrollTo(n - 1, Gtk.ListScrollFlags.FOCUS, null)
+                    }
+                  }, 0)
+                }}
+              />
+            </>
+          }
+        >
+          <AdwClampScrollable maximumSize={760} tighteningThreshold={560}>
+            <VirtualList<TranscriptRow>
+              listRef={list}
+              rows={rows}
+              keyOf={keyOf}
+              labelOf={rowAccessibleName}
+              render={renderLine}
+              selectedKey={selected}
+              onSelectedKey={setSelected}
+              cssClasses={['transcript']}
+              accessibleLabel={_('Transcript')}
             />
-          </>
-        }
-      >
-        <AdwClampScrollable maximumSize={760} tighteningThreshold={560}>
-          <VirtualList<TranscriptRow>
-            listRef={list}
-            rows={rows}
-            keyOf={keyOf}
-            labelOf={rowAccessibleName}
-            render={renderLine}
-            selectedKey={selected}
-            onSelectedKey={setSelected}
-            cssClasses={['transcript']}
-            accessibleLabel={_('Transcript')}
-          />
-        </AdwClampScrollable>
-      </GtkScrolledWindow>
-    </GtkOverlay>
+          </AdwClampScrollable>
+        </GtkScrolledWindow>
+      </GtkOverlay>
+      {actions}
+    </GtkBox>
   )
 }
