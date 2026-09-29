@@ -76,5 +76,16 @@ export function createDaemonSource(opts: DaemonSourceOptions): DataSource {
     mergeNotes: (id, body) => client.call('mergeNotes', { params: { id }, body }),
     templates: (id, signal) =>
       client.call('listTemplates', { query: { sessionId: id, includePrivate: true }, signal }),
+
+    async listSpeakers(id, signal) {
+      return (await client.call('listSpeakers', { params: { id }, query: { includePrivate: true }, signal }))
+        .speakers
+    },
+    renameSpeaker: (id, speakerId, label) =>
+      client.call('renameSpeaker', { params: { id, speakerId }, body: { label } }),
+    mergeSpeaker: (id, speakerId, into) =>
+      client.call('mergeSpeaker', { params: { id, speakerId }, body: { into } }),
+    splitSpeaker: (id, speakerId, segmentIds) =>
+      client.call('splitSpeaker', { params: { id, speakerId }, body: { segmentIds } }),
   }
 }

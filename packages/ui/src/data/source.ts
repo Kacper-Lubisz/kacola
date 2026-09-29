@@ -13,6 +13,8 @@ import type {
   Session,
   Settings,
   SettingsPatch,
+  Speaker,
+  SpeakerSummary,
   TemplateSuggestion,
   Transcript,
 } from '@gnomeola/protocol'
@@ -76,4 +78,13 @@ export interface DataSource {
     sessionId: string,
     signal?: AbortSignal,
   ): Promise<{ templates: NoteTemplate[]; suggested: TemplateSuggestion }>
+
+  // ---- M3: attribution (the resulting changes also arrive as durable events)
+  /** `me`, each far-end speaker, and `them` while anything is unattributed. */
+  listSpeakers(sessionId: string, signal?: AbortSignal): Promise<SpeakerSummary[]>
+  renameSpeaker(sessionId: string, speakerId: string, label: string): Promise<Speaker>
+  /** Fold `speakerId` into `into`; returns the surviving speaker. */
+  mergeSpeaker(sessionId: string, speakerId: string, into: string): Promise<Speaker>
+  /** Move these segments of `speakerId` (or of `them`) to a new speaker; returns it. */
+  splitSpeaker(sessionId: string, speakerId: string, segmentIds: string[]): Promise<Speaker>
 }
