@@ -73,6 +73,9 @@ export function hostedHandlers(access: RemoteAccess) {
     // Not an open route: reaching it means loopback (the owner at this machine) or a paired device.
     pairApprove: ({ body }: { body: { userCode: string } }) => pairing().approve(body.userCode),
     pairToken: ({ body }: { body: { deviceCode: string } }) => pairing().poll(body.deviceCode),
+    pairRevoke: async ({ body }: { body: { deviceId: string } }) => ({
+      revoked: await pairing().revoke(body.deviceId),
+    }),
     putAudioChunk: hostedOnly('audio upload'),
     getAudioStatus: hostedOnly('audio upload'),
     finalizeAudio: hostedOnly('audio upload'),

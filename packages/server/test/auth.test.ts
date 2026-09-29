@@ -204,7 +204,9 @@ describe('pairing: device code → approval → signed token', () => {
       tok.deviceId,
     )
 
-    expect(await h.app.auth!.revoke(tok.deviceId)).toBe(true)
+    // revocation through the API (by the owner): immediate, and only once
+    expect(await admin.call('pairRevoke', { body: { deviceId: tok.deviceId } })).toEqual({ revoked: true })
+    expect(await admin.call('pairRevoke', { body: { deviceId: tok.deviceId } })).toEqual({ revoked: false })
     await expect(phone.call('health')).rejects.toMatchObject({ status: 401 })
     await expect(admin.call('pairApprove', { body: { userCode: 'ZZZZ-ZZZZ' } })).rejects.toMatchObject({
       status: 404,

@@ -116,11 +116,15 @@ export class SyncAgent {
       case 'session.upserted': {
         const was = this.privacy.get(d.session.id)
         const now = d.session.private
+        let out: SyncItem[] = []
+        if (push) {
+          if (now) out = was === false ? [item({ type: 'session.deleted', sessionId: d.session.id })] : []
+          else if (was === true) out = await this.snapshot(e.seq, d.session.id)
+          else out = [item({ type: 'session.upserted', session: scrub(d.session) })]
+        }
+        // folded only once planned: if the snapshot read failed, the retry must see the same transition
         this.privacy.set(d.session.id, now)
-        if (!push) return []
-        if (now) return was === false ? [item({ type: 'session.deleted', sessionId: d.session.id })] : []
-        if (was === true) return this.snapshot(e.seq, d.session.id)
-        return [item({ type: 'session.upserted', session: scrub(d.session) })]
+        return out
       }
       case 'session.deleted':
         this.privacy.delete(d.sessionId)

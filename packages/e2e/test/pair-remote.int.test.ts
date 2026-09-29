@@ -91,6 +91,12 @@ describe('gnomeola pair', () => {
     expect(after.stdout).toContain('hosted meeting')
     const tok = await cli(['pair', 'token', '--url', served.url], env)
     expect(tok.stdout.trim()).toBe(hosts[served.url].token)
+
+    // the owner revokes the device: its saved token stops working at once
+    const ownerEnv = { ...configDir(), GNOMEOLA_TOKEN: admin }
+    const rev = await cli(['pair', 'revoke', hosts[served.url].deviceId, '--url', served.url], ownerEnv)
+    expect(rev.code).toBe(0)
+    expect((await cli(['sessions', 'list', '--url', served.url], env)).code).toBe(1)
   })
 
   const lan = Object.values(networkInterfaces())

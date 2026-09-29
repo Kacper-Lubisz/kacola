@@ -275,6 +275,7 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     pairStart: ({ body }) => pairing().start(body.name),
     pairApprove: ({ body }) => pairing().approve(body.userCode),
     pairToken: ({ body }) => pairing().poll(body.deviceCode),
+    pairRevoke: async ({ body }) => ({ revoked: await pairing().revoke(body.deviceId) }),
     putAudioChunk: ({ params, body }) => putChunk(audio, params.id, params.chunkSeq, body),
     getAudioStatus: ({ params }) => audioStatus(audio, params.id),
     finalizeAudio: ({ params, body }) => finalize(audio, params.id, body),

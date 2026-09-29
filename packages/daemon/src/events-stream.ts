@@ -78,8 +78,10 @@ export async function streamEvents(o: EventStreamOptions): Promise<void> {
   sse.comment(`gnomeola events; lastSeq=${store.lastSeq()}`)
 
   if (o.since === undefined) {
-    // only new events: everything already committed is behind us
+    // only new events: everything already committed is behind us. Say where "now" is (a data-less id
+    // line), so the client can resume from exactly here if this connection dies.
     cursor = store.lastSeq()
+    sse.send({ id: String(cursor), data: '' })
   } else {
     cursor = o.since
     // (2) replay in pages

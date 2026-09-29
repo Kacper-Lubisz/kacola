@@ -209,6 +209,7 @@ describe('contract: every route, real server, typed client', () => {
       pairStart: () => notHere(c.call('pairStart', { body: { name: 'x' } })),
       pairApprove: () => notHere(c.call('pairApprove', { body: { userCode: 'BCDF-GHJK' } })),
       pairToken: () => notHere(c.call('pairToken', { body: { deviceCode: 'x' } })),
+      pairRevoke: () => notHere(c.call('pairRevoke', { body: { deviceId: 'dev_x' } })),
       putAudioChunk: () =>
         notHere(
           c.call('putAudioChunk', {

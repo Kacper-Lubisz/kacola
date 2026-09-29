@@ -140,6 +140,10 @@ describe('hosted contract: every route', () => {
         const start = await c.call('pairStart', { body: { name: 'watch' } })
         return c.call('pairToken', { body: { deviceCode: start.deviceCode } })
       },
+      pairRevoke: async () =>
+        expect(await c.call('pairRevoke', { body: { deviceId: 'dev_never_paired' } })).toEqual({
+          revoked: false,
+        }),
       putAudioChunk: () =>
         c.call('putAudioChunk', {
           params: { id: s.id, chunkSeq: '0' },

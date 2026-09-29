@@ -7,6 +7,8 @@ import {
   FinalizeAudioBody,
   PairApprove,
   PairApproveBody,
+  PairRevoke,
+  PairRevokeBody,
   PairStart,
   PairStartBody,
   PairToken,
@@ -215,6 +217,7 @@ export const routes = {
   pairStart: { method: 'POST', path: '/pair/start', body: PairStartBody, response: PairStart },
   pairApprove: { method: 'POST', path: '/pair/approve', body: PairApproveBody, response: PairApprove },
   pairToken: { method: 'POST', path: '/pair/token', body: PairTokenBody, response: PairToken },
+  pairRevoke: { method: 'POST', path: '/pair/revoke', body: PairRevokeBody, response: PairRevoke },
   putAudioChunk: {
     method: 'PUT',
     path: '/sessions/:id/audio/chunks/:chunkSeq',

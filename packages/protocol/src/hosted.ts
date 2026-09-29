@@ -79,6 +79,9 @@ export const PairToken = z.discriminatedUnion('status', [
 ])
 export type PairToken = z.infer<typeof PairToken>
 
+export const PairRevokeBody = z.object({ deviceId: z.string().min(1).max(100) })
+export const PairRevoke = z.object({ revoked: z.boolean() })
+
 /** Format of a user code: two groups of four unambiguous consonants, e.g. `BDFG-HJKL`. */
 export const USER_CODE_ALPHABET = 'BCDFGHJKLMNPQRSTVWXZ'
 export const normalizeUserCode = (s: string): string => s.toUpperCase().replace(/[^A-Z]/g, '')

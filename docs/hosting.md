@@ -44,7 +44,8 @@ The flow is a device code (RFC 8628 shaped):
    `GNOMEOLA_SYNC_TOKEN`); `GNOMEOLA_TOKEN` / `--token` override it; the GTK app reads the same file.
 
 Tokens are `gnm1.<payload>.<HMAC-SHA256>` over {device id, issued-at}, signed with the server's secret;
-a token is valid only while its device row exists and is not revoked, so revocation is immediate. Device
+a token is valid only while its device row exists and is not revoked, so revocation
+(`gnomeola pair revoke dev_…`, `POST /pair/revoke`) is immediate. Device
 codes are stored only as SHA-256 and expire after ten minutes. "Loopback" means a loopback socket AND a
 loopback `Host` AND no `X-Forwarded-For`/`Forwarded` header — a reverse proxy on the same machine does not
 make its callers anonymous. Browsers: cross-origin requests are refused; the viewer is same-origin.
@@ -132,6 +133,10 @@ a cross-dialect test drives both with the same history and requires byte-identic
   - `finalize` (300 s) — full-offload assembly + cloud transcription;
 - `config.json` routing the protocol paths to them.
 
+A stream opened without `since` ("new events only") starts with a data-less `id: <seq>` line naming
+where it began; the protocol client adopts it as its cursor, so even a subscriber that has not yet seen
+an event resumes exactly after a cap.
+
 The event stream on a stateless host is the log itself: it pages `seq > cursor` from Postgres and polls
 (`GNOMEOLA_POLL_MS`, default 1 s). There is no replay→live seam to get wrong, and the exactness of resume
 rests on the commit-order property above. V-8 proves it with a 150 ms cap and random byte cuts on SQLite,
@@ -178,6 +183,15 @@ Migrations run on the first request of a cold instance, under a Postgres advisor
 `gnomeola-server --host 0.0.0.0 --db postgres://… --blobs /srv/gnomeola/blobs` with
 `GNOMEOLA_AUTH_SECRET` (it refuses a non-loopback host without it). `--db sqlite:/path` works for a
 single box.
+
+## Known limits
+
+- `/pair/start` is necessarily anonymous and writes a row per call (expired rows are purged on the next
+  call). Put a rate limit in front of it (Vercel Firewall rule on `/pair/start`) on a public deployment.
+- Any paired device can approve another device, and every token has full read + sync rights; there are no
+  scopes yet. Revoke a lost device with `gnomeola pair revoke dev_…` (immediate).
+- Finalize assembles a session's audio in memory (≈ 115 MB per track-hour); very long full-offload
+  recordings want the function's memory raised.
 
 ## What the hosted server does not do (v1)
 

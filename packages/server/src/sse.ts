@@ -52,6 +52,9 @@ export async function* eventStream(o: EventStreamOptions): AsyncGenerator<string
     const last = await store.lastSeq()
     let cursor = o.since ?? last
     yield encodeSseComment(`gnomeola events; lastSeq=${last}; maxStreamMs=${o.maxStreamMs}`)
+    // "new events only": announce the starting cursor (a data-less id line) so a client that loses this
+    // stream to the duration cap resumes from exactly here
+    if (o.since === undefined) yield encodeSse({ id: String(cursor), data: '' })
     let lastBeat = Date.now()
     while (!signal.aborted) {
       // re-arm the wake-up BEFORE reading, so a commit landing during the read is not missed

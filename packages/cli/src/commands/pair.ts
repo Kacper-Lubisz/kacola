@@ -10,6 +10,7 @@ import { renderJson } from '../output.ts'
 //   gnomeola pair approve BDFG-HJKL [--url …]           on a TRUSTED one (or the machine running the
 //                                                       daemon, where loopback needs no token)
 //   gnomeola pair token --url …                         print the saved token (for GNOMEOLA_SYNC_TOKEN)
+//   gnomeola pair revoke dev_… [--url …]                a device's token stops working at once
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -76,6 +77,15 @@ export async function pairApprove(ctx: Ctx, code: string | undefined): Promise<v
   })
   if (ctx.format === 'json') ctx.io.stdout(renderJson(r, ctx.io))
   else ctx.io.stdout(`Approved “${r.name}” as ${r.deviceId}.\n`)
+}
+
+export async function pairRevoke(ctx: Ctx, deviceId: string | undefined): Promise<void> {
+  if (!deviceId) throw new CliError(EXIT.USAGE, 'usage: gnomeola pair revoke <DEVICE-ID>')
+  const r = await ctx.client.call('pairRevoke', { body: { deviceId } })
+  if (!r.revoked)
+    throw new CliError(EXIT.NOT_FOUND, `no paired device ${deviceId} (or it was already revoked)`)
+  if (ctx.format === 'json') ctx.io.stdout(renderJson(r, ctx.io))
+  else ctx.io.stdout(`Revoked ${deviceId}: its token no longer works.\n`)
 }
 
 export function pairToken(ctx: Ctx): void {

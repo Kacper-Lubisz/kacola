@@ -355,6 +355,20 @@ describe('daemon source (protocol client over a fake fetch)', () => {
     expect(urls[1]).toBe('http://daemon.test:1/sessions?includePrivate=true&limit=500')
   })
 
+  it('sends the device token to a remote host on every call and stream (M8)', async () => {
+    const auth: (string | null)[] = []
+    const fetchFn = (async (_url: string, init?: RequestInit) => {
+      auth.push(new Headers(init?.headers).get('authorization'))
+      return new Response(JSON.stringify({ sessions: [] }), {
+        headers: { 'content-type': 'application/json' },
+      })
+    }) as unknown as typeof fetch
+    const src = createDaemonSource({ baseUrl: 'https://me.example', token: 'gnm1.p.s', fetch: fetchFn })
+    await src.transcript('ses_x', new AbortController().signal).catch(() => {})
+    await src.listDevices(new AbortController().signal).catch(() => {})
+    expect(auth).toEqual(['Bearer gnm1.p.s', 'Bearer gnm1.p.s'])
+  })
+
   it('surfaces a refused connection as DaemonUnreachableError', async () => {
     const fetchFn = (async () => {
       throw new TypeError('fetch failed', { cause: new Error('connect ECONNREFUSED 127.0.0.1:1') })

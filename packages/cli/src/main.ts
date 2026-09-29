@@ -5,7 +5,7 @@ import { ask } from './commands/ask.ts'
 import { bugReport } from './commands/bugreport.ts'
 import { meetingsNext, meetingsToday } from './commands/meetings.ts'
 import { notes } from './commands/notes.ts'
-import { pair, pairApprove, pairToken } from './commands/pair.ts'
+import { pair, pairApprove, pairRevoke, pairToken } from './commands/pair.ts'
 import { recordStart, recordStatus, recordStop, recordUsage } from './commands/record.ts'
 import { search } from './commands/search.ts'
 import { sessionsList, sessionsShow } from './commands/sessions.ts'
@@ -39,7 +39,7 @@ usage: gnomeola <command> [options]
   skill install [--dir DIR] [--force]         install the Claude Code skill
   bug-report [--out FILE]                     write a diagnostics bundle
   mcp                                         serve the same tools over MCP (stdio)
-  pair [--name N] | pair approve <CODE> | pair token
+  pair [--name N] | pair approve <CODE> | pair token | pair revoke <DEVICE>
                                               pair with a remote gnomeola (device code → token)
 
 ids: a full id, an unambiguous prefix, or latest / current.
@@ -233,6 +233,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
         const ctx = ctxFor(v)
         if (p[0] === 'approve') await pairApprove(ctx, p[1])
         else if (p[0] === 'token') pairToken(ctx)
+        else if (p[0] === 'revoke') await pairRevoke(ctx, p[1])
         else if (p[0] === undefined) await pair(ctx, { name: v.name })
         else
           throw usage(
