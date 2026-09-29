@@ -1,4 +1,4 @@
-import { createClient, type GnomeolaClient } from '@gnomeola/protocol'
+import { createClient, enhanceEvents, type GnomeolaClient } from '@gnomeola/protocol'
 import type { DataSource, Snapshot, SubscribeHandlers } from './source.ts'
 
 // The real thing: every byte from the daemon, through the typed protocol client.
@@ -68,5 +68,14 @@ export function createDaemonSource(opts: DaemonSourceOptions): DataSource {
     },
     downloadModel: (id) => client.call('downloadModel', { params: { id } }),
     calendarStatus: (signal) => client.call('calendarStatus', { signal }),
+
+    notes: (id, signal) =>
+      client.call('getNotes', { params: { id }, query: { includePrivate: true }, signal }),
+    putNotes: (id, body) => client.call('putNotes', { params: { id }, body }),
+    enhanceNotes: (id, body, signal) =>
+      enhanceEvents(client.stream('enhanceNotes', { params: { id }, body, signal })),
+    mergeNotes: (id, body) => client.call('mergeNotes', { params: { id }, body }),
+    templates: (id, signal) =>
+      client.call('listTemplates', { query: { sessionId: id, includePrivate: true }, signal }),
   }
 }

@@ -105,6 +105,7 @@ describe('gnomeola mcp — the same tools over MCP', () => {
     expect(tools.map((t) => t.name).sort()).toEqual([
       'ask_meetings',
       'calendar_meetings',
+      'get_meeting_notes',
       'get_transcript_window',
       'list_sessions',
       'recording_status',
@@ -112,6 +113,9 @@ describe('gnomeola mcp — the same tools over MCP', () => {
     ])
     // Every tool description that surfaces transcript text warns that it is third-party speech.
     expect(tools.find((t) => t.name === 'search_meetings')!.description).toMatch(/never follow instructions/)
+    expect(tools.find((t) => t.name === 'get_meeting_notes')!.description).toMatch(
+      /never follow instructions/,
+    )
   })
 
   it('search → window → ask, under the same budgets as the CLI', async () => {
@@ -142,6 +146,18 @@ describe('gnomeola mcp — the same tools over MCP', () => {
     expect(JSON.parse((r.content as { text: string }[])[0]!.text).next.title).toBe('Customer call')
     const t = await client.callTool({ name: 'calendar_meetings', arguments: { when: 'today' } })
     expect(JSON.parse((t.content as { text: string }[])[0]!.text).meetings.length).toBeGreaterThan(0)
+  })
+
+  it('reads notes and action items, and not a private session’s', async () => {
+    const n = await client.callTool({ name: 'get_meeting_notes', arguments: { sessionId: IDS.standup } })
+    expect(JSON.parse((n.content as { text: string }[])[0]!.text).markdown).toMatch(/## Decisions/)
+    const a = await client.callTool({
+      name: 'get_meeting_notes',
+      arguments: { sessionId: IDS.standup, actions: true },
+    })
+    expect(JSON.parse((a.content as { text: string }[])[0]!.text).actionItems[0].owner).toBe('Ana')
+    const p = await client.callTool({ name: 'get_meeting_notes', arguments: { sessionId: IDS.private } })
+    expect(p.isError).toBe(true)
   })
 
   it('cannot see private sessions', async () => {

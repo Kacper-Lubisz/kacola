@@ -4,8 +4,12 @@ import {
   type AudioDevice,
   type DurableEvent,
   type DurableEventData,
+  type EnhanceStreamEvent,
   type Health,
   type ModelInfo,
+  type Note,
+  type NoteTemplate,
+  type NoteVersion,
   newId,
   type Segment,
   type Session,
@@ -24,6 +28,16 @@ import type { DataSource, Snapshot, SubscribeHandlers } from './source.ts'
 // duration ticks once a second, with a synthetic level meter, a growing partial line, and a segment
 // that closes every few seconds (live) and is finalised a second later. Settings live in memory;
 // every model is ready; asking a question answers "unavailable" — the demo has no LLM.
+
+const DEMO_TEMPLATES: NoteTemplate[] = [
+  {
+    id: 'general',
+    name: 'General meeting',
+    builtIn: true,
+    keywords: [],
+    body: '## Summary\n\n## Action items',
+  },
+]
 
 export type DemoOptions = {
   intervalMs?: number
@@ -358,6 +372,28 @@ export function createDemoSource(opts: DemoOptions = {}): DataSource & { dispose
     return settings
   }
 
+  // notes: versions in memory, the same rules as the daemon (optimistic concurrency, append-only)
+  const noteVersions = new Map<string, NoteVersion[]>()
+  const noteOf = (id: string): Note => {
+    const vs = noteVersions.get(id) ?? []
+    const head = vs.filter((v) => v.kind !== 'enhanced').at(-1)
+    return {
+      sessionId: id,
+      version: head?.version ?? 0,
+      markdown: head?.markdown ?? '',
+      updatedAt: head?.createdAt ?? null,
+      pendingEnhancement: null,
+    }
+  }
+  function appendNote(id: string, v: Omit<NoteVersion, 'sessionId' | 'version' | 'createdAt'>): Note {
+    const vs = noteVersions.get(id) ?? []
+    const version: NoteVersion = { ...v, sessionId: id, version: vs.length + 1, createdAt: iso(now()) }
+    noteVersions.set(id, [...vs, version])
+    durable(id, { type: 'note.version', version })
+    return noteOf(id)
+  }
+  const conflict = (message: string) => Object.assign(new Error(message), { code: 'conflict' })
+
   async function* demoAsk(body: { question: string; sessionId?: string }): AsyncGenerator<AskStreamEvent> {
     const message = {
       id: newId('qa', now()),
@@ -447,6 +483,35 @@ export function createDemoSource(opts: DemoOptions = {}): DataSource & { dispose
         detail: null,
         calendars: [{ id: 'demo', name: 'Demo calendar' }],
         updatedAt: new Date().toISOString(),
+      }
+    },
+    async notes(id: string) {
+      return { note: noteOf(id), enhanced: null }
+    },
+    async putNotes(id: string, body: { markdown: string; baseVersion: number }) {
+      const cur = noteOf(id)
+      if (cur.version !== body.baseVersion) throw conflict(`the head is version ${cur.version}`)
+      if (cur.markdown === body.markdown) return cur
+      return appendNote(id, {
+        kind: 'user',
+        markdown: body.markdown,
+        baseVersion: body.baseVersion,
+        enhancement: null,
+        merge: null,
+        restoredFrom: null,
+      })
+    },
+    async *enhanceNotes(id: string, body: { templateId?: string }): AsyncGenerator<EnhanceStreamEvent> {
+      yield { type: 'started', templateId: body.templateId ?? 'general', baseVersion: noteOf(id).version }
+      yield { type: 'error', error: { code: 'unavailable', message: 'the demo has no language model' } }
+    },
+    async mergeNotes(id: string) {
+      throw conflict(`no enhanced version of ${id} to merge`)
+    },
+    async templates() {
+      return {
+        templates: DEMO_TEMPLATES,
+        suggested: { templateId: 'general', reason: 'default' as const, matched: null },
       }
     },
     dispose() {

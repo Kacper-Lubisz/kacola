@@ -4,12 +4,17 @@ import type {
   AudioDevice,
   BodyIn,
   CalendarStatus,
+  EnhanceStreamEvent,
   Health,
   ModelInfo,
+  Note,
+  NotesState,
+  NoteTemplate,
   QaMessage,
   Session,
   Settings,
   SettingsPatch,
+  TemplateSuggestion,
   Transcript,
 } from '@gnomeola/protocol'
 
@@ -59,4 +64,19 @@ export interface DataSource {
   downloadModel(id: string): Promise<ModelInfo>
   /** M4: whether the daemon can read the user's calendars (onboarding shows it). */
   calendarStatus(signal?: AbortSignal): Promise<CalendarStatus>
+
+  // ---- M7: notes + enhancement (private sessions included: this is the window)
+  notes(sessionId: string, signal?: AbortSignal): Promise<NotesState>
+  putNotes(sessionId: string, body: BodyIn<'putNotes'>): Promise<Note>
+  /** POST enhance: started, delta*, then done | error. Throws before the stream on a 4xx/5xx. */
+  enhanceNotes(
+    sessionId: string,
+    body: BodyIn<'enhanceNotes'>,
+    signal?: AbortSignal,
+  ): AsyncIterable<EnhanceStreamEvent>
+  mergeNotes(sessionId: string, body: BodyIn<'mergeNotes'>): Promise<Note>
+  templates(
+    sessionId: string,
+    signal?: AbortSignal,
+  ): Promise<{ templates: NoteTemplate[]; suggested: TemplateSuggestion }>
 }

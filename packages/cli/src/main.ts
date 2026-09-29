@@ -4,6 +4,7 @@ import { DaemonUnreachableError, PROTOCOL_VERSION } from '@gnomeola/protocol'
 import { ask } from './commands/ask.ts'
 import { bugReport } from './commands/bugreport.ts'
 import { meetingsNext, meetingsToday } from './commands/meetings.ts'
+import { notes } from './commands/notes.ts'
 import { recordStart, recordStatus, recordStop, recordUsage } from './commands/record.ts'
 import { search } from './commands/search.ts'
 import { sessionsList, sessionsShow } from './commands/sessions.ts'
@@ -29,6 +30,8 @@ usage: gnomeola <command> [options]
   transcript <id> (--around <mm:ss|segment-id> [--context 90s] | --from T [--to T])
                   [--speaker S] [--track mic|system] [--max-tokens N] [--full]
                                               a window of a transcript
+  notes <id> [--actions | --versions | --version N] [--full]
+                                              the meeting's notes (yours, enhanced); action items
   record start [--title T] | stop [id] | status
   meetings [--next | --today]                 your calendar: what is on now / next, or today
   status                                      daemon, models and LLM health
@@ -148,6 +151,22 @@ export async function run(argv: string[], io: Io): Promise<number> {
           track: v.track,
           full: v.full,
           maxTokens: int(v['max-tokens'], '--max-tokens'),
+        })
+        break
+      }
+      case 'notes': {
+        const { values: v, positionals: p } = parse(rest, {
+          actions: { type: 'boolean' },
+          versions: { type: 'boolean' },
+          version: { type: 'string' },
+          full: { type: 'boolean' },
+        })
+        if (helpOr(v)) return EXIT.OK
+        await notes(ctxFor(v), p[0], {
+          actions: v.actions,
+          versions: v.versions,
+          version: int(v.version, '--version'),
+          full: v.full,
         })
         break
       }

@@ -4,8 +4,10 @@ import {
   type AskStreamEvent,
   type CalendarStatus,
   encodeSse,
+  extractActionItems,
   type Meeting,
   matchPath,
+  type NoteVersion,
   type QaMessage,
   type RouteDef,
   routes,
@@ -125,7 +127,34 @@ export function seed() {
       ),
     )
   }
-  return { sessions, segments, qa: [] as QaMessage[], ...seedCalendar() }
+  const note = (
+    sessionId: string,
+    version: number,
+    kind: NoteVersion['kind'],
+    markdown: string,
+  ): NoteVersion => ({
+    sessionId,
+    version,
+    kind,
+    markdown,
+    baseVersion: version - 1,
+    createdAt: iso(40 + version),
+    enhancement: null,
+    merge: null,
+    restoredFrom: null,
+  })
+  const notes: NoteVersion[] = [
+    note(IDS.standup, 1, 'user', '- retry budget?\n- Ana dashboard\n'),
+    note(
+      IDS.standup,
+      2,
+      'merge',
+      '## Decisions\n\n- retry budget?\n- Retry budget: three attempts, then dead-letter [1]\n- Ana dashboard\n\n## Action items\n\n- [ ] Update the dashboard — owner: Ana — due: Thursday\n- [x] Confirm the retry budget — owner: me\n',
+    ),
+    note(IDS.standup, 3, 'enhanced', '## Summary\n\nA proposal awaiting review.\n'),
+    note(IDS.private, 1, 'user', 'compensation: private\n'),
+  ]
+  return { sessions, segments, qa: [] as QaMessage[], notes, ...seedCalendar() }
 }
 
 /** M4: meetings around the moment of seeding (the CLI's own clock is real). */
@@ -249,6 +278,31 @@ export async function startFakeDaemon(): Promise<FakeDaemon> {
           score: 10 - i * 0.01,
         }))
       return { hits: hits.slice(0, Number(query.limit ?? 20)), total: hits.length }
+    },
+    getNotes: ({ params, query }) => {
+      const s = find(params.id!, query)
+      const mine = state.notes.filter((n) => n.sessionId === s.id)
+      const head = mine.filter((n) => n.kind !== 'enhanced').at(-1)
+      const pending = mine.filter((n) => n.kind === 'enhanced').find((n) => n.version > (head?.version ?? 0))
+      return {
+        note: {
+          sessionId: s.id,
+          version: head?.version ?? 0,
+          markdown: head?.markdown ?? '',
+          updatedAt: head?.createdAt ?? null,
+          pendingEnhancement: pending?.version ?? null,
+        },
+        enhanced: pending ?? null,
+      }
+    },
+    listNoteVersions: ({ params, query }) => {
+      const s = find(params.id!, query)
+      return { versions: state.notes.filter((n) => n.sessionId === s.id) }
+    },
+    getActionItems: ({ params, query }) => {
+      const s = find(params.id!, query)
+      const head = state.notes.filter((n) => n.sessionId === s.id && n.kind !== 'enhanced').at(-1)
+      return { version: head?.version ?? 0, items: extractActionItems(head?.markdown ?? '') }
     },
     createSession: ({ body }) => {
       const b = body as { title?: string }

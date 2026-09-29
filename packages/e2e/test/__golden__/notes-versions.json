@@ -1,0 +1,32 @@
+{
+  "session": {
+    "id": "ses_000000001aaaaaaaaaaa1",
+    "title": "Platform standup",
+    "createdAt": "<iso>",
+    "status": "stopped",
+    "durationMs": 720000
+  },
+  "versions": [
+    {
+      "version": 1,
+      "kind": "user",
+      "createdAt": "<iso>",
+      "baseVersion": 0,
+      "chars": 53
+    },
+    {
+      "version": 2,
+      "kind": "enhanced",
+      "createdAt": "<iso>",
+      "baseVersion": 1,
+      "chars": 307
+    },
+    {
+      "version": 3,
+      "kind": "merge",
+      "createdAt": "<iso>",
+      "baseVersion": 1,
+      "chars": 307
+    }
+  ]
+}

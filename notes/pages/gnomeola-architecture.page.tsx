@@ -1087,12 +1087,12 @@ for the retrieval surface:
         ]} />
 
         <Tasks phase="M7" title="Notes + enhancement — 6 d · ships Granola parity" items={[
-          { text: <><strong>N-1</strong> <code>note</code> and <code>note_version</code> tables; markdown notes editor in the window (GtkSourceView). <em>blocked by: G-5, R-5</em></> },
-          { text: <><strong>N-2</strong> Enhancement job: your sparse notes + transcript + template, <code>effort: high</code>, into structured notes. <em>blocked by: N-1, Q-2</em></> },
-          { text: <><strong>N-3</strong> Templates (standup, 1:1, interview, custom) with a default per meeting type. <em>blocked by: N-2, C-1</em></> },
-          { text: <><strong>N-4</strong> Diff view: your notes beside the enhanced version, accept or revert per block. <em>blocked by: N-2</em></> },
-          { text: <><strong>N-5</strong> Export: markdown, clipboard, file; action-item extraction. <em>blocked by: N-2</em></> },
-          { text: <><strong>V-7</strong> Enhancement eval on fixture meetings with reference notes, plus the invariant that matters more than quality: <strong>your own words are never lost or silently rewritten</strong> — every original block is recoverable from <code>note_version</code>, and the diff view is asserted to round-trip accept and revert. <em>blocked by: N-4, V-5a. Exit: enhancement can disappoint, but it can never eat your notes.</em></> },
+          { done: true, text: <><strong>N-1</strong> <code>note</code> and <code>note_version</code> tables; markdown notes editor in the window (GtkSourceView). <em>blocked by: G-5, R-5</em></> },
+          { done: true, text: <><strong>N-2</strong> Enhancement job: your sparse notes + transcript + template, <code>effort: high</code>, into structured notes. <em>blocked by: N-1, Q-2</em></> },
+          { done: true, text: <><strong>N-3</strong> Templates (standup, 1:1, interview, custom) with a default per meeting type. <em>blocked by: N-2, C-1</em></> },
+          { done: true, text: <><strong>N-4</strong> Diff view: your notes beside the enhanced version, accept or revert per block. <em>blocked by: N-2</em></> },
+          { done: true, text: <><strong>N-5</strong> Export: markdown, clipboard, file; action-item extraction. <em>blocked by: N-2</em></> },
+          { done: true, text: <><strong>V-7</strong> Enhancement eval on fixture meetings with reference notes, plus the invariant that matters more than quality: <strong>your own words are never lost or silently rewritten</strong> — every original block is recoverable from <code>note_version</code>, and the diff view is asserted to round-trip accept and revert. <em>blocked by: N-4, V-5a. Exit: enhancement can disappoint, but it can never eat your notes.</em></> },
         ]} />
 
         <Tasks phase="M8" title="Hosted / Vercel — 9 d · floats, can be cut from 1.0" items={[

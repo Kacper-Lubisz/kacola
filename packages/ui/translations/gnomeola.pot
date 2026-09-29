@@ -65,7 +65,7 @@ msgid ""
 "provider and add an API key in Preferences."
 msgstr ""
 
-#: src/components/ask-pane.tsx:92
+#: src/components/ask-pane.tsx:92 src/components/notes-pane.tsx:287
 msgid "Open Preferences"
 msgstr ""
 
@@ -125,7 +125,7 @@ msgstr ""
 msgid "Question"
 msgstr ""
 
-#: src/components/ask-pane.tsx:274 src/components/session-detail.tsx:215
+#: src/components/ask-pane.tsx:274 src/components/session-detail.tsx:227
 msgid "Ask"
 msgstr ""
 
@@ -135,6 +135,233 @@ msgstr ""
 
 #: src/components/main-window.tsx:55 src/components/sidebar.tsx:181
 msgid "Sessions"
+msgstr ""
+
+#: src/components/notes-editor.tsx:60 src/components/session-detail.tsx:217
+msgid "Notes"
+msgstr ""
+
+#: src/components/notes-editor.tsx:61
+msgid "Your notes for this meeting, in Markdown. Saved as you type."
+msgstr ""
+
+#: src/components/notes-pane.tsx:31
+msgid "Loading…"
+msgstr ""
+
+#: src/components/notes-pane.tsx:32
+msgid "Notes could not be loaded: {reason}"
+msgstr ""
+
+#: src/components/notes-pane.tsx:33
+msgid "Not saved: {reason}"
+msgstr ""
+
+#: src/components/notes-pane.tsx:34
+msgid "Saving…"
+msgstr ""
+
+#: src/components/notes-pane.tsx:35
+msgid "Nothing written yet"
+msgstr ""
+
+#: src/components/notes-pane.tsx:36
+msgid "Saved"
+msgstr ""
+
+#: src/components/notes-pane.tsx:44
+msgid "owner: {owner}"
+msgstr ""
+
+#: src/components/notes-pane.tsx:44
+msgid "due: {due}"
+msgstr ""
+
+#: src/components/notes-pane.tsx:51
+msgid "Action Items"
+msgstr ""
+
+#: src/components/notes-pane.tsx:61 src/components/notes-pane.tsx:62
+msgid "Copy Action Items"
+msgstr ""
+
+#: src/components/notes-pane.tsx:69
+msgid "Action items"
+msgstr ""
+
+#: src/components/notes-pane.tsx:78
+msgid "Owner: {owner}"
+msgstr ""
+
+#: src/components/notes-pane.tsx:79
+msgid "Due: {due}"
+msgstr ""
+
+#: src/components/notes-pane.tsx:86 src/components/onboarding.tsx:295
+msgid "Done"
+msgstr ""
+
+#: src/components/notes-pane.tsx:86
+msgid "Open"
+msgstr ""
+
+#: src/components/notes-pane.tsx:102
+msgid "Enhancing"
+msgstr ""
+
+#: src/components/notes-pane.tsx:104
+msgid "Enhancing your notes with the {template} template…"
+msgstr ""
+
+#: src/components/notes-pane.tsx:125
+msgid "Enhanced notes so far"
+msgstr ""
+
+#: src/components/notes-pane.tsx:162 src/components/notes-pane.tsx:259
+msgid "Export Notes"
+msgstr ""
+
+#: src/components/notes-pane.tsx:169
+msgid "that location is not a local file"
+msgstr ""
+
+#: src/components/notes-pane.tsx:171
+msgid "Notes exported to {path}"
+msgstr ""
+
+#: src/components/notes-pane.tsx:176
+msgid "The notes could not be exported: {reason}"
+msgstr ""
+
+#: src/components/notes-pane.tsx:201
+msgid "Enhance"
+msgstr ""
+
+#: src/components/notes-pane.tsx:202
+msgid "Enhance Notes"
+msgstr ""
+
+#: src/components/notes-pane.tsx:206
+msgid ""
+"Rewrite your notes into structured notes using the transcript ({template} "
+"template)"
+msgstr ""
+
+#: src/components/notes-pane.tsx:216
+msgid "Choose a Template"
+msgstr ""
+
+#: src/components/notes-pane.tsx:228
+msgid "Enhance as {template} (suggested)"
+msgstr ""
+
+#: src/components/notes-pane.tsx:229
+msgid "Enhance as {template}"
+msgstr ""
+
+#: src/components/notes-pane.tsx:251 src/components/notes-pane.tsx:252
+msgid "Copy Notes as Markdown"
+msgstr ""
+
+#: src/components/notes-pane.tsx:254
+msgid "Notes copied as Markdown"
+msgstr ""
+
+#: src/components/notes-pane.tsx:260
+msgid "Export Notes to a Markdown File"
+msgstr ""
+
+#: src/components/notes-pane.tsx:280
+msgid "Your notes were not enhanced: {reason}"
+msgstr ""
+
+#: src/components/notes-pane.tsx:296
+msgid "Dismiss"
+msgstr ""
+
+#: src/components/notes-pane.tsx:322
+msgid "Action items copied"
+msgstr ""
+
+#: src/components/notes-review.tsx:17
+msgid "Added"
+msgstr ""
+
+#: src/components/notes-review.tsx:18
+msgid "Rewritten"
+msgstr ""
+
+#: src/components/notes-review.tsx:19
+msgid "Left out"
+msgstr ""
+
+#: src/components/notes-review.tsx:32
+msgid "(nothing)"
+msgstr ""
+
+#: src/components/notes-review.tsx:61
+msgid "Change {n} · {kind}"
+msgstr ""
+
+#: src/components/notes-review.tsx:66
+msgid "Use enhanced"
+msgstr ""
+
+#: src/components/notes-review.tsx:70
+msgid "Use enhanced text for change {n}"
+msgstr ""
+
+#: src/components/notes-review.tsx:75
+msgid "Your notes"
+msgstr ""
+
+#: src/components/notes-review.tsx:76
+msgid "Enhanced"
+msgstr ""
+
+#: src/components/notes-review.tsx:103
+msgid "Review Enhanced Notes"
+msgstr ""
+
+#: src/components/notes-review.tsx:112
+msgid ""
+"{template} template · {count} change · {accepted} using the enhanced text"
+msgid_plural ""
+"{template} template · {count} changes · {accepted} using the enhanced text"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/components/notes-review.tsx:124
+msgid "Use All Enhanced"
+msgstr ""
+
+#: src/components/notes-review.tsx:127
+msgid "Keep All Mine"
+msgstr ""
+
+#: src/components/notes-review.tsx:130
+msgid "Discard"
+msgstr ""
+
+#: src/components/notes-review.tsx:132
+msgid "Close the review and keep your notes exactly as they are"
+msgstr ""
+
+#: src/components/notes-review.tsx:136
+msgid "Apply"
+msgstr ""
+
+#: src/components/notes-review.tsx:140
+msgid ""
+"Replace your notes with the reviewed version; the original stays in history"
+msgstr ""
+
+#: src/components/notes-review.tsx:156
+msgid "Changes"
+msgstr ""
+
+#: src/components/notes-review.tsx:159
+msgid "The enhanced notes are the same as yours."
 msgstr ""
 
 #: src/components/onboarding.tsx:29 src/components/onboarding.tsx:47
@@ -263,10 +490,6 @@ msgstr ""
 msgid "Calendar access"
 msgstr ""
 
-#: src/components/onboarding.tsx:295
-msgid "Done"
-msgstr ""
-
 #: src/components/onboarding.tsx:302
 msgid "Skip for Now"
 msgstr ""
@@ -331,7 +554,7 @@ msgstr ""
 msgid "Could not save the setting: {reason}"
 msgstr ""
 
-#: src/components/preferences.tsx:157 src/components/preferences.tsx:323
+#: src/components/preferences.tsx:157 src/components/preferences.tsx:325
 msgid "General"
 msgstr ""
 
@@ -375,11 +598,11 @@ msgstr ""
 msgid "Used for recordings started from now on."
 msgstr ""
 
-#: src/components/preferences.tsx:212 src/components/session-detail.tsx:32
+#: src/components/preferences.tsx:212 src/components/session-detail.tsx:33
 msgid "Microphone"
 msgstr ""
 
-#: src/components/preferences.tsx:218 src/components/session-detail.tsx:33
+#: src/components/preferences.tsx:218 src/components/session-detail.tsx:34
 msgid "System audio"
 msgstr ""
 
@@ -391,70 +614,70 @@ msgstr ""
 msgid "Auto-record"
 msgstr ""
 
-#: src/components/preferences.tsx:228
+#: src/components/preferences.tsx:229
 msgid ""
 "Start recording on its own. A recording that is already running is never "
 "interrupted."
 msgstr ""
 
-#: src/components/preferences.tsx:231
+#: src/components/preferences.tsx:233
 msgid "When a Calendar Meeting Starts"
 msgstr ""
 
-#: src/components/preferences.tsx:232
+#: src/components/preferences.tsx:234
 msgid "Meetings you declined, and all-day events, are skipped"
 msgstr ""
 
-#: src/components/preferences.tsx:239
+#: src/components/preferences.tsx:241
 msgid "When Another App Uses the Microphone"
 msgstr ""
 
-#: src/components/preferences.tsx:240
+#: src/components/preferences.tsx:242
 msgid "Stops again once the call has ended"
 msgstr ""
 
-#: src/components/preferences.tsx:248
+#: src/components/preferences.tsx:250
 msgid "Storage"
 msgstr ""
 
-#: src/components/preferences.tsx:250 src/components/preferences.tsx:251
+#: src/components/preferences.tsx:252 src/components/preferences.tsx:253
 msgid "Recorded Audio"
 msgstr ""
 
-#: src/components/preferences.tsx:252
+#: src/components/preferences.tsx:254
 msgid ""
 "Transcripts are always kept. This only decides what happens to the audio."
 msgstr ""
 
-#: src/components/preferences.tsx:255
+#: src/components/preferences.tsx:257
 msgid "Audio"
 msgstr ""
 
-#: src/components/preferences.tsx:264 src/components/preferences.tsx:272
+#: src/components/preferences.tsx:266 src/components/preferences.tsx:274
 msgid "Days to keep audio"
 msgstr ""
 
-#: src/components/preferences.tsx:282
+#: src/components/preferences.tsx:284
 msgid "Archive audio"
 msgstr ""
 
-#: src/components/preferences.tsx:283
+#: src/components/preferences.tsx:285
 msgid "Keep a compressed copy (Opus) of each recording"
 msgstr ""
 
-#: src/components/preferences.tsx:306
+#: src/components/preferences.tsx:308
 msgid "The daemon did not return its settings."
 msgstr ""
 
-#: src/components/preferences.tsx:319 src/components/sidebar.tsx:60
+#: src/components/preferences.tsx:321 src/components/sidebar.tsx:60
 msgid "Preferences"
 msgstr ""
 
-#: src/components/preferences.tsx:324
+#: src/components/preferences.tsx:326
 msgid "Settings"
 msgstr ""
 
-#: src/components/preferences.tsx:328
+#: src/components/preferences.tsx:330
 msgid "Settings Unavailable"
 msgstr ""
 
@@ -490,67 +713,67 @@ msgstr ""
 msgid "Record"
 msgstr ""
 
-#: src/components/session-detail.tsx:73
+#: src/components/session-detail.tsx:74
 msgid "Levels"
 msgstr ""
 
-#: src/components/session-detail.tsx:83
+#: src/components/session-detail.tsx:84
 msgid "level"
 msgstr ""
 
-#: src/components/session-detail.tsx:115 src/components/session-detail.tsx:225
+#: src/components/session-detail.tsx:116 src/components/session-detail.tsx:237
 msgid "Details"
 msgstr ""
 
-#: src/components/session-detail.tsx:116
+#: src/components/session-detail.tsx:117
 msgid "Status"
 msgstr ""
 
-#: src/components/session-detail.tsx:118
+#: src/components/session-detail.tsx:119
 msgid "Started"
 msgstr ""
 
-#: src/components/session-detail.tsx:119 src/data/format.ts:60
+#: src/components/session-detail.tsx:120 src/data/format.ts:60
 msgid "Not started"
 msgstr ""
 
-#: src/components/session-detail.tsx:121
+#: src/components/session-detail.tsx:122
 msgid "Duration"
 msgstr ""
 
-#: src/components/session-detail.tsx:123
+#: src/components/session-detail.tsx:124
 msgid "Tracks"
 msgstr ""
 
-#: src/components/session-detail.tsx:124
+#: src/components/session-detail.tsx:125
 msgid "None"
 msgstr ""
 
-#: src/components/session-detail.tsx:127
+#: src/components/session-detail.tsx:128
 msgid "Visibility"
 msgstr ""
 
-#: src/components/session-detail.tsx:127
+#: src/components/session-detail.tsx:128
 msgid "Private: hidden from the CLI"
 msgstr ""
 
-#: src/components/session-detail.tsx:129
+#: src/components/session-detail.tsx:130
 msgid "Error"
 msgstr ""
 
-#: src/components/session-detail.tsx:183
+#: src/components/session-detail.tsx:185
 msgid "Session details"
 msgstr ""
 
-#: src/components/session-detail.tsx:210 src/components/transcript-view.tsx:262
+#: src/components/session-detail.tsx:212 src/components/transcript-view.tsx:262
 msgid "Transcript"
 msgstr ""
 
-#: src/components/session-detail.tsx:242
+#: src/components/session-detail.tsx:254
 msgid "No Session Selected"
 msgstr ""
 
-#: src/components/session-detail.tsx:243
+#: src/components/session-detail.tsx:255
 msgid "Pick a session in the sidebar, or press Record to start one."
 msgstr ""
 

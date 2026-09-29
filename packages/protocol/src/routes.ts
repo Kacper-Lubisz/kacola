@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { CalendarStatus, JoinMeetingBody, ListMeetingsQuery, MeetingList, NextMeeting } from './calendar.ts'
+import { notesRoutes } from './notes.ts'
 import {
   ApiError,
   AudioDevice,
@@ -185,6 +186,8 @@ export const routes = {
     body: JoinMeetingBody,
     response: z.object({ session: Session, joinUrl: z.string().nullable() }),
   },
+  // ---- M7: notes + enhancement (schemas in notes.ts)
+  ...notesRoutes,
 } as const satisfies Record<string, RouteDef>
 
 export type Routes = typeof routes

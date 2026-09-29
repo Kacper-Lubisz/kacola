@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { CalendarStatus, Meeting } from './calendar.ts'
+import { NoteTemplate, NoteVersion } from './notes.ts'
 import { Iso, ModelInfo, QaMessage, Segment, Session, StoredSettings, TrackKind } from './schemas.ts'
 
 // Events come in two kinds, and the distinction is load-bearing:
@@ -18,6 +19,12 @@ export const DurableEventData = z.discriminatedUnion('type', [
   z.object({ type: z.literal('session.deleted'), sessionId: z.string() }),
   /** Persisted settings changed. Never carries secrets (the API key lives in the keyring, not here). */
   z.object({ type: z.literal('settings.updated'), settings: StoredSettings }),
+  // ---- M7: notes + enhancement
+  /** A notes version was appended (autosave, enhancement, merge or restore). Versions are never changed. */
+  z.object({ type: z.literal('note.version'), version: NoteVersion }),
+  /** A custom notes template was created or changed. */
+  z.object({ type: z.literal('template.upserted'), template: NoteTemplate }),
+  z.object({ type: z.literal('template.deleted'), id: z.string() }),
 ])
 export type DurableEventData = z.infer<typeof DurableEventData>
 

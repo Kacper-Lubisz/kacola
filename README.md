@@ -30,7 +30,7 @@ The client/backend boundary is enforced in CI (`pnpm boundaries`).
 ## Development
 
 Requires Node 24+ (`mise install` picks it up from `mise.toml`), pnpm, PipeWire, GTK 4.20+ and
-libadwaita 1.8+.
+libadwaita 1.8+ and GtkSourceView 5 (the notes editor; Fedora: `gtksourceview5`).
 
 ```sh
 pnpm install

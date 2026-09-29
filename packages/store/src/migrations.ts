@@ -107,6 +107,35 @@ export const migrations: readonly Migration[] = [
   },
   {
     version: 2,
+    name: 'notes',
+    up: `
+      -- M7: every version of a session's notes, append-only (see src/notes.ts).
+      CREATE TABLE note_versions (
+        session_id TEXT NOT NULL REFERENCES sessions (id) ON DELETE CASCADE,
+        version INTEGER NOT NULL,
+        kind TEXT NOT NULL,
+        markdown TEXT NOT NULL,
+        base_version INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        meta TEXT NOT NULL,
+        PRIMARY KEY (session_id, version)
+      ) STRICT;
+      -- which version is the head, and which enhanced version awaits review
+      CREATE TABLE notes (
+        session_id TEXT PRIMARY KEY REFERENCES sessions (id) ON DELETE CASCADE,
+        head INTEGER NOT NULL,
+        pending_enhancement INTEGER
+      ) STRICT;
+      CREATE TABLE note_templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        keywords TEXT NOT NULL,
+        body TEXT NOT NULL
+      ) STRICT;
+    `,
+  },
+  {
+    version: 3,
     name: 'session-meeting',
     up: `
       -- M4: the calendar meeting a session was recorded for (JSON SessionMeeting), or NULL.

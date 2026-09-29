@@ -7,6 +7,7 @@ export {
   SchemaError,
   schemaVersion,
 } from './migrations.ts'
+export { NoteStore } from './notes.ts'
 export {
   type ListSessionsOptions,
   type SearchOptions,

@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { Session } from '@gnomeola/protocol'
+import { createClient, type Session } from '@gnomeola/protocol'
 import { waitFor } from '@gnomeola/testkit/daemon'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ManualCalendarProvider } from '../src/calendar/providers.ts'
@@ -126,6 +126,24 @@ describe('microphone rule', () => {
     mic.set([])
     await new Promise((r) => setTimeout(r, 600))
     expect(d.store.getSession(own.id)?.status).toBe('recording')
+  })
+})
+
+describe('M4 × M7: the calendar event picks the notes template', () => {
+  it('a session recorded for a meeting suggests the template its calendar title calls for', async () => {
+    snap(occ({ summary: 'Interview: Jo Bloggs', start: at(Date.now(), 30), end: at(Date.now(), 60) }))
+    const { next } = d.calendar.next()
+    const { session } = await d.control.join(next!.id)
+    // renamed to something generic in the window: the calendar title still decides
+    d.store.updateSession(session.id, (s) => ({ ...s, title: 'Daily standup' }))
+    const c = createClient({ baseUrl: d.url })
+    const r = await c.call('listTemplates', { query: { sessionId: session.id } })
+    expect(r.suggested).toMatchObject({ templateId: 'interview', matched: { source: 'calendar' } })
+    // an explicit calendarTitle from the caller still wins
+    const explicit = await c.call('listTemplates', {
+      query: { sessionId: session.id, calendarTitle: 'Budget review' },
+    })
+    expect(explicit.suggested).toMatchObject({ templateId: 'standup', matched: { source: 'session' } })
   })
 })
 

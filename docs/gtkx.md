@@ -16,7 +16,8 @@ Statements marked **(e2e)** are asserted by `packages/testkit/src/ui/e2e/*.e2e.t
 
 ```
 packages/ui/
-├─ gtkx.config.ts          application id, future flags, codegen options
+├─ gtkx.config.ts          application id, future flags, codegen options (+ GtkSource-5)
+├─ gir/GtkSource-5.gir     vendored GIR for the notes editor (§3)
 ├─ vite.config.ts          alias for the generated bindings (pnpm workspace fix, §3)
 ├─ scripts/gtkx-store-resolve.ts   Node resolve hook for `gtkx dev` (same fix, §3)
 ├─ scripts/i18n-pot.ts     regenerate translations/gnomeola.pot with xgettext (§10)
@@ -30,7 +31,10 @@ packages/ui/
 │  ├─ components/
 │  │  ├─ main-window.tsx   split view, win.* actions, onboarding trigger, dialog host
 │  │  ├─ sidebar.tsx       session list (roving tab stop), primary menu, models banner
-│  │  ├─ session-detail.tsx heading + AdwViewStack: Transcript / Ask / Details
+│  │  ├─ session-detail.tsx heading + AdwViewStack: Transcript / Notes / Ask / Details
+│  │  ├─ notes-pane.tsx    M7: Enhance + templates, copy/export, action items (docs/notes.md)
+│  │  ├─ notes-editor.tsx  GtkSourceView 5 markdown editor (vendored GIR, §3)
+│  │  ├─ notes-review.tsx  block-by-block review of an enhanced version
 │  │  ├─ transcript-view.tsx T-6: virtualised lines, partial row, follow + Jump to Live
 │  │  ├─ virtual-list.tsx  GtkListView over a GtkStringList of keys, React rows, named list items
 │  │  ├─ ask-pane.tsx      Q-5: composer, streaming answer, citation chips, refusal/unavailable
@@ -48,6 +52,7 @@ packages/ui/
 │     ├─ sessions.ts       pure fold of events into the session list (upserts, deletions)
 │     ├─ transcript.ts     segment/partial fold (revisions), display rows, TranscriptFeed
 │     ├─ qa.ts             Q&A turns fold (history, qa.message, qa.delta, own ask stream), QaFeed
+│     ├─ notes.ts          NotesFeed: draft, debounced autosave, conflict re-save, enhance, merge; review helpers
 │     ├─ follow.ts         autoscroll intent (§6 "Live lists")
 │     ├─ list-diff.ts      one splice per list-model update
 │     ├─ settings.ts       Preferences choices, device lists, required/missing models
@@ -122,6 +127,18 @@ The bundle is self-contained except for `gtkx.node` beside it and the system GTK
 
 - Which libraries: `Gtk-4.0` and `Adw-1` come from the `v2DefaultLibraries` flag. Add others
   (e.g. `"GtkSource-5"`) to `libraries` in `gtkx.config.ts`; an empty array is a config error.
+- **GtkSourceView 5 (M7 notes editor)** works through the same codegen: `libraries: ['GtkSource-5']`
+  gives `@gtkx/gi/gtksource` and `@gtkx/jsx/gtksource` (`<GtkSourceView>` with a `<GtkSourceBuffer
+  language=… styleScheme=… highlightSyntax onChanged=…>` child, exactly like `GtkTextView` + buffer).
+  Fedora ships the typelib and `libgtksourceview-5.so` in `gtksourceview5` (installed with GNOME) but
+  the GIR XML only in `gtksourceview5-devel`, so `packages/ui/gir/GtkSource-5.gir` is vendored from
+  gtksourceview5-devel 5.20.0 (LGPL-2.1-or-later) and `girPath: ['./gir']` points codegen at it:
+  nothing extra to install for development or CI, only the runtime `gtksourceview5`. Call
+  `GtkSource.init()` once before creating a view; get the language from
+  `GtkSource.LanguageManager.getDefault().getLanguage('markdown')` and the `Adwaita` / `Adwaita-dark`
+  scheme from `StyleSchemeManager`, following `Adw.StyleManager`'s `dark`. Over AT-SPI it is a plain
+  named `text` whose `describe().text` is the buffer **(e2e)**. When the GIR is regenerated for a
+  newer library, replace the vendored file with the matching version.
 - When it runs: `gtkx dev`, `gtkx build` and our `typecheck` script all run it; when nothing changed
   it prints `bindings up to date` and takes under a second. Changing `future` flags or the GTKX
   version invalidates the store. Run it by hand after upgrading GTK/libadwaita.
@@ -251,6 +268,8 @@ Details worth knowing:
   | `GtkSearchEntry` | `entry` · `accessibleLabel` | `focus()` + `typeText()` |
   | `GtkEntry` | `text` · `accessibleLabel` | `focus()` + `typeText()`, or `setText()` |
   | `GtkTextView` | `text` · `accessibleLabel` | `describe().text` is the buffer contents |
+  | `GtkSourceView` (notes editor) | `text` · `accessibleLabel` | `focus()` + `typeText()` (`\n` = Return), `describe().text` |
+  | `GtkFileDialog` (no portal here: GTK's own chooser) | `dialog` · its title; the name field is a `text` inside | `setText()` a full path, `focus()`, `Return` |
   | `GtkSwitch` | `switch` · `accessibleLabel` | `click()` → action `toggle` |
   | `AdwSwitchRow` | `switch` · title (the row has no action; the inner `GtkSwitch` does) | `click()` → descendant `toggle` |
   | `AdwComboRow` | `combo box` · title | `focus()`, `Return`, `Down`, `Return` |
@@ -669,6 +688,7 @@ DataSource (daemon-source | demo-source)
 | e2e | `packages/e2e/test/ui-transcript.e2e.test.ts` | **real daemon** (child process, fake capture/STT): seeded transcript as speaker-grouped lines, the 1,350-line meeting (perf budget, End/Home/Page keys), live partial → provisional → final replaced in place, follow / Jump to Live, stop → complete and equal to `getTranscript` |
 | e2e | `packages/e2e/test/ui-ask.e2e.test.ts` | real daemon + real LLM engine → `startFakeAnthropic({ eventDelayMs })` replaying cassettes: streaming answer, citation chips → Transcript scrolled back to and selecting the cited line, refusal notice replacing the partial, asking mid-recording |
 | e2e | `packages/e2e/test/ui-dialogs.e2e.test.ts` | no key → unavailable notice → Open Preferences; a key typed into Preferences reaches `x-api-key`, never the AT-SPI tree or the screen (OCR); settings by keyboard persisted, `settings.updated` reflected live, opening Preferences writes nothing; About's Granola credit + legal list; Tab order; onboarding (slow fake models: progress observed, remembered; skip → banner → reopen) |
+| e2e | `packages/e2e/test/ui-notes.e2e.test.ts` | real daemon + real LLM engine → fake Anthropic: type notes into the GtkSourceView, autosave, enhance (streaming), revert some review blocks and accept others, apply; the stored merge equals the choices and every typed version is recoverable; copy (read back with `wl-paste` on the private display), export through the real file dialog, refusal, flush on leaving a session |
 | e2e | `packages/e2e/test/ui-i18n.e2e.test.ts` | a German catalog compiled with msgfmt, the bundle run with `LANGUAGE=de`: translated strings on screen (§10) |
 
 Helpers for the real-daemon tests are in `packages/e2e/src/ui.ts` (`buildUi`, `launchUi`,
