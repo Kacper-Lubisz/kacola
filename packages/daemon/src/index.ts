@@ -1,6 +1,19 @@
 // @gnomeola/daemon — gnomeolad. The entry point is ./main.ts; this module is for composing a daemon in
 // process (tests, or an alternative entry point) and for implementing the injectable interfaces.
 // ---- agent channel: leases, the live stream, the SpeechGuard seam
+
+// ---- Agendas wave 2: the live tracker, its SpeechGuard, the recap, and eval runners over them
+export { formatOutcome } from './agendas/recap.ts'
+// (the SpeechGuard / SpeechInput types themselves are the agent channel's export; this is structurally one)
+export { type DecisionSpeechGuard, decisionSpeechGuard } from './agendas/speech-guard.ts'
+export { AgendaTracker, type TrackerDecisions, type TrackerOptions } from './agendas/tracker.ts'
+export {
+  trackerInjectionRunner,
+  trackerInterviewRunner,
+  trackerNextPointRunner,
+  trackerRelevanceRunner,
+  trackerStatusRunner,
+} from './agendas/tracker-eval.ts'
 export {
   AgentChannel,
   type AgentChannelDeps,
@@ -55,6 +68,7 @@ export {
   UnavailablePipeline,
 } from './fakes/providers.ts'
 export { loadScript, type MeetingScript, ScriptedRecording, type ScriptLine } from './fakes/scripted.ts'
+export { ScriptedPipeline } from './fakes/scripted-pipeline.ts'
 export type * from './interfaces.ts'
 export { MemoryKeyring, NoKeyring, SecretToolKeyring, type SecretToolOptions } from './keyring.ts'
 export { ACTIVE, isActive, type LifecycleAction, nextStatus } from './lifecycle.ts'

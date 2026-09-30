@@ -197,7 +197,8 @@ meeting" workflow and the copilot section (below).
 
 ## For the next waves
 
-- **Tracker**: call `AgendaStore.setStatus(agendaId, itemId, {status, by: 'tracker', evidence, auto,
+- **Tracker**: built — see docs/tracker.md (the notes below are what it relies on).
+- **Tracker (contract)**: call `AgendaStore.setStatus(agendaId, itemId, {status, by: 'tracker', evidence, auto,
   confidence})` — the store refuses backward moves and anything over a user override (409 / `StoreError
   conflict`; treat as "stay quiet"). Post 0.5–0.8 confidence as `addSuggestion({kind: 'looks-covered',
   itemId, source: 'tracker', ttlSec})`. The agenda of a live session: `bySession(sessionId)`.

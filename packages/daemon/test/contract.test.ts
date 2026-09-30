@@ -427,6 +427,13 @@ describe('contract: every route, real server, typed client', () => {
         c.call('setAgentAccess', { params: { id: ag.session }, body: { allowAgents: true } }),
       releaseAgentLease: async () =>
         c.call('releaseAgentLease', { params: { leaseId: (await lease()).lease.id } }),
+      // ---- Agendas wave 2: the tracker never ran for this agenda
+      getAgendaTracker: async () => {
+        const a = await c.call('createAgenda', { body: { title: 'tracker contract' } })
+        const r = await c.call('getAgendaTracker', { params: { id: a.agenda.id } })
+        expect(r.tracker).toBeNull()
+        return r
+      },
     }
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {
       await expect(call(), name).resolves.toBeDefined()

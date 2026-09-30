@@ -4,6 +4,7 @@ import { CalendarStatus, Meeting } from './calendar.ts'
 import { NoteTemplate, NoteVersion } from './notes.ts'
 import { Iso, ModelInfo, QaMessage, Segment, Session, StoredSettings, TrackKind } from './schemas.ts'
 import { SpeakerEvents } from './speakers.ts'
+import { TrackerEphemeralEvents } from './tracker.ts'
 
 // Events come in two kinds, and the distinction is load-bearing:
 //
@@ -68,6 +69,8 @@ export const EphemeralEventData = z.discriminatedUnion('type', [
   z.object({ type: z.literal('meeting.starting'), meeting: Meeting }),
   // ---- kacola phases 1–2: agent presence on the live channel (./agendas.ts)
   ...AgendaEphemeralEvents,
+  // ---- Agendas wave 2: the live tracker's status (./tracker.ts)
+  ...TrackerEphemeralEvents,
 ])
 export type EphemeralEventData = z.infer<typeof EphemeralEventData>
 

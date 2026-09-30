@@ -1,9 +1,11 @@
 import {
+  AGENDA_RULES,
   DEFAULT_DECISION_MODELS,
   type DecisionProvider,
   decisionProviderFromSettings,
   type Embedder,
   HashingEmbedder,
+  LocalDecisionProvider,
   type LocalRule,
   OnnxEmbedder,
 } from '@gnomeola/decisions'
@@ -31,6 +33,7 @@ export type DecisionsServiceDeps = {
 export class DecisionsService {
   readonly #d: DecisionsServiceDeps
   #cached: { key: string; provider: DecisionProvider | null } | null = null
+  #local: { embedder: string; provider: DecisionProvider } | null = null
   #embedder: { dir: string; embedder: Embedder } | null = null
   readonly #hashing = new HashingEmbedder()
 
@@ -76,6 +79,22 @@ export class DecisionsService {
     )
     this.#cached = { key, provider }
     return provider
+  }
+
+  /** The selected provider's name. */
+  selected(): string {
+    return this.#settings().provider
+  }
+
+  /** The on-device provider, whatever is selected: the live tracker's fallback when a hosted one fails. */
+  async localProvider(): Promise<DecisionProvider> {
+    const embedder = await this.#localEmbedder()
+    if (this.#local?.embedder !== embedder.id)
+      this.#local = {
+        embedder: embedder.id,
+        provider: new LocalDecisionProvider({ embedder, rules: this.#d.rules ?? AGENDA_RULES }),
+      }
+    return this.#local.provider
   }
 
   async health(): Promise<DecisionsHealth> {

@@ -1,4 +1,14 @@
 export {
+  AGENDA_RECAP_SYSTEM_PROMPT,
+  BRIDGE_SYSTEM_PROMPT,
+  bridgeLine,
+  parseRecap,
+  type RecapItemInput,
+  type RecapResult,
+  recapItem,
+  recapTail,
+} from './agenda.ts'
+export {
   AnthropicProvider,
   type AnthropicProviderOptions,
   DEFAULT_ANTHROPIC_MODEL,

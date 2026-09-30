@@ -41,6 +41,7 @@ import {
   SplitSpeakerBody,
   VoiceprintsResponse,
 } from './speakers.ts'
+import { trackerRoutes } from './tracker.ts'
 
 // The route table is the contract. The daemon registers handlers against it and the typed client is
 // derived from it, so a drift between the two is a compile error (T1) and a parse error at runtime.
@@ -289,6 +290,8 @@ export const routes = {
   ...externalCaptureRoutes,
   // ---- kacola phases 1–2: agendas, deep links, the invite block, the live channel (./agendas.ts)
   ...agendaRoutes,
+  // ---- Agendas wave 2: the live tracker (./tracker.ts)
+  ...trackerRoutes,
 } as const satisfies Record<string, RouteDef>
 
 export type Routes = typeof routes
