@@ -203,7 +203,9 @@ describe('keyboard-only walkthrough against the real daemon', () => {
     trail.push('type notes')
     await poll(
       async () =>
-        (await daemon.client.call('getNotes', { params: { id: SEED.long } })).note.markdown.includes('ana owns'),
+        (await daemon.client.call('getNotes', { params: { id: SEED.long } })).note.markdown.includes(
+          'ana owns',
+        ),
       10_000,
       'the typed notes saved',
     )
