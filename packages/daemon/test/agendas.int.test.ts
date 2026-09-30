@@ -138,9 +138,12 @@ describe('agendas in the daemon', () => {
     const [a] = (await c.call('listAgendas', { query: { eventUid: 'one-on-one@x' } })).agendas
     const view = await c.call('getAgenda', { params: { id: a!.id } })
     const [promo, hiring] = view.items
-    await c.call('setAgendaItemStatus', {
-      params: { id: a!.id, itemId: promo!.id },
-      body: { status: 'covered', by: 'tracker', auto: true, confidence: 0.93 },
+    // the tracker writes to the store in-process (an HTTP body cannot claim `tracker`: agent channel)
+    daemon.agendas.agendas.setStatus(a!.id, promo!.id, {
+      status: 'covered',
+      by: 'tracker',
+      auto: true,
+      confidence: 0.93,
     })
     await c.call('setAgendaItemStatus', {
       params: { id: a!.id, itemId: hiring!.id },

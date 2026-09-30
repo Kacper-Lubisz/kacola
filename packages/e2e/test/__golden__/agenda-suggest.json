@@ -2,9 +2,9 @@
   "agendaId": "<agd:1>",
   "suggestion": {
     "id": "<sug:1>",
-    "kind": "question",
-    "text": "ask how the Q1 hiring plan is funded",
+    "kind": "missed",
+    "text": "Top launch risks has not come up yet",
     "itemId": "<itm:1>",
-    "source": "agent:claude"
+    "source": "agent:helper"
   }
 }

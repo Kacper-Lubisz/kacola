@@ -1,5 +1,22 @@
 // @gnomeola/daemon — gnomeolad. The entry point is ./main.ts; this module is for composing a daemon in
 // process (tests, or an alternative entry point) and for implementing the injectable interfaces.
+// ---- agent channel: leases, the live stream, the SpeechGuard seam
+export {
+  AgentChannel,
+  type AgentChannelDeps,
+  type AgentLimits,
+  DEFAULT_AGENT_LIMITS,
+} from './agents/channel.ts'
+export {
+  heuristicGuard,
+  INJECTION_FLAG,
+  looksSecret,
+  passThroughGuard,
+  runGuard,
+  type SpeechGuard,
+  type SpeechInput,
+  type SpeechVerdict,
+} from './agents/guard.ts'
 export { MAX_CROSS_SESSION } from './ask.ts'
 export { type BusListener, EventBus } from './bus.ts'
 // ---- M4: calendar, D-Bus, auto-record
@@ -37,6 +54,7 @@ export {
   NoModels,
   UnavailablePipeline,
 } from './fakes/providers.ts'
+export { loadScript, type MeetingScript, ScriptedRecording, type ScriptLine } from './fakes/scripted.ts'
 export type * from './interfaces.ts'
 export { MemoryKeyring, NoKeyring, SecretToolKeyring, type SecretToolOptions } from './keyring.ts'
 export { ACTIVE, isActive, type LifecycleAction, nextStatus } from './lifecycle.ts'

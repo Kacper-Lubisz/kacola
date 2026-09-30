@@ -1,5 +1,6 @@
 import { createClient, DEFAULT_BASE_URL, type GnomeolaClient } from '@gnomeola/protocol'
 import { tokenFor } from './hosts.ts'
+import type { ActiveLease } from './lease.ts'
 import type { Format, Io } from './output.ts'
 
 export type Ctx = {
@@ -7,6 +8,8 @@ export type Ctx = {
   client: GnomeolaClient
   format: Format
   now: Date
+  /** Agent channel: the lease this command acts under (its client then presents it). */
+  lease?: ActiveLease | null
 }
 
 export function makeClient(url: string | undefined, io: Io, token?: string): GnomeolaClient {

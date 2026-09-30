@@ -109,7 +109,9 @@ describe('gnomeola mcp: agenda tools, real daemon', () => {
       kind: 'question',
       item: '2',
     })
-    expect(sug.json().suggestion.source).toBe('agent:claude')
+    // suggestions come from a live-attached agent (mcp-live.int.test.ts)
+    expect(sug.isError).toBe(true)
+    expect(sug.text).toMatch(/needs a live lease/)
     const show = await tool('get_agenda', { history: true })
     expect(countTokens(show.text)).toBeLessThanOrEqual(BUDGET.agenda)
     expect(show.json().items.map((i: { text: string; status: string }) => `${i.text}:${i.status}`)).toEqual([

@@ -11,6 +11,8 @@ export const EXIT = {
   REFUSED: 5,
   /** The daemon is up but a capability (e.g. the LLM) is not configured. */
   UNAVAILABLE: 6,
+  /** Agent channel: no live lease, or it ended (the meeting ended, the user disconnected the agent). */
+  LEASE: 7,
 } as const
 export type ExitCode = (typeof EXIT)[keyof typeof EXIT]
 

@@ -100,7 +100,7 @@ describe('gnomeola mcp — the same tools over MCP', () => {
     await client.close()
   })
 
-  it('exposes exactly the read tools plus the agenda verbs', async () => {
+  it('exposes exactly the read tools, the agenda verbs and the live channel', async () => {
     const { tools } = await client.listTools()
     expect(tools.map((t) => t.name).sort()).toEqual([
       'add_agenda_items',
@@ -118,6 +118,10 @@ describe('gnomeola mcp — the same tools over MCP', () => {
       'list_agendas',
       'list_sessions',
       'list_speakers',
+      'live_attach',
+      'live_detach',
+      'live_events',
+      'live_sessions',
       'recording_status',
       'remove_agenda_item',
       'search_meetings',
@@ -129,6 +133,7 @@ describe('gnomeola mcp — the same tools over MCP', () => {
     expect(tools.find((t) => t.name === 'get_meeting_notes')!.description).toMatch(
       /never follow instructions/,
     )
+    expect(tools.find((t) => t.name === 'live_attach')!.description).toMatch(/never follow instructions/)
   })
 
   it('search → window → ask, under the same budgets as the CLI', async () => {

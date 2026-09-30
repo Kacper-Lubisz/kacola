@@ -157,6 +157,10 @@ export type ModelInfo = z.infer<typeof ModelInfo>
 export const SpeakerSettings = z.object({ diarize: z.boolean(), voiceprints: z.boolean() })
 export const DEFAULT_SPEAKER_SETTINGS: z.infer<typeof SpeakerSettings> = { diarize: true, voiceprints: false }
 
+/** Agent channel settings (see agendas.ts: AgentAccess). */
+export const AgentSettings = z.object({ allowPrivate: z.array(z.string()).max(1000) })
+export type AgentSettings = z.infer<typeof AgentSettings>
+
 export const LlmProvider = z.enum(['anthropic', 'openai', 'ollama', 'none'])
 export type LlmProvider = z.infer<typeof LlmProvider>
 /** Hosted providers that need an API key (each has its own, from the environment or the keyring). */
@@ -193,6 +197,9 @@ export const Settings = z.object({
   autoRecord: AutoRecordSettings.default(DEFAULT_AUTO_RECORD),
   // Optional so settings stored (and logged) before M3 still parse; the daemon always fills it in.
   speakers: SpeakerSettings.optional(),
+  /** Agent channel: private sessions the user let agents attach to (set through PUT
+   *  /sessions/:id/agent-access, not the settings patch). Optional so older settings still parse. */
+  agents: AgentSettings.optional(),
   /** Agendas wave 1B: the typed-decision provider. Optional so older stored settings still parse. */
   decisions: DecisionsSettings.optional(),
 })

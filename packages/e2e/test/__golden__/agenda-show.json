@@ -75,7 +75,7 @@
       "itemId": "<itm:2>",
       "from": "open",
       "to": "in-progress",
-      "by": "agent:claude",
+      "by": "user",
       "at": "<iso>"
     }
   ]

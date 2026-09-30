@@ -4,6 +4,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import type { Ctx } from '../context.ts'
 import { CliError } from '../errors.ts'
+import type { ActiveLease } from '../lease.ts'
 import type { Io } from '../output.ts'
 import {
   agendaAdd,
@@ -20,6 +21,7 @@ import {
   suggest,
 } from './agenda.ts'
 import { ask } from './ask.ts'
+import { McpLive } from './mcp-live.ts'
 import { meetingsNext, meetingsToday } from './meetings.ts'
 import { notes } from './notes.ts'
 import { recordStatus } from './record.ts'
@@ -31,7 +33,9 @@ import { transcript } from './transcript.ts'
 // The same operations as typed MCP tools, for clients that are not Claude Code. Each tool runs the exact
 // CLI command function with its output captured, so budgets, refusals and privacy rules are shared rather
 // than re-implemented. The MCP surface reads, plus the agenda verbs (the same owner's writes as the CLI):
-// no recording control, no --full transcripts, nothing deleted but an agenda item.
+// no recording control, no --full transcripts, nothing deleted but an agenda item. The live channel
+// (mcp-live.ts) adds live_* tools and the subscribable gnomeola://live resource; while attached, the
+// agent verbs (status, add, edit, context, suggest) act under its lease.
 
 type ToolResult = { content: { type: 'text'; text: string }[]; isError?: boolean }
 
@@ -39,6 +43,7 @@ export async function runCaptured(
   client: GnomeolaClient,
   env: Io['env'],
   fn: (ctx: Ctx) => Promise<unknown>,
+  lease: ActiveLease | null = null,
 ): Promise<ToolResult> {
   const out: string[] = []
   const ctx: Ctx = {
@@ -46,6 +51,7 @@ export async function runCaptured(
     client,
     format: 'json',
     now: new Date(),
+    lease,
   }
   try {
     await fn(ctx)
@@ -59,9 +65,18 @@ export async function runCaptured(
   }
 }
 
-export function buildMcpServer(client: GnomeolaClient, env: Io['env'], version: string): McpServer {
+export function buildMcpServer(
+  client: GnomeolaClient,
+  env: Io['env'],
+  version: string,
+  live: McpLive = new McpLive(client),
+): McpServer {
   const server = new McpServer({ name: 'gnomeola', version })
   const run = (fn: (ctx: Ctx) => Promise<unknown>) => runCaptured(client, env, fn)
+  /** The agent verbs: under the live lease while attached (the daemon binds attribution and mode to it). */
+  const runAgent = (fn: (ctx: Ctx) => Promise<unknown>) =>
+    runCaptured(live.client() ?? client, env, fn, live.lease)
+  live.register(server)
 
   server.registerTool(
     'search_meetings',
@@ -272,7 +287,7 @@ export function buildMcpServer(client: GnomeolaClient, env: Io['env'], version: 
         before: z.string().optional().describe('insert before this item'),
       },
     },
-    async (a) => run((ctx) => agendaAdd(ctx, a.agenda, a.items, { before: a.before })),
+    async (a) => runAgent((ctx) => agendaAdd(ctx, a.agenda, a.items, { before: a.before })),
   )
 
   server.registerTool(
@@ -291,7 +306,7 @@ export function buildMcpServer(client: GnomeolaClient, env: Io['env'], version: 
       },
     },
     async (a) =>
-      run((ctx) =>
+      runAgent((ctx) =>
         agendaEdit(ctx, a.agenda, a.item, {
           text: a.text,
           kind: a.kind,
@@ -319,20 +334,23 @@ export function buildMcpServer(client: GnomeolaClient, env: Io['env'], version: 
       title: 'Set an agenda item status',
       description:
         'open → in-progress → covered | skipped | parked. Moving an item back is only the user’s call. Open and ' +
-        'parked items roll to the next occurrence of a recurring meeting.',
+        'parked items roll to the next occurrence of a recurring meeting. While live-attached, agenda may be ' +
+        '"live"; checking an item off needs segment (the id of the segment that settled it).',
       inputSchema: {
         agenda: agendaRef,
         item: itemRef,
         status: z.enum(['open', 'in-progress', 'covered', 'skipped', 'parked']),
         evidence: z.string().optional(),
+        segment: z.string().optional().describe('the segment id the evidence comes from (live events)'),
         note: z.string().optional(),
         outcome: z.string().optional(),
       },
     },
     async (a) =>
-      run((ctx) =>
+      runAgent((ctx) =>
         agendaStatus(ctx, a.agenda, a.item, a.status, {
           evidence: a.evidence,
+          segment: a.segment,
           note: a.note,
           outcome: a.outcome,
         }),
@@ -378,7 +396,7 @@ export function buildMcpServer(client: GnomeolaClient, env: Io['env'], version: 
       },
     },
     async (a) =>
-      run((ctx) =>
+      runAgent((ctx) =>
         contextAdd(ctx, {
           agenda: a.agenda,
           title: a.title,
@@ -395,7 +413,7 @@ export function buildMcpServer(client: GnomeolaClient, env: Io['env'], version: 
       title: 'Suggest something for a meeting',
       description:
         'A suggestion the user sees beside the agenda (it never changes the agenda by itself): next-point, question, ' +
-        'missed, fact-check or looks-covered.',
+        'missed, fact-check or looks-covered. Only while live-attached (live_attach): at most one every ~2 minutes.',
       inputSchema: {
         agenda: agendaRef,
         text: z.string().min(1),
@@ -403,7 +421,7 @@ export function buildMcpServer(client: GnomeolaClient, env: Io['env'], version: 
         item: z.string().optional(),
       },
     },
-    async (a) => run((ctx) => suggest(ctx, a.text, { agenda: a.agenda, kind: a.kind, item: a.item })),
+    async (a) => runAgent((ctx) => suggest(ctx, a.text, { agenda: a.agenda, kind: a.kind, item: a.item })),
   )
 
   server.registerTool(
@@ -427,8 +445,10 @@ function withStdin(ctx: Ctx, text: string | undefined): Ctx {
 }
 
 export async function serveMcp(client: GnomeolaClient, env: Io['env'], version: string): Promise<void> {
-  const server = buildMcpServer(client, env, version)
+  const live = new McpLive(client)
+  const server = buildMcpServer(client, env, version, live)
   await server.connect(new StdioServerTransport())
-  // Stay alive until stdin closes; the transport owns the lifecycle.
+  // Stay alive until stdin closes; the transport owns the lifecycle. Let go of a live lease on the way out.
   await new Promise<void>((resolve) => process.stdin.on('close', () => resolve()))
+  await live.detach()
 }

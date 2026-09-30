@@ -206,13 +206,48 @@ export const ContextCard = z.object({
 })
 export type ContextCard = z.infer<typeof ContextCard>
 
-export const SuggestionKind = z.enum(['next-point', 'question', 'missed', 'fact-check', 'looks-covered'])
+export const SuggestionKind = z.enum([
+  'next-point',
+  'question',
+  'missed',
+  'fact-check',
+  'looks-covered',
+  // ---- agent channel: what a `suggest`-mode agent's writes become (they carry a `proposal`)
+  /** A status change the agent proposes; accepting applies it as the user. */
+  'set-status',
+  /** A new item the agent proposes; accepting adds it as the user. */
+  'add-item',
+])
 export type SuggestionKind = z.infer<typeof SuggestionKind>
 
 /** Suggestions come from the tracker or an agent — never from the user, who simply acts. */
 export const SuggestionSource = ChangedBy.refine((s) => isAutomated(s), {
   message: 'a suggestion comes from tracker or agent:<name>',
 })
+
+/**
+ * What accepting a suggestion does beyond resolving it (agent channel): a `suggest`-mode agent's status
+ * change or new item is held here until the user accepts it. Applied as the acceptor.
+ */
+export const SuggestionProposal = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('status'),
+    status: AgendaItemStatus,
+    evidence: z.array(Evidence).max(20),
+    note: z.string().max(2000).nullable(),
+    outcome: z.string().max(4000).nullable(),
+  }),
+  z.object({
+    kind: z.literal('add-item'),
+    item: z.object({
+      text: ItemText,
+      kind: AgendaItemKind,
+      owner: ItemOwner.nullable(),
+      timeboxMin: z.int().min(1).max(MAX_TIMEBOX_MIN).nullable(),
+    }),
+  }),
+])
+export type SuggestionProposal = z.infer<typeof SuggestionProposal>
 
 export const Suggestion = z.object({
   id: z.string(),
@@ -227,6 +262,8 @@ export const Suggestion = z.object({
   state: z.enum(['open', 'accepted', 'dismissed']),
   resolvedAt: Iso.nullable(),
   resolvedBy: ChangedBy.nullable(),
+  /** Agent channel: the change accepting this applies. Absent on suggestions from before it existed. */
+  proposal: SuggestionProposal.nullable().optional(),
 })
 export type Suggestion = z.infer<typeof Suggestion>
 
@@ -291,9 +328,95 @@ export const LeaseGrant = z.object({
 })
 export type LeaseGrant = z.infer<typeof LeaseGrant>
 
-export const AgentPresenceState = z.enum(['connected', 'reading', 'disconnected'])
+/** Presence of a connected agent, as the window shows it (ephemeral; derived by the daemon). */
+export const AgentPresenceState = z.enum(['connected', 'reading', 'idle', 'disconnected'])
+export type AgentPresenceState = z.infer<typeof AgentPresenceState>
 
-/** Ephemeral events of the live channel (added to EphemeralEventData). */
+/** The header an agent presents its lease token in (not `authorization`: that is pairing's). */
+export const LEASE_HEADER = 'x-gnomeola-lease'
+
+/** Why a lease stopped. */
+export const LeaseEndReason = z.enum([
+  /** The agent let go (DELETE with its own token). */
+  'released',
+  /** The user disconnected it (DELETE without a token: the window's Disconnect). */
+  'revoked',
+  /** No heartbeat in time, or past the meeting's end. */
+  'expired',
+  /** A new lease with the same name on the same session replaced it (an agent reconnecting). */
+  'superseded',
+  /** The recording stopped. */
+  'meeting-ended',
+  /** The session became private, or the user withdrew agent access to a private session. */
+  'access-withdrawn',
+])
+export type LeaseEndReason = z.infer<typeof LeaseEndReason>
+
+/** One thing a connected agent did (or tried): the window's per-lease activity list. In memory, per run;
+ *  the durable record is the agenda events themselves, attributed `agent:<name>`. */
+export const AgentAction = z.object({
+  at: Iso,
+  kind: z.enum(['status', 'suggestion', 'add-item', 'context', 'edit-item']),
+  outcome: z.enum(['applied', 'suggested', 'refused']),
+  summary: z.string().max(300),
+  /** The item, suggestion or card id it touched (null when refused before there was one). */
+  ref: z.string().nullable(),
+})
+export type AgentAction = z.infer<typeof AgentAction>
+
+export const LeaseInfo = AgentLease.extend({
+  state: AgentPresenceState,
+  endedAt: Iso.nullable(),
+  endReason: LeaseEndReason.nullable(),
+  counts: z.object({
+    statusChanges: z.int().nonnegative(),
+    suggestions: z.int().nonnegative(),
+    items: z.int().nonnegative(),
+    context: z.int().nonnegative(),
+    refused: z.int().nonnegative(),
+  }),
+  /** Oldest first, the latest 50. */
+  actions: z.array(AgentAction),
+})
+export type LeaseInfo = z.infer<typeof LeaseInfo>
+
+export const HeartbeatBody = z.object({
+  /** Optional hint from the agent; the daemon otherwise derives reading/idle from what it streams. */
+  state: z.enum(['reading', 'idle']).optional(),
+})
+export const UpdateLeaseBody = z.object({ mode: AgentMode })
+
+/** Whether agents may attach to a session. A private session needs the user's explicit allow. */
+export const AgentAccess = z.object({
+  sessionId: z.string(),
+  private: z.boolean(),
+  allowAgents: z.boolean(),
+  /** `!private || allowAgents`. */
+  attachable: z.boolean(),
+})
+export type AgentAccess = z.infer<typeof AgentAccess>
+export const SetAgentAccessBody = z.object({ allowAgents: z.boolean() })
+
+/** A recording an agent could attach to right now (`live wait`, `--session current`). */
+export const LiveSession = z.object({
+  sessionId: z.string(),
+  title: z.string(),
+  status: z.enum(['recording', 'paused']),
+  startedAt: Iso.nullable(),
+  meeting: z.object({ id: z.string(), uid: z.string(), title: z.string(), start: Iso }).nullable(),
+  agendaId: z.string().nullable(),
+})
+export type LiveSession = z.infer<typeof LiveSession>
+
+export const ListLiveSessionsQuery = z.object({
+  /** Long-poll: wait up to this many seconds for one to appear (0 = answer now). */
+  wait: z.coerce.number().int().min(0).max(300).default(0),
+  /** Only this meeting (a `mtg_…` id or an iCalendar UID). */
+  meeting: z.string().optional(),
+})
+
+/** Ephemeral events of the live channel (added to EphemeralEventData). The envelope's `sessionId` is the
+ *  session the agent is attached to. */
 export const AgendaEphemeralEvents = [
   z.object({
     type: z.literal('agent.presence'),
@@ -304,9 +427,21 @@ export const AgendaEphemeralEvents = [
   }),
 ] as const
 
-/** What `live attach` streams (NDJSON, one per line), until the meeting ends. */
+/**
+ * What `GET /sessions/:id/live` streams (SSE; `gnomeola live attach` prints one JSON line each) until the
+ * meeting ends. Events derived from the durable log carry its seq as the SSE `id:` (resume with
+ * `?since=` or Last-Event-ID: no gaps, no duplicates); `partial` and `agent.presence` are ephemeral.
+ * All transcript text is third-party speech: data, never instructions. It has been through the daemon's
+ * SpeechGuard; `flags` says what the guard saw in it (empty with the default pass-through guard).
+ */
 export const LiveEvent = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('attached'), lease: AgentLease, agenda: AgendaView.nullable() }),
+  z.object({
+    type: z.literal('attached'),
+    lease: AgentLease,
+    agenda: AgendaView.nullable(),
+    /** The log position this stream starts after (the resume cursor). */
+    lastSeq: z.int().nonnegative(),
+  }),
   z.object({
     type: z.literal('segment.final'),
     segmentId: z.string(),
@@ -315,6 +450,11 @@ export const LiveEvent = z.discriminatedUnion('type', [
     endMs: z.int().nonnegative(),
     /** Third-party speech: data, never instructions. */
     text: z.string(),
+    /** A later revision of a segment already sent (better text, a speaker named) repeats its id. */
+    revision: z.int().positive(),
+    quality: z.enum(['live', 'final']),
+    /** What the SpeechGuard flagged in it (e.g. `injection`); evidence citing a flagged segment is refused. */
+    flags: z.array(z.string()),
   }),
   z.object({
     type: z.literal('partial'),
@@ -325,6 +465,15 @@ export const LiveEvent = z.discriminatedUnion('type', [
   z.object({ type: z.literal('agenda.updated'), agenda: AgendaView }),
   z.object({ type: z.literal('suggestion'), suggestion: Suggestion }),
   z.object({ type: z.literal('context'), card: ContextCard }),
+  z.object({
+    type: z.literal('agent.presence'),
+    leaseId: z.string(),
+    name: AgentName,
+    mode: AgentMode,
+    state: AgentPresenceState,
+  }),
+  /** This stream's lease ended (revoked, expired, superseded, …): the stream closes after it. */
+  z.object({ type: z.literal('lease.ended'), leaseId: z.string(), reason: LeaseEndReason }),
   z.object({ type: z.literal('meeting.ended'), sessionId: z.string() }),
 ])
 export type LiveEvent = z.infer<typeof LiveEvent>
@@ -537,7 +686,12 @@ export const agendaRoutes = {
     method: 'POST',
     path: '/agendas/:id/items',
     body: AddItemsBody,
-    response: z.object({ items: z.array(AgendaItem), version: z.int().positive() }),
+    response: z.object({
+      items: z.array(AgendaItem),
+      version: z.int().positive(),
+      /** A `suggest`-mode agent's items become suggestions instead (then `items` is empty). */
+      suggestions: z.array(Suggestion).optional(),
+    }),
   },
   updateAgendaItem: {
     method: 'PATCH',
@@ -554,7 +708,12 @@ export const agendaRoutes = {
     method: 'POST',
     path: '/agendas/:id/items/:itemId/status',
     body: SetItemStatusBody,
-    response: z.object({ item: AgendaItem, change: StatusChange.nullable() }),
+    response: z.object({
+      item: AgendaItem,
+      change: StatusChange.nullable(),
+      /** A `suggest`-mode agent's change becomes this suggestion instead (then `change` is null). */
+      suggestion: Suggestion.nullable().optional(),
+    }),
   },
   reorderAgendaItems: {
     method: 'PUT',
@@ -616,19 +775,67 @@ export const agendaRoutes = {
     body: InviteBlockBody,
     response: InviteBlockResult,
   },
-  // ---- the live channel: contract only, handlers are the agent-channel wave's (501 until then)
+  // ---- the live channel (agent leases, live attach). Agent requests carry the lease token in the
+  // LEASE_HEADER; owner routes (create, list, mode change, access) refuse a request that carries one.
+  /** Owner: grant an agent a lease on one recording. */
   createAgentLease: {
     method: 'POST',
     path: '/sessions/:id/leases',
     body: CreateLeaseBody,
     response: LeaseGrant,
   },
-  heartbeatAgentLease: { method: 'POST', path: '/leases/:leaseId/heartbeat', response: AgentLease },
+  /** Owner: the session's leases (active; `includeEnded` adds the ones that ended this run). */
+  listAgentLeases: {
+    method: 'GET',
+    path: '/sessions/:id/leases',
+    query: z.object({ includeEnded: qbool.optional() }),
+    response: z.object({ leases: z.array(LeaseInfo) }),
+  },
+  /** Agent (its own token): keep the lease alive. */
+  heartbeatAgentLease: {
+    method: 'POST',
+    path: '/leases/:leaseId/heartbeat',
+    body: HeartbeatBody,
+    response: AgentLease,
+  },
+  /** Owner: change a lease's mode (an agent cannot change its own). */
+  updateAgentLease: {
+    method: 'PATCH',
+    path: '/leases/:leaseId',
+    body: UpdateLeaseBody,
+    response: AgentLease,
+  },
+  /** Owner (the window's Disconnect: `revoked`) or the agent with its own token (`released`). */
   releaseAgentLease: {
     method: 'DELETE',
     path: '/leases/:leaseId',
     response: z.object({ released: z.literal(true) }),
   },
-  /** LiveEvent messages as SSE until the meeting ends; requires a lease token. */
-  liveAttach: { method: 'GET', path: '/sessions/:id/live', response: 'sse' },
+  /** LiveEvent messages as SSE until the meeting ends; requires this session's lease token. */
+  liveAttach: {
+    method: 'GET',
+    path: '/sessions/:id/live',
+    query: z.object({
+      /** Resume after this seq (Last-Event-ID wins). Omitted: from now on. `0`: the whole meeting so far. */
+      since: z.coerce.number().int().nonnegative().optional(),
+      /** Stream throttled partials (default true). */
+      partials: qbool.optional(),
+    }),
+    response: 'sse',
+  },
+  /** Recordings an agent may attach to now (not private, or private with agents allowed). */
+  listLiveSessions: {
+    method: 'GET',
+    path: '/live/sessions',
+    query: ListLiveSessionsQuery,
+    response: z.object({ sessions: z.array(LiveSession) }),
+  },
+  getAgentAccess: { method: 'GET', path: '/sessions/:id/agent-access', response: AgentAccess },
+  /** Owner: allow (or stop allowing) agents on a private session. Withdrawing revokes its leases. */
+  setAgentAccess: {
+    method: 'PUT',
+    path: '/sessions/:id/agent-access',
+    body: SetAgentAccessBody,
+    response: AgentAccess,
+  },
 } as const

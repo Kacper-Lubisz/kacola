@@ -84,6 +84,9 @@ export function mergeSettings(
     retention: { ...base.retention, ...patch.retention },
     autoRecord: { ...base.autoRecord, ...patch.autoRecord },
     speakers: { ...DEFAULT_SPEAKER_SETTINGS, ...base.speakers, ...patch.speakers },
+    ...(('agents' in patch && patch.agents) || base.agents
+      ? { agents: ('agents' in patch && patch.agents) || base.agents }
+      : {}),
     decisions: mergeDecisions(base.decisions, patch.decisions),
   })
 }
@@ -153,6 +156,14 @@ export class SettingsService {
     this.store.putSettings(next)
     this.logger.info('settings updated', { sections: Object.keys(p) })
     return this.view()
+  }
+
+  /** Agent channel: which private sessions agents may attach to (a durable settings.updated, like any). */
+  setAgentSettings(agents: NonNullable<StoredSettings['agents']>): StoredSettings {
+    const next = mergeSettings(this.get(), { agents })
+    this.store.putSettings(next)
+    this.logger.info('settings updated', { sections: ['agents'] })
+    return next
   }
 
   /**

@@ -213,6 +213,46 @@ export function checkAgendaLog(events: readonly DurableEvent[]): Violation[] {
   return v
 }
 
+/**
+ * Agent channel: what connected agents left in the log, read independently of the daemon's rules.
+ * An agent's context card is private. An agent's check-off (to `covered`) cites at least one transcript
+ * segment. A proposal (a suggest-mode agent's status change) keeps segment ids but no transcript words.
+ * Items an agent adds start open. Only the user accepts or dismisses suggestions.
+ */
+export function checkAgentLog(events: readonly DurableEvent[]): Violation[] {
+  const v: Violation[] = []
+  const agent = (by: string | null | undefined) => typeof by === 'string' && by.startsWith('agent:')
+  for (const e of events) {
+    const d = e.data
+    if (d.type === 'agenda.context.upserted' && agent(d.card.createdBy) && d.card.visibility !== 'private')
+      v.push({
+        rule: 'agent-card-private',
+        detail: `${d.card.id} by ${d.card.createdBy} is ${d.card.visibility}`,
+      })
+    if (d.type === 'agenda.item.status' && agent(d.change.by) && d.change.to === 'covered')
+      if (!d.change.evidence.some((x) => x.segmentId))
+        v.push({
+          rule: 'agent-checkoff-evidence',
+          detail: `${d.change.itemId}: ${d.change.by} covered it citing no segment`,
+        })
+    if (d.type === 'agenda.item.upserted' && agent(d.item.createdBy) && d.item.createdBy === d.item.changedBy)
+      if (d.item.status !== 'open' && d.item.createdAt === d.item.updatedAt)
+        v.push({
+          rule: 'agent-items-open',
+          detail: `${d.item.id}: added by ${d.item.createdBy} as ${d.item.status}`,
+        })
+    if (d.type === 'agenda.suggestion.upserted') {
+      const s = d.suggestion
+      const p = s.proposal
+      if (p?.kind === 'status' && p.evidence.some((x) => x.segmentId && x.quote))
+        v.push({ rule: 'proposal-no-words', detail: `${s.id}: a proposal carries transcript words` })
+      if (s.state !== 'open' && agent(s.resolvedBy))
+        v.push({ rule: 'user-resolves', detail: `${s.id}: ${s.state} by ${s.resolvedBy}` })
+    }
+  }
+  return v
+}
+
 /** Throw with every violation listed — for use as a single assertion in tests. */
 export function assertNoViolations(violations: Violation[], context = ''): void {
   if (!violations.length) return
