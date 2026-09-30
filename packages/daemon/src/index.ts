@@ -50,6 +50,7 @@ export {
   NoModels,
   UnavailablePipeline,
 } from './fakes/providers.ts'
+export { ScriptedPipeline, ScriptedRecording, type ScriptLine } from './fakes/scripted-pipeline.ts'
 export type * from './interfaces.ts'
 export { MemoryKeyring, NoKeyring, SecretToolKeyring, type SecretToolOptions } from './keyring.ts'
 export { ACTIVE, isActive, type LifecycleAction, nextStatus } from './lifecycle.ts'

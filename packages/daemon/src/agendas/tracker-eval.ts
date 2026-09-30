@@ -1,5 +1,6 @@
 import type { AgendaItemInput, DecisionProvider, DecisionResult } from '@gnomeola/decisions'
-import type { AgendaItemStatus } from '@gnomeola/protocol'
+import { estimateCostUsd, type LlmProvider, recapItem } from '@gnomeola/llm'
+import type { AgendaItemStatus, Segment, Session } from '@gnomeola/protocol'
 import { AgendaStore, Store } from '@gnomeola/store'
 import { Logger } from '../logger.ts'
 import { decisionSpeechGuard } from './speech-guard.ts'
@@ -66,13 +67,34 @@ export function trackerStatusRunner(
       const agendas = new AgendaStore(store).withClock(clock)
       const results: DecisionResult[] = []
       const rounds: RoundObservation[] = []
+      // the tracker survives provider errors (it degrades); an eval must not: the first error is re-thrown
+      // from onSegment, so a live run without quota is skipped with the reason instead of scoring nothing
+      let failure: unknown = null
+      const watched: DecisionProvider = {
+        id: provider.id,
+        model: provider.model,
+        confidence: provider.confidence,
+        maxQuestionsPerCall: provider.maxQuestionsPerCall,
+        async decide(req, opts) {
+          try {
+            return await provider.decide(req, opts)
+          } catch (err) {
+            failure ??= err
+            throw err
+          }
+        },
+      }
+      const settle = async () => {
+        await tracker.idle(session.id)
+        if (failure) throw failure
+      }
       const tracker = new AgendaTracker({
         store,
         agendas,
         logger: quiet(),
         decisions: {
-          provider: async () => provider,
-          localProvider: async () => provider,
+          provider: async () => watched,
+          localProvider: async () => watched,
           selected: () => provider.id,
         },
         now: () => now,
@@ -112,11 +134,11 @@ export function trackerStatusRunner(
         async onSegment(u: { index: number; speaker: string; text: string; startMs: number; endMs: number }) {
           results.length = 0
           rounds.length = 0
-          await tracker.idle(session.id)
+          await settle()
           while (beatMs > 0 && u.endMs >= nextBeat) {
             now = t0 + nextBeat
             tracker.heartbeat(session.id)
-            await tracker.idle(session.id)
+            await settle()
             nextBeat += beatMs
           }
           now = t0 + u.endMs
@@ -131,7 +153,7 @@ export function trackerStatusRunner(
             quality: 'final',
             confidence: null,
           })
-          await tracker.idle(session.id)
+          await settle()
           // the latest verdict per item across this step's rounds (a heartbeat round, then the segment's)
           const byItem = new Map<string, StatusReportOut>()
           for (const r of rounds)
@@ -234,6 +256,57 @@ export function trackerInterviewRunner(provider: DecisionProvider, mode: Mode) {
         p: v?.interview ? v.interview.p : 0,
         answer: answered ? (v?.answer ?? null) : null,
         usage: usageOf(results),
+      }
+    },
+  }
+}
+
+/**
+ * The recap as the daemon writes it (recap.ts → @gnomeola/llm recapItem: the transcript as the cached
+ * prefix, the item as the tail), on a RecapCase: its turns become one recording's segments.
+ */
+export function trackerRecapRunner(llm: LlmProvider) {
+  return {
+    name: 'tracker-recap',
+    provider: llm.id,
+    model: llm.model,
+    mode: 'live' as Mode,
+    async run(c: { id: string; item: AgendaItemInput; transcript: Turn[] }) {
+      const at = '2026-01-05T10:00:00.000Z'
+      const session: Session = {
+        id: `ses_${c.id}`,
+        title: c.id,
+        createdAt: at,
+        startedAt: at,
+        endedAt: at,
+        status: 'stopped',
+        private: false,
+        durationMs: c.transcript.length * 5_000,
+        tracks: [],
+        error: null,
+      }
+      const segments: Segment[] = c.transcript.map((t, i) => ({
+        id: `s${i}`,
+        sessionId: session.id,
+        track: t.speaker === 'me' ? 'mic' : 'system',
+        speaker: t.speaker,
+        startMs: i * 5_000,
+        endMs: i * 5_000 + 4_500,
+        text: t.text,
+        quality: 'final',
+        revision: 1,
+        confidence: null,
+      }))
+      const r = await recapItem({ provider: llm, transcript: { session, segments }, item: c.item })
+      return {
+        text: r.text,
+        ...(r.status ? { status: r.status } : {}),
+        usage: {
+          usd: estimateCostUsd(r.usage, r.model),
+          inputTokens: r.usage.inputTokens + r.usage.cacheReadTokens + r.usage.cacheWriteTokens,
+          outputTokens: r.usage.outputTokens,
+          calls: 1,
+        },
       }
     },
   }
