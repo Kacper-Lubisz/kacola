@@ -144,13 +144,15 @@ class FakeAgent {
   private readonly seen = new Set<string>()
   private readonly pending: Promise<unknown>[] = []
   private readonly ac = new AbortController()
+  readonly name: string
 
   constructor(
-    readonly name: string,
+    name: string,
     mode: 'observe' | 'suggest' | 'act',
     react: (e: Extract<LiveEvent, { type: 'segment.final' }>) => string[][] = () => [],
     extraArgs: string[] = ['--heartbeat', '1s'],
   ) {
+    this.name = name
     this.done = gnomeola(['live', 'attach', '--as', name, '--mode', mode, ...extraArgs], d.baseUrl, {
       env,
       signal: this.ac.signal,
