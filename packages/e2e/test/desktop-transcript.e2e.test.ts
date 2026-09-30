@@ -116,6 +116,12 @@ describe('desktop transcript pane against the real daemon', () => {
       return cs.fontFamily + '|' + cs.fontVariantNumeric
     })()`)) as string
     expect(font).toMatch(/JetBrains Mono.*\|tabular-nums/)
+    // …and the bundled face really is the one drawing them (not a system fallback)
+    const loaded = (await w().evaluate(`(async () => {
+      await document.fonts.ready
+      return [...document.fonts].filter((f) => f.family.replace(/"/g, '') === 'JetBrains Mono').map((f) => f.status)
+    })()`)) as string[]
+    expect(loaded).toContain('loaded')
     expect(await app.axe()).toEqual([])
     await expectScreenshot(app, 'transcript-final-light', { region: pane() })
     await setScheme(w(), 'dark')
