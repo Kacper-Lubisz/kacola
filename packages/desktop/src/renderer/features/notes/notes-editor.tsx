@@ -153,11 +153,5 @@ export function NotesEditor({
     }
   }, [])
 
-  return (
-    <div
-      ref={host}
-      data-notes-editor=""
-      className="h-full min-h-0 overflow-hidden"
-    />
-  )
+  return <div ref={host} data-notes-editor="" className="h-full min-h-0 overflow-hidden" />
 }

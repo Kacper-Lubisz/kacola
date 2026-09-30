@@ -392,6 +392,33 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     await alert.waitFor({ state: 'detached' })
   })
 
+  it('rate limiting says to try again later, leaves the notes alone, and Try Again works', async () => {
+    const before = await h.versions(SEED.retro)
+    // every attempt is a 429 (the SDK retries twice); a short retry hint keeps it fast
+    const limited = loadCassette(join(CASSETTES, 'rate-limited.json'))[0]!
+    ctx.api.always({
+      ...limited,
+      headers: { ...limited.headers, 'retry-after': '0', 'retry-after-ms': '10' },
+    })
+    await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
+    const alert = h.w().getByRole('alert').filter({ hasText: 'Your notes were not enhanced' })
+    await alert.waitFor({ timeout: 20_000 })
+    expect(await alert.textContent()).toContain('limiting requests')
+    expect(await h.versions(SEED.retro)).toEqual(before)
+    await h.axe()
+    // the provider recovers: Try Again enhances with the same template
+    ctx.api.always(null)
+    ctx.api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
+    await alert.getByRole('button', { name: 'Try Again' }).click()
+    await h.w().getByRole('heading', { name: 'Review Enhanced Notes' }).waitFor({ timeout: 20_000 })
+    await h.w().getByRole('button', { name: 'Discard', exact: true }).click()
+    await h.editor().waitFor({ timeout: 10_000 })
+    await waitFor(async () => (await h.head(SEED.retro)).pendingEnhancement === null, 10_000, 'review closed')
+    expect((await h.head(SEED.retro)).markdown).toBe(
+      before.filter((v) => v.kind !== 'enhanced').at(-1)!.markdown,
+    )
+  })
+
   it('restores an old version from the history: a new version on top, nothing removed', async () => {
     const before = await h.versions(SEED.retro)
     const typed = before.filter((v) => v.kind === 'user' && v.markdown === TYPED).at(-1)!

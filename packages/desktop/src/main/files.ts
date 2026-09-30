@@ -20,8 +20,7 @@ export function safeFileName(name: string, fallback = 'notes.md'): string {
     .replace(/[\\/:*?"<>|]/g, ' ')
     .replace(/\p{Cc}/gu, ' ')
     .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/^\.+/, '')
+    .replace(/^[.\s]+/, '')
     .trim()
     .slice(0, 120)
   return base || fallback
