@@ -12,6 +12,7 @@ import { keys } from '../data/keys.ts'
 import type { Services } from '../data/services.tsx'
 import { HeaderBar, StatusPage } from '../design/primitives/index.ts'
 import { SessionPage } from '../features/sessions/session-page.tsx'
+import { parseSessionSearch } from '../features/transcript/search-params.ts'
 import { Gallery } from './gallery.tsx'
 import { MainLayout, NoSessionSelected } from './main-layout.tsx'
 
@@ -32,6 +33,8 @@ const indexRoute = createRoute({ getParentRoute: () => mainRoute, path: '/', com
 const sessionRoute = createRoute({
   getParentRoute: () => mainRoute,
   path: '/sessions/$sessionId',
+  // ?pane= (which view) and ?seg= / ?t= (a line to show): features/transcript/search-params.ts
+  validateSearch: parseSessionSearch,
   loader: async ({ context: { queryClient, queries }, params }) => {
     // seed from the list the sidebar already holds, so selecting a row costs no round trip
     const listed = queryClient.getQueryData<SessionsState>(keys.sessions())?.byId.get(params.sessionId)
@@ -41,7 +44,8 @@ const sessionRoute = createRoute({
   },
   component: function SessionRoute() {
     const { sessionId } = sessionRoute.useParams()
-    return <SessionPage sessionId={sessionId} />
+    const search = sessionRoute.useSearch()
+    return <SessionPage sessionId={sessionId} search={search} />
   },
   errorComponent: () => (
     <div className="flex h-full flex-col">

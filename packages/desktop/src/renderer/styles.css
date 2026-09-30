@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @import "./design/tokens.css";
+/* kacola brand (interim wiring for the phase-2 features; the brand integration owns the final form) */
+@import "../../../../brand/tokens/fonts.css";
+@import "../../../../brand/tokens/tokens.css";
 
 /*
  * Tailwind sees ONLY our tokens: the default palette, radii and fonts are cleared, so a class like
@@ -13,6 +16,10 @@
   --radius-*: initial;
   --font-*: initial;
 }
+/* the brand's utilities (bg-bg-surface, text-text-secondary, bg-speaker-1, rounded-pill, type-mono …):
+   after the reset, which would otherwise clear them (Tailwind inlines imports wherever they are) */
+/* biome-ignore lint/correctness/noInvalidPositionAtImportRule: must follow the @theme reset above */
+@import "../../../../brand/tokens/tailwind.css";
 
 @theme inline {
   --color-window: var(--window-bg-color);

@@ -1,0 +1,98 @@
+/*
+ * Transcript / Ask / Speakers styles that utilities cannot express (keyframes, per-slot custom
+ * properties). Tokens only (brand/tokens/tokens.css); reduced motion drops every animation.
+ */
+
+/* speaker chip colours: the daemon's palette slot (0-based, 8 slots) folds onto the brand's six */
+.k-speaker {
+  --k-spk: var(--k-color-text-tertiary);
+}
+.k-speaker[data-slot="1"] {
+  --k-spk: var(--k-color-speaker-1);
+}
+.k-speaker[data-slot="2"] {
+  --k-spk: var(--k-color-speaker-2);
+}
+.k-speaker[data-slot="3"] {
+  --k-spk: var(--k-color-speaker-3);
+}
+.k-speaker[data-slot="4"] {
+  --k-spk: var(--k-color-speaker-4);
+}
+.k-speaker[data-slot="5"] {
+  --k-spk: var(--k-color-speaker-5);
+}
+.k-speaker[data-slot="6"] {
+  --k-spk: var(--k-color-speaker-6);
+}
+.k-speaker[data-slot="me"] {
+  --k-spk: var(--k-color-ink-primary);
+}
+
+.k-speaker-chip {
+  background: color-mix(in srgb, var(--k-spk) 14%, var(--k-color-bg-surface));
+}
+.k-speaker-dot {
+  background: var(--k-spk);
+}
+.k-speaker-swatch {
+  background: color-mix(in srgb, var(--k-spk) 14%, var(--k-color-bg-surface));
+  color: var(--k-color-text-primary);
+  box-shadow: inset 0 0 0 1.5px var(--k-spk);
+}
+
+/* the live partial line's caret */
+.k-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--k-color-accent-record);
+  animation: k-caret-blink 1.1s steps(1, end) infinite;
+}
+@keyframes k-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.k-spin {
+  animation: k-spin 0.9s linear infinite;
+}
+@keyframes k-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* a followed citation flashes its line once, then stays selected */
+.k-cited {
+  animation: k-cited-flash 1.2s var(--k-easing-out) 1;
+}
+@keyframes k-cited-flash {
+  0% {
+    background: color-mix(in srgb, var(--k-color-accent-record) 22%, transparent);
+  }
+  100% {
+    background: var(--k-color-bg-selected);
+  }
+}
+
+.k-mark {
+  background: color-mix(in srgb, var(--k-color-status-warning) 30%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
+.k-mark[data-current] {
+  background: color-mix(in srgb, var(--k-color-accent-record) 32%, transparent);
+  box-shadow: 0 0 0 1px var(--k-color-accent-record);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .k-caret,
+  .k-spin,
+  .k-cited {
+    animation: none;
+  }
+}
