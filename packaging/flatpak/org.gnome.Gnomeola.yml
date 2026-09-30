@@ -4,13 +4,13 @@
 # Build with scripts/build-flatpak.ts, which first assembles ./input (git-ignored):
 #
 #   input/app/                     the unpacked Electron app — electron-builder's `linux-unpacked` output
-#     gnomeola                     of packages/desktop (--app-dir), or, until that lands, the stock
-#     resources/app/ | app.asar    Electron 44 binary with packaging/placeholder as its main
+#     gnomeola                     of packages/desktop (scripts/build-desktop.ts, or --app-dir): the
+#     resources/app.asar           Electron 44 binary (fuses flipped) and the app's main/preload/renderer
 #     resources/runtime/           dist/runtime from scripts/build-runtime.ts: daemon.mjs, cli.mjs,
 #                                  diarize-worker.mjs, root/ (gjs helpers, D-Bus XML), node_modules/
 #                                  (better-sqlite3, sherpa-onnx-node + sherpa-onnx-linux-<arch>)
 #   input/bin/                     the launchers (packaging/flatpak/bin)
-#   input/share/                   desktop file, metainfo and icon (copied from packaging/)
+#   input/share/                   desktop file and metainfo (packaging/flatpak), icons (brand/icons)
 #
 # The runtime already ships pw-record / pw-dump (PipeWire), ffmpeg and stdbuf. It lacks secret-tool
 # (built below from libsecret) and gjs (the D-Bus bridge and the EDS calendar agent run on it):
@@ -92,4 +92,4 @@ modules:
       - install -Dm644 share/selftest.mjs /app/share/gnomeola/selftest.mjs
       - install -Dm644 share/org.gnome.Gnomeola.desktop /app/share/applications/org.gnome.Gnomeola.desktop
       - install -Dm644 share/org.gnome.Gnomeola.metainfo.xml /app/share/metainfo/org.gnome.Gnomeola.metainfo.xml
-      - install -Dm644 share/org.gnome.Gnomeola.svg /app/share/icons/hicolor/scalable/apps/org.gnome.Gnomeola.svg
+      - cp -r share/icons /app/share/icons

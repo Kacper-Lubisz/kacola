@@ -1,9 +1,0 @@
-{
-  "name": "gnomeola",
-  "productName": "gnomeola",
-  "version": "0.1.0",
-  "description": "Placeholder main process for the packaging pipelines (replaced by packages/desktop).",
-  "license": "GPL-3.0-or-later",
-  "main": "main.cjs",
-  "desktopName": "org.gnome.Gnomeola.desktop"
-}

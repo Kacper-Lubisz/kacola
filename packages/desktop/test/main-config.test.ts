@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { readDesktopConfig, tokenFor } from '../src/main/config.ts'
+import { daemonEntry, readDesktopConfig, tokenFor } from '../src/main/config.ts'
 import {
   initialUiState,
   loadCatalogue,
@@ -16,6 +16,18 @@ import { parseAccent, parseSettingChanged, parseUint, themeFrom } from '../src/m
 const tmp = () => mkdtempSync(join(tmpdir(), 'gnomeola-desktop-'))
 
 describe('config', () => {
+  it('a packaged build spawns resources/runtime/daemon.mjs (scripts/build-desktop.ts puts it there)', () => {
+    const res = tmp()
+    mkdirSync(join(res, 'runtime'))
+    writeFileSync(join(res, 'runtime', 'daemon.mjs'), '')
+    expect(daemonEntry({}, { resourcesPath: res, appDir: '/nowhere' })).toBe(
+      join(res, 'runtime', 'daemon.mjs'),
+    )
+    expect(daemonEntry({ GNOMEOLA_DAEMON_ENTRY: '/x.mjs' }, { resourcesPath: res, appDir: '/nowhere' })).toBe(
+      '/x.mjs',
+    )
+  })
+
   it('defaults to the loopback daemon, and knows loopback from remote', () => {
     const c = readDesktopConfig({ HOME: tmp() }, ['electron', '.'], { appDir: '/nowhere' })
     expect(c).toMatchObject({ baseUrl: 'http://127.0.0.1:8787', loopback: true, background: false })

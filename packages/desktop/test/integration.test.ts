@@ -2,7 +2,15 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { cliEntry, cliStateFrom, Integration } from '../src/main/integration.ts'
+import {
+  adminInstallCommand,
+  adminRemoveCommand,
+  appleString,
+  cliEntry,
+  cliStateFrom,
+  Integration,
+  shq,
+} from '../src/main/integration.ts'
 
 // Main's desktop-integration logic: which CLI to run, and install-cli's --json report / exit code →
 // the state Preferences shows. (The real install-cli run is in the desktop-dialogs e2e.)
@@ -96,11 +104,141 @@ describe('Integration', () => {
       ['install-cli', '--json', '--dry-run'],
     ])
   })
-  it('without a CLI entry everything is unavailable; the extension is a stub', async () => {
+  it('without a CLI entry everything is unavailable; without an extension copy so is its install', async () => {
     const i = new Integration(null)
     expect((await i.cliStatus()).state).toBe('unavailable')
     expect((await i.installCli(false)).state).toBe('unavailable')
     expect((await i.installExtension()).state).toBe('unavailable')
+  })
+
+  it('packaged Linux: every install-cli run passes --launch, so the shim starts this binary', async () => {
+    const seen: string[][] = []
+    const i = new Integration(
+      async (args) => {
+        seen.push(args)
+        return { code: 0, stdout: report(), stderr: '' }
+      },
+      { platform: 'linux', launch: "'/opt/gnomeola/gnomeola' --background" },
+    )
+    await i.cliStatus()
+    await i.installCli(false)
+    expect(seen).toEqual([
+      ['install-cli', '--json', '--launch', "'/opt/gnomeola/gnomeola' --background", '--dry-run'],
+      ['install-cli', '--json', '--launch', "'/opt/gnomeola/gnomeola' --background"],
+    ])
+  })
+
+  it('macOS: /usr/local/bin needs an admin → one osascript prompt, then the ~/.local/bin fallback goes', async () => {
+    const seen: string[][] = []
+    const execs: string[][] = []
+    let adminDone = false
+    const i = new Integration(
+      async (args) => {
+        seen.push(args)
+        if (args[0] === 'install-cli' && args.includes('--dry-run'))
+          return {
+            code: 0,
+            stdout: report({
+              shim: { path: '/usr/local/bin/gnomeola', action: adminDone ? 'unchanged' : 'installed' },
+            }),
+            stderr: '',
+          }
+        if (args[0] === 'install-cli')
+          return { code: 0, stdout: report({ needsAdmin: '/usr/local/bin' }), stderr: '' }
+        return {
+          code: 0,
+          stdout: JSON.stringify({ removed: [], keptForeign: [], needsAdmin: [] }),
+          stderr: '',
+        }
+      },
+      {
+        platform: 'darwin',
+        exec: async (argv) => {
+          execs.push(argv)
+          adminDone = true
+          return { code: 0, stdout: '', stderr: '' }
+        },
+      },
+    )
+    const st = await i.installCli(false)
+    expect(execs).toEqual([adminInstallCommand('/h/.local/bin/gnomeola', '/usr/local/bin')])
+    expect(seen[1]).toEqual(['uninstall-cli', '--json', '--keep-skill', '--bin-dir', '/h/.local/bin'])
+    expect(st).toMatchObject({ state: 'installed', path: '/usr/local/bin/gnomeola' })
+  })
+
+  it('macOS: declining the admin prompt keeps the fallback and says admin rights were needed', async () => {
+    const i = new Integration(
+      async () => ({ code: 0, stdout: report({ needsAdmin: '/usr/local/bin' }), stderr: '' }),
+      {
+        platform: 'darwin',
+        exec: async () => ({ code: 1, stdout: '', stderr: 'execution error: User canceled. (-128)' }),
+      },
+    )
+    expect(await i.installCli(false)).toMatchObject({
+      state: 'installed',
+      path: '/h/.local/bin/gnomeola',
+      needsAdmin: '/usr/local/bin',
+    })
+  })
+
+  it('macOS: uninstall removes an admin-installed shim with one prompt', async () => {
+    const execs: string[][] = []
+    const i = new Integration(
+      async (args) =>
+        args[0] === 'uninstall-cli'
+          ? {
+              code: 0,
+              stdout: JSON.stringify({
+                removed: [],
+                keptForeign: [],
+                needsAdmin: ['/usr/local/bin/gnomeola'],
+              }),
+              stderr: '',
+            }
+          : { code: 0, stdout: report(), stderr: '' },
+      {
+        platform: 'darwin',
+        exec: async (argv) => {
+          execs.push(argv)
+          return { code: 0, stdout: '', stderr: '' }
+        },
+      },
+    )
+    await i.uninstallCli()
+    expect(execs).toEqual([adminRemoveCommand(['/usr/local/bin/gnomeola'])])
+  })
+
+  it('never prompts for admin rights on Linux', async () => {
+    const i = new Integration(
+      async () => ({ code: 0, stdout: report({ needsAdmin: '/usr/local/bin' }), stderr: '' }),
+      {
+        platform: 'linux',
+        exec: async () => {
+          throw new Error('no osascript on Linux')
+        },
+      },
+    )
+    expect((await i.installCli(false)).state).toBe('installed')
+  })
+})
+
+describe('the macOS admin prompt commands', () => {
+  it('builds one osascript `do shell script … with administrator privileges`, quoted for sh and AppleScript', () => {
+    expect(adminInstallCommand('/Users/a b/.local/bin/gnomeola', '/usr/local/bin')).toEqual([
+      '/usr/bin/osascript',
+      '-e',
+      `do shell script "/bin/mkdir -p '/usr/local/bin' && /usr/bin/install -m 0755 '/Users/a b/.local/bin/gnomeola' '/usr/local/bin/gnomeola'" with administrator privileges`,
+    ])
+    // a quote in a path: sh-quoted, then AppleScript-escaped
+    const [, , script] = adminInstallCommand(`/Users/o"brien's/gnomeola`, '/usr/local/bin')
+    expect(script).toContain(`'/Users/o\\"brien'\\\\''s/gnomeola'`)
+    expect(adminRemoveCommand(['/usr/local/bin/gnomeola'])[2]).toBe(
+      `do shell script "/bin/rm -f '/usr/local/bin/gnomeola'" with administrator privileges`,
+    )
+  })
+  it('sh and AppleScript quoting round-trip', () => {
+    expect(shq("it's")).toBe(`'it'\\''s'`)
+    expect(appleString('a"b\\c')).toBe('"a\\"b\\\\c"')
   })
 })
 

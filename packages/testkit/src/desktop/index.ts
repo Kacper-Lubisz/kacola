@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { AxeBuilder } from '@axe-core/playwright'
-import { _electron, type ElectronApplication, type Page } from 'playwright-core'
+import { _electron, type Browser, chromium, type ElectronApplication, type Page } from 'playwright-core'
 import type { HeadlessDisplay } from '../ui/index.ts'
 import { MARKER_VAR } from '../ui/processes.ts'
 
@@ -181,5 +181,59 @@ export async function waitForLog(app: DesktopApp, re: RegExp, timeoutMs = 20_000
     await new Promise((r) => setTimeout(r, 50))
   }
 }
+export type CdpWindow = {
+  browser: Browser
+  /** The main window's page (app://gnomeola/index.html; the hidden capture window is skipped). */
+  window: Page
+  /** Console errors, page errors and CSP violations seen since connecting. */
+  problems: () => string[]
+  /** Disconnect (the app keeps running). */
+  disconnect: () => Promise<void>
+}
+
+/**
+ * The window of a PACKAGED build, over Chromium's DevTools protocol. Playwright's `_electron` cannot
+ * drive it: the fuses turn off --inspect, which `_electron` needs for main. The build refuses a
+ * remote-debugging port unless GNOMEOLA_ALLOW_REMOTE_DEBUGGING=1 (src/main/index.ts), so launch it with
+ * that and `--remote-debugging-port=<port>` — directly, or inside the Flatpak sandbox.
+ */
+export async function connectCdp(port: number, timeoutMs = 60_000): Promise<CdpWindow> {
+  const deadline = Date.now() + timeoutMs
+  const url = `http://127.0.0.1:${port}`
+  for (;;) {
+    const ok = await fetch(`${url}/json/version`, { signal: AbortSignal.timeout(1000) })
+      .then((r) => r.ok)
+      .catch(() => false)
+    if (ok) break
+    if (Date.now() > deadline) throw new Error(`no DevTools endpoint at ${url}`)
+    await new Promise((r) => setTimeout(r, 250))
+  }
+  const browser = await chromium.connectOverCDP(url)
+  let window: Page | undefined
+  while (!window) {
+    window = browser
+      .contexts()
+      .flatMap((c) => c.pages())
+      .find((p) => p.url().startsWith('app://gnomeola/index.html'))
+    if (window) break
+    if (Date.now() > deadline) throw new Error(`the app's window never appeared at ${url}`)
+    await new Promise((r) => setTimeout(r, 250))
+  }
+  const problems: string[] = []
+  window.on('console', (m) => {
+    if (m.type() === 'error' || /Content Security Policy/i.test(m.text()))
+      problems.push(`console: ${m.text()}`)
+  })
+  window.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`))
+  await window.waitForLoadState('domcontentloaded')
+  return {
+    browser,
+    window,
+    problems: () => [...problems],
+    // connectOverCDP's close() only disconnects: the app keeps running
+    disconnect: () => browser.close(),
+  }
+}
+
 export * from './footprint.ts'
 export * from './screenshot.ts'

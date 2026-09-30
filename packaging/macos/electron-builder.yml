@@ -2,7 +2,7 @@
 # Zips are gnomeola-<version>-mac-<arch>.zip.
 # Built from Linux by scripts/build-macos.ts, which stages the project directory this file is read in:
 #
-#   package.json, main.cjs       the main process (packaging/placeholder until packages/desktop lands)
+#   package.json, out/           packages/desktop (main, preload, renderer), staged by scripts/build-desktop.ts
 #   runtime-arm64/, runtime-x64/ dist/runtime per architecture (scripts/build-runtime.ts --target
 #                                darwin-<arch>): the bundles plus darwin natives — better-sqlite3's N-API
 #                                prebuild and sherpa-onnx-darwin-<arch> (dylibs) — copied as
@@ -17,7 +17,7 @@ directories:
   output: ../out
 files:
   - package.json
-  - main.cjs
+  - out/**/*
 extraResources:
   - from: runtime-${arch}
     to: runtime
@@ -29,17 +29,13 @@ extraResources:
     to: THIRD_PARTY_NOTICES.md
   - from: LICENSES.chromium.html
     to: LICENSES.chromium.html
-# Electron fuses (the brief's security baseline): one binary runs the window, the daemon and the CLI, so
-# RunAsNode stays on; everything else that lets environment or flags inject code is off.
-electronFuses:
-  runAsNode: true
-  enableCookieEncryption: true
-  enableNodeOptionsEnvironmentVariable: false
-  enableNodeCliInspectArguments: false
-  enableEmbeddedAsarIntegrityValidation: true
-  onlyLoadAppFromAsar: true
-  loadBrowserProcessSpecificV8Snapshot: false
-  grantFileProtocolExtraPrivileges: false
+  # the menu-bar Tray icon (1x / 2x)
+  - from: tray.png
+    to: tray.png
+  - from: tray@2x.png
+    to: tray@2x.png
+# Electron fuses: packages/desktop/fuses.config.ts (one source for Linux and macOS), flipped by
+# scripts/build-macos.ts in afterPack. RunAsNode stays on: one binary runs the window, daemon and CLI.
 mac:
   # `dir`, then scripts/build-macos.ts zips each .app with Info-ZIP keeping symlinks: electron-builder's
   # 7-Zip on Linux dereferences the framework's Versions/Current links (the zip triples to ~360 MiB and
@@ -50,8 +46,8 @@ mac:
         - arm64
         - x64
   category: public.app-category.productivity
-  # converted to .icns by electron-builder (rendered from packaging/icons/org.gnome.Gnomeola.svg)
-  icon: icon.png
+  # brand/icons/kacola.icns
+  icon: icon.icns
   minimumSystemVersion: '12.0'
   identity: null
   hardenedRuntime: false
