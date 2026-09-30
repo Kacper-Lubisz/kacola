@@ -132,6 +132,29 @@ describe('ExternalCaptureSource', () => {
     expect([...pcm.subarray(320, 640)].every((x) => x === 0)).toBe(true)
   })
 
+  it('a clean end is not an outage (stop pads latency only), but audio missing across it is disconnected', async () => {
+    const { src, gaps } = await started(['mic', 'system'])
+    const mic = src.attach('mic')
+    let sys = src.attach('system')
+    for (let i = 0; i < 10; i++) {
+      tick(20)
+      mic.push({ epoch: 1, sample: i * 320, samples: ramp(0, 320) })
+      sys.push({ epoch: 2, sample: i * 320, samples: ramp(0, 320) })
+    }
+    sys.detach(true) // the app ended the system stream cleanly (e.g. it was rotating) …
+    tick(1000) // … but only came back a second later, having skipped that audio
+    sys = src.attach('system')
+    sys.push({ epoch: 2, sample: 10 * 320 + 1000 * MS - 320, samples: ramp(0, 320) })
+    expect(gaps).toEqual([{ track: 'system', atMs: 200, durationMs: 980, reason: 'disconnected' }])
+    mic.detach(true) // finished; the stop comes 60 ms later
+    sys.detach(true)
+    tick(60)
+    const r = await src.stop()
+    expect(r.tracks.find((t) => t.kind === 'mic')!.gaps).toEqual([
+      { atMs: 200, durationMs: 1060, reason: 'latency' },
+    ])
+  })
+
   it('a new epoch is anchored to the wall clock; the outage before it is padded with its reason', async () => {
     const { src, gaps, errors } = await started(['system'])
     const c = src.attach('system')

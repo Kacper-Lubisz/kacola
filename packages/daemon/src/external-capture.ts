@@ -37,10 +37,14 @@ export function externalCaptureHandlers(
       } catch (err) {
         throw new DaemonError('conflict', (err as Error).message)
       }
+      let clean = false
       try {
-        return await pump(req, res, conn)
+        const r = await pump(req, res, conn)
+        clean = r.clean
+        return r.result
       } finally {
-        conn.detach()
+        // a body that ended normally is the app finishing (or rotating); anything else is an outage
+        conn.detach(clean)
       }
     },
   }
@@ -51,7 +55,7 @@ async function pump(
   req: IncomingMessage,
   res: ServerResponse,
   conn: ExternalConnection,
-): Promise<IngestResult> {
+): Promise<{ result: IngestResult; clean: boolean }> {
   const decoder = new PcmFrameDecoder()
   const result: IngestResult = { frames: 0, samples: 0, discarded: 0, ended: 'client' }
   const it = (req as AsyncIterable<Buffer>)[Symbol.asyncIterator]()
@@ -60,7 +64,7 @@ async function pump(
     const next = await Promise.race([it.next().catch((error: unknown) => ({ error })), ended])
     if ('error' in next) {
       // the client went away mid-stream (app quit, crash): that is a disconnect, not a daemon error
-      if (req.destroyed) return result
+      if (req.destroyed) return { result, clean: false }
       throw next.error
     }
     if ('why' in next) {
@@ -68,7 +72,7 @@ async function pump(
       // Answer now; the client stops sending when it reads this. Close the connection afterwards so any
       // body still in flight is discarded with it (not destroyed before the answer, as it.return() would).
       res.setHeader('connection', 'close')
-      return result
+      return { result, clean: true }
     }
     if (next.done) break
     let frames: ReturnType<PcmFrameDecoder['push']>
@@ -88,5 +92,5 @@ async function pump(
   }
   if (decoder.pending)
     throw new DaemonError('bad_request', `stream ended inside a frame (${decoder.pending} bytes)`)
-  return result
+  return { result, clean: true }
 }

@@ -62,8 +62,11 @@ export interface ExternalConnection {
   readonly ended: Promise<ConnectionEnd>
   readonly closed: boolean
   push(frame: ExternalFrame): PushResult
-  /** The client went away (request ended or aborted). */
-  detach(): void
+  /**
+   * The client went away. `clean`: it ended its request body (finished, or rotating) — nothing is wrong
+   * yet; otherwise the request was aborted (the app crashed or quit mid-stream), which is an outage.
+   */
+  detach(clean?: boolean): void
 }
 
 type Conn = ExternalConnection & { end(why: ConnectionEnd): void }
@@ -81,6 +84,8 @@ type TrackState = {
   lastAt: number
   outageReported: boolean
   aheadReported: boolean
+  /** No stream has been attached since the last one detached: missing audio fell between connections. */
+  between: boolean
 }
 
 export class ExternalCaptureSource implements CaptureSource {
@@ -159,6 +164,7 @@ export class ExternalCaptureSource implements CaptureSource {
       lastAt: now,
       outageReported: false,
       aheadReported: false,
+      between: false,
     }))
     this.activeSince = now
     this.setState('recording')
@@ -185,10 +191,14 @@ export class ExternalCaptureSource implements CaptureSource {
         return closed
       },
       push: (frame) => (closed ? { written: 0, discarded: frame.samples.length } : this.push(t, frame)),
-      detach: () => {
+      detach: (clean = false) => {
         if (closed) return
         closed = true
-        if (t.conn === conn) this.lost(t, 'disconnected')
+        if (t.conn !== conn) return
+        t.conn = null
+        t.lastAt = this.now()
+        t.between = true
+        if (!clean) t.pendingReason ??= 'disconnected'
       },
       end: (why) => {
         if (closed) return
@@ -282,8 +292,9 @@ export class ExternalCaptureSource implements CaptureSource {
       if (t.epoch !== f.epoch || t.needAnchor) {
         const anchor = wall - n
         const shortfall = anchor - t.rec.position
-        const threshold = t.pendingReason ? 0 : this.o.minGapMs * SAMPLES_PER_MS
-        if (shortfall > threshold) t.rec.padTo(anchor, t.pendingReason ?? 'latency')
+        const reason = t.pendingReason ?? (t.between ? 'disconnected' : null)
+        const threshold = reason ? 0 : this.o.minGapMs * SAMPLES_PER_MS
+        if (shortfall > threshold) t.rec.padTo(anchor, reason ?? 'latency')
         t.base = t.rec.position - f.sample
         t.epoch = f.epoch
         t.needAnchor = false
@@ -301,11 +312,13 @@ export class ExternalCaptureSource implements CaptureSource {
         }
         return { written: 0, discarded: n }
       }
-      if (at > t.rec.position) t.rec.padTo(at, t.pendingReason ?? 'client-drop')
+      if (at > t.rec.position)
+        t.rec.padTo(at, t.pendingReason ?? (t.between ? 'disconnected' : 'client-drop'))
       const skip = t.rec.position - at
       if (skip >= n) return { written: 0, discarded: n }
       t.rec.append(skip > 0 ? f.samples.subarray(skip) : f.samples)
       t.pendingReason = null
+      t.between = false
       return { written: n - Math.max(0, skip), discarded: Math.max(0, skip) }
     } catch (e) {
       this.onFatal(toFatalError(t.kind, e))
@@ -313,9 +326,8 @@ export class ExternalCaptureSource implements CaptureSource {
     }
   }
 
-  /** A stream went away or went quiet: report once, and pad with this reason when audio returns. */
+  /** An attached stream went quiet: pad with this reason when audio returns. */
   private lost(t: TrackState, reason: GapReason): void {
-    if (reason === 'disconnected') t.conn = null
     t.pendingReason ??= reason
     t.lastAt = this.now()
   }
