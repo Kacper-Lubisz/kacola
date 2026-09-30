@@ -24,7 +24,12 @@ packages/desktop/
     supervisor.ts           DaemonSupervisor: attach / spawn / restart with backoff
     config.ts theme.ts resources.ts   env + token, portal theme, ui-state / notices / catalogues
     integration.ts          "Install command-line tool and Claude skill" (runs `gnomeola install-cli --json`)
+    extension.ts            "Install top-bar extension" (a copy into the user's extensions dir, never enabled)
+    autostart.ts tray.ts    background mode: autostart entry / Background portal; the macOS Tray menu model
+    capture.ts              in-app capture: CaptureController (daemon's waiting list → capture window → ingest)
   src/preload/index.ts      contextBridge.exposeInMainWorld('gnomeola', …) — one function per capability
+  src/preload/capture.ts    the capture window's bridge only (start/stop in, frames and state out)
+  src/renderer/capture.html + capture/   the hidden capture window: getUserMedia / getDisplayMedia, AudioWorklet
   src/renderer/             React 19, no Node, no network
     main.tsx                boot: theme + catalogue from main, client, QueryClient, EventBridge, router
     styles.css              Tailwind v4: brand/tokens (fonts, --k-* tokens, @theme) + semantic aliases
@@ -59,9 +64,10 @@ Scripts: `pnpm --filter @gnomeola/desktop dev` (HMR; the renderer is served by V
 - **Entry**: `GNOMEOLA_DAEMON_ENTRY`, else `resources/runtime/daemon.mjs` (packaged), else
   `packages/daemon/dist/daemon.mjs`, else `packages/daemon/src/main.ts` (dev; Electron 44's Node 24.21
   strips types). `GNOMEOLA_DAEMON_ARGS` (JSON array) adds arguments (tests pass `--data-dir`).
-- **Window close keeps running** (main + daemon). Quit is explicit (Ctrl+Q, `app.quit()`, SIGTERM) and
-  stops the daemon we spawned — never one we attached to. `app.requestSingleInstanceLock()`: a second
-  launch re-opens the first instance's window. `--background` starts with no window (the CLI's shim).
+- **Window close keeps running** (main + daemon). Quit is explicit (Ctrl+Q, `app.quit()`, SIGTERM, the
+  macOS Tray's Quit) and stops the daemon we spawned — never one we attached to.
+  `app.requestSingleInstanceLock()`: a second launch re-opens the first instance's window.
+  `--background` starts with no window (the CLI's shim, autostart). See "Background mode".
 - The daemon's status is on the bridge (`gnomeola.daemonStatus()` / `onDaemonStatus`) and on main's
   stdout as `{"event":"daemon","kind":…}` lines.
 
@@ -80,11 +86,102 @@ All of it is data or pure functions in `src/main/security.ts` + `fuses.config.ts
   not. The dev server gets a relaxed CSP (inline for React Refresh, the HMR socket) and still no eval.
 - `will-navigate` / `will-redirect` deny everything outside our origin; `window.open` is denied and a
   validated http(s) URL goes to `shell.openExternal`.
-- Permission requests are all denied, except `media` with audio only for a window registered as the
-  capture window (macOS in-app capture, later). IPC handlers reject senders that are not our origin.
+- Permission requests are all denied, except `media` with audio only (and `display-capture`, whose
+  video the page drops) for the window registered as the capture window. IPC handlers reject senders
+  that are not our origin; the capture channels accept only the capture window.
+- A packaged build exits at start if given `--remote-debugging-port` / `--remote-debugging-pipe` unless
+  `GNOMEOLA_ALLOW_REMOTE_DEBUGGING=1` (the packaged e2e drives the window over CDP that way; the fuses
+  keep `--inspect` off, so Playwright's `_electron` cannot attach to a packaged build).
 - Fuses: RunAsNode **on** (one runtime runs the daemon and the CLI), NODE_OPTIONS and `--inspect` off,
   ASAR integrity + only-load-from-ASAR on, cookie encryption on, file:// privileges off; every fuse
   set explicitly (`strictlyRequireAllFuses`).
+
+## In-app capture (macOS; Linux opt-in)
+
+When the daemon records with the `external` capture backend (`/health` → `capture.backend`; the
+default on macOS, `GNOMEOLA_CAPTURE=external` on Linux), it cannot reach the sound server itself and
+lists each recording that waits for audio at `GET /capture/external`. Main makes that list true
+(`src/main/capture.ts`, `CaptureController`):
+
+- **When**: on every `session.upserted` / `session.deleted` from main's own event subscription, and a
+  2 s tick. So a recording started anywhere — the window's Record button, the CLI, the top bar, the
+  Tray, auto-record — is captured.
+- **Capture window**: hidden, sandboxed, never throttled, `preload/capture.ts` only; the only webContents
+  granted audio. `mic` = `getUserMedia` (echo cancellation / noise suppression / AGC off); `system` =
+  `getDisplayMedia` answered by main's display-media handler with `audio: 'loopback'` (macOS 13+; the
+  screen track is stopped at once). A 16 kHz `AudioContext` makes Chromium resample; the AudioWorklet
+  (`capture/pcm-worklet.ts` over `shared/pcm-framer.ts`) cuts 40 ms s16 frames and posts them to main.
+- **Streaming**: one `ingestPcm` per track (protocol `capture.ts`: rotation every 60 s). Main numbers the
+  frames: one epoch per capture run, sample index within it. A failed request is retried with backoff
+  and resends the last 10 s of the current epoch (the daemon drops what it has). A capture error
+  (device gone, permission refused) ends the run; the next reconcile after 5 s opens a new one (new
+  epoch). The daemon ending a stream (`stopped` / `superseded`) or no longer listing the recording stops
+  it. Pause needs nothing: the daemon discards audio while paused. Levels in the window come from the
+  daemon's `audio.level` events, as with PipeWire.
+- **Linux**: Chromium has no loopback `getDisplayMedia`, so only the mic is captured
+  (`GNOMEOLA_CAPTURE_TRACKS` overrides); the system track waits unfed and is recorded as a gap. PipeWire
+  capture in the daemon stays the Linux default.
+- **Tested** by `packages/e2e/test/desktop-capture.e2e.test.ts`: Chromium's fake device plays the
+  standup-2p mic track (`--use-fake-device-for-media-stream --use-file-for-fake-audio-capture=<wav>%noloop`)
+  into a recording started with the Record button; real models; mic WER within the committed baseline
+  (12.0 % vs 12 % ± 5), every mic segment `me`, levels on the Microphone meter. The system-track ingest
+  is the daemon-level `external-capture.e2e.test.ts`'s subject.
+
+## Background mode
+
+Closing the window never stops main or the daemon. To also start that way at login: Preferences →
+Desktop Integration → "Start in the background at login" (`src/main/autostart.ts`):
+
+- **Flatpak**: the Background portal (`RequestBackground`, `autostart` + `commandline: gnomeola-app
+  --background`) writes the host's autostart entry; the choice is remembered in
+  `$XDG_CONFIG_HOME/gnomeola/autostart.json` (the sandbox cannot see the entry). The first window close
+  also asks the portal (without autostart), so GNOME lists the app under Background Apps.
+- **Linux**: `$XDG_CONFIG_HOME/autostart/org.gnome.Gnomeola.desktop`, `Exec=<this binary> --background`
+  (only an entry carrying our `X-Gnomeola-Autostart=1` is ever removed).
+- **macOS**: a login item with `--background`, and the menu-bar **Tray** (`src/main/tray.ts`, a pure menu
+  model: status line, Record — or Pause/Resume + Stop —, Open, Quit; private meetings stay "Private
+  meeting"). The Dock icon re-opens the window.
+
+## Desktop integration installs
+
+- **CLI + skill** (`integration.ts`): the bundled `gnomeola install-cli --json`. Packaged Linux (outside
+  Flatpak) passes `--launch '<binary>' --background`, so the shim starts this app when the daemon is
+  down. In the Flatpak the CLI detects `FLATPAK_ID` and writes the host shim (`flatpak run
+  --command=gnomeola org.gnome.Gnomeola`) through `--filesystem=~/.local/bin:create`. macOS: when
+  `/usr/local/bin` needs an administrator, one `osascript … with administrator privileges` prompt installs
+  the shim there and the `~/.local/bin` fallback is removed; declining keeps the fallback. Uninstall
+  reports admin-only removals (`needsAdmin`) and removes them with one prompt.
+- **Top-bar extension** (`extension.ts`): copies `resources/extension/gnomeola@gnomeola.org` (schema
+  compiled at build time; the checkout's `extensions/` in dev, compiled at install) to
+  `${XDG_DATA_HOME:-~/.local/share}/gnome-shell/extensions/` — in the Flatpak the host's
+  (`HOST_XDG_DATA_HOME`, else `~/.local/share`, via `--filesystem=xdg-data/gnome-shell/extensions:create`).
+  Never enabled: that stays the user's call, and on Wayland the Shell sees it after the next login.
+
+## Packaging
+
+```sh
+node scripts/build-desktop.ts   # dist/desktop/linux-unpacked (electron-builder dir), ~326 MiB
+node scripts/build-flatpak.ts   # dist/flatpak: repo/ + gnomeola.flatpak (builds the above first)
+node scripts/build-macos.ts     # dist/macos/out/gnomeola-<v>-mac-{arm64,x64}.zip (unsigned)
+```
+
+- `build-desktop.ts` stages `package.json` (no dependencies: main, preload and renderer are complete
+  bundles — zod is bundled into main too) + `packages/desktop/out`, and runs electron-builder with
+  `executableName: gnomeola`, app id `org.gnome.Gnomeola`, the brand icons, the installed Electron as
+  `electronDist`, and extraResources `runtime/` (`scripts/build-runtime.ts`: daemon.mjs, cli.mjs,
+  natives), `icon.png`, `THIRD_PARTY_NOTICES.md`, `extension/`. afterPack copies the runtime's
+  `node_modules` (electron-builder drops them from extraResources) and flips the fuses from
+  `fuses.config.ts`. The macOS build stages the same app (+ tray icons, `brand/icons/kacola.icns`).
+- The Flatpak installs `linux-unpacked` as `/app/main` and the brand hicolor icons renamed to the app id;
+  `gnomeola-app` runs it through `zypak-wrapper` (Chromium's renderer sandboxes are spawned through the
+  Flatpak portal).
+- macOS from Linux: no code signing (no `codesign` / notarisation off a Mac). Flipping fuses changes the
+  Electron framework binary after Electron's own ad-hoc signature was made, and Apple silicon refuses
+  arm64 code without a valid signature — so expect the arm64 zip to need `codesign --force --deep -s -
+  gnomeola.app` (or a real identity) on a Mac before it runs. Not verified: nothing here can run a
+  Mach-O; the zips are inspected (`macos-zip.e2e`) and need a Mac-side signing step until CI has a Mac.
+- Tests: `desktop-packaged.e2e` (the Linux app, windowed over CDP), `flatpak.e2e` (headless + windowed
+  under zypak), `macos-zip.e2e` (Mach-O natives, Info.plist usage strings, fuses, shims).
 
 ## Fetch tunnel
 
