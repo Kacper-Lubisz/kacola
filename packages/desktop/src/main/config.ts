@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { DEFAULT_BASE_URL } from '@gnomeola/protocol'
 
 // Main-process configuration, from the environment and argv (the app has no config file of its own:
-// settings that matter live in the daemon). The desktop equivalent of packages/ui/src/data/config.ts.
+// settings that matter live in the daemon). (The GTK app read the same variables.)
 
 export type DesktopConfig = {
   baseUrl: string

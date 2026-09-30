@@ -420,7 +420,7 @@ function wireIpc(): void {
   )
   handle(IPC.i18n, () =>
     loadCatalogue(
-      // GNOMEOLA_LOCALE_DIR: a directory of <lang>.json catalogues (tests; the GTK app honours it too)
+      // GNOMEOLA_LOCALE_DIR: a directory of <lang>.json catalogues (tests)
       process.env.GNOMEOLA_LOCALE_DIR ||
         (app.isPackaged ? join(process.resourcesPath, 'locale') : join(HERE, '..', 'locale')),
       preferredLanguages(process.env, app.getPreferredSystemLanguages()),
