@@ -33,8 +33,8 @@ it('a new-events-only subscriber gets what was committed while it was between st
   // the first stream ends at its cap with nothing to deliver; commit while the client waits to reconnect
   while (disconnects < 1) await sleep(5)
   const inTheGap = await h.store.createSession({ title: 'committed between two streams' })
-  const deadline = Date.now() + 3000
-  while (!got.length && Date.now() < deadline) await sleep(10)
+  const deadline = performance.now() + 3000
+  while (!got.length && performance.now() < deadline) await sleep(10)
   ac.abort()
   await sub
   expect(got.map((e) => e.seq)).toEqual([6])

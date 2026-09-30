@@ -129,6 +129,8 @@ export function sseFuzz(seeds: number[], rawConnections: number): void {
             () => cut.stats.cuts >= 30 && capEnds >= 5 && received.length >= 300,
             60_000,
             'cuts, cap ends, events',
+            () =>
+              `cuts=${cut.stats.cuts} connections=${cut.stats.connections} capEnds=${capEnds} events=${received.length} errors=${errors.length}`,
           )
           await p.stop()
           const last = await h.store.lastSeq()
@@ -151,8 +153,8 @@ export function sseFuzz(seeds: number[], rawConnections: number): void {
         const got: DurableEvent[] = []
         let cursor = 0
         let conns = 0
-        const deadline = Date.now() + 60_000
-        while ((conns < rawConnections || got.length < 300) && Date.now() < deadline) {
+        const deadline = performance.now() + 60_000
+        while ((conns < rawConnections || got.length < 300) && performance.now() < deadline) {
           conns++
           // an EventSource reconnects with its ORIGINAL url (since=0) plus Last-Event-ID; the header wins
           const res = await cut.fetch(`${h.url}/events?since=0&ephemeral=${rnd() < 0.5}`, {

@@ -233,8 +233,8 @@ for (const dialect of ['sqlite', 'postgres'] as const) {
           await new Promise((r) => setTimeout(r, 150))
         }
         const last = log.length
-        const deadline = Date.now() + 30_000
-        while (received.at(-1)?.seq !== last && Date.now() < deadline)
+        const deadline = performance.now() + 30_000
+        while (received.at(-1)?.seq !== last && performance.now() < deadline)
           await new Promise((r) => setTimeout(r, 50))
         ac.abort()
         await sub

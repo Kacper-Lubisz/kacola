@@ -109,10 +109,13 @@ export async function waitFor(
   cond: () => boolean | Promise<boolean>,
   ms: number,
   what: string,
+  state?: () => string,
 ): Promise<void> {
-  const end = Date.now() + ms
+  // monotonic: a wall-clock step (NTP, a date change mid-run) must not end the wait early
+  const end = performance.now() + ms
   while (!(await cond())) {
-    if (Date.now() > end) throw new Error(`timed out waiting for ${what}`)
+    if (performance.now() > end)
+      throw new Error(`timed out waiting for ${what}${state ? ` (${state()})` : ''}`)
     await sleep(10)
   }
 }
