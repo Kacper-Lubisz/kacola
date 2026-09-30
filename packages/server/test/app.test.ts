@@ -158,6 +158,9 @@ describe('hosted contract: every route', () => {
       getAudioStatus: () => c.call('getAudioStatus', { params }),
       finalizeAudio: () =>
         c.call('finalizeAudio', { params, body: { chunks: { mic: 1, system: 0 }, durationMs: 100 } }),
+      externalCaptureStatus: () => notHere(c.call('externalCaptureStatus')),
+      ingestExternalCapture: () =>
+        notHere(c.call('ingestExternalCapture', { params: { sessionId: s.id, track: 'mic' } })),
 
       listSpeakers: async () => {
         const r = await c.call('listSpeakers', { params })

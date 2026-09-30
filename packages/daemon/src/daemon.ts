@@ -2,6 +2,7 @@ import { mkdirSync } from 'node:fs'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
+import type { ExternalCaptureHub } from '@gnomeola/capture'
 import {
   type BodyOut,
   DEFAULT_PORT,
@@ -29,6 +30,7 @@ import { RecordingControl } from './control.ts'
 import { DbusService } from './dbus/service.ts'
 import { apiErrorBody, DaemonError, toDaemonError } from './errors.ts'
 import { streamEvents } from './events-stream.ts'
+import { externalCaptureHandlers } from './external-capture.ts'
 import { NoDevices, NoModels, UnavailablePipeline } from './fakes/providers.ts'
 import { hostedHandlers, remoteAccess } from './hosted.ts'
 import { readJsonBody, SseWriter, sendJson } from './http.ts'
@@ -85,6 +87,9 @@ export type DaemonOptions = {
   auth?: AuthConfig | null
   /** With auth: treat loopback requests as the owner without a token (default true). */
   trustLoopback?: boolean
+  // ---- P: platform
+  /** External capture (macOS): recordings waiting for audio from the app, fed by the ingest route. */
+  externalCapture?: ExternalCaptureHub | null
 }
 
 export type Daemon = {
@@ -340,6 +345,8 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     },
 
     ...hostedHandlers(access),
+    // ---- P: platform — external capture ingest
+    ...externalCaptureHandlers(o.externalCapture ?? null),
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))
@@ -373,6 +380,12 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
       res.setHeader('www-authenticate', 'Bearer realm="gnomeola"')
       throw err
     }
+    // P-3: a raw-body route streams its request to the handler; nothing else may be sent to it
+    if (
+      def.rawBody !== undefined &&
+      (req.headers['content-type'] ?? '').split(';')[0]!.trim() !== def.rawBody
+    )
+      throw new DaemonError('bad_request', `${name} takes ${def.rawBody}`, 415)
     const query = def.query ? def.query.parse(Object.fromEntries(url.searchParams)) : {}
     const body = def.body ? def.body.parse((await readJsonBody(req)) ?? {}) : undefined
     const ac = new AbortController()

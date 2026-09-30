@@ -1,0 +1,99 @@
+# gjs for the Flatpak: the daemon's D-Bus bridge (org.gnome.Gnomeola on the session bus, for the top-bar
+# extension) and the EDS calendar agent are GJS scripts, and the freedesktop runtime has no gjs.
+# SpiderMonkey (mozjs 140, the ESR gjs 1.88 is built against) comes from Firefox ESR's source, built as
+# a standalone shared library like gnome-build-meta and Fedora's mozjs140 do. Long (~20–40 min), cached
+# by flatpak-builder afterwards.
+name: gjs-stack
+modules:
+  # build tool only: mozjs's configure needs cbindgen (Mozilla's prebuilt, x86_64)
+  - name: cbindgen
+    buildsystem: simple
+    only-arches:
+      - x86_64
+    sources:
+      - type: file
+        url: https://github.com/mozilla/cbindgen/releases/download/0.29.4/cbindgen-ubuntu22.04
+        sha256: 27ac237e2ad3ffaffc8ecce0c03e3caa1d1b09e691906c3cb0967367ff6d783d
+        dest-filename: cbindgen
+    build-commands:
+      - install -Dm755 cbindgen /app/bin/cbindgen
+    cleanup:
+      - '*'
+
+  - name: mozjs
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm20/bin
+      prepend-ld-library-path: /usr/lib/sdk/llvm20/lib
+      env:
+        CARGO_HOME: /run/build/mozjs/cargo-home
+        SHELL: /bin/sh
+        PYTHON3: /usr/bin/python3
+        MOZ_OBJDIR: /run/build/mozjs/_build
+        # keep mach's state (virtualenvs) in the build dir, not the builder's $HOME
+        MOZBUILD_STATE_PATH: /run/build/mozjs/_mozbuild
+    sources:
+      - type: archive
+        url: https://ftp.mozilla.org/pub/firefox/releases/140.13.0esr/source/firefox-140.13.0esr.source.tar.xz
+        sha256: f53b9dc6942abda1185aa7d79048f59fc075020da36b4dd6b31f668b88714d01
+    build-commands:
+      # --host/--target spelled the way rustc spells them: newer rustc lists several x86_64 linux-gnu
+      # triples (e.g. x86_64-oe-linux-gnu) and ESR 140's configure cannot pick one for x86_64-pc-linux-gnu
+      - mkdir -p _build
+      - >-
+        cd _build && ../js/src/configure
+        --prefix=/app --libdir=/app/lib
+        --host="$(uname -m)-unknown-linux-gnu" --target="$(uname -m)-unknown-linux-gnu"
+        --disable-debug --enable-optimize --disable-strip
+        --disable-jemalloc --disable-tests
+        --with-system-zlib --with-intl-api
+        --enable-shared-js
+      - make -C _build -j"${FLATPAK_BUILDER_N_JOBS}"
+      - make -C _build install
+      - rm -f /app/lib/libjs_static.ajs
+      - rm -f /app/bin/js140-config
+      # the headers need XP_UNIX from their consumer (ESR 140's UniquePtrExtensions.h); distros add it
+      # to the pkg-config flags the same way
+      - "sed -i 's|^Cflags: |Cflags: -DXP_UNIX |' /app/lib/pkgconfig/mozjs-140.pc"
+    cleanup:
+      - /bin
+
+  # gjs 1.88 needs GLib >= 2.86; the 25.08 runtime has 2.84. A newer GLib in /app is backward compatible
+  # for everything else in the app (Electron included). Its typelibs are not rebuilt: gjs finds the
+  # runtime's (GI_TYPELIB_PATH in finish-args), which describe the same, older API.
+  - name: glib
+    buildsystem: meson
+    config-opts:
+      - -Dintrospection=disabled
+      - -Dtests=false
+      - -Dman-pages=disabled
+      - -Ddocumentation=false
+      - -Dsysprof=disabled
+      - -Dselinux=disabled
+    sources:
+      - type: archive
+        url: https://download.gnome.org/sources/glib/2.86/glib-2.86.5.tar.xz
+        sha256: ce85a947bb8b3c0204dbeff79aec39bcb46371c6fafb64ba5b8726c71e038d5f
+    cleanup:
+      - /bin
+      - /share/gdb
+      - /share/glib-2.0/codegen
+      - /share/glib-2.0/gdb
+      - /libexec
+
+  - name: gjs
+    buildsystem: meson
+    config-opts:
+      - -Dinstalled_tests=false
+      - -Dskip_dbus_tests=true
+      - -Dskip_gtk_tests=true
+      - -Dprofiler=disabled
+      - -Dreadline=disabled
+    sources:
+      - type: archive
+        url: https://download.gnome.org/sources/gjs/1.88/gjs-1.88.1.tar.xz
+        sha256: 767bab80e665d672cb00563c25f0b392a9ec8c2996ed1d4454c698b4c2f0a3d9
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+      - /share/gjs-1.0/debugger

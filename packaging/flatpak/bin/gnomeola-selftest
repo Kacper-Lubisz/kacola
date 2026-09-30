@@ -1,0 +1,3 @@
+#!/bin/sh
+# native modules, PipeWire, secret-tool and the data dirs, checked from inside the sandbox (JSON)
+ELECTRON_RUN_AS_NODE=1 exec /app/main/gnomeola /app/share/gnomeola/selftest.mjs "$@"
