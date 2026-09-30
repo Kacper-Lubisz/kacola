@@ -67,10 +67,7 @@ describe('kacola:// links against the real daemon', () => {
   })
 
   it('cold start: main accepts the link from argv and hands it to the renderer once', async () => {
-    // the page takes the link it was opened with. Until the renderer does that on boot, the test does it;
-    // once it does, the link is already taken here (null) and the delivered line below is the proof.
-    const taken = (await app.window.evaluate('window.gnomeola.takeDeepLink()')) as string | null
-    if (taken !== null) expect(taken).toBe(agendaUrl)
+    // the renderer takes the link it was opened with on boot (the test must not race it for it)
     await waitForLog(app, delivered(agendaUrl))
     // the renderer resolved it (resolveAgendaLink) and shows the agenda
     await app.window.getByRole('heading', { level: 1, name: 'Deep link sync' }).waitFor({ timeout: 15_000 })
@@ -136,9 +133,7 @@ describe('kacola:// links against the real daemon', () => {
     const page = await opened
     await page.waitForLoadState('domcontentloaded')
     await waitForLog(app, received(url))
-    // the new renderer has not taken yet: the link waits for it (never pushed into the void)
-    const taken = (await page.evaluate('window.gnomeola.takeDeepLink()')) as string | null
-    if (taken !== null) expect(taken).toBe(url)
+    // the new renderer takes it on boot: the link waited for it (never pushed into the void)
     await waitForLog(app, delivered(url))
     await page.getByRole('heading', { level: 1, name: 'Reopened sync' }).waitFor({ timeout: 15_000 })
     expect(lines(app, delivered(url))).toHaveLength(1)
