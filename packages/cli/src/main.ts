@@ -3,6 +3,7 @@ import { type ParseArgsConfig, parseArgs } from 'node:util'
 import { DaemonUnreachableError, GnomeolaApiError, PROTOCOL_VERSION } from '@gnomeola/protocol'
 import { ask } from './commands/ask.ts'
 import { bugReport } from './commands/bugreport.ts'
+import { installCliCommand, uninstallCliCommand } from './commands/install-cli.ts'
 import { meetingsNext, meetingsToday } from './commands/meetings.ts'
 import { notes } from './commands/notes.ts'
 import { pair, pairApprove, pairRevoke, pairToken } from './commands/pair.ts'
@@ -39,6 +40,10 @@ usage: gnomeola <command> [options]
   meetings [--next | --today]                 your calendar: what is on now / next, or today
   status                                      daemon, models and LLM health
   skill install [--dir DIR] [--force]         install the Claude Code skill
+  install-cli [--mode auto|flatpak|macos|dev] [--bin-dir DIR] [--launch CMD] [--no-skill] [--force]
+                                              put this gnomeola on PATH (+ the Claude skill)
+  uninstall-cli [--mode M] [--bin-dir DIR] [--keep-skill]
+                                              remove what install-cli wrote
   bug-report [--out FILE]                     write a diagnostics bundle
   mcp                                         serve the same tools over MCP (stdio)
   pair [--name N] | pair approve <CODE> | pair token | pair revoke <DEVICE>
@@ -222,6 +227,34 @@ export async function run(argv: string[], io: Io): Promise<number> {
         skillInstall(ctxFor(v), { dir: v.dir, force: v.force })
         break
       }
+      case 'install-cli':
+      case 'uninstall-cli': {
+        const { values: v } = parse(rest, {
+          mode: { type: 'string' },
+          'bin-dir': { type: 'string' },
+          app: { type: 'string' },
+          launch: { type: 'string' },
+          'no-skill': { type: 'boolean' },
+          'keep-skill': { type: 'boolean' },
+          'skill-dir': { type: 'string' },
+          force: { type: 'boolean' },
+          'dry-run': { type: 'boolean' },
+        })
+        if (helpOr(v)) return EXIT.OK
+        const flags = {
+          mode: v.mode,
+          binDir: v['bin-dir'],
+          app: v.app,
+          launch: v.launch,
+          noSkill: v['no-skill'],
+          skillDir: v['skill-dir'],
+          force: v.force,
+          dryRun: v['dry-run'],
+        }
+        if (cmd === 'install-cli') installCliCommand(ctxFor(v), flags)
+        else uninstallCliCommand(ctxFor(v), { ...flags, keepSkill: v['keep-skill'] })
+        break
+      }
       case 'bug-report': {
         const { values: v } = parse(rest, { out: { type: 'string' } })
         if (helpOr(v)) return EXIT.OK
@@ -274,7 +307,9 @@ function report(err: unknown, io: Io): number {
   }
   if (err instanceof DaemonUnreachableError) {
     io.stderr(`gnomeola: the daemon is not running at ${err.baseUrl}\n`)
-    io.stderr('  start it with `systemctl --user start gnomeolad`, or pass --url / set GNOMEOLA_URL\n')
+    // under the install-cli shim, the shim starts the app next and says so
+    if (!io.env.GNOMEOLA_SHIM)
+      io.stderr('  start it with `systemctl --user start gnomeolad`, or pass --url / set GNOMEOLA_URL\n')
     return EXIT.UNREACHABLE
   }
   io.stderr(`gnomeola: ${(err as Error)?.stack ?? String(err)}\n`)
