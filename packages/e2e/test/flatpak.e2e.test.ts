@@ -283,6 +283,8 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
       })
       try {
         await probe.until((p) => p.DaemonUrl === url, 30_000, 'the bridge to own the name and publish')
+        // the owner arrives as its own message from the probe, possibly after the properties
+        await waitFor(() => probe.owner !== null, 10_000, 'the name owner')
         expect(probe.owner).toMatch(/^:1\./)
         expect(probe.props.State).toBe('idle')
       } finally {
@@ -370,8 +372,12 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
     children.add(windowed)
     cdp = await connectCdp(cdpPort, 90_000)
     await cdp.window.getByRole('dialog', { name: 'Welcome to gnomeola' }).waitFor({ timeout: 30_000 })
-    const shown = readFileSync(await display.screenshot(join(home, 'windowed.png')))
-    expect(shown.equals(empty), 'the Shell shows the window').toBe(false)
+    // the renderer is up; the compositor maps the window on ready-to-show, a frame or two later
+    await waitFor(
+      async () => !readFileSync(await display.screenshot(join(home, 'windowed.png'))).equals(empty),
+      15_000,
+      'the Shell to show the window',
+    )
   }, 180_000)
 
   afterAll(async () => {
