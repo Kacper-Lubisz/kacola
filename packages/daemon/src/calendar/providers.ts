@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync, unwatchFile, watchFile } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { CalendarState } from '@gnomeola/protocol'
 import { z } from 'zod'
@@ -112,17 +112,21 @@ export class FileCalendarProvider implements CalendarProvider {
     this.l = l
     l.status('starting', null)
     this.read()
-    // watchFile (stat polling) rather than fs.watch: it survives the file being replaced by rename,
-    // which is how editors and atomic writers save.
-    watchFile(this.path, { interval: this.pollMs }, () => this.read())
+    // Stat polling rather than fs.watch, because it survives the file being replaced by rename (how
+    // editors and atomic writers save). Our own interval compares against what we last READ; fs.watchFile
+    // compares against a baseline it stats asynchronously after start, so a file created in that window
+    // was never noticed (a flake under load that was a real miss).
+    this.timer = setInterval(() => this.read(), this.pollMs)
+    this.timer.unref()
   }
+  private timer: NodeJS.Timeout | null = null
 
   private read(): void {
     const l = this.l
     if (!l) return
     if (!existsSync(this.path)) {
-      l.status('unavailable', `calendar file ${this.path} does not exist`)
-      this.lastMtime = -1
+      if (this.lastMtime !== -2) l.status('unavailable', `calendar file ${this.path} does not exist`)
+      this.lastMtime = -2
       return
     }
     const mtime = statSync(this.path).mtimeMs
@@ -146,7 +150,8 @@ export class FileCalendarProvider implements CalendarProvider {
     this.read()
   }
   async stop(): Promise<void> {
-    unwatchFile(this.path)
+    if (this.timer) clearInterval(this.timer)
+    this.timer = null
     this.l = null
   }
 }

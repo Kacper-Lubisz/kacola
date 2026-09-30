@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync, statSync, unwatchFile, watchFile } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ICAL from 'ical.js'
@@ -669,10 +669,11 @@ export class IcsCalendarProvider implements CalendarProvider {
     this.l = l
     l.status('starting', null)
     if (this.path) {
-      const path = this.path
       this.readFile()
-      // stat polling survives the file being replaced by rename (see FileCalendarProvider)
-      watchFile(path, { interval: this.o.pollMs ?? DEFAULT_FILE_POLL_MS }, () => this.readFile())
+      // Our own stat polling against what we last READ (see FileCalendarProvider for why not
+      // fs.watchFile: its baseline stat races a file created right after start()).
+      this.timer = setInterval(() => this.readFile(), this.o.pollMs ?? DEFAULT_FILE_POLL_MS)
+      this.timer.unref()
     } else {
       void this.fetchNow()
       this.timer = setInterval(() => void this.fetchNow(), this.o.pollMs ?? DEFAULT_URL_POLL_MS)
@@ -693,7 +694,6 @@ export class IcsCalendarProvider implements CalendarProvider {
   }
 
   async stop(): Promise<void> {
-    if (this.path) unwatchFile(this.path)
     if (this.timer) clearInterval(this.timer)
     this.timer = null
     this.inflight?.abort()
@@ -705,8 +705,9 @@ export class IcsCalendarProvider implements CalendarProvider {
     const path = this.path
     if (!this.l || !path) return
     if (!existsSync(path)) {
-      this.lastMtime = -1
-      this.fail(`calendar file ${path} does not exist`)
+      // report a missing file once, not on every poll
+      if (this.lastMtime !== -2) this.fail(`calendar file ${path} does not exist`)
+      this.lastMtime = -2
       return
     }
     let text: string
