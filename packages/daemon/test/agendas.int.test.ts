@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createClient, type GnomeolaClient, INVITE_BLOCK_START } from '@gnomeola/protocol'
 import { waitFor } from '@gnomeola/testkit/daemon'
+import { assertNoViolations, checkAgendaLog, checkEventLog } from '@gnomeola/testkit/invariants'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ManualCalendarProvider } from '../src/calendar/providers.ts'
 import { createDaemon, type Daemon } from '../src/daemon.ts'
@@ -218,6 +219,17 @@ describe('agendas in the daemon', () => {
     const unlinked = await c.call('createAgenda', { body: { title: 'no meeting' } })
     const r = await c.call('agendaInviteBlock', { params: { id: unlinked.agenda.id }, body: { write: true } })
     expect(r).toMatchObject({ written: false, reason: 'this agenda is not linked to a calendar event' })
+  })
+
+  it('left a log that satisfies the agenda invariants and replays to the same tables', async () => {
+    const log = daemon.store.eventsAfter(0)
+    assertNoViolations(checkEventLog(log))
+    assertNoViolations(checkAgendaLog(log))
+    const { Store } = await import('@gnomeola/store')
+    const copy = Store.open(':memory:')
+    copy.replay(log)
+    expect(copy.dump()).toBe(daemon.store.dump())
+    copy.close()
   })
 })
 

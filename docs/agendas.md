@@ -184,6 +184,7 @@ meeting" workflow; the copilot section states live attach is not available yet.
 | --- | --- |
 | markdown round trip is lossless (1 000 random agendas), links, invite block idempotent + organiser text untouched (300 random descriptions) | `packages/protocol/test/agendas.test.ts` |
 | rules: one per occurrence, carry-over, forward-only, override, manual wins, history, privacy, session deletion scrubs quotes; replay == state over random histories covering every agenda event (6 seeds × 400 ops); reopen == dump | `packages/store/test/agendas.test.ts` |
+| an independent reading of the log (`checkAgendaLog` in `@gnomeola/testkit/invariants`): change continuity, forward-only for everyone but the user, override flags, manual wins, versions step by one — on every random history and the daemon's own log (and it flags forged logs) | `packages/store/test/agendas.test.ts`, `packages/daemon/test/agendas.int.test.ts` |
 | the same log gives the same snapshot on SQLite and Postgres, both ways | `packages/store/test/contract/agendas-dialect.int.test.ts` |
 | every route schema-valid through the typed client | `packages/daemon/test/contract.test.ts` |
 | attach on record, roll over + recap on stop, deep links, private recordings, invite block written / refused | `packages/daemon/test/agendas.int.test.ts` |

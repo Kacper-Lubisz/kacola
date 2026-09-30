@@ -11,7 +11,7 @@ import {
   AgendaItemStatus as Statuses,
   SuggestionKind,
 } from '@gnomeola/protocol'
-import { assertNoViolations, checkEventLog } from '@gnomeola/testkit/invariants'
+import { assertNoViolations, checkAgendaLog, checkEventLog } from '@gnomeola/testkit/invariants'
 import { describe, expect, it } from 'vitest'
 import { AgendaStore, Store, StoreError } from '../src/index.ts'
 import { clock, randomHistory, replayed, series, setup } from './agenda-history.ts'
@@ -337,6 +337,7 @@ describe('agendas: replay == state', () => {
       const { s, applied } = randomHistory(seed, 400)
       expect([...applied].sort()).toEqual([...EVERY].sort())
       assertNoViolations(checkEventLog(s.eventsAfter(0)))
+      assertNoViolations(checkAgendaLog(s.eventsAfter(0)), `seed ${seed}`)
       const copy = replayed(s)
       expect(copy.dump()).toBe(s.dump())
       expect(copy.dump()).toMatch(/agenda_item_history/)
@@ -380,6 +381,32 @@ describe('agendas: replay == state', () => {
         for (const c of mine) if (c.by !== 'user') expect(c.override).toBe(false)
       }
     }
+  })
+})
+
+describe('the agenda log invariant catches what the store refuses', () => {
+  it('flags a backward automated move, an override after which the tracker acts, and a version skip', () => {
+    const { a, s } = setup()
+    const v = a.create({ title: 'x', items: [{ text: 'Budget' }] })
+    a.setStatus(v.agenda.id, v.items[0]!.id, { status: 'covered', by: 'tracker' })
+    a.setStatus(v.agenda.id, v.items[0]!.id, { status: 'open' })
+    const log = s.eventsAfter(0)
+    expect(checkAgendaLog(log)).toEqual([])
+    const forged = structuredClone(log)
+    // the user's override, rewritten as the tracker's
+    const last = forged.at(-1)!.data as Extract<DurableEventData, { type: 'agenda.item.status' }>
+    last.change.by = 'tracker'
+    // …and a later tracker change on top of a genuine override
+    const again = structuredClone(log.at(-1)!)
+    const d = again.data as Extract<DurableEventData, { type: 'agenda.item.status' }>
+    d.version += 1
+    d.change = { ...d.change, from: 'open', to: 'in-progress', by: 'tracker', override: false }
+    d.item = { ...d.item, status: 'in-progress' }
+    const skipped = structuredClone(again)
+    ;(skipped.data as { version: number }).version += 5
+    expect(checkAgendaLog(forged).map((x) => x.rule)).toContain('forward-only')
+    expect(checkAgendaLog([...log, again]).map((x) => x.rule)).toEqual(['manual-wins'])
+    expect(checkAgendaLog([...log, skipped]).map((x) => x.rule)).toContain('version-steps')
   })
 })
 
