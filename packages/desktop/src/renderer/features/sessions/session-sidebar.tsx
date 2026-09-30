@@ -24,6 +24,7 @@ import {
   SearchField,
   useSplitView,
 } from '../../design/primitives/index.ts'
+import { ComingUp } from '../agendas/upcoming.tsx'
 import { useDialogs } from '../shell/dialogs.tsx'
 import { useRecorder } from './recorder.ts'
 
@@ -131,6 +132,7 @@ export function SessionSidebar({ missingModels }: { missingModels: number }) {
         ) : null}
         <SearchField label={_('Search sessions')} value={query} onChange={setQuery} data-shortcut="search" />
       </div>
+      {query ? null : <ComingUp />}
       {shown.length === 0 && data ? (
         <EmptyState
           compact

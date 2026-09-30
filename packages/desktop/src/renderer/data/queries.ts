@@ -127,6 +127,77 @@ export function createQueries(api: Api) {
         queryFn: ({ signal }) => api.call('search', { query: { q, includePrivate: true }, signal }),
         enabled: q.trim() !== '',
       }),
+    // ---- agendas (kacola wave 2). The views are folded from agenda.* events (EventBridge.foldAgenda);
+    // the lists and the session → agenda link are invalidated by them.
+    agenda: (id: string) =>
+      queryOptions({
+        queryKey: keys.agenda(id),
+        queryFn: ({ signal }) =>
+          api.call('getAgenda', { params: { id }, query: { includePrivate: true }, signal }),
+        ...live,
+      }),
+    agendaHistory: (id: string) =>
+      queryOptions({
+        queryKey: keys.agendaHistory(id),
+        queryFn: async ({ signal }) =>
+          (await api.call('getAgendaHistory', { params: { id }, query: { includePrivate: true }, signal }))
+            .changes,
+        ...live,
+      }),
+    agendas: () =>
+      queryOptions({
+        queryKey: keys.agendas(),
+        queryFn: async ({ signal }) =>
+          (await api.call('listAgendas', { query: { includePrivate: true, limit: 200 }, signal })).agendas,
+        ...live,
+      }),
+    sessionAgenda: (sessionId: string) =>
+      queryOptions({
+        queryKey: keys.sessionAgenda(sessionId),
+        queryFn: async ({ signal }) => {
+          const { agendas } = await api.call('listAgendas', {
+            query: { sessionId, includePrivate: true, limit: 1 },
+            signal,
+          })
+          return agendas[0]?.id ?? null
+        },
+        ...live,
+      }),
+    /** The calendar's next seven days; refreshed on calendar.updated and every few minutes. */
+    upcoming: () =>
+      queryOptions({
+        queryKey: keys.upcoming(),
+        queryFn: ({ signal }) => {
+          const from = new Date()
+          const to = new Date(from.getTime() + 7 * 86_400_000)
+          return api.call('listMeetings', {
+            query: { from: from.toISOString(), to: to.toISOString() },
+            signal,
+          })
+        },
+        staleTime: 60_000,
+        refetchInterval: 5 * 60_000,
+      }),
+    /** Connected agents (+ the ones that ended this run, for the history); refetched on agent.presence. */
+    leases: (sessionId: string) =>
+      queryOptions({
+        queryKey: keys.leases(sessionId),
+        queryFn: async ({ signal }) =>
+          (
+            await api.call('listAgentLeases', {
+              params: { id: sessionId },
+              query: { includeEnded: true },
+              signal,
+            })
+          ).leases,
+        ...live,
+      }),
+    agentAccess: (sessionId: string) =>
+      queryOptions({
+        queryKey: keys.agentAccess(sessionId),
+        queryFn: ({ signal }) => api.call('getAgentAccess', { params: { id: sessionId }, signal }),
+        ...live,
+      }),
   }
 }
 

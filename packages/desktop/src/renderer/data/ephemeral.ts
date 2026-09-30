@@ -1,4 +1,11 @@
-import type { AnyEvent, Meeting, ModelInfo, TrackKind } from '@gnomeola/protocol'
+import type {
+  AgentMode,
+  AgentPresenceState,
+  AnyEvent,
+  Meeting,
+  ModelInfo,
+  TrackKind,
+} from '@gnomeola/protocol'
 import type { PartialLine } from '@gnomeola/ui-core/transcript'
 import { createStore } from 'zustand/vanilla'
 
@@ -24,6 +31,15 @@ export type StreamState = {
   error?: { code: string; message: string }
 }
 
+/** A connected agent's live presence (agent.presence), for the session header's chip and its pulse. */
+export type Presence = {
+  leaseId: string
+  name: string
+  mode: AgentMode
+  state: AgentPresenceState
+  at: number
+}
+
 export type EphemeralState = {
   connection: Connection
   /** sessionId → track → last level. */
@@ -35,6 +51,8 @@ export type EphemeralState = {
   /** model id → the latest progress report. */
   modelProgress: Record<string, ModelInfo>
   meetingStarting: Meeting | null
+  /** sessionId → leaseId → the agent's latest presence. */
+  presence: Record<string, Record<string, Presence>>
 }
 
 export const initialEphemeral: EphemeralState = {
@@ -44,6 +62,7 @@ export const initialEphemeral: EphemeralState = {
   streams: {},
   modelProgress: {},
   meetingStarting: null,
+  presence: {},
 }
 
 export const createEphemeralStore = (init: Partial<EphemeralState> = {}) =>
@@ -104,6 +123,18 @@ export function applyEphemeral(store: EphemeralStore, e: AnyEvent, now = Date.no
       return
     case 'meeting.starting':
       store.setState({ meetingStarting: d.meeting })
+      return
+    case 'agent.presence':
+      if (!sid) return
+      store.setState((s) => ({
+        presence: {
+          ...s.presence,
+          [sid]: {
+            ...s.presence[sid],
+            [d.leaseId]: { leaseId: d.leaseId, name: d.name, mode: d.mode, state: d.state, at: now },
+          },
+        },
+      }))
       return
     default:
       return
