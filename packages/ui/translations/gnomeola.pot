@@ -1135,22 +1135,26 @@ msgstr ""
 msgid "{device} (not connected)"
 msgstr ""
 
-#: ../ui-core/src/settings.ts:91
+#: ../ui-core/src/settings.ts:98
 msgid "Live transcription"
 msgstr ""
 
-#: ../ui-core/src/settings.ts:92
+#: ../ui-core/src/settings.ts:99
 msgid "Accurate transcription"
 msgstr ""
 
-#: ../ui-core/src/settings.ts:93
+#: ../ui-core/src/settings.ts:100
 msgid "Voice detection"
 msgstr ""
 
-#: ../ui-core/src/settings.ts:94
+#: ../ui-core/src/settings.ts:101
 msgid "Speaker turns"
 msgstr ""
 
-#: ../ui-core/src/settings.ts:95
+#: ../ui-core/src/settings.ts:102
 msgid "Speaker recognition"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:103
+msgid "Offline decisions"
 msgstr ""

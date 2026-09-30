@@ -10,6 +10,8 @@ import { GroundTruth, type Utterance } from './schema.ts'
 // small; on first use each track is decoded with ffmpeg to 16 kHz mono 16-bit WAV in a cache dir, keyed
 // by the hash of the committed file so a regenerated fixture never serves stale audio.
 
+export * from './agenda-schema.ts'
+export * from './agenda-scripts.ts'
 export * from './schema.ts'
 export * from './scripts.ts'
 
@@ -51,7 +53,16 @@ export type Fixture = {
 }
 
 export function loadFixture(id: string): Fixture {
-  const dir = join(FIXTURES_DIR, id)
+  return loadFixtureFrom(FIXTURES_DIR, id)
+}
+
+/** A fixture meeting with an agenda (fixtures/agenda/<id>): same shape, plus `truth.agenda`. */
+export function loadAgendaFixture(id: string): Fixture {
+  return loadFixtureFrom(join(FIXTURES_DIR, 'agenda'), id)
+}
+
+function loadFixtureFrom(root: string, id: string): Fixture {
+  const dir = join(root, id)
   const truth = GroundTruth.parse(JSON.parse(readFileSync(join(dir, 'truth.json'), 'utf8')))
   const pcmCache = new Map<TrackKind, Float32Array>()
 

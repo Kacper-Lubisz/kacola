@@ -1,5 +1,6 @@
 import { TrackKind } from '@gnomeola/protocol'
 import { z } from 'zod'
+import { AgendaTruth } from './agenda-schema.ts'
 
 // Ground truth for a fixture meeting. Times are ms on the session timeline — the same timeline the
 // recorder uses, including recorded gaps (audio files are silent across a gap; a feeder skips it).
@@ -47,6 +48,8 @@ export const GroundTruth = z.object({
   /** Indices of utterances that attempt prompt injection (used by agent-surface security tests). */
   injections: z.array(z.int().nonnegative()),
   license: z.string(),
+  /** Fixture meetings under fixtures/agenda carry their agenda and per-item ground truth (evals). */
+  agenda: AgendaTruth.optional(),
   generator: z.object({ script: z.string(), sherpaOnnx: z.string(), generatedAt: z.string() }),
 })
 export type GroundTruth = z.infer<typeof GroundTruth>

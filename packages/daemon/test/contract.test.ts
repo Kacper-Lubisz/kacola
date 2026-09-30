@@ -452,6 +452,7 @@ describe('contract: every route, real server, typed client', () => {
         retention: { audio: 'keep', days: 30, archive: false },
         autoRecord: { calendar: false, micActivity: false },
         speakers: { diarize: true, voiceprints: false },
+        decisions: { provider: 'local', model: '', apiKeyConfigured: false },
       })
       const patched = await c2.call('updateSettings', {
         body: { llm: { model: 'claude-sonnet-5' }, stt: { finalPass: 'after' } },

@@ -23,6 +23,7 @@ export { DEFAULT_OLLAMA_URL, OllamaProvider, type OllamaProviderOptions } from '
 export {
   DEFAULT_OPENAI_MODEL,
   DEFAULT_OPENAI_URL,
+  httpError as openAIHttpError,
   OpenAIProvider,
   type OpenAIProviderOptions,
   supportsReasoning,

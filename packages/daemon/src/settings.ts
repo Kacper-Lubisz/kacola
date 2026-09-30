@@ -1,5 +1,7 @@
 import {
+  DECISIONS_KEY_ACCOUNT,
   DEFAULT_AUTO_RECORD,
+  DEFAULT_DECISIONS,
   DEFAULT_SPEAKER_SETTINGS,
   isKeyedProvider,
   type KeyedProvider,
@@ -25,6 +27,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   retention: { audio: 'keep', days: 30, archive: false },
   autoRecord: DEFAULT_AUTO_RECORD,
   speakers: DEFAULT_SPEAKER_SETTINGS,
+  decisions: DEFAULT_DECISIONS,
 }
 
 /** Each provider's default model (mirrors @gnomeola/llm's DEFAULT_MODELS; the daemon stays SDK-free here). */
@@ -39,6 +42,7 @@ export const DEFAULT_LLM_MODELS: Record<LlmProvider, string> = {
 export const KEY_ENV: Record<KeyedProvider, string> = {
   anthropic: 'ANTHROPIC_API_KEY',
   openai: 'OPENAI_API_KEY',
+  typesafe: 'TYPESAFE_API_KEY',
 }
 
 /**
@@ -83,7 +87,20 @@ export function mergeSettings(
     ...(('agents' in patch && patch.agents) || base.agents
       ? { agents: ('agents' in patch && patch.agents) || base.agents }
       : {}),
+    decisions: mergeDecisions(base.decisions, patch.decisions),
   })
+}
+
+/** Switching the decisions provider without naming a model goes back to that provider's default (''). */
+function mergeDecisions(
+  base: StoredSettings['decisions'],
+  patch: Partial<NonNullable<StoredSettings['decisions']>> | undefined,
+): NonNullable<StoredSettings['decisions']> {
+  const b = { ...DEFAULT_DECISIONS, ...base }
+  const next = { ...b, ...patch }
+  if (patch?.provider !== undefined && patch.provider !== b.provider && patch.model === undefined)
+    next.model = ''
+  return next
 }
 
 /**
@@ -105,6 +122,7 @@ export class SettingsService {
     this.envKeys = {
       anthropic: deps.env[KEY_ENV.anthropic]?.trim() || null,
       openai: deps.env[KEY_ENV.openai]?.trim() || null,
+      typesafe: deps.env[KEY_ENV.typesafe]?.trim() || null,
     }
     for (const k of Object.values(this.envKeys)) this.logger.addSecret(k)
     this.defaults = defaultSettings(deps.env)
@@ -117,7 +135,20 @@ export class SettingsService {
 
   async view(): Promise<Settings> {
     const s = this.get()
-    return { ...s, llm: { ...s.llm, apiKeyConfigured: (await this.apiKey()) !== null } }
+    const decisions = { ...DEFAULT_DECISIONS, ...s.decisions }
+    return {
+      ...s,
+      llm: { ...s.llm, apiKeyConfigured: (await this.apiKey()) !== null },
+      decisions: { ...decisions, apiKeyConfigured: (await this.decisionsApiKey()) !== null },
+    }
+  }
+
+  /** The key the selected decisions provider uses (TYPESAFE_API_KEY for jev), or null (none / not keyed). */
+  async decisionsApiKey(): Promise<string | null> {
+    const p = { ...DEFAULT_DECISIONS, ...this.get().decisions }.provider
+    const account =
+      p in DECISIONS_KEY_ACCOUNT ? DECISIONS_KEY_ACCOUNT[p as keyof typeof DECISIONS_KEY_ACCOUNT] : null
+    return account ? this.apiKey(account) : null
   }
 
   async patch(p: SettingsPatch): Promise<Settings> {
@@ -139,7 +170,7 @@ export class SettingsService {
    * The key a provider should use (default: the current provider's): its environment variable wins, then
    * the keyring. Null for providers that take no key.
    */
-  async apiKey(provider: LlmProvider = this.get().llm.provider): Promise<string | null> {
+  async apiKey(provider: LlmProvider | KeyedProvider = this.get().llm.provider): Promise<string | null> {
     if (!isKeyedProvider(provider)) return null
     const env = this.envKeys[provider]
     if (env) return env

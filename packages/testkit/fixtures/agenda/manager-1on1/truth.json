@@ -1,0 +1,430 @@
+{
+  "id": "manager-1on1",
+  "title": "1:1 with a manager",
+  "description": "The user (mic) and their manager Dana (far end). Promotion settled explicitly, handover settled, conference budget settled implicitly, vacation dates discussed but not settled, demo feedback; weekend and kitchen small talk as tangents.",
+  "sampleRate": 16000,
+  "durationMs": 137348,
+  "tracks": {
+    "mic": "mic.opus",
+    "system": "system.opus"
+  },
+  "speakers": [
+    {
+      "name": "Sam",
+      "track": "mic",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "name": "Dana",
+      "track": "system",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    }
+  ],
+  "utterances": [
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 2365,
+      "endMs": 5502,
+      "text": "Hi Sam, good to see you. How was your weekend?",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 6176,
+      "endMs": 10449,
+      "text": "Really nice, thanks. We finally went hiking up by the lake, and the weather was perfect.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 10894,
+      "endMs": 14722,
+      "text": "Lovely. I stood in the rain watching my niece's football match.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 15397,
+      "endMs": 20911,
+      "text": "Ha, brave. Okay, I have a few things today. First, the promotion to senior. What is still missing?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 21388,
+      "endMs": 28214,
+      "text": "Honestly, not much. The committee wants to see you lead a cross-team project from start to finish.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 28855,
+      "endMs": 32293,
+      "text": "Would the billing export migration count? It touches three teams.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 32754,
+      "endMs": 35139,
+      "text": "It would. The committee meets in March.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 35851,
+      "endMs": 38494,
+      "text": "So if I lead the migration, you would put me forward in March?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 39048,
+      "endMs": 44145,
+      "text": "Yes. Agreed: you lead the migration, and I will nominate you for senior in March.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 44755,
+      "endMs": 50170,
+      "text": "Great, thank you. Next, the handover of the nightly billing export job, since I am moving onto the migration.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 50533,
+      "endMs": 51838,
+      "text": "Who did you have in mind?",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 52190,
+      "endMs": 54489,
+      "text": "Priya. She already knows the reporting side.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 55373,
+      "endMs": 59765,
+      "text": "Good choice. Make sure she has access to the dashboards and the alerts.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 60410,
+      "endMs": 62193,
+      "text": "I will pair with her on Monday morning.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 62766,
+      "endMs": 66551,
+      "text": "Then that's settled. Priya owns the nightly export from Monday.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 67249,
+      "endMs": 73646,
+      "text": "Third thing. There is a platform engineering conference in Berlin in November. It is about nine hundred euros with the hotel.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 74171,
+      "endMs": 80439,
+      "text": "That is exactly the migration work we need. Book it, and I'll approve the expense when it comes through.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 81325,
+      "endMs": 85128,
+      "text": "Brilliant. Then vacation. I would like the last two weeks of December off.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 85493,
+      "endMs": 88349,
+      "text": "Hmm. Half the team has asked for those same weeks.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 88995,
+      "endMs": 92002,
+      "text": "I could take the week before Christmas instead, if that helps.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 92472,
+      "endMs": 97176,
+      "text": "Maybe. Let me check the team calendar before we lock anything in.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 98005,
+      "endMs": 98926,
+      "text": "Sure, no rush.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 99703,
+      "endMs": 104131,
+      "text": "Before I forget, I wanted to give you feedback on last week's demo.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 104733,
+      "endMs": 105638,
+      "text": "Please, go ahead.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 105995,
+      "endMs": 110738,
+      "text": "The content was clear and the customers liked it, but you ran ten minutes over.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 111531,
+      "endMs": 113104,
+      "text": "Fair. I had too many slides.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 113600,
+      "endMs": 118498,
+      "text": "Next time, cut it to five slides and do a dry run with me the day before.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 119310,
+      "endMs": 121411,
+      "text": "Will do. Five slides and a dry run.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 122174,
+      "endMs": 125892,
+      "text": "By the way, did you see they are repainting the kitchen upstairs?",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 126763,
+      "endMs": 128632,
+      "text": "I did. The smell is everywhere.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 129522,
+      "endMs": 130865,
+      "text": "Anything else from you?",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 131611,
+      "endMs": 133519,
+      "text": "No, that's everything. Thanks Dana.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Dana",
+      "startMs": 133923,
+      "endMs": 135848,
+      "text": "Thanks Sam, talk next week.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    }
+  ],
+  "gaps": [],
+  "silences": [],
+  "facts": [],
+  "injections": [],
+  "license": "Synthesized with Piper voices (MIT code; voices trained on public-domain, CC0 or Apache-2.0 data — see docs/stt.md). Script and audio: GPL-3.0-or-later as part of gnomeola.",
+  "agenda": {
+    "meeting": {
+      "kind": "one-on-one",
+      "userRole": "report",
+      "scheduledEndMs": 195848
+    },
+    "goals": [
+      "Find out what is still missing for my promotion to senior",
+      "Hand over the nightly billing export job",
+      "Get the Berlin conference approved",
+      "Book my December vacation"
+    ],
+    "items": [
+      {
+        "id": "promo",
+        "text": "Promotion timeline to senior",
+        "kind": "must-cover",
+        "owner": "me",
+        "expected": {
+          "status": "covered",
+          "settledAtMs": 44145,
+          "startedAtMs": 15397,
+          "evidence": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "settledBy": 8,
+          "outcome": "Sam leads the billing export migration; Dana nominates Sam for senior at the March committee.",
+          "answer": null,
+          "answerAliases": [],
+          "implicit": false
+        }
+      },
+      {
+        "id": "handover",
+        "text": "Handover of the nightly billing export job",
+        "kind": "topic",
+        "expected": {
+          "status": "covered",
+          "settledAtMs": 66551,
+          "startedAtMs": 44755,
+          "evidence": [
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "settledBy": 14,
+          "outcome": "Priya owns the nightly export from Monday; Sam pairs with her on Monday morning.",
+          "answer": null,
+          "answerAliases": [],
+          "implicit": false
+        }
+      },
+      {
+        "id": "conf",
+        "text": "Budget for the Berlin conference in November",
+        "kind": "question",
+        "expected": {
+          "status": "covered",
+          "settledAtMs": 80439,
+          "startedAtMs": 67249,
+          "evidence": [
+            15,
+            16
+          ],
+          "settledBy": 16,
+          "outcome": "Approved: Sam books the conference and Dana approves the expense.",
+          "answer": null,
+          "answerAliases": [],
+          "implicit": true
+        }
+      },
+      {
+        "id": "vacation",
+        "text": "December vacation dates",
+        "kind": "decision",
+        "expected": {
+          "status": "in_progress",
+          "settledAtMs": null,
+          "startedAtMs": 81325,
+          "evidence": [
+            17,
+            18,
+            19,
+            20
+          ],
+          "settledBy": null,
+          "outcome": null,
+          "answer": null,
+          "answerAliases": [],
+          "implicit": false
+        }
+      },
+      {
+        "id": "feedback",
+        "text": "Feedback on last week's demo",
+        "kind": "topic",
+        "expected": {
+          "status": "covered",
+          "settledAtMs": 121411,
+          "startedAtMs": 99703,
+          "evidence": [
+            22,
+            24,
+            25,
+            26,
+            27
+          ],
+          "settledBy": 27,
+          "outcome": "The demo ran ten minutes over; next time five slides and a dry run with Dana the day before.",
+          "answer": null,
+          "answerAliases": [],
+          "implicit": false
+        }
+      }
+    ],
+    "tangents": [
+      0,
+      1,
+      2,
+      28,
+      29
+    ]
+  },
+  "generator": {
+    "script": "packages/testkit/scripts/generate-fixtures.ts",
+    "sherpaOnnx": "1.13.8",
+    "generatedAt": "2026-09-30T15:51:48.016Z"
+  }
+}

@@ -15,7 +15,7 @@ import { join } from 'node:path'
 import { ExternalCaptureHub } from '@gnomeola/capture'
 import { SyncAgent } from '@gnomeola/capture-agent/sync'
 import { createClient } from '@gnomeola/protocol'
-import { defaultModelsDir, ModelManager } from '@gnomeola/stt'
+import { DEFAULT_MODELS, defaultModelsDir, ModelManager } from '@gnomeola/stt'
 import { heuristicGuard } from './agents/guard.ts'
 import { IcsCalendarProvider } from './calendar/ics.ts'
 import { EdsCalendarProvider, FileCalendarProvider, NoCalendar } from './calendar/providers.ts'
@@ -116,11 +116,13 @@ async function main(): Promise<void> {
     })
     opts.devices = new ExternalDevices()
     opts.models = new SttModels(models)
+    opts.decisionEmbedderDir = () => models.require(DEFAULT_MODELS.textEmbedding).catch(() => null)
   } else {
     const models = new ModelManager({ dir: defaultModelsDir(process.env, cfg.platform) })
     opts.pipeline = new RecordingPipeline({ models })
     opts.devices = new PipeWireDevices()
     opts.models = new SttModels(models)
+    opts.decisionEmbedderDir = () => models.require(DEFAULT_MODELS.textEmbedding).catch(() => null)
   }
   opts.agentLimits = cfg.agentLimits
   opts.livePartialEveryMs = cfg.livePartialEveryMs
