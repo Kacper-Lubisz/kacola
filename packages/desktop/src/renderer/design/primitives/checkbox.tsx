@@ -8,6 +8,7 @@ import { Icon } from '../icon.tsx'
 export function Checkbox({
   children,
   isSelected,
+  defaultSelected,
   onChange,
   isDisabled,
   'aria-label': ariaLabel,
@@ -15,6 +16,7 @@ export function Checkbox({
 }: {
   children?: ReactNode
   isSelected?: boolean
+  defaultSelected?: boolean
   onChange?: (v: boolean) => void
   isDisabled?: boolean
   'aria-label'?: string
@@ -23,6 +25,7 @@ export function Checkbox({
   return (
     <AriaCheckbox
       isSelected={isSelected}
+      defaultSelected={defaultSelected}
       onChange={onChange}
       isDisabled={isDisabled}
       aria-label={ariaLabel}
