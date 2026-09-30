@@ -20,6 +20,8 @@
     "./dbus": "./src/dbus/index.ts",
     "./eds": "./src/eds/index.ts",
     "./desktop": "./src/desktop/index.ts",
+    "./atlas": "./src/atlas/index.ts",
+    "./atlas/manifest": "./src/atlas/manifest.ts",
     "./stub-daemon": "./src/ui/e2e/stub-daemon.ts"
   },
   "scripts": {

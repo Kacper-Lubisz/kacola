@@ -25,7 +25,9 @@
     "brand": "python3 brand/scripts/build.py && node brand/scripts/tokens.ts",
     "brand:tokens": "node brand/scripts/tokens.ts",
     "test:agent-eval": "node packages/e2e/scripts/agent-eval.ts",
-    "release-gate": "bash scripts/release-gate.sh"
+    "release-gate": "bash scripts/release-gate.sh",
+    "atlas": "vitest run --project e2e --no-file-parallelism packages/e2e/test/atlas.e2e.test.ts packages/e2e/test/atlas-shell.e2e.test.ts packages/vercel/test/atlas-web.e2e.test.ts; code=$?; node scripts/build-atlas.ts && exit $code",
+    "atlas:build": "node scripts/build-atlas.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
