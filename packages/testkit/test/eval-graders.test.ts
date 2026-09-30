@@ -96,6 +96,7 @@ describe('settle latency (fixture time)', () => {
       ],
       30_000,
     )
+    // percentiles over the on-time-or-late detections only: [2 s, 35 s]
     expect(s).toEqual({ n: 4, detected: 3, withinBudget: 1, early: 1, p50: 2_000, p90: 35_000, max: 35_000 })
   })
 })

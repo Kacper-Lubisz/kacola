@@ -5,8 +5,8 @@
     "autoPrecision": 0.75,
     "autoRecall": 0.5625,
     "autoF1": 0.6666666666666666,
-    "latencyP50Ms": -5930,
-    "latencyP90Ms": 0,
+    "latencyP50Ms": 0,
+    "latencyP90Ms": 23346,
     "within30sRate": 0.25,
     "earlyCheckoffs": 6,
     "finalStatusAccuracy": 0.5238095238095238,
@@ -75,6 +75,6 @@
       "direction": "lower-is-better"
     }
   },
-  "recordedAt": "2026-09-30T16:16:34.859Z",
+  "recordedAt": "2026-09-30T16:30:55.555Z",
   "notes": "agenda fixtures (hostile-planning, interview-candidate, manager-1on1, standup-recurring) n=21"
 }

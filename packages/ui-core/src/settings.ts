@@ -70,10 +70,14 @@ export function withStored(prev: Settings | null, stored: StoredSettings): Setti
   }
 }
 
-/** Models the configured pipeline needs: live + VAD always, the final model unless the pass is off. */
+/**
+ * Models the configured pipeline needs: live + VAD always, the final model unless the pass is off. The
+ * decisions text embedder is optional (the on-device provider falls back to a model-free embedder), so it
+ * never blocks onboarding.
+ */
 export function requiredModels(models: readonly ModelInfo[], settings: Settings | null): ModelInfo[] {
   const finalOff = settings?.stt.finalPass === 'off'
-  return models.filter((m) => !(finalOff && m.role === 'final'))
+  return models.filter((m) => !(finalOff && m.role === 'final') && m.role !== 'text-embedding')
 }
 
 export const missingModels = (models: readonly ModelInfo[], settings: Settings | null): ModelInfo[] =>

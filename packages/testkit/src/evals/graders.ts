@@ -129,10 +129,12 @@ export type LatencyScores = {
   n: number
   /** Settled items the system marked at all. */
   detected: number
-  /** Marked no later than settledAt + budget (and not before the item was first raised). */
+  /** Marked at or after settling and no later than settledAt + budget. */
   withinBudget: number
   /** Marked before the settling utterance ended: a guess, not a detection. */
   early: number
+  /** Percentiles of the delay over detections at or after settling (early guesses are counted in
+   *  `early`, never allowed to make the latency look good). */
   p50: number | null
   p90: number | null
   max: number | null
@@ -144,7 +146,7 @@ export function settleLatency(
   budgetMs: number,
 ): LatencyScores {
   const delays = items.filter((i) => i.decidedAtMs !== null).map((i) => i.decidedAtMs! - i.settledAtMs)
-  const sorted = [...delays].sort((a, b) => a - b)
+  const sorted = delays.filter((d) => d >= 0).sort((a, b) => a - b)
   const q = (f: number) =>
     sorted.length ? sorted[Math.min(sorted.length - 1, Math.ceil(f * sorted.length) - 1)]! : null
   return {
