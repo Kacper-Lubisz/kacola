@@ -1,0 +1,65 @@
+# gnomeola.app for macOS, as unsigned zips for Apple silicon and Intel (a dmg and signing need a Mac).
+# Zips are gnomeola-<version>-mac-<arch>.zip.
+# Built from Linux by scripts/build-macos.ts, which stages the project directory this file is read in:
+#
+#   package.json, main.cjs       the main process (packaging/placeholder until packages/desktop lands)
+#   runtime-arm64/, runtime-x64/ dist/runtime per architecture (scripts/build-runtime.ts --target
+#                                darwin-<arch>): the bundles plus darwin natives — better-sqlite3's N-API
+#                                prebuild and sherpa-onnx-darwin-<arch> (dylibs) — copied as
+#                                Contents/Resources/runtime, outside the asar so the natives load
+#   bin/gnomeola                 the in-app CLI shim (packaging/macos/gnomeola-cli.sh)
+appId: org.gnome.Gnomeola
+productName: gnomeola
+copyright: Copyright © 2026 The gnomeola contributors
+electronVersion: 44.5.1
+asar: true
+directories:
+  output: ../out
+files:
+  - package.json
+  - main.cjs
+extraResources:
+  - from: runtime-${arch}
+    to: runtime
+    # electron-builder drops node_modules from extraResources whatever the filter says; the natives live
+    # there, so scripts/build-macos.ts copies runtime-<arch>/node_modules in an afterPack hook
+  - from: bin
+    to: bin
+  - from: THIRD_PARTY_NOTICES.md
+    to: THIRD_PARTY_NOTICES.md
+  - from: LICENSES.chromium.html
+    to: LICENSES.chromium.html
+# Electron fuses (the brief's security baseline): one binary runs the window, the daemon and the CLI, so
+# RunAsNode stays on; everything else that lets environment or flags inject code is off.
+electronFuses:
+  runAsNode: true
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  loadBrowserProcessSpecificV8Snapshot: false
+  grantFileProtocolExtraPrivileges: false
+mac:
+  # `dir`, then scripts/build-macos.ts zips each .app with Info-ZIP keeping symlinks: electron-builder's
+  # 7-Zip on Linux dereferences the framework's Versions/Current links (the zip triples to ~360 MiB and
+  # the bundle's structure no longer matches what codesign expects)
+  target:
+    - target: dir
+      arch:
+        - arm64
+        - x64
+  category: public.app-category.productivity
+  minimumSystemVersion: '12.0'
+  identity: null
+  hardenedRuntime: false
+  darkModeSupport: true
+  extendInfo:
+    # getUserMedia: your side of the meeting
+    NSMicrophoneUsageDescription: gnomeola records your side of a meeting from the microphone and transcribes it on this Mac.
+    # system audio (the other side): Core Audio taps / ScreenCaptureKit audio-only capture (macOS 14.2+)
+    NSAudioCaptureUsageDescription: gnomeola records what the other side of a meeting says from your Mac's audio output and transcribes it on this Mac.
+    # getDisplayMedia loopback audio goes through the Screen Recording permission on older macOS
+    NSScreenCaptureUsageDescription: gnomeola captures your Mac's audio output (not the screen) to record the other side of a meeting.
+    LSUIElement: false
+    LSApplicationCategoryType: public.app-category.productivity

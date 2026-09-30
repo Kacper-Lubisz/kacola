@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createClient, type GnomeolaClient } from '@gnomeola/protocol'
 import { waitFor } from '@gnomeola/testkit/daemon'
+import { DbusProbe, startPrivateBus } from '@gnomeola/testkit/dbus'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildFlatpak } from '../../../scripts/build-flatpak.ts'
 import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
@@ -94,8 +95,8 @@ const flatpakCli = (args: string[], extra: Record<string, string> = {}) =>
 /** The app in the background, headless (no display needed for --background). */
 const LAUNCH = `flatpak run --user ${APP} --background --ozone-platform=headless --disable-gpu`
 
-function startApp(): ChildProcess {
-  const c = spawn('sh', ['-c', `exec ${LAUNCH}`], { env: env(), stdio: ['ignore', 'ignore', 'pipe'] })
+function startApp(extra: Record<string, string> = {}): ChildProcess {
+  const c = spawn('sh', ['-c', `exec ${LAUNCH}`], { env: env(extra), stdio: ['ignore', 'ignore', 'pipe'] })
   children.add(c)
   c.once('exit', () => children.delete(c))
   return c
@@ -180,6 +181,12 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
     expect(t.pwDump.nodes).toBeGreaterThan(0)
     expect(t.ffmpeg.ok).toBe(true)
     expect(t.secretTool.ok).toBe(true)
+    // gjs is not in the runtime: the Flatpak builds it (mozjs 140 + gjs 1.88 on its own GLib 2.86)
+    expect(t.gjs, JSON.stringify(t.gjs)).toMatchObject({
+      ok: true,
+      version: expect.stringMatching(/^gjs 1\.88/),
+    })
+    expect(t.gjs.glib).toBe('glib>=2.86 function')
     expect(t.dirs).toEqual({
       ok: true,
       dataDir: join(home, '.var', 'app', APP, 'data', 'gnomeola'),
@@ -252,6 +259,31 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
     expect(r.stderr).toMatch(/starting the gnomeola app in the background/)
     expect(JSON.parse(r.stdout).sessions.length).toBeGreaterThan(0)
     expect(await healthy()).toBe(true)
+  }, 120_000)
+
+  it('the D-Bus bridge (bundled gjs) owns org.gnome.Gnomeola from inside the sandbox — on a private bus', async () => {
+    await stopApp()
+    const bus = await startPrivateBus()
+    try {
+      startApp({ DBUS_SESSION_BUS_ADDRESS: bus.address, GNOMEOLA_DBUS: 'session' })
+      await waitFor(healthy, 30_000, 'the sandboxed daemon to answer')
+      const probe = new DbusProbe({
+        address: bus.address,
+        name: 'org.gnome.Gnomeola',
+        path: '/org/gnome/Gnomeola',
+        iface: 'org.gnome.Gnomeola',
+      })
+      try {
+        await probe.until((p) => p.DaemonUrl === url, 30_000, 'the bridge to own the name and publish')
+        expect(probe.owner).toMatch(/^:1\./)
+        expect(probe.props.State).toBe('idle')
+      } finally {
+        await probe.close()
+      }
+    } finally {
+      await stopApp()
+      await bus.close()
+    }
   }, 120_000)
 
   it('uninstall-cli removes the shim and the skill again', async () => {

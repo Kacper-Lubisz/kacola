@@ -56,6 +56,22 @@ attempt('secretTool', () => {
   if (r.error) throw r.error
   return { version: (r.stdout || r.stderr).trim() }
 })
+attempt('gjs', () => {
+  // the runtime has no gjs; the Flatpak builds it (modules/gjs.yml) for the D-Bus bridge and cal-agent
+  const r = spawnSync(
+    'gjs',
+    // check_version asks the loaded library (the typelib constants are the runtime's 2.84)
+    [
+      '-c',
+      "const {GLib, Gio} = imports.gi; print(`${GLib.check_version(2, 86, 0) === null ? 'glib>=2.86' : 'glib<2.86'} ${typeof Gio.DBusProxy}`)",
+    ],
+    { encoding: 'utf8' },
+  )
+  if (r.error) throw r.error
+  if (r.status !== 0) throw new Error(`gjs exited ${r.status}: ${r.stderr.trim()}`)
+  const v = spawnSync('gjs', ['--version'], { encoding: 'utf8' }).stdout.trim()
+  return { version: v, glib: r.stdout.trim() }
+})
 attempt('dirs', () => {
   const data = join(process.env.XDG_DATA_HOME || join(homedir(), '.local', 'share'), 'gnomeola')
   const models = process.env.GNOMEOLA_MODELS_DIR || join(data, 'models')
