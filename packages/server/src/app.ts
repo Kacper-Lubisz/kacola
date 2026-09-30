@@ -321,6 +321,11 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     heartbeatAgentLease: 'unsupported',
     releaseAgentLease: 'unsupported',
     liveAttach: 'unsupported',
+    listAgentLeases: 'unsupported',
+    updateAgentLease: 'unsupported',
+    listLiveSessions: 'unsupported',
+    getAgentAccess: 'unsupported',
+    setAgentAccess: 'unsupported',
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))

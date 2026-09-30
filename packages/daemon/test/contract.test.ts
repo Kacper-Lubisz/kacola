@@ -385,9 +385,16 @@ describe('contract: every route, real server, typed client', () => {
       deleteAgenda: () => c.call('deleteAgenda', { params: { id: ag.id } }),
       // the live channel: contract only until the agent-channel wave
       createAgentLease: () => notHere(c.call('createAgentLease', { params, body: { name: 'claude' } })),
-      heartbeatAgentLease: () => notHere(c.call('heartbeatAgentLease', { params: { leaseId: 'lse_x' } })),
+      heartbeatAgentLease: () =>
+        notHere(c.call('heartbeatAgentLease', { params: { leaseId: 'lse_x' }, body: {} })),
       releaseAgentLease: () => notHere(c.call('releaseAgentLease', { params: { leaseId: 'lse_x' } })),
       liveAttach: () => notHere(c.stream('liveAttach', { params }).next()),
+      listAgentLeases: () => notHere(c.call('listAgentLeases', { params })),
+      updateAgentLease: () =>
+        notHere(c.call('updateAgentLease', { params: { leaseId: 'lse_x' }, body: { mode: 'act' } })),
+      listLiveSessions: () => notHere(c.call('listLiveSessions')),
+      getAgentAccess: () => notHere(c.call('getAgentAccess', { params })),
+      setAgentAccess: () => notHere(c.call('setAgentAccess', { params, body: { allowAgents: true } })),
     }
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {
       await expect(call(), name).resolves.toBeDefined()

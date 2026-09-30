@@ -80,6 +80,9 @@ export function mergeSettings(
     retention: { ...base.retention, ...patch.retention },
     autoRecord: { ...base.autoRecord, ...patch.autoRecord },
     speakers: { ...DEFAULT_SPEAKER_SETTINGS, ...base.speakers, ...patch.speakers },
+    ...(('agents' in patch && patch.agents) || base.agents
+      ? { agents: ('agents' in patch && patch.agents) || base.agents }
+      : {}),
   })
 }
 
