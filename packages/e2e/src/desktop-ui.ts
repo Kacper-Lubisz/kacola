@@ -1,8 +1,7 @@
-import { execFileSync } from 'node:child_process'
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { mkdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { formatOffset, type Segment } from '@gnomeola/protocol'
-import type { DesktopApp } from '@gnomeola/testkit/desktop'
+import { type DesktopApp, matchBaseline } from '@gnomeola/testkit/desktop'
 
 type Page = DesktopApp['window']
 type Locator = ReturnType<Page['getByRole']>
@@ -90,60 +89,26 @@ const BASELINES = join(import.meta.dirname, '..', 'test', '__screenshots__', 'de
 const ARTIFACTS = join(import.meta.dirname, '..', 'test', '__artifacts__', 'desktop')
 
 /**
- * Screenshot baseline check (vitest has no toHaveScreenshot): the page is captured to __artifacts__,
- * compared with test/__screenshots__/desktop/<name>.png by ImageMagick (per-pixel fuzz, then the share
- * of pixels that still differ). A missing baseline is written (and reported); UPDATE_SCREENSHOTS=1
- * rewrites them. `maxDiff` is the tolerated share of differing pixels — live screens (streaming text,
- * growing transcripts) need more than static ones. `region` shoots one element (a pane, a dialog), so
- * a baseline does not move with the rest of the window.
+ * Screenshot baseline check: the page (or one element, `region` — a pane, a dialog — so a baseline does
+ * not move with the rest of the window) is captured to __artifacts__ and compared with
+ * test/__screenshots__/desktop/<name>.png by the testkit's comparator (matchBaseline: a missing baseline
+ * is written; GNOMEOLA_UPDATE_SCREENSHOTS=1 rewrites them). `maxDiff` is the tolerated share of
+ * differing pixels — live screens (streaming text, a growing transcript) need more than static ones.
  */
 export async function expectScreenshot(
   app: DesktopApp,
   name: string,
-  opts: { maxDiff?: number; fuzz?: string; region?: Locator } = {},
-): Promise<{ path: string; diff: number | null; wrote: boolean }> {
+  opts: { maxDiff?: number; threshold?: number; region?: Locator } = {},
+): Promise<string> {
   const out = join(ARTIFACTS, `${name}.png`)
   mkdirSync(ARTIFACTS, { recursive: true })
   // caret: 'initial' — hiding the caret injects an inline <style>, which our CSP rightly refuses
   if (opts.region) await opts.region.screenshot({ path: out, caret: 'initial', animations: 'allow' })
   const shot = opts.region ? out : await app.screenshot(out)
-  const base = join(BASELINES, `${name}.png`)
-  if (!existsSync(base) || process.env.UPDATE_SCREENSHOTS === '1') {
-    mkdirSync(dirname(base), { recursive: true })
-    copyFileSync(shot, base)
-    return { path: shot, diff: null, wrote: true }
-  }
-  const diffPath = join(ARTIFACTS, `${name}.diff.png`)
-  const [bw, bh] = execFileSync('identify', ['-format', '%w %h', base], { encoding: 'utf8' }).split(' ')
-  const [sw, sh] = execFileSync('identify', ['-format', '%w %h', shot], { encoding: 'utf8' }).split(' ')
-  if (bw !== sw || bh !== sh) throw new Error(`screenshot ${name}: ${sw}x${sh}, baseline ${bw}x${bh}`)
-  // |a - b| per pixel, as grey, thresholded at the fuzz: the mean is the share of differing pixels
-  const diff = Number.parseFloat(
-    execFileSync(
-      'magick',
-      [
-        shot,
-        base,
-        '-compose',
-        'difference',
-        '-composite',
-        '-colorspace',
-        'gray',
-        '-threshold',
-        opts.fuzz ?? '6%',
-        '-write',
-        diffPath,
-        '-format',
-        '%[fx:mean]',
-        'info:',
-      ],
-      { encoding: 'utf8' },
-    ),
-  )
-  const max = opts.maxDiff ?? 0.01
-  if (!(diff <= max))
-    throw new Error(
-      `screenshot ${name} differs from its baseline: ${(diff * 100).toFixed(2)}% of pixels (max ${max * 100}%) — see ${diffPath}`,
-    )
-  return { path: shot, diff, wrote: false }
+  const failure = matchBaseline(shot, join(BASELINES, `${name}.png`), {
+    maxDiffRatio: opts.maxDiff ?? 0.01,
+    threshold: opts.threshold ?? 0.06,
+  })
+  if (failure) throw new Error(`screenshot ${name}: ${failure}`)
+  return shot
 }

@@ -173,6 +173,31 @@ reusing the GTK app's msgids where the meaning is the same. Catalogues are JSON 
 - The client packages may not import testkit (`pnpm boundaries`), which is why window tests live in
   `packages/e2e`.
 
+## Transcript, Ask, Speakers (phase 2B)
+
+- **Transcript** (`features/transcript/`): `rows.ts` turns the transcript query + the store's partials +
+  the session's recorded gaps into display rows (pure, unit-tested); `transcript-list.tsx` is a
+  listbox over `@tanstack/react-virtual` — options named `"<Speaker> at <m:ss>: <text>"` (+
+  ` (provisional)` / ` (in progress)`, the GTK app's names), one Tab stop, arrows/Page/Home/End move the
+  selection (`aria-activedescendant`), and the selection is the highlight. Follow mode is intent-based
+  (wheel/keys up or a scrollbar drag detach, reaching the bottom re-attaches), "Jump to Live" re-attaches.
+- **Citations** are URLs: `#/sessions/<id>?tab=transcript&segment=<seg>` or `&t=<seconds>`; the pane
+  scrolls to, selects and flashes the line once per navigation (the router's per-navigation key), so
+  following the same link twice re-scrolls. Anything may link to a line this way.
+- **Ask** (`features/ask/`): history = the qa query; this window's own asks live in `own-asks.ts` (they
+  survive the tab unmounting), tokens stream into `streams[localId]`, and `mergeTurns` lays them over the
+  history until the durable answer arrives. A cross-meeting ask (`since: '30d'`) is shown from its
+  stream's answer (no session history holds it); its chips open the cited session.
+- **Speakers** (`features/speakers/`): rename / merge fold the very event the daemon will echo through
+  ui-core's folds, so the echo is a no-op; split shows a provisional "New speaker" until
+  `speaker.upserted` + `segments.attributed` name it. Chips: daemon slot n → `speaker.((n mod 6)+1)`.
+- **Perf**: the pane records `performance.measure('transcript.first-paint')` (snapshot in hand → first
+  painted frame); `desktop-transcript.e2e.test.ts` reads it and times End / ten Page Downs on the
+  1,350-line fixture (`__artifacts__/desktop-transcript-perf.json`). 2026-09-30: first paint 11–12 ms,
+  End 9–18 ms, ten Page Downs 15–44 ms (GTK: commit ~7 ms, End ~320 ms, ten Page Downs ~350 ms).
+- Timestamps use text.secondary, not the spec's text.tertiary: tertiary on the surfaces is 3.9:1 and
+  the axe gate needs 4.5:1 at 13px.
+
 ## Footprint (E-1 gate, 2026-09-30)
 
 Measured inside the headless GNOME Shell 50.4 (Wayland, `--virtual-monitor 1280x800`,
