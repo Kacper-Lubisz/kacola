@@ -109,7 +109,11 @@ export function RecapView({ view, session }: { view: AgendaView; session: Sessio
                 {i.evidence.length ? (
                   <div className="flex flex-wrap gap-1">
                     {i.evidence.slice(-2).map((ev) => (
-                      <EvidenceChip key={`${ev.segmentId}:${ev.quote}`} sessionId={view.agenda.sessionId} ev={ev} />
+                      <EvidenceChip
+                        key={`${ev.segmentId}:${ev.quote}`}
+                        sessionId={view.agenda.sessionId}
+                        ev={ev}
+                      />
                     ))}
                   </div>
                 ) : null}

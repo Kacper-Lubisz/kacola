@@ -79,6 +79,10 @@ export function fakeBridge(over: Partial<GnomeolaBridge> = {}) {
     catalogue: vi.fn(async () => ({ locale: 'en', messages: {} })),
     windowControl: vi.fn(),
     openExternal: vi.fn(async () => true),
+    copyText: vi.fn(async (text: string) => {
+      void text
+    }),
+    saveTextFile: vi.fn(async () => ({ saved: false as const })),
     cliStatus: vi.fn(async () => cli),
     installCli: vi.fn(async (force: boolean) => {
       void force

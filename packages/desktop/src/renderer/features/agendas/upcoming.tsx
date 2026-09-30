@@ -71,7 +71,9 @@ export function ComingUp() {
                 <span className="truncate type-callout font-semibold text-text-primary">{m.title}</span>
                 <span className="type-caption text-text-secondary">
                   {live ? _('Now') : formatClockTime(m.start)}
-                  {a ? ` · ${fmt(ngettext('{n} item', '{n} items', a.counts.items), { n: a.counts.items })}` : ''}
+                  {a
+                    ? ` · ${fmt(ngettext('{n} item', '{n} items', a.counts.items), { n: a.counts.items })}`
+                    : ''}
                 </span>
               </div>
               <Button

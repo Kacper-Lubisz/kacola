@@ -41,9 +41,11 @@ export const isTemporary = (id: string) => id.startsWith('tmp_')
 
 export type AddItemsVars = { agendaId: string; items: NewAgendaItem[]; before?: string }
 
+/** The temporary ids of each add, keyed by its variables (module-wide: a hook rebuilds its options on
+ *  every render, and onSuccess may run with a newer render's). */
+const made = new WeakMap<AddItemsVars, string[]>()
+
 export function addItemsMutation(api: Api, qc: QueryClient) {
-  // the temporary ids of each call (keyed by its variables: concurrent adds do not share them)
-  const made = new WeakMap<AddItemsVars, string[]>()
   return {
     mutationKey: ['addAgendaItems'],
     mutationFn: ({ agendaId, items, before }: AddItemsVars) =>

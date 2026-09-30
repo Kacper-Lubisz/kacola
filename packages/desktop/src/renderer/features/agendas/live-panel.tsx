@@ -106,7 +106,11 @@ function LiveItem({
             {item.evidence.length ? (
               <div className="flex flex-wrap gap-1">
                 {item.evidence.slice(-3).map((ev) => (
-                  <EvidenceChip key={`${ev.segmentId}:${ev.quote}`} sessionId={view.agenda.sessionId} ev={ev} />
+                  <EvidenceChip
+                    key={`${ev.segmentId}:${ev.quote}`}
+                    sessionId={view.agenda.sessionId}
+                    ev={ev}
+                  />
                 ))}
               </div>
             ) : null}
