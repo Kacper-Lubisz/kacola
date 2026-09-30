@@ -11,6 +11,16 @@ tree; do not edit it by hand.
 | @anthropic-ai/sdk | 0.128.0 | MIT | https://github.com/anthropics/anthropic-sdk-typescript#readme |
 | @anthropic-ai/tokenizer | 0.0.4 | Apache-2.0 | https://github.com/anthropics/anthropic-tokenizer-typescript#readme |
 | @babel/runtime | 7.29.7 | MIT | https://babel.dev/docs/en/next/babel-runtime |
+| @codemirror/autocomplete | 6.20.3 | MIT |  |
+| @codemirror/commands | 6.11.1 | MIT |  |
+| @codemirror/lang-css | 6.3.1 | MIT | https://github.com/codemirror/lang-css#readme |
+| @codemirror/lang-html | 6.4.12 | MIT |  |
+| @codemirror/lang-javascript | 6.2.5 | MIT | https://github.com/codemirror/lang-javascript#readme |
+| @codemirror/lang-markdown | 6.5.2 | MIT |  |
+| @codemirror/language | 6.12.4 | MIT |  |
+| @codemirror/lint | 6.9.7 | MIT |  |
+| @codemirror/state | 6.7.6 | MIT |  |
+| @codemirror/view | 6.43.13 | MIT |  |
 | @electric-sql/pglite | 0.5.8 | Apache-2.0 | https://pglite.dev |
 | @emotion/hash | 0.9.2 | MIT | https://github.com/emotion-js/emotion/tree/main#readme |
 | @emotion/memoize | 0.9.0 | MIT | https://github.com/emotion-js/emotion/tree/main#readme |
@@ -30,6 +40,14 @@ tree; do not edit it by hand.
 | @internationalized/date | 3.12.4 | Apache-2.0 | https://github.com/adobe/react-spectrum/tree/main#readme |
 | @internationalized/number | 3.6.8 | Apache-2.0 | https://github.com/adobe/react-spectrum#readme |
 | @internationalized/string | 3.2.10 | Apache-2.0 | https://github.com/adobe/react-spectrum#readme |
+| @lezer/common | 1.5.3 | MIT |  |
+| @lezer/css | 1.3.8 | MIT |  |
+| @lezer/highlight | 1.2.5 | MIT |  |
+| @lezer/html | 1.3.13 | MIT | https://github.com/lezer-parser/html#readme |
+| @lezer/javascript | 1.5.5 | MIT |  |
+| @lezer/lr | 1.4.10 | MIT |  |
+| @lezer/markdown | 1.7.2 | MIT |  |
+| @marijn/find-cluster-break | 1.0.4 | MIT | https://code.haverbeke.berlin/marijn/find-cluster-break |
 | @modelcontextprotocol/sdk | 1.30.1 | MIT | https://modelcontextprotocol.io |
 | @oxc-project/types | 0.151.0 | MIT | https://oxc.rs |
 | @react-types/shared | 3.36.1 | Apache-2.0 | https://github.com/adobe/react-spectrum#readme |
@@ -74,6 +92,7 @@ tree; do not edit it by hand.
 | cookie-es | 3.1.1 | MIT | https://github.com/unjs/cookie-es#readme |
 | cookie-signature | 1.2.2 | MIT | https://github.com/visionmedia/node-cookie-signature#readme |
 | cors | 2.8.6 | MIT | https://github.com/expressjs/cors#readme |
+| crelt | 1.0.7 | MIT | https://code.haverbeke.berlin/marijn/crelt |
 | cross-spawn | 7.0.6 | MIT | https://github.com/moxystudio/node-cross-spawn |
 | csstype | 3.2.3 | MIT | https://github.com/frenic/csstype#readme |
 | debug | 4.4.3 | MIT | https://github.com/debug-js/debug#readme |
@@ -214,6 +233,7 @@ tree; do not edit it by hand.
 | standardwebhooks | 1.1.1 | MIT | https://github.com/standard-webhooks/standard-webhooks/tree/main/libraries/javascript |
 | statuses | 2.0.2 | MIT | https://github.com/jshttp/statuses#readme |
 | strip-final-newline | 2.0.0 | MIT | https://github.com/sindresorhus/strip-final-newline#readme |
+| style-mod | 4.1.4 | MIT | https://code.haverbeke.berlin/marijn/style-mod |
 | stylis | 4.4.0 | MIT | https://github.com/thysultan/stylis.js |
 | throttleit | 2.1.0 | MIT | https://github.com/sindresorhus/throttleit#readme |
 | tiktoken | 1.0.22 | MIT | https://github.com/dqbd/tiktoken#readme |
@@ -228,6 +248,7 @@ tree; do not edit it by hand.
 | use-sync-external-store | 1.7.0 | MIT | https://github.com/react/react#readme |
 | vary | 1.1.2 | MIT | https://github.com/jshttp/vary#readme |
 | vite | 8.3.1 | MIT | https://vite.dev |
+| w3c-keyname | 2.2.8 | MIT | https://github.com/marijnh/w3c-keyname#readme |
 | which | 2.0.2 | ISC | https://github.com/isaacs/node-which#readme |
 | wrappy | 1.0.2 | ISC | https://github.com/npm/wrappy |
 | xdg-app-paths | 5.5.1 | MIT | https://github.com/rivy/js.xdg-app-paths#readme |

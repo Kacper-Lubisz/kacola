@@ -22,6 +22,8 @@ export const IPC = {
   i18n: 'gnomeola:i18n',
   windowControl: 'gnomeola:window-control',
   openExternal: 'gnomeola:open-external',
+  clipboardWrite: 'gnomeola:clipboard-write',
+  saveText: 'gnomeola:save-text',
   cliStatus: 'gnomeola:cli-status',
   cliInstall: 'gnomeola:cli-install',
   cliUninstall: 'gnomeola:cli-uninstall',
@@ -90,6 +92,16 @@ export type Catalogue = {
   messages: Record<string, string | string[]>
 }
 
+/** A text file to save through the system's "save as" dialog (notes export). */
+export type SaveTextRequest = {
+  /** The dialog's title. */
+  title: string
+  /** Suggested file name (one path component; main sanitizes it and starts in Documents). */
+  defaultName: string
+  text: string
+}
+
+export type SaveTextResult = { saved: true; path: string } | { saved: false }
 /** The `gnomeola` command (+ Claude skill) that install-cli puts on PATH (Preferences, onboarding). */
 export type CliInstallState =
   | {
@@ -133,6 +145,10 @@ export interface GnomeolaBridge {
   windowControl(c: WindowControl): void
   /** http(s) only; anything else is refused in main. */
   openExternal(url: string): Promise<boolean>
+  /** Put text on the system clipboard. */
+  copyText(text: string): Promise<void>
+  /** Ask where to save, then write the text there. `{ saved: false }` when the dialog was dismissed. */
+  saveTextFile(req: SaveTextRequest): Promise<SaveTextResult>
   cliStatus(): Promise<CliInstallState>
   /** `force` replaces a `gnomeola` we did not write (only after the user said so). */
   installCli(force: boolean): Promise<CliInstallState>

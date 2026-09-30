@@ -82,6 +82,22 @@ export function createQueries(api: Api) {
           api.call('getNotes', { params: { id }, query: { includePrivate: true }, signal }),
         ...live,
       }),
+    noteVersions: (id: string) =>
+      queryOptions({
+        queryKey: keys.noteVersions(id),
+        queryFn: async ({ signal }) =>
+          (await api.call('listNoteVersions', { params: { id }, query: { includePrivate: true }, signal }))
+            .versions,
+        ...live,
+      }),
+    /** Built-in + custom templates, and the one suggested for this session (calendar / session title). */
+    templates: (id: string) =>
+      queryOptions({
+        queryKey: keys.templates(id),
+        queryFn: ({ signal }) =>
+          api.call('listTemplates', { query: { sessionId: id, includePrivate: true }, signal }),
+        ...live,
+      }),
     settings: () =>
       queryOptions({
         queryKey: keys.settings(),

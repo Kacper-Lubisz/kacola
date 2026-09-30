@@ -10,7 +10,13 @@ import { ProgressBar as AriaProgressBar } from 'react-aria-components'
 export function Spinner({ label, size = 24 }: { label: string; size?: number }) {
   return (
     <AriaProgressBar isIndeterminate aria-label={label} className="inline-flex text-text-secondary">
-      <svg width={size} height={size} viewBox="0 0 24 24" className="animate-spin" aria-hidden="true">
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        className="motion-safe:animate-spin"
+        aria-hidden="true"
+      >
         <circle
           cx="12"
           cy="12"

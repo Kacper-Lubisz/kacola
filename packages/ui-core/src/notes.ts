@@ -59,6 +59,8 @@ export type NotesFeedDeps = {
     signal: AbortSignal,
   ) => AsyncIterable<EnhanceStreamEvent>
   merge: (sessionId: string, body: BodyIn<'mergeNotes'>) => Promise<Note>
+  /** Bring an old version back as the head (optional: only windows with a history UI need it). */
+  restore?: (sessionId: string, version: number, body: BodyIn<'restoreNoteVersion'>) => Promise<Note>
   templates: (
     sessionId: string,
     signal: AbortSignal,
@@ -344,6 +346,28 @@ export class NotesFeed {
     }
   }
 
+  /**
+   * Bring an old version back as the head. Pending typing is saved first (so it too stays in history),
+   * and the restore is made against that head: a head that moved meanwhile is a conflict, not a loss.
+   */
+  async restore(version: number): Promise<void> {
+    const restore = this.deps.restore
+    if (!restore) throw new Error('this window cannot restore versions')
+    await this.flush()
+    if (this.state.saveError) throw new Error(this.state.saveError)
+    this.merging = true
+    try {
+      const note = await restore(this.sessionId, version, { baseVersion: this.state.note.version })
+      if (this.abort.signal.aborted) return
+      this.set({ note: { ...note }, draft: note.markdown, revision: this.state.revision + 1 })
+    } catch (err) {
+      if (!this.abort.signal.aborted) void this.load()
+      throw err
+    } finally {
+      this.merging = false
+    }
+  }
+
   dispose() {
     if (this.timer !== null)
       (this.deps.clearTimer ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>)))(this.timer)
@@ -352,6 +376,62 @@ export class NotesFeed {
     this.unsubscribe = null
     this.listeners.clear()
   }
+}
+
+// ------------------------------------------------------------------ folds for a query cache
+
+/**
+ * Fold a durable event into a session's NotesState (the `getNotes` response), the way the store folds
+ * it: user / merge / restore versions move the head, an enhanced version becomes the pending review,
+ * a merge clears the review it applied. Idempotent: an event for a version already seen is a no-op.
+ */
+export function applyNotesEvent(s: NotesState, sessionId: string, e: AnyEvent): NotesState {
+  if (e.sessionId !== sessionId || e.data.type !== 'note.version') return s
+  const v = e.data.version
+  if (v.kind === 'enhanced') {
+    if (s.enhanced && s.enhanced.version >= v.version) return s
+    if (s.note.pendingEnhancement !== null && s.note.pendingEnhancement >= v.version) return s
+    return { note: { ...s.note, pendingEnhancement: v.version }, enhanced: v }
+  }
+  if (v.version <= s.note.version) return s
+  const cleared = v.merge !== null && s.note.pendingEnhancement === v.merge.enhancedVersion
+  return {
+    note: {
+      sessionId,
+      version: v.version,
+      markdown: v.markdown,
+      updatedAt: v.createdAt,
+      pendingEnhancement: cleared ? null : s.note.pendingEnhancement,
+    },
+    enhanced: cleared ? null : s.enhanced,
+  }
+}
+
+/** Fold a durable event into a session's version history (oldest first). Idempotent. */
+export function applyVersionEvent(vs: NoteVersion[], sessionId: string, e: AnyEvent): NoteVersion[] {
+  if (e.sessionId !== sessionId || e.data.type !== 'note.version') return vs
+  const v = e.data.version
+  if (vs.some((x) => x.version === v.version)) return vs
+  return [...vs, v].sort((a, b) => a.version - b.version)
+}
+
+// -------------------------------------------------------------------- enhancement errors
+
+/** What went wrong with an enhancement, as the window explains it. */
+export type EnhanceProblem =
+  /** The model declined; the notes are unchanged. */
+  | 'refused'
+  /** Rate limited / out of quota at the provider: try again later. */
+  | 'quota'
+  /** No provider set up (no API key, no engine): Preferences can fix it. */
+  | 'unavailable'
+  | 'other'
+
+export function enhanceProblem(e: NotesError): EnhanceProblem {
+  if (/declin|refus/i.test(e.message)) return 'refused'
+  if (/rate.?limit|quota|credit|429|overloaded|too many requests/i.test(e.message)) return 'quota'
+  if (e.code === 'unavailable') return 'unavailable'
+  return 'other'
 }
 
 // ------------------------------------------------------------------------------ review

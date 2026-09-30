@@ -109,11 +109,34 @@ Calendar integration (M4) only has to pass the event's title; nothing here depen
 
 ## The window
 
-Session detail → **Notes** tab (`components/notes-pane.tsx`): the GtkSourceView 5 markdown editor
-(`notes-editor.tsx`, see docs/gtkx.md §3 for the vendored GIR), Enhance + a template menu, the streaming
-panel while enhancing, then the review (`notes-review.tsx`): one card per change with "Your notes" beside
-"Enhanced" and a switch "Use enhanced text for change N"; Use All Enhanced / Keep All Mine / Discard /
-Apply.
+**Electron** (`packages/desktop/src/renderer/features/notes/`, the session frame's Notes tab):
+
+- `notes-editor.tsx`: CodeMirror 6 over markdown, themed only from the kacola tokens (Instrument Sans
+  body, Bricolage headings, Fraunces italic quotes, JetBrains Mono code; light / dark / high contrast
+  follow the document's CSS variables). Enter is a bare newline (no list continuation, no auto-indent,
+  no auto-closed brackets), so what is typed is what is saved. It lives in a **shadow root**: CodeMirror
+  styles itself through style-mod, which injects a `<style>` element into a document and our CSP
+  refuses that; in a shadow root it uses a constructable stylesheet instead.
+- `notes-data.ts`: ui-core's `NotesFeed` (the same controller as the GTK window: 800 ms autosave, flush
+  on leaving, 409 → re-read and save on top, enhance, merge, **restore**) wired to the window: reads via
+  React Query (`['notes', id]`, `['templates', id]`), events from `EventBridge.listen`, writes over the
+  protocol routes. The EventBridge folds `note.version` into `['notes', id]` and `['noteVersions', id]`
+  with ui-core's `applyNotesEvent` / `applyVersionEvent`; template events invalidate `['templates']`.
+- `notes-pane.tsx`: Enhance + template menu (built-ins and custom; the suggestion and why — calendar
+  event or meeting title keyword), save status, the streaming progress (words so far + the text), the
+  error banner (`enhanceProblem`: refused / rate-limited → Try Again / no provider → Preferences),
+  Version History, Copy Notes as Markdown (main's clipboard), Export Notes (main's save dialog, starting
+  in Documents), live Action Items with owner / due and their own copy button.
+- `notes-review.tsx`: one card per change, "Your notes" beside "Enhanced", a switch "Use enhanced text
+  for change N"; Use All Enhanced / Keep All Mine / Discard / Apply.
+- `version-history.tsx`: every version newest first with a preview; Restore This Version appends a
+  `restore` version (so a restore is itself undoable). `template-editor.tsx`: custom templates (name,
+  keywords, body), built-ins read-only with Duplicate.
+- Built only from `design/primitives` (Button, IconButton, Switch, Menu, Dialog, Banner, Spinner,
+  NavigationList, TextField / TextArea, `useToast`) and `design/icon.tsx`; Open Preferences via `useDialogs()`.
+
+**GTK** (until the cut-over): `packages/ui/src/components/notes-pane.tsx`, the GtkSourceView 5 editor
+(`notes-editor.tsx`, see docs/gtkx.md §3), and `notes-review.tsx` with the same review model.
 
 ## Tests
 
@@ -128,6 +151,9 @@ Apply.
 | int | `packages/daemon/test/notes.int.test.ts` | every route through the real daemon process, privacy, refusal/failure store nothing |
 | int | `packages/llm/test/enhance.cassettes.int.test.ts` | the real SDK on two fixture meetings, scored against reference notes; Ollama |
 | int | `packages/e2e/test/notes-chain.int.test.ts` | CLI → daemon → LlmNotesEngine → SDK → replayed API; refusal / 429 leave notes untouched |
+| unit | `packages/ui-core/test/notes.test.ts` | the feed (incl. restore), the query-cache folds, enhance error classes |
+| unit | `packages/desktop/test/notes.test.tsx`, `notes-files.test.ts` | review choices in/out, action items, template helpers + optimistic mutation; main's clipboard / save-dialog checks |
+| e2e | `packages/e2e/test/desktop-notes.e2e.test.ts` | Playwright port of the GTK suite below (every assertion) + rate limiting, history restore, custom templates; axe in light / dark / high contrast; screenshot baselines (`test/__screenshots__/desktop-notes/`, `GNOMEOLA_UPDATE_SCREENSHOTS=1` to refresh) |
 | e2e | `packages/e2e/test/ui-notes.e2e.test.ts` | AT-SPI: type into the editor, autosave, enhance against the fake Anthropic server, revert some blocks and accept others, apply, and the stored merge equals the choices; every typed version recoverable; clipboard (wl-paste), file export through the real file dialog, refusal, flush on leaving |
 | eval | `packages/llm/test/enhance.eval.test.ts` | live (needs `ANTHROPIC_API_KEY`): user lines kept verbatim (hard), fact / action recall vs reference notes (soft), injection not obeyed, cache read on re-enhance |
 

@@ -1,0 +1,19 @@
+/* Notes pane motion (kacola tokens: slow duration, ease-in-out). Plain CSS: no inline styles under our CSP. */
+@keyframes notes-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+.notes-progress {
+  animation: notes-progress 1.4s var(--k-easing-in-out) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .notes-progress {
+    animation: none;
+    width: 100%;
+    opacity: 0.4;
+  }
+}

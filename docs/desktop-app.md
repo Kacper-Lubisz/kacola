@@ -99,6 +99,14 @@ main. Node sends no `Origin`, so the daemon's CSRF / DNS-rebinding guard is unto
 enters the renderer (asserted by `packages/e2e/test/desktop-tunnel.int.test.ts` against a daemon with
 pairing auth on).
 
+## Files and clipboard
+
+The renderer has no file system: `gnomeola.copyText(text)` and `gnomeola.saveTextFile({ title,
+defaultName, text })` go to main (`src/main/files.ts`: size-checked text, the suggested name reduced to
+one path component, `dialog.showSaveDialog` starting in Documents, then the write). An e2e stands in for
+the native dialog by replacing `dialog.showSaveDialog` through `app.evaluateMain` (it is looked up per
+call) and reads the clipboard back with `clipboard.readText()`.
+
 ## Data flow (renderer)
 
 - **Server state = React Query**, keyed by `data/keys.ts` (`['sessions']`, `['session', id]`,
@@ -204,6 +212,12 @@ reusing the GTK app's msgids where the meaning is the same. Catalogues are JSON 
   re-records after a deliberate design change; a mismatch writes `<name>.diff.png` in `__artifacts__`).
   A first-run window opens onboarding: tests about something else call `markOnboarded(display)`. Test code compiled by
   `packages/e2e` has no DOM lib: pass page-side code to `evaluate` as a string.
+- Baselines of one pane (the notes suite): an element screenshot of the pane (not the frame, which
+  shows live times) through `matchBaseline(png, baselinePng)` from `@gnomeola/testkit/desktop`. Blur
+  focus and park the pointer first, and `emulateMedia({ reducedMotion: 'reduce' })` for still spinners — Playwright's
+  `animations: 'disabled'` injects a `<style>` the CSP refuses.
+- Third-party widgets that inject `<style>` (CodeMirror's style-mod) must be mounted in a shadow root,
+  where they fall back to constructable stylesheets.
 - The client packages may not import testkit (`pnpm boundaries`), which is why window tests live in
   `packages/e2e`.
 

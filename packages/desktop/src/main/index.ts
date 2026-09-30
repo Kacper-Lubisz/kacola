@@ -1,10 +1,13 @@
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { writeFile } from 'node:fs/promises'
 import { join, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import {
   app,
   BrowserWindow,
+  clipboard,
+  dialog,
   type IpcMainEvent,
   type IpcMainInvokeEvent,
   ipcMain,
@@ -28,6 +31,7 @@ import {
   type WindowControl,
 } from '../shared/bridge.ts'
 import { readDesktopConfig } from './config.ts'
+import { checkClipboardText, checkSaveRequest, type SaveDialogOptions, saveText } from './files.ts'
 import { cliEntry, Integration, runCli } from './integration.ts'
 import { loadCatalogue, preferredLanguages, readNotices, readUiState, writeUiState } from './resources.ts'
 import {
@@ -226,6 +230,27 @@ function wireIpc(): void {
     if (typeof url !== 'string' || !isExternalUrl(url)) return false
     await shell.openExternal(url)
     return true
+  })
+  // ---- notes: copy as markdown, export (files.ts)
+  handle(IPC.clipboardWrite, (_e, text) => {
+    clipboard.writeText(checkClipboardText(text))
+  })
+  handle(IPC.saveText, (e, req) => {
+    const w = BrowserWindow.fromWebContents(e.sender)
+    // `dialog.showSaveDialog` is looked up per call, so an e2e can stand in for the native dialog
+    const show = (o: SaveDialogOptions) => (w ? dialog.showSaveDialog(w, o) : dialog.showSaveDialog(o))
+    let documentsDir: string
+    try {
+      documentsDir = app.getPath('documents')
+    } catch {
+      documentsDir = app.getPath('home')
+    }
+    return saveText(checkSaveRequest(req), {
+      showSaveDialog: show,
+      writeFile: (path, text) => writeFile(path, text, 'utf8'),
+      documentsDir,
+      join,
+    })
   })
   handle(IPC.cliStatus, () => integration.cliStatus())
   handle(IPC.cliInstall, (_e, force) => integration.installCli(force === true))
