@@ -3,6 +3,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import type { ExternalCaptureHub } from '@gnomeola/capture'
+import type { LlmProvider } from '@gnomeola/llm'
 import {
   type BodyOut,
   DEFAULT_PORT,
@@ -21,7 +22,10 @@ import { Store } from '@gnomeola/store'
 import type { z } from 'zod'
 import pkg from '../package.json' with { type: 'json' }
 import { agendaHandlers } from './agendas/handlers.ts'
+import { agendaRecapHook } from './agendas/recap.ts'
 import { AgendaService } from './agendas/service.ts'
+import { AgendaTracker, type TrackerOptions } from './agendas/tracker.ts'
+import { agendaLlm, trackerHandlers } from './agendas/tracker-wiring.ts'
 import { resolveScope, runAsk } from './ask.ts'
 import { AutoRecorder } from './auto-record.ts'
 import { EventBus } from './bus.ts'
@@ -100,6 +104,11 @@ export type DaemonOptions = {
   // ---- Agendas wave 1B: decisions
   /** The installed text-embedding model's directory (null = not downloaded: hashing fallback). */
   decisionEmbedderDir?: () => Promise<string | null>
+  // ---- Agendas wave 2: the live tracker
+  /** Tracker tuning (tests shorten the periods); false = no tracker. */
+  tracker?: TrackerOptions | false
+  /** Test seam: the text LLM for bridge lines and recaps. Default: the Q&A provider from settings + key. */
+  agendaLlm?: () => Promise<LlmProvider | null>
 }
 
 export type Daemon = {
@@ -118,6 +127,8 @@ export type Daemon = {
   readonly agendas: AgendaService
   /** Agendas wave 1B: the typed-decision provider the settings select. */
   readonly decisions: DecisionsService
+  /** Agendas wave 2: the live tracker (null when switched off); `tracker.guard` is the SpeechGuard. */
+  readonly tracker: AgendaTracker | null
   /** Open SSE connections. */
   readonly sseClients: number
   close(): Promise<void>
@@ -199,6 +210,22 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     webBase: o.agendaWebBase !== undefined ? o.agendaWebBase : (env.GNOMEOLA_AGENDA_WEB_BASE ?? null),
   })
   agendas.start()
+  // ---- Agendas wave 2: the live tracker + the recap
+  const llmFor = agendaLlm(settings, o.agendaLlm)
+  const tracker =
+    o.tracker === false
+      ? null
+      : new AgendaTracker({
+          store,
+          agendas: agendas.agendas,
+          bus,
+          logger,
+          decisions,
+          llm: async () => (await llmFor()).provider,
+          options: o.tracker ?? {},
+        })
+  tracker?.start()
+  agendas.onRecap(agendaRecapHook({ store, agendas: agendas.agendas, tracker, logger, llm: llmFor }))
   const heartbeatMs = o.heartbeatMs ?? 15_000
   const pageSize = o.replayPageSize ?? 500
   const allowedOrigins = new Set(o.allowedOrigins ?? [])
@@ -375,6 +402,8 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     ...externalCaptureHandlers(o.externalCapture ?? null),
     // ---- agendas, deep links, the invite block (the live channel's handlers are a later wave's)
     ...agendaHandlers(agendas),
+    // ---- Agendas wave 2: the live tracker's status
+    ...trackerHandlers(agendas, tracker),
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))
@@ -515,6 +544,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
       logger.info('shutting down')
       server.close()
       autoRecord.stop()
+      tracker?.stop()
       agendas.stop()
       await dbus?.stop()
       await calendar.stop()
@@ -543,6 +573,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     dbus,
     speakers: spk,
     agendas,
+    tracker,
     get sseClients() {
       return sse.size
     },

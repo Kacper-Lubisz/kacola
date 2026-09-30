@@ -388,6 +388,13 @@ describe('contract: every route, real server, typed client', () => {
       heartbeatAgentLease: () => notHere(c.call('heartbeatAgentLease', { params: { leaseId: 'lse_x' } })),
       releaseAgentLease: () => notHere(c.call('releaseAgentLease', { params: { leaseId: 'lse_x' } })),
       liveAttach: () => notHere(c.stream('liveAttach', { params }).next()),
+      // ---- Agendas wave 2: the tracker never ran for this agenda
+      getAgendaTracker: async () => {
+        const a = await c.call('createAgenda', { body: { title: 'tracker contract' } })
+        const r = await c.call('getAgendaTracker', { params: { id: a.agenda.id } })
+        expect(r.tracker).toBeNull()
+        return r
+      },
     }
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {
       await expect(call(), name).resolves.toBeDefined()
