@@ -32,10 +32,9 @@ class Wrapped implements DecisionProvider {
   fail: string | null = null
   delayMs = 0
   calls = 0
-  constructor(
-    readonly inner: DecisionProvider,
-    id: DecisionProvider['id'] = 'jev',
-  ) {
+  readonly inner: DecisionProvider
+  constructor(inner: DecisionProvider, id: DecisionProvider['id'] = 'jev') {
+    this.inner = inner
     this.id = id
     this.model = `wrapped-${inner.model}`
     this.confidence = inner.confidence
