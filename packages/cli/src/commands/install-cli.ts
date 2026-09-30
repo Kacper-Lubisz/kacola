@@ -46,7 +46,7 @@ export function appBundleOf(execPath: string): string | null {
   return m ? m[1]! : null
 }
 
-function specFor(ctx: Ctx, mode: InstallMode, f: InstallCliFlags): ShimSpec {
+function specFor(mode: InstallMode, f: InstallCliFlags): ShimSpec {
   const launch = f.launch !== undefined ? f.launch : undefined
   if (mode === 'flatpak') return shimSpec('flatpak', { launch })
   if (mode === 'macos') {
@@ -67,7 +67,7 @@ function specFor(ctx: Ctx, mode: InstallMode, f: InstallCliFlags): ShimSpec {
 
 export function installCliCommand(ctx: Ctx, f: InstallCliFlags): void {
   const mode = resolveMode(ctx, f.mode)
-  const spec = specFor(ctx, mode, f)
+  const spec = specFor(mode, f)
   let report: ReturnType<typeof installCli>
   try {
     report = installCli({
@@ -83,7 +83,10 @@ export function installCliCommand(ctx: Ctx, f: InstallCliFlags): void {
     if (err instanceof InstallError) throw new CliError(EXIT.REFUSED, err.message)
     throw err
   }
-  if (ctx.format === 'json') return ctx.io.stdout(renderJson(report, ctx.io))
+  if (ctx.format === 'json') {
+    ctx.io.stdout(renderJson(report, ctx.io))
+    return
+  }
   ctx.io.stdout(`${report.shim.action}: ${report.shim.path} (${mode})\n`)
   if (report.skill) ctx.io.stdout(`skill ${report.skill.action}: ${report.skill.path}\n`)
   for (const w of report.warnings) ctx.io.stdout(`note: ${w}\n`)
@@ -98,7 +101,10 @@ export function uninstallCliCommand(ctx: Ctx, f: InstallCliFlags & { keepSkill?:
     skillRoot: f.skillDir,
     keepSkill: f.keepSkill,
   })
-  if (ctx.format === 'json') return ctx.io.stdout(renderJson({ mode, ...r }, ctx.io))
+  if (ctx.format === 'json') {
+    ctx.io.stdout(renderJson({ mode, ...r }, ctx.io))
+    return
+  }
   for (const p of r.removed) ctx.io.stdout(`removed: ${p}\n`)
   for (const p of r.keptForeign) ctx.io.stdout(`left alone (not ours): ${p}\n`)
   if (r.skill) ctx.io.stdout(`skill ${r.skill.action}: ${r.skill.path}\n`)

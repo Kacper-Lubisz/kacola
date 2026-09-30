@@ -28,3 +28,6 @@ notes/pages/*.state.json
 .claude/
 reports/
 .stryker-tmp/
+
+# packaging inputs assembled by scripts/build-flatpak.ts
+packaging/flatpak/input/
