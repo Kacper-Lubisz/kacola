@@ -61,8 +61,10 @@ tree; do not edit it by hand.
 | @tanstack/react-query | 5.104.0 | MIT | https://tanstack.com/query |
 | @tanstack/react-router | 1.170.40 | MIT | https://tanstack.com/router |
 | @tanstack/react-store | 0.11.2 | MIT | https://tanstack.com/store |
+| @tanstack/react-virtual | 3.14.13 | MIT | https://tanstack.com/virtual |
 | @tanstack/router-core | 1.171.33 | MIT | https://tanstack.com/router |
 | @tanstack/store | 0.11.2 | MIT | https://tanstack.com/store |
+| @tanstack/virtual-core | 3.17.11 | MIT | https://tanstack.com/virtual |
 | @types/node | 18.19.130, 26.6.3 | MIT | https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node |
 | @types/react | 19.3.0 | MIT | https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react |
 | @vercel/blob | 2.8.0 | Apache-2.0 | https://vercel.com/storage/blob |

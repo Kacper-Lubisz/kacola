@@ -17,6 +17,7 @@ import {
 } from '../../design/primitives/index.ts'
 import { AskPane } from '../ask/ask-pane.tsx'
 import { NotesPane } from '../notes/notes-pane.tsx'
+import { SpeakersButton } from '../speakers/speakers-dialog.tsx'
 import { TranscriptPane } from '../transcript/transcript-pane.tsx'
 import type { SessionTab } from './pane.ts'
 import { SessionDetails, TRACK_LABEL } from './session-details.tsx'
@@ -72,6 +73,7 @@ export function SessionPage({ sessionId, tab = 'transcript' }: { sessionId: stri
           ) : undefined
         }
         title={collapsed ? displayTitle(session) : undefined}
+        end={<SpeakersButton sessionId={session.id} />}
       />
       <Tabs selectedKey={tab} onSelectionChange={setTab} className="min-h-0 flex-1">
         <div className="mx-auto flex w-full max-w-[860px] flex-col gap-3 px-4 pt-2 pb-3 sm:px-6">
