@@ -297,7 +297,7 @@ flowchart LR
 ```
 
 ### deep-link — Open a meeting from its calendar invite
-- **Status:** planned (agenda phase)
+- **Status:** built in the window (kacola wave 2); some states still planned
 - **Entry points:** `kacola://meeting/<eventUid>?start=<iso>` or `kacola://agenda/<id>` in an invite; an
   https web link for people without kacola.
 - **Steps:** 1. Click the link in the invite. 2. kacola opens that meeting's agenda (creating it if
@@ -828,7 +828,7 @@ flowchart LR
 ## Agendas, live intelligence and BYO agent (planned, being built now)
 
 ### agenda-plan — Plan a meeting with Claude
-- **Status:** planned
+- **Status:** built in the window (kacola wave 2); some states still planned
 - **Persona:** a 1:1 with a manager; a recurring team meeting.
 - **Entry points:** the window's "Plan with Claude"; Claude Code + skill ("prepare a meeting"); the
   deep link.
@@ -856,7 +856,7 @@ flowchart TD
 ```
 
 ### agenda-invite — Put the agenda link in the invite
-- **Status:** planned
+- **Status:** built in the window (kacola wave 2); some states still planned
 - **Steps:** Opt-in write of "Agenda: kacola://… · web: https://…" into the event description through
   EDS (never overwriting the organiser's text; the block is marked); read-only calendars get copy-to-
   clipboard instead.
@@ -872,14 +872,14 @@ flowchart LR
 ```
 
 ### agenda-live — The agenda during the meeting
-- **Status:** planned
+- **Status:** built in the window (kacola wave 2); some states still planned
 - **Steps:** 1. The live panel shows items open / in progress / covered. 2. An item is checked off from
   what was said (confidence ≥ 0.8 with evidence, undoable), or "looks covered?" when unsure; manual always
   wins. 3. One "next talking point" card with a bridge line. 4. Five minutes before the end: what is not
   covered. 5. The context panel: cards from the agenda and the connected agent.
 - **States:** `agenda-live__panel__items`, `agenda-live__check-off__auto-covered`,
   `agenda-live__suggest__looks-covered`, `agenda-live__next-point__card`, `agenda-live__time__not-covered`,
-  `agenda-live__context__panel`, `agenda-live__topbar__next-point`.
+  `agenda-live__context__panel`, `agenda-live__presence__agent`, `agenda-live__topbar__next-point`.
 
 ```mermaid
 flowchart TD
@@ -902,7 +902,7 @@ flowchart TD
 ```
 
 ### interview-mode — A job interview
-- **Status:** planned
+- **Status:** built in the window (kacola wave 2); some states still planned
 - **Steps:** Candidate: items of kind *info to get*; the live panel splits Told / Not told yet with the
   answer heard and a quote; a 5-minute "not covered" nudge. Interviewer: competencies covered.
 - **States:** `interview-mode__panel__told-not-told`, `interview-mode__nudge__not-covered`,
@@ -919,7 +919,7 @@ flowchart LR
 ```
 
 ### agenda-recap — The recap and carry-over
-- **Status:** planned
+- **Status:** built in the window (kacola wave 2); some states still planned
 - **Steps:** After the meeting: outcome, decisions and actions per item; open items roll to the next
   occurrence.
 - **States:** `agenda-recap__per-item__outcomes`, `agenda-recap__carry-over__next-occurrence`.

@@ -3,14 +3,16 @@ import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { formatMeetingLink } from '@gnomeola/protocol'
 import { Store } from '@gnomeola/store'
 import { ATLAS_NOW, Atlas, HEIGHT, type Theme } from '@gnomeola/testkit/atlas'
 import { ATLAS } from '@gnomeola/testkit/atlas/manifest'
 import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
+import { buildDesktop, type DesktopApp, launchDesktop, launchSecondInstance } from '@gnomeola/testkit/desktop'
 import { makeSession, type StubDaemon, startStubDaemon } from '@gnomeola/testkit/stub-daemon'
 import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { type AgentChannelOverlay, startAgentChannelOverlay } from '../src/agent-channel-overlay.ts'
 import { gnomeola } from '../src/cli.ts'
 import { markOnboarded, setTheme, uiStatePath } from '../src/desktop.ts'
 import { poll, transcriptList } from '../src/desktop-ui.ts'
@@ -927,6 +929,398 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     )
     expect(tools.length).toBeGreaterThan(3)
     cliAtlas.text('mcp__tools__list', `$ gnomeola mcp   (an MCP client's tools/list)\n${tools.join('\n')}\n`)
+    expect(app.problems()).toEqual([])
+  })
+})
+
+describe('atlas: agendas (real daemon, a calendar file, the draft route, the agent-channel overlay)', () => {
+  // A weekly 1:1 under way (started 5 min ago, 30 min long) and its next occurrence; the agenda is opened
+  // from its kacola:// link, planned with Claude (a replayed stream, held), edited, followed live while
+  // it records (the tracker's and an agent's marks posted over HTTP, as those waves do), then recapped.
+  // Not frozen at ATLAS_NOW (the meeting must be happening now): anything showing wall-clock time — the
+  // meeting's hours, the sidebar's relative times, a recording's timer, Coming up — is masked.
+  let daemon: DaemonHandle
+  let api: FakeAnthropic
+  let overlay: AgentChannelOverlay
+  let app: DesktopApp
+  let box = ''
+  let agendaId = ''
+  let sessionId = ''
+  const w = () => app.window
+  const view = (id: string) =>
+    daemon.client.call('getAgenda', { params: { id }, query: { includePrivate: true } })
+  const clock = () => [
+    w().getByRole('navigation', { name: 'Session list' }),
+    w().getByRole('region', { name: 'Coming up' }),
+    w().getByText(/\d{2}:\d{2}–\d{2}:\d{2}/),
+    w().locator('h1 + p'),
+    w().getByRole('button', { name: /^(Record|Stop|Pause|Resume)/ }),
+  ]
+  const draftStream = (chunks: string[]) => {
+    const ev = (type: string, data: Record<string, unknown>) =>
+      `event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`
+    const usage = { input_tokens: 700, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
+    return {
+      status: 200,
+      headers: { 'content-type': 'text/event-stream' },
+      body:
+        ev('message_start', {
+          message: {
+            id: 'msg_atlas_draft',
+            type: 'message',
+            role: 'assistant',
+            model: 'claude-opus-5',
+            content: [],
+            stop_reason: null,
+            stop_sequence: null,
+            usage: { ...usage, output_tokens: 1 },
+          },
+        }) +
+        ev('content_block_start', { index: 0, content_block: { type: 'text', text: '' } }) +
+        chunks
+          .map((text) => ev('content_block_delta', { index: 0, delta: { type: 'text_delta', text } }))
+          .join('') +
+        ev('content_block_stop', { index: 0 }) +
+        ev('message_delta', {
+          delta: { stop_reason: 'end_turn', stop_sequence: null },
+          usage: { ...usage, output_tokens: 60 },
+        }) +
+        ev('message_stop', {}),
+    }
+  }
+
+  afterAll(async () => {
+    await app?.close()
+    await overlay?.close()
+    await daemon?.stop()
+    await api?.close()
+    if (box) rmSync(box, { recursive: true, force: true })
+  })
+
+  it('plan, edit, share, invite; live check-offs, suggestions, next point, presence; interview; recap and carry-over', async () => {
+    box = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-agenda-'))
+    const calFile = join(box, 'calendar.json')
+    const now = Date.now()
+    const t = (min: number) => new Date(now + min * 60_000).toISOString()
+    const weekly = (week: number) => ({
+      uid: 'one-on-one@x',
+      summary: '1:1 with Ana',
+      sourceUid: 'cal-work',
+      calendarName: 'Work',
+      recurrenceId: t(-5 + week * 7 * 24 * 60),
+      start: t(-5 + week * 7 * 24 * 60),
+      end: t(25 + week * 7 * 24 * 60),
+      description: '',
+      location: '',
+      url: '',
+      allDay: false,
+      startDate: null,
+      endDate: null,
+      timezone: 'UTC',
+      status: 'CONFIRMED',
+      myPartstat: null,
+      organizer: 'mailto:me@example.com',
+      attendees: 2,
+      recurring: true,
+      xprops: {},
+    })
+    writeFileSync(
+      calFile,
+      JSON.stringify({ calendars: [{ id: 'cal-work', name: 'Work' }], occurrences: [weekly(0), weekly(1)] }),
+    )
+    api = await startFakeAnthropic({ eventDelayMs: 40 })
+    daemon = await startDaemon({
+      dataDir: join(box, 'data'),
+      env: {
+        GNOMEOLA_CALENDAR: `file:${calFile}`,
+        GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
+        ANTHROPIC_API_KEY: KEY,
+        ANTHROPIC_BASE_URL: api.url,
+      },
+    })
+    overlay = await startAgentChannelOverlay(daemon.baseUrl)
+    markOnboarded(
+      display,
+      (await daemon.client.call('listModels')).models.map((m) => m.id),
+    )
+    const env = { GNOMEOLA_URL: overlay.url, ...WINDOW_ENV }
+    app = await launchDesktop({ display, env })
+    await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 20_000 })
+    await w().emulateMedia({ reducedMotion: 'reduce' })
+    await w().setViewportSize({ width: 1280, height: HEIGHT })
+
+    // the meeting's kacola:// link, handed over by a second launch (a clicked link): the agenda opens
+    const link = formatMeetingLink('one-on-one@x', weekly(0).start)
+    expect((await launchSecondInstance({ display, env, args: [link] })).exitCode).toBe(0)
+    const heading = w().getByRole('heading', { level: 1, name: '1:1 with Ana' })
+    await heading.waitFor({ timeout: 20_000 })
+    agendaId = ((await w().evaluate('location.hash')) as string).split('/')[2]!.split('?')[0]!
+    await atlas.shoot(w(), 'deep-link__open__meeting-link', { expect: heading, masks: clock() })
+    await atlas.shoot(w(), 'deep-link__live__join-offer', {
+      expect: w().getByRole('button', { name: 'Join and Record' }),
+      masks: clock(),
+    })
+
+    // Plan with Claude, held mid-stream
+    api.enqueue(
+      draftStream([
+        '- [must-cover] Promo timeline (10m, @me)\n',
+        '- [question] How is onboarding going (@Ana)\n',
+        '- [decision] Next review date\n',
+      ]),
+    )
+    const release = api.holdAfter(4)
+    await w().getByRole('button', { name: 'Plan with Claude' }).click()
+    const plan = w().getByRole('dialog', { name: 'Plan with Claude' })
+    await plan
+      .getByRole('textbox', { name: 'Goals (one per line)' })
+      .fill('agree the promo timeline\nhear how onboarding is going')
+    await plan.getByRole('button', { name: 'Draft Items' }).click()
+    await plan.getByRole('checkbox', { name: /How is onboarding going/ }).waitFor({ timeout: 15_000 })
+    await atlas.shoot(w(), 'agenda-plan__window__plan-with-claude', {
+      expect: plan.getByRole('checkbox', { name: /How is onboarding going/ }),
+      masks: clock(),
+    })
+    release()
+    await plan.getByText('Drafted by claude-opus-5').waitFor({ timeout: 15_000 })
+    await plan.getByRole('button', { name: 'Add 3 Items' }).click()
+    await plan.waitFor({ state: 'detached' })
+    const items = w().getByRole('grid', { name: 'Agenda items' })
+    await items.getByRole('row', { name: 'Next review date' }).waitFor()
+    await daemon.client.call('addAgendaItems', {
+      params: { id: agendaId },
+      body: { items: [{ text: 'Parking lot' }, { text: 'Skip this one' }] },
+    })
+    await items.getByRole('row', { name: 'Skip this one' }).waitFor()
+    await atlas.shoot(w(), 'agenda-plan__saved__agenda', { expect: items, masks: clock() })
+
+    await w().getByRole('button', { name: 'Edit “Next review date”' }).click()
+    const edit = w().getByRole('dialog', { name: 'Edit Item' })
+    await atlas.shoot(w(), 'agenda-plan__edit__items', {
+      expect: edit.getByRole('textbox', { name: 'Item' }),
+      masks: clock(),
+    })
+    await edit.getByRole('button', { name: 'Cancel' }).click()
+
+    // context: one private, one shared
+    for (const [title, body, visibility] of [
+      ['My notes on Ana', 'Wants the lead role; nervous about the timeline.', 'private'],
+      ['Promo criteria', 'Scope, impact, mentoring: the ladder doc, section 3.', 'shared'],
+    ] as const)
+      await daemon.client.call('addContextCard', {
+        params: { id: agendaId },
+        body: { title, body, visibility },
+      })
+    await w().getByRole('tab', { name: 'Context' }).click()
+    await w().getByRole('article', { name: 'Promo criteria' }).waitFor()
+    await atlas.shoot(w(), 'agenda-plan__context__share-or-keep', {
+      expect: [
+        w().getByRole('article', { name: 'My notes on Ana' }),
+        w().getByRole('article', { name: 'Promo criteria' }),
+      ],
+      masks: clock(),
+    })
+    await w().getByRole('tab', { name: 'Items' }).click()
+
+    // the calendar file cannot be written: the reason, and the block to copy
+    await w().getByRole('button', { name: 'Add Link to Invite' }).click()
+    const refused = w().getByRole('dialog', { name: 'Couldn’t Edit the Invitation' })
+    await atlas.shoot(w(), 'agenda-invite__fallback__copy-link', {
+      expect: refused.getByRole('button', { name: 'Copy' }),
+      masks: clock(),
+    })
+    await refused.getByRole('button', { name: 'Close' }).last().click()
+    await refused.waitFor({ state: 'detached' })
+
+    // Join and record → the session's Agenda tab
+    await w().getByRole('button', { name: 'Join and Record' }).click()
+    await w().getByRole('tab', { name: 'Agenda', selected: true }).waitFor({ timeout: 15_000 })
+    sessionId = ((await w().evaluate('location.hash')) as string).split('/')[2]!.split('?')[0]!
+    await poll(
+      async () => (await view(agendaId)).agenda.sessionId === sessionId,
+      15_000,
+      'the agenda to link',
+    )
+    const seg = await poll(
+      async () => {
+        const s = (
+          await daemon.client.call('getTranscript', {
+            params: { id: sessionId },
+            query: { includePrivate: true },
+          })
+        ).segments
+        return s.length ? s : null
+      },
+      30_000,
+      'a transcript segment',
+    )
+    const ids = Object.fromEntries((await view(agendaId)).items.map((i) => [i.text, i.id]))
+    const status = (text: string, body: Record<string, unknown>) =>
+      daemon.client.call('setAgendaItemStatus', {
+        params: { id: agendaId, itemId: ids[text]! },
+        body: body as never,
+      })
+    await status('Promo timeline', {
+      status: 'covered',
+      by: 'tracker',
+      auto: true,
+      confidence: 0.93,
+      evidence: [{ segmentId: seg[0]!.id, quote: 'so the promo goes in March', confidence: 0.93 }],
+    })
+    await status('How is onboarding going', { status: 'in-progress', by: 'agent:claude' })
+    await status('Parking lot', { status: 'parked' })
+    await status('Skip this one', { status: 'skipped' })
+    const suggest = (body: Record<string, unknown>) =>
+      daemon.client.call('addSuggestion', { params: { id: agendaId }, body: body as never })
+    await suggest({
+      kind: 'next-point',
+      text: 'Bridge to the review date while onboarding wraps up',
+      itemId: ids['Next review date'],
+      source: 'tracker',
+    })
+    await suggest({
+      kind: 'looks-covered',
+      text: 'Onboarding sounds settled: mark it covered?',
+      itemId: ids['How is onboarding going'],
+      source: 'tracker',
+    })
+    await daemon.client.call('addContextCard', {
+      params: { id: agendaId },
+      body: {
+        title: 'Last review (from Claude)',
+        body: 'March review: promo readiness "close"; asked for a mentoring example.',
+        source: { kind: 'agent', ref: 'claude' },
+        by: 'agent:claude',
+      },
+    })
+    const panel = w().getByRole('tabpanel', { name: 'Agenda' })
+    const promo = panel.getByRole('listitem', { name: 'Promo timeline' })
+    await promo.getByText('auto').waitFor({ timeout: 15_000 })
+    const next = panel.getByRole('region', { name: 'Next talking point' })
+    await atlas.shoot(w(), 'agenda-live__next-point__card', {
+      expect: next.getByText(/Bridge to the review date/),
+      masks: clock(),
+    })
+    const looks = panel.getByRole('listitem', { name: /Suggestion: Onboarding sounds settled/ })
+    await looks.scrollIntoViewIfNeeded()
+    await atlas.shoot(w(), 'agenda-live__suggest__looks-covered', {
+      expect: looks.getByRole('button', { name: 'Accept' }),
+      masks: clock(),
+    })
+    const list = panel.getByRole('list', { name: 'Agenda items' })
+    await list.scrollIntoViewIfNeeded()
+    await atlas.shoot(w(), 'agenda-live__panel__items', {
+      expect: list.getByRole('listitem', { name: 'Skip this one' }),
+      masks: clock(),
+    })
+    await promo.scrollIntoViewIfNeeded()
+    await atlas.shoot(w(), 'agenda-live__check-off__auto-covered', {
+      expect: promo.getByRole('button', { name: 'Show in transcript: “so the promo goes in March”' }),
+      masks: clock(),
+    })
+    const ctx = panel.getByRole('article', { name: 'Last review (from Claude)' })
+    await ctx.scrollIntoViewIfNeeded()
+    await atlas.shoot(w(), 'agenda-live__context__panel', { expect: ctx, masks: clock() })
+
+    // presence: the user's Claude on the live channel (the overlay until the agent-channel handlers merge)
+    overlay.leases.push({
+      id: 'lse_atlas',
+      sessionId,
+      agendaId,
+      name: 'claude',
+      mode: 'suggest',
+      createdAt: '2026-01-15T10:00:00.000Z',
+      expiresAt: t(60),
+      heartbeatAt: new Date().toISOString(),
+      state: 'connected',
+      endedAt: null,
+      endReason: null,
+      counts: { statusChanges: 1, suggestions: 0, items: 0, context: 1, refused: 0 },
+      actions: [
+        {
+          at: '2026-01-15T10:00:00.000Z',
+          kind: 'status',
+          outcome: 'applied',
+          summary: 'Marked “How is onboarding going” in progress',
+          ref: null,
+        },
+        {
+          at: '2026-01-15T10:00:00.000Z',
+          kind: 'context',
+          outcome: 'applied',
+          summary: 'Added “Last review”',
+          ref: null,
+        },
+      ],
+    })
+    overlay.presence(sessionId, { leaseId: 'lse_atlas', name: 'claude', mode: 'suggest', state: 'reading' })
+    await w().getByRole('button', { name: 'Claude · reading. Show agent' }).click()
+    const pop = w().getByRole('dialog', { name: 'Connected agents' })
+    await atlas.shoot(w(), 'agenda-live__presence__agent', {
+      expect: pop.getByRole('button', { name: 'Disconnect' }),
+      masks: clock(),
+    })
+    await w().keyboard.press('Escape')
+    await pop.waitFor({ state: 'detached' })
+
+    // interview view: information to get, and a competency
+    await daemon.client.call('addAgendaItems', {
+      params: { id: agendaId },
+      body: {
+        items: [
+          {
+            text: 'Team size',
+            kind: 'info-to-get',
+            status: 'covered',
+            outcome: 'eight engineers, two designers',
+          },
+          {
+            text: 'Mentoring',
+            kind: 'competency',
+            status: 'covered',
+            outcome: 'ran the onboarding buddy scheme',
+          },
+          { text: 'Salary band', kind: 'info-to-get' },
+        ],
+      },
+    })
+    await panel.getByRole('radio', { name: 'Interview' }).click()
+    const told = panel.getByRole('region', { name: 'Told (2)' })
+    await told.getByText('eight engineers, two designers').waitFor()
+    await told.scrollIntoViewIfNeeded()
+    await atlas.shoot(w(), 'interview-mode__panel__told-not-told', { expect: told, masks: clock() })
+    await atlas.shoot(w(), 'interview-mode__interviewer__competencies', {
+      expect: told.getByText('ran the onboarding buddy scheme'),
+      masks: clock(),
+    })
+    await panel.getByRole('radio', { name: 'Agenda' }).click()
+
+    // Stop → the recap, and the next occurrence with the carried items
+    await daemon.client.call('updateAgendaItem', {
+      params: { id: agendaId, itemId: ids['Next review date']! },
+      body: {
+        outcome: 'Outcome: Review on 12 November.\nDecisions:\n- 12 November\nActions:\n- Ana: book the room',
+      },
+    })
+    await status('Next review date', { status: 'covered' })
+    await daemon.client.call('stopSession', { params: { id: sessionId } })
+    const recap = w().getByRole('list', { name: 'Recap per item' })
+    await recap.waitFor({ timeout: 20_000 })
+    await atlas.shoot(w(), 'agenda-recap__per-item__outcomes', {
+      expect: recap.getByRole('listitem', { name: 'Next review date' }).getByText('Ana:'),
+      masks: clock(),
+    })
+    await w().getByRole('button', { name: 'Open Next Agenda' }).click()
+    await w()
+      .getByText(/items? carried over/)
+      .first()
+      .waitFor({ timeout: 15_000 })
+    await atlas.shoot(w(), 'agenda-recap__carry-over__next-occurrence', {
+      expect: w()
+        .getByText(/items? carried over/)
+        .first(),
+      masks: clock(),
+    })
     expect(app.problems()).toEqual([])
   })
 })
