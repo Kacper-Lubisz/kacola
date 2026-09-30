@@ -22,7 +22,9 @@
     "./desktop": "./src/desktop/index.ts",
     "./stub-daemon": "./src/ui/e2e/stub-daemon.ts",
     "./fake-decisions": "./src/fake-decisions/index.ts",
-    "./evals": "./src/evals/index.ts"
+    "./evals": "./src/evals/index.ts",
+    "./atlas": "./src/atlas/index.ts",
+    "./atlas/manifest": "./src/atlas/manifest.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
