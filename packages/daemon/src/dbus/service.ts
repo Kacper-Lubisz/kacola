@@ -50,7 +50,14 @@ export class DbusService {
   private child: LineChild | null = null
   private sent: Partial<DbusProps> = {}
   private owned = false
-  private lastLine: { sessionId: string; speaker: string; text: string } | null = null
+  /** The panel's last transcript line. `segmentId`/`speakerId` let a later attribution relabel it. */
+  private lastLine: {
+    sessionId: string
+    speaker: string
+    text: string
+    segmentId?: string
+    speakerId?: string
+  } | null = null
   private lineTimer: NodeJS.Timeout | null = null
   private readonly statusOf = new Map<string, SessionStatus>()
   private readonly unsubscribe: (() => void)[] = []
@@ -170,8 +177,20 @@ export class DbusService {
       case 'settings.updated':
         this.push()
         return
-      case 'segment.upserted':
-        this.line(data.segment.sessionId, data.segment.speaker, data.segment.text)
+      case 'segment.upserted': {
+        const g = data.segment
+        this.line(g.sessionId, g.speaker, g.text, g.id, g.speakerId)
+        return
+      }
+      // A far-end line is shown as "them" until diarization attributes it; relabel it when that (or a
+      // rename or merge of its speaker) lands, rather than leaving the panel a step behind the window.
+      case 'segments.attributed':
+        if (this.lastLine?.segmentId && data.segmentIds.includes(this.lastLine.segmentId))
+          this.relabel(data.speakerId)
+        return
+      case 'speaker.upserted':
+      case 'speaker.merged':
+        if (this.lastLine?.speakerId) this.relabel(this.lastLine.speakerId)
         return
       case 'transcript.partial':
         if (e.sessionId) this.line(e.sessionId, data.speaker, data.text)
@@ -181,9 +200,21 @@ export class DbusService {
     }
   }
 
-  private line(sessionId: string, speaker: string, text: string): void {
+  private relabel(speakerId: string): void {
+    const sp = this.d.store.resolveSpeaker(speakerId)
+    if (!sp || !this.lastLine) return
+    this.line(this.lastLine.sessionId, sp.label, this.lastLine.text, this.lastLine.segmentId, sp.id)
+  }
+
+  private line(
+    sessionId: string,
+    speaker: string,
+    text: string,
+    segmentId?: string,
+    speakerId?: string,
+  ): void {
     if (!text.trim()) return
-    this.lastLine = { sessionId, speaker, text }
+    this.lastLine = { sessionId, speaker, text, segmentId, speakerId }
     if (this.lineTimer) return
     this.lineTimer = setTimeout(() => {
       this.lineTimer = null
