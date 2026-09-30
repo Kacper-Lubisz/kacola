@@ -3,6 +3,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import type { ExternalCaptureHub } from '@gnomeola/capture'
+import type { LlmProvider } from '@gnomeola/llm'
 import {
   type BodyOut,
   DEFAULT_PORT,
@@ -22,7 +23,13 @@ import type { z } from 'zod'
 import pkg from '../package.json' with { type: 'json' }
 import { agendaDraftHandlers } from './agendas/draft.ts'
 import { agendaHandlers } from './agendas/handlers.ts'
+import { agendaRecapHook } from './agendas/recap.ts'
 import { AgendaService } from './agendas/service.ts'
+import { AgendaTracker, type TrackerOptions } from './agendas/tracker.ts'
+import { agendaLlm, trackerHandlers } from './agendas/tracker-wiring.ts'
+import { AgentChannel, type AgentLimits } from './agents/channel.ts'
+import type { SpeechGuard } from './agents/guard.ts'
+import { liveHandlers } from './agents/handlers.ts'
 import { resolveScope, runAsk } from './ask.ts'
 import { AutoRecorder } from './auto-record.ts'
 import { EventBus } from './bus.ts'
@@ -98,9 +105,21 @@ export type DaemonOptions = {
   /** Base URL of the hosted agenda page (`<base>/a/<id>`) for invitation blocks. Default
    *  GNOMEOLA_AGENDA_WEB_BASE, else none (the block carries only the kacola:// link). */
   agendaWebBase?: string | null
+  // ---- agent channel (leases, live attach)
+  /** Applied to live speech before it reaches agents. Default: pass-through (see agents/guard.ts). */
+  speechGuard?: SpeechGuard | null
+  /** Lease timeouts and per-lease rate limits (tests shorten them). */
+  agentLimits?: Partial<AgentLimits>
+  /** At most one partial per track per this many ms reaches an agent (default 1500). */
+  livePartialEveryMs?: number
   // ---- Agendas wave 1B: decisions
   /** The installed text-embedding model's directory (null = not downloaded: hashing fallback). */
   decisionEmbedderDir?: () => Promise<string | null>
+  // ---- Agendas wave 2: the live tracker
+  /** Tracker tuning (tests shorten the periods); false = no tracker. */
+  tracker?: TrackerOptions | false
+  /** Test seam: the text LLM for bridge lines and recaps. Default: the Q&A provider from settings + key. */
+  agendaLlm?: () => Promise<LlmProvider | null>
 }
 
 export type Daemon = {
@@ -117,8 +136,12 @@ export type Daemon = {
   readonly dbus: DbusService | null
   readonly speakers: SpeakerService
   readonly agendas: AgendaService
+  /** The agent channel: leases, presence, the SpeechGuard seam (`agents.setGuard`, `agents.guard`). */
+  readonly agents: AgentChannel
   /** Agendas wave 1B: the typed-decision provider the settings select. */
   readonly decisions: DecisionsService
+  /** Agendas wave 2: the live tracker (null when switched off); `tracker.guard` is the SpeechGuard. */
+  readonly tracker: AgendaTracker | null
   /** Open SSE connections. */
   readonly sseClients: number
   close(): Promise<void>
@@ -200,6 +223,33 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     webBase: o.agendaWebBase !== undefined ? o.agendaWebBase : (env.GNOMEOLA_AGENDA_WEB_BASE ?? null),
   })
   agendas.start()
+  // ---- Agendas wave 2: the live tracker + the recap
+  const llmFor = agendaLlm(settings, o.agendaLlm)
+  const tracker =
+    o.tracker === false
+      ? null
+      : new AgendaTracker({
+          store,
+          agendas: agendas.agendas,
+          bus,
+          logger,
+          decisions,
+          llm: async () => (await llmFor()).provider,
+          options: o.tracker ?? {},
+        })
+  tracker?.start()
+  agendas.onRecap(agendaRecapHook({ store, agendas: agendas.agendas, tracker, logger, llm: llmFor }))
+  const agents = new AgentChannel({
+    store,
+    bus,
+    agendas,
+    settings,
+    logger,
+    // the tracker's decision-based guard screens live speech before any agent sees it
+    guard: o.speechGuard ?? tracker?.guard ?? undefined,
+    limits: o.agentLimits,
+  })
+  agents.start()
   const heartbeatMs = o.heartbeatMs ?? 15_000
   const pageSize = o.replayPageSize ?? 500
   const allowedOrigins = new Set(o.allowedOrigins ?? [])
@@ -374,8 +424,19 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     ...hostedHandlers(access),
     // ---- P: platform — external capture ingest
     ...externalCaptureHandlers(o.externalCapture ?? null),
-    // ---- agendas, deep links, the invite block (the live channel's handlers are a later wave's)
-    ...agendaHandlers(agendas),
+    // ---- agendas, deep links, the invite block; the agent channel (leases, live attach)
+    ...agendaHandlers(agendas, agents),
+    ...liveHandlers({
+      store,
+      bus,
+      channel: agents,
+      heartbeatMs,
+      pageSize,
+      partialEveryMs: o.livePartialEveryMs ?? 1500,
+    }),
+    // ---- Agendas wave 2: the live tracker's status
+    ...trackerHandlers(agendas, tracker),
+    // ---- Agendas wave 2: drafting (Plan with Claude)
     ...agendaDraftHandlers({ store, agendas: agendas.agendas, settings, logger }),
   }
 
@@ -410,6 +471,9 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
       res.setHeader('www-authenticate', 'Bearer realm="gnomeola"')
       throw err
     }
+    // Agent channel: a request carrying a lease token is a connected agent, and reaches only the routes
+    // an agent may use (its own recording's reads, the agenda verbs, its lease), whatever it asks for.
+    agents.gate(req, name, params)
     // P-3: a raw-body route streams its request to the handler; nothing else may be sent to it
     if (
       def.rawBody !== undefined &&
@@ -517,7 +581,9 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
       logger.info('shutting down')
       server.close()
       autoRecord.stop()
+      tracker?.stop()
       agendas.stop()
+      agents.stop()
       await dbus?.stop()
       await calendar.stop()
       await sessions.stopAll()
@@ -545,6 +611,8 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     dbus,
     speakers: spk,
     agendas,
+    agents,
+    tracker,
     get sseClients() {
       return sse.size
     },

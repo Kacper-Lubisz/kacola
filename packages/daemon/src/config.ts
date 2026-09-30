@@ -1,6 +1,7 @@
 import { homedir } from 'node:os'
 import { parseArgs } from 'node:util'
 import { DEFAULT_PORT, platformPaths } from '@gnomeola/protocol'
+import type { AgentLimits } from './agents/channel.ts'
 import type { FakePipelineOptions } from './fakes/pipeline.ts'
 
 /**
@@ -25,6 +26,14 @@ export type MainConfig = {
   /** Use the in-memory fakes for capture/STT, devices, models (tests and demos). */
   fakes: boolean
   fakePipeline: FakePipelineOptions
+  /** Agent channel: lease timeouts and rate limits (GNOMEOLA_AGENT_LIMITS, JSON; tests shorten them). */
+  agentLimits: Partial<AgentLimits>
+  /** Agent channel: the SpeechGuard (GNOMEOLA_SPEECH_GUARD: none | heuristic). */
+  /** decisions (default): the tracker's decision-based guard; none: pass-through; heuristic: stand-in. */
+  speechGuard: 'decisions' | 'none' | 'heuristic'
+  /** GNOMEOLA_TRACKER=off disables the live agenda tracker (tests of the agent channel in isolation). */
+  tracker: boolean
+  livePartialEveryMs: number
   /** Wire the fake Q&A engine (tests only). */
   fakeQa: boolean
   keyring: KeyringKind
@@ -75,6 +84,10 @@ environment:
   GNOMEOLA_FAKES=1         fake capture/STT, devices and models (same as --fake)
   GNOMEOLA_FAKE_PIPELINE   JSON FakePipelineOptions
   GNOMEOLA_FAKE_QA=1       fake question-answering engine
+  GNOMEOLA_AGENT_LIMITS    JSON: agent lease timeouts and rate limits (see agents/channel.ts)
+  GNOMEOLA_SPEECH_GUARD    decisions (default) | none | heuristic — the guard applied to live speech for agents
+  GNOMEOLA_TRACKER         on (default) | off — the live agenda tracker
+  GNOMEOLA_LIVE_PARTIAL_MS at most one partial per track per this many ms to agents (default 1500)
   GNOMEOLA_KEYRING         secret-tool | keychain | memory | none (default keychain on macOS)
   GNOMEOLA_KEYRING_SERVICE libsecret service attribute (default gnomeola)
   GNOMEOLA_HEARTBEAT_MS    SSE heartbeat period (default 15000)
@@ -143,6 +156,19 @@ export function parseConfig(
     }
   }
   const fakes = values.fake === true || env.GNOMEOLA_FAKES === '1'
+  let agentLimits: Partial<AgentLimits> = {}
+  if (env.GNOMEOLA_AGENT_LIMITS) {
+    try {
+      agentLimits = JSON.parse(env.GNOMEOLA_AGENT_LIMITS) as Partial<AgentLimits>
+    } catch {
+      throw new UsageError('GNOMEOLA_AGENT_LIMITS must be JSON')
+    }
+  }
+  const speechGuard = env.GNOMEOLA_SPEECH_GUARD ?? 'decisions'
+  if (speechGuard !== 'decisions' && speechGuard !== 'none' && speechGuard !== 'heuristic')
+    throw new UsageError('GNOMEOLA_SPEECH_GUARD must be decisions, none or heuristic')
+  const trackerEnv = env.GNOMEOLA_TRACKER ?? 'on'
+  if (trackerEnv !== 'on' && trackerEnv !== 'off') throw new UsageError('GNOMEOLA_TRACKER must be on or off')
   // P: macOS has no PipeWire, gjs, session bus or EDS. Everything that needs them defaults off there and
   // is refused if asked for; capture comes from the app instead.
   const mac = platform === 'darwin'
@@ -201,6 +227,10 @@ export function parseConfig(
     replayPageSize: int(env.GNOMEOLA_REPLAY_PAGE_SIZE, 'GNOMEOLA_REPLAY_PAGE_SIZE', 500, 1),
     fakes,
     fakePipeline,
+    agentLimits,
+    speechGuard,
+    tracker: trackerEnv === 'on',
+    livePartialEveryMs: int(env.GNOMEOLA_LIVE_PARTIAL_MS, 'GNOMEOLA_LIVE_PARTIAL_MS', 1500, 0),
     fakeQa: env.GNOMEOLA_FAKE_QA === '1',
     keyring,
     keyringService: env.GNOMEOLA_KEYRING_SERVICE || 'gnomeola',

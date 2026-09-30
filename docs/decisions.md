@@ -176,6 +176,9 @@ Anthropic key; the OpenAI account has no credits).
 
 ## Plugging in (later waves)
 
+The live tracker (agendas wave 2) is plugged in: `trackerStatusRunner` and friends in
+`packages/daemon/src/agendas/tracker-eval.ts`, scorecards in docs/tracker.md.
+
 - **Tracker**: implement `StatusRunner` (`start(meeting) → { onSegment(u, history) → { reports, usage } }`) around
   the real pipeline and pass it to `runStatusSuite(runner, agendaFixtures())`; report `action` per item
   (`auto-covered` / `suggest-covered` / `in-progress` / `none`), `pCovered`, `evidenceIndex`, `answer`.

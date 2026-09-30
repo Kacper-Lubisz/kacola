@@ -281,6 +281,7 @@ describe('hosted contract: every route', () => {
       setAgentAccess: () =>
         notHere(c.call('setAgentAccess', { params: { id: s.id }, body: { allowAgents: true } })),
       draftAgenda: () => notHere(c.stream('draftAgenda', { params: { id: 'agd_x' }, body: {} }).next()),
+      getAgendaTracker: () => notHere(c.call('getAgendaTracker', { params: { id: 'agd_x' } })),
     }
     const seen: RouteName[] = []
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {

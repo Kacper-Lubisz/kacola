@@ -10,6 +10,7 @@ import type {
   SpeakerVoices,
   TranscriptionPipeline,
 } from '../interfaces.ts'
+import { loadScript, type MeetingScript, ScriptedRecording } from './scripted.ts'
 
 // A capture + STT stand-in that behaves like the real thing from the daemon's point of view: levels
 // and partials at a steady cadence, segments that close every so often per track and are later revised
@@ -53,6 +54,12 @@ export type FakePipelineOptions = {
    * a recording caught at the hold is the same every run.
    */
   hold?: { atMs: number; releaseFile: string }
+  /**
+   * Replay a meeting instead of random words (./scripted.ts): the utterances, or a file holding them (a
+   * testkit fixture's truth.json). `speed` applies; partials come every `partialEveryMs` of audio.
+   */
+  script?: MeetingScript
+  scriptFile?: string
 }
 
 /** The fake far end's voices: one-hot embeddings of the `fake-embedding` model. */
@@ -71,12 +78,22 @@ const WORDS = (
   'let us revisit the incident review next week because the alert fired twice'
 ).split(' ')
 
-type OptionalOpts = 'failAfterMs' | 'gapAtMs' | 'failStart' | 'diarize' | 'deterministic' | 'hold'
+type OptionalOpts =
+  | 'failAfterMs'
+  | 'gapAtMs'
+  | 'failStart'
+  | 'diarize'
+  | 'deterministic'
+  | 'hold'
+  | 'script'
+  | 'scriptFile'
 
 export class FakePipeline implements TranscriptionPipeline {
   readonly opts: Required<Omit<FakePipelineOptions, OptionalOpts>> & Pick<FakePipelineOptions, OptionalOpts>
   /** Every recording this pipeline started, for assertions. */
   readonly recordings: FakeRecording[] = []
+  /** Recordings replaying a script (`script` / `scriptFile`). */
+  readonly scripted: ScriptedRecording[] = []
 
   constructor(opts: FakePipelineOptions = {}) {
     this.opts = {
@@ -98,6 +115,18 @@ export class FakePipeline implements TranscriptionPipeline {
   async start(o: PipelineStartOptions, sink: PipelineSink): Promise<RecordingHandle> {
     if (this.opts.startDelayMs) await new Promise((r) => setTimeout(r, this.opts.startDelayMs))
     if (this.opts.failStart) throw new Error(this.opts.failStart)
+    const script = this.opts.script ?? (this.opts.scriptFile ? loadScript(this.opts.scriptFile) : null)
+    if (script) {
+      const rec = new ScriptedRecording(o, sink, {
+        script,
+        speed: this.opts.speed,
+        tickMs: this.opts.tickMs,
+        partialEveryMs: this.opts.partialEveryMs,
+        finalizeAfterMs: this.opts.finalizeAfterMs,
+      })
+      this.scripted.push(rec)
+      return rec
+    }
     const rec = new FakeRecording(o, sink, this.opts)
     this.recordings.push(rec)
     return rec
