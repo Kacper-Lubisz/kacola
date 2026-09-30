@@ -6,6 +6,7 @@ import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemo
 import { buildDesktop, type DesktopApp, launchDesktop, waitForDaemon } from '@gnomeola/testkit/desktop'
 import { type HeadlessDisplay, markedPids, pngInfo, startHeadlessDisplay } from '@gnomeola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { markOnboarded } from '../src/desktop.ts'
 
 // E-V1 smoke: the Electron window (built app, Playwright `_electron`) inside the headless GNOME Shell,
 // against the real daemon. Role + name locators throughout — the contract the ported AT-SPI suites
@@ -28,6 +29,8 @@ beforeAll(async () => {
   buildDesktop()
   display = await startHeadlessDisplay({ size: '1280x800' })
   markerId = display.env.GNOMEOLA_HEADLESS_ID!
+  // first-run onboarding (the fake daemon lacks a model) is desktop-dialogs' subject, not this file's
+  markOnboarded(display)
 }, 240_000)
 
 afterAll(async () => {
@@ -150,8 +153,7 @@ describe('desktop window with no daemon running', () => {
     })
     try {
       await waitForDaemon(app, 'spawned')
-      await app.window.getByRole('listbox', { name: 'Sessions' }).waitFor({ timeout: 20_000 })
-      await app.window.getByText('No Sessions Yet').waitFor()
+      await app.window.getByText('No Sessions Yet').waitFor({ timeout: 20_000 })
       const health = await fetch(`${url}/health`)
       expect(health.ok).toBe(true)
 

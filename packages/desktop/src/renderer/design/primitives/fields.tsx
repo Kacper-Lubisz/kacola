@@ -1,3 +1,4 @@
+import { _ } from '@gnomeola/ui-core/i18n'
 import type { ReactNode } from 'react'
 import {
   Button as AriaButton,
@@ -153,7 +154,7 @@ export function SearchField({
         className={`${INPUT} pl-8 pr-8 [&::-webkit-search-cancel-button]:hidden`}
       />
       <AriaButton
-        aria-label="Clear"
+        aria-label={_('Clear')}
         className="absolute right-1.5 flex size-6 cursor-default items-center justify-center rounded-sm text-text-secondary focus-ring data-[hovered]:bg-bg-hover group-data-[empty]:hidden"
       >
         <Icon name="close" size={14} />

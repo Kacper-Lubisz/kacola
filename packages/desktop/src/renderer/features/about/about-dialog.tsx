@@ -89,7 +89,7 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
             ) : (
               <ul
                 aria-label={_('Third-Party Notices')}
-                className="m-0 max-h-64 list-none overflow-y-auto rounded-md border border-border-subtle bg-bg-surface p-3 font-mono text-[12px] leading-5 text-text-secondary select-text"
+                className="m-0 list-none rounded-md border border-border-subtle bg-bg-surface p-3 font-mono text-[12px] leading-5 text-text-secondary select-text"
               >
                 {parseNotices(notices.data).map((n) => (
                   <li key={`${n.name}@${n.version}`}>{noticeLine(n)}</li>
