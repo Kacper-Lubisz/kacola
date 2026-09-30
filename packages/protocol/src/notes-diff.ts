@@ -76,6 +76,7 @@ export function splitBlocks(md: string): string[] {
 
   for (const line of lines(md)) {
     // classify without CRs, exactly as blockKey sees the line
+    // Stryker disable next-line Regex: equivalent — a line holds at most one '\n', at its end
     const text = line.replace(/\r/g, '').replace(/\n$/, '')
     if (fence) {
       cur += line
@@ -152,6 +153,7 @@ export function isOpenFence(block: string): boolean {
 
 /** Whether the text ends with a blank line (by the splitter's own definition of blank). */
 function endsWithBlankLine(s: string): boolean {
+  // Stryker disable next-line all: equivalent at the one call site, which appends a '\n' first; kept so the helper means what it says
   if (!s.endsWith('\n')) return false
   const body = s.slice(0, -1)
   return blank(body.slice(body.lastIndexOf('\n') + 1))
@@ -173,6 +175,7 @@ function lcsOps(a: string[], b: string[]): Op[] {
   while (suf < a.length - pre && suf < b.length - pre && a[a.length - 1 - suf] === b[b.length - 1 - suf])
     suf++
   const ops: Op[] = []
+  // Stryker disable next-line StringLiteral: equivalent — diffNoteBlocks treats any op that is not del/ins as same
   for (let i = 0; i < pre; i++) ops.push({ op: 'same', a: i, b: i })
   const n = a.length - pre - suf
   const m = b.length - pre - suf
@@ -192,6 +195,7 @@ function lcsOps(a: string[], b: string[]): Op[] {
     let i = 0
     let j = 0
     while (i < n || j < m) {
+      // Stryker disable next-line StringLiteral: equivalent — diffNoteBlocks treats any op that is not del/ins as same
       if (i < n && j < m && a[pre + i] === b[pre + j]) ops.push({ op: 'same', a: pre + i++, b: pre + j++ })
       // on a tie the user's block goes first, then what replaced it
       else if (i < n && (j === m || dp[(i + 1) * w + j]! >= dp[i * w + j + 1]!))
@@ -199,6 +203,7 @@ function lcsOps(a: string[], b: string[]): Op[] {
       else ops.push({ op: 'ins', b: pre + j++ })
     }
   }
+  // Stryker disable next-line StringLiteral: equivalent — diffNoteBlocks treats any op that is not del/ins as same
   for (let k = suf; k > 0; k--) ops.push({ op: 'same', a: a.length - k, b: b.length - k })
   return ops
 }
@@ -272,7 +277,7 @@ export function diffNoteBlocks(mine: string, enhanced: string): Hunk[] {
   let dels: string[] = []
   let inss: string[] = []
   const flush = () => {
-    if (dels.length || inss.length) hunks.push(...alignRun(dels, inss))
+    hunks.push(...alignRun(dels, inss))
     dels = []
     inss = []
   }
@@ -324,13 +329,14 @@ export function chosenBlocks(h: Hunk, c: MergeChoice): string[] {
  */
 export function mergeNoteBlocks(hunks: readonly Hunk[], choices: readonly MergeChoice[]): string {
   const blocks = sidedBlocks(hunks, choices)
+  // Stryker disable next-line ConditionalExpression: equivalent — the loop below yields the same bytes for an all-enhanced merge (property-tested); the shortcut makes that exactness structural rather than emergent
   if (allEnhanced(hunks, choices)) return blocks.map((b) => b.block).join('')
   let out = ''
   let prev: (typeof blocks)[number] | null = null
   for (const cur of blocks) {
     const { block } = cur
     // whitespace-only content (a blank document) is carried verbatim, never separated
-    if (prev && out !== '' && blockKey(block) !== '') {
+    if (prev && blockKey(block) !== '') {
       if (!out.endsWith('\n')) out += '\n'
       if (!endsWithBlankLine(out)) {
         // a block that would read as a continuation of the previous one needs a blank line before it
@@ -374,14 +380,8 @@ function sidedBlocks(hunks: readonly Hunk[], choices: readonly MergeChoice[]): S
       h.kind === 'removed' ? [] : h.enhanced.map((block): Sided => ({ block, side: 'enhanced' })),
     )
   return hunks.flatMap((h, i) => {
-    const side: Sided['side'] =
-      h.kind === 'same'
-        ? 'mine'
-        : h.kind === 'added'
-          ? 'enhanced'
-          : h.kind === 'removed'
-            ? 'mine'
-            : choices[i]!
+    // an added block only appears when chosen `enhanced`, a removed one only when chosen `mine`
+    const side: Sided['side'] = h.kind === 'same' ? 'mine' : choices[i]!
     return chosenBlocks(h, choices[i]!).map((block): Sided => ({ block, side }))
   })
 }

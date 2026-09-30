@@ -62,4 +62,8 @@ describe('time parsing — edge cases pinned by mutation testing', () => {
     expect(() => parseOffset('nope')).toThrow('invalid duration: nope')
     expect(() => parseOffset('1:75:00')).toThrow('invalid time: 1:75:00')
   })
+  it('keeps every fractional digit of a unit, and wants a full date before treating since as one', () => {
+    expect(parseDuration('1.25h')).toBe(4_500_000)
+    expect(() => parseSince('2026-09-1', new Date())).toThrow(/invalid duration/)
+  })
 })

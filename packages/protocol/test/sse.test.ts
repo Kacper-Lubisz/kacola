@@ -103,9 +103,18 @@ describe('SSE codec — edge cases pinned by mutation testing', () => {
 
   it('encodes retry, and comments that cannot break framing', () => {
     expect(encodeSse({ data: 'x', retry: 3000 })).toBe('retry: 3000\ndata: x\n\n')
+    expect(encodeSse({ data: 'x' })).toBe('data: x\n\n')
     expect(encodeSseComment('a\r\nb\nc')).toBe(': a b c\n\n')
     expect(decode(encodeSseComment('evil\n\ndata: injected'), encodeSse({ data: 'real' }))).toStrictEqual([
       { data: 'real' },
     ])
+  })
+
+  it('only a retry field sets retry', () => {
+    expect(decode('foo: 5\ndata: x\n\n')).toStrictEqual([{ data: 'x' }])
+  })
+
+  it('after a chunk ending in CR, only a leading LF is swallowed', () => {
+    expect(decode('data: a\r', 'data: b\n\n')).toStrictEqual([{ data: 'a\nb' }])
   })
 })

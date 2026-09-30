@@ -88,7 +88,9 @@ describe('typed client', () => {
   })
 
   it('serialises query values and drops undefined', () => {
-    expect(toQueryString({ a: 1, b: undefined, c: false, d: 'x y' })).toBe('?a=1&c=false&d=x+y')
+    expect(toQueryString({ a: 1, b: undefined, c: false, d: 'x y', e: null, f: true })).toBe(
+      '?a=1&c=false&d=x+y&f=true',
+    )
     expect(toQueryString({})).toBe('')
   })
 })

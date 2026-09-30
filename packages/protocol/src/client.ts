@@ -63,7 +63,7 @@ export function toQueryString(query: Record<string, unknown> | undefined): strin
   const sp = new URLSearchParams()
   for (const [k, v] of Object.entries(query)) {
     if (v === undefined || v === null) continue
-    sp.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v))
+    sp.set(k, String(v))
   }
   const s = sp.toString()
   return s ? `?${s}` : ''
@@ -188,6 +188,7 @@ export function createClient(opts: ClientOptions = {}) {
           }
           s.onEvent(ev)
         }
+        // Stryker disable next-line OptionalChaining: equivalent — without a handler the TypeError lands in the catch below, which does the same as this path
         s.onDisconnect?.(null)
       } catch (err) {
         if (s.signal?.aborted) return

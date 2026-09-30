@@ -1,7 +1,8 @@
-import type { Segment } from '@gnomeola/protocol'
+import type { DurableEvent, Segment, Speaker } from '@gnomeola/protocol'
 import { describe, expect, it } from 'vitest'
 import {
   assertNoViolations,
+  checkAttribution,
   checkEventLog,
   checkSegmentHistory,
   checkSegments,
@@ -225,5 +226,167 @@ describe('assertNoViolations', () => {
     expect(msg).not.toContain('d50')
     expect(msg.endsWith('\n  …and 3 more')).toBe(true)
     expect(() => assertNoViolations([{ rule: 'r', detail: 'x' }])).toThrow(/^1 invariant violation\(s\):\n/)
+  })
+})
+
+describe('invariant details name the offending segment or seq', () => {
+  it('segment rules', () => {
+    expect(checkSegments([seg({ endMs: 9000 })], { durationMs: 2000 })[0]).toEqual({
+      rule: 'inside-session',
+      detail: 'seg_1: ends at 9000 beyond duration 2000',
+    })
+    expect(checkSegments([seg({ track: 'system', speaker: '' })])).toEqual([
+      { rule: 'has-speaker', detail: 'seg_1: empty speaker' },
+    ])
+  })
+
+  it('history rules', () => {
+    expect(
+      checkSegmentHistory([
+        seg({ revision: 1, quality: 'final' }),
+        seg({ revision: 2, quality: 'live', track: 'system', speaker: 'them', sessionId: 'ses_2' }),
+      ]),
+    ).toEqual([
+      { rule: 'never-back-to-live', detail: 'seg_1: final -> live' },
+      { rule: 'track-stable', detail: 'seg_1: track changed' },
+      { rule: 'session-stable', detail: 'seg_1: session changed' },
+    ])
+  })
+
+  it('event-log rules', () => {
+    expect(checkEventLog([{ seq: 1 }, { seq: 1 }, { seq: 4 }])).toEqual([
+      { rule: 'no-duplicates', detail: 'seq 1 delivered twice' },
+      { rule: 'gap-free', detail: 'expected seq 2, got 1' },
+      { rule: 'gap-free', detail: 'expected seq 2, got 4' },
+    ])
+  })
+})
+
+describe('foldSegments — attribution events (M3)', () => {
+  const at = '2026-09-28T10:00:00.000Z'
+  let seq = 0
+  const ev = (data: DurableEvent['data']): DurableEvent => ({ seq: ++seq, at, sessionId: 'ses_1', data })
+  const upsert = (s: Segment) => ev({ type: 'segment.upserted', segment: s })
+  const speaker = (id: string, label: string): Speaker => ({
+    id,
+    sessionId: 'ses_1',
+    label,
+    named: true,
+    colour: 0,
+    voiceprintId: null,
+    mergedInto: null,
+    createdAt: at,
+  })
+  const far = (id: string, speakerId?: string) =>
+    seg({ id, track: 'system', speaker: speakerId ? `Speaker ${speakerId}` : 'them', speakerId })
+  const view = (m: Map<string, Segment>) =>
+    Object.fromEntries([...m].map(([id, s]) => [id, `${s.speaker}/${s.speakerId ?? '-'}`]))
+
+  it("a rename relabels exactly that speaker's segments", () => {
+    const folded = foldSegments([
+      upsert(far('a', 'spk_1')),
+      upsert(far('b', 'spk_2')),
+      upsert(seg({ id: 'm' })),
+      ev({ type: 'speaker.upserted', speaker: speaker('spk_1', 'Ana') }),
+    ])
+    expect(view(folded)).toEqual({ a: 'Ana/spk_1', b: 'Speaker spk_2/spk_2', m: 'me/-' })
+  })
+
+  it("a merge moves the source speaker's segments onto the target, under the target's label", () => {
+    const folded = foldSegments([
+      ev({ type: 'speaker.upserted', speaker: speaker('spk_2', 'Bo') }),
+      upsert(far('a', 'spk_1')),
+      upsert({ ...far('b', 'spk_2'), speaker: 'Bo' }),
+      upsert(far('c', 'spk_3')),
+      ev({ type: 'speaker.merged', sessionId: 'ses_1', fromId: 'spk_1', intoId: 'spk_2' }),
+    ])
+    expect(view(folded)).toEqual({ a: 'Bo/spk_2', b: 'Bo/spk_2', c: 'Speaker spk_3/spk_3' })
+  })
+
+  it("a merge into a speaker whose label was never logged keeps the segment's own label", () => {
+    const folded = foldSegments([
+      upsert(far('a', 'spk_1')),
+      ev({ type: 'speaker.merged', sessionId: 'ses_1', fromId: 'spk_1', intoId: 'spk_9' }),
+    ])
+    expect(view(folded)).toEqual({ a: 'Speaker spk_1/spk_9' })
+  })
+
+  it('an attribution moves exactly the listed segments, and a later rename follows them', () => {
+    const folded = foldSegments([
+      ev({ type: 'speaker.upserted', speaker: speaker('spk_1', 'Speaker 1') }),
+      upsert(far('a')),
+      upsert(far('b')),
+      upsert(far('c', 'spk_3')),
+      ev({
+        type: 'segments.attributed',
+        sessionId: 'ses_1',
+        speakerId: 'spk_1',
+        segmentIds: ['a', 'c', 'nope'],
+        by: 'auto',
+      }),
+      ev({ type: 'speaker.upserted', speaker: speaker('spk_1', 'Cy') }),
+    ])
+    expect(view(folded)).toEqual({ a: 'Cy/spk_1', b: 'them/-', c: 'Cy/spk_1' })
+    expect(folded.has('nope')).toBe(false)
+  })
+})
+
+describe('checkAttribution', () => {
+  it('accepts the user on the mic and anyone else on the far end', () => {
+    expect(
+      checkAttribution([
+        seg({ id: 'm' }),
+        seg({ id: 't', track: 'system', speaker: 'them' }),
+        seg({ id: 's', track: 'system', speaker: 'Ana', speakerId: 'spk_1' }),
+        // "Mehmet" is not "me"
+        seg({ id: 'x', track: 'system', speaker: 'Mehmet' }),
+      ]),
+    ).toEqual([])
+  })
+
+  it('a mic segment must be "me" and carry no far-end speaker id', () => {
+    expect(
+      checkAttribution([
+        seg({ id: 'a', speaker: 'them' }),
+        seg({ id: 'b', speakerId: 'spk_1' }),
+        seg({ id: 'c', speaker: 'Ana', speakerId: 'spk_1' }),
+      ]),
+    ).toEqual([
+      { rule: 'mic-is-me', detail: 'a: mic segment is "them"' },
+      { rule: 'mic-is-me', detail: 'b: mic segment is "me" (spk_1)' },
+      { rule: 'mic-is-me', detail: 'c: mic segment is "Ana" (spk_1)' },
+    ])
+  })
+
+  it('a far-end segment is never the user, however the label is cased or padded', () => {
+    expect(
+      checkAttribution([
+        seg({ id: 'a', track: 'system', speaker: 'me' }),
+        seg({ id: 'b', track: 'system', speaker: ' Me ' }),
+        seg({ id: 'c', track: 'system', speaker: 'ME' }),
+      ]),
+    ).toEqual(
+      ['a', 'b', 'c'].map((id) => ({
+        rule: 'system-is-not-me',
+        detail: `${id}: far-end segment attributed to me`,
+      })),
+    )
+  })
+})
+
+describe('assertNoViolations — truncation boundary', () => {
+  const n = (k: number) => Array.from({ length: k }, (_, i) => ({ rule: 'r', detail: `d${i}` }))
+  const message = (vs: { rule: string; detail: string }[]) => {
+    try {
+      assertNoViolations(vs)
+    } catch (e) {
+      return (e as Error).message
+    }
+    return ''
+  }
+  it('lists up to 50 in full with no "more" line', () => {
+    expect(message(n(1))).toBe('1 invariant violation(s):\n  [r] d0')
+    expect(message(n(50)).endsWith('\n  [r] d49')).toBe(true)
+    expect(message(n(51)).endsWith('\n  [r] d49\n  …and 1 more')).toBe(true)
   })
 })

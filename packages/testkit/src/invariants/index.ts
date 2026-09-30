@@ -18,12 +18,13 @@ export function checkSegments(segments: readonly Segment[], opts: SegmentCheckOp
   const v: Violation[] = []
   const ids = new Set<string>()
   const byTrack = new Map<string, Segment[]>()
+  const limit = (opts.durationMs ?? Number.POSITIVE_INFINITY) + 250
   for (const s of segments) {
     if (ids.has(s.id)) v.push({ rule: 'unique-id', detail: `duplicate segment id ${s.id}` })
     ids.add(s.id)
     if (s.endMs < s.startMs)
       v.push({ rule: 'ordered-bounds', detail: `${s.id}: end ${s.endMs} < start ${s.startMs}` })
-    if (opts.durationMs !== undefined && s.endMs > opts.durationMs + 250)
+    if (s.endMs > limit)
       v.push({
         rule: 'inside-session',
         detail: `${s.id}: ends at ${s.endMs} beyond duration ${opts.durationMs}`,
@@ -51,7 +52,7 @@ export function checkSegments(segments: readonly Segment[], opts: SegmentCheckOp
         })
     }
     const total = list.reduce((acc, s) => acc + (s.endMs - s.startMs), 0)
-    if (opts.durationMs !== undefined && total > opts.durationMs + 250)
+    if (total > limit)
       v.push({
         rule: 'duration-sum',
         detail: `${track}: segments sum to ${total}ms > session ${opts.durationMs}ms`,
