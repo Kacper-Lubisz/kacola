@@ -79,8 +79,10 @@ const Line = memo(function Line({
       key={flashKey ?? undefined}
       className={`grid grid-cols-[56px_1fr] gap-x-5 rounded-md px-3 ${row.groupStart ? 'pt-4 pb-1' : 'py-1'} ${selected ? 'bg-bg-selected' : 'hover:bg-bg-hover'} ${flashKey ? 'k-cited' : ''}`}
     >
+      {/* the spec's text.tertiary; on the selected line's tint tertiary drops under 4.5:1 (4.2 light,
+          4.3 dark), so the selected line's time steps up to text.secondary */}
       <span
-        className={`type-mono text-right text-text-secondary ${row.groupStart ? 'pt-[30px]' : 'pt-px'}`}
+        className={`type-mono text-right ${selected ? 'text-text-secondary' : 'text-text-tertiary'} ${row.groupStart ? 'pt-[30px]' : 'pt-px'}`}
         aria-hidden
       >
         {formatOffset(row.startMs)}

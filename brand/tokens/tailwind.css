@@ -19,6 +19,8 @@
   --color-text-on-ink: var(--k-color-text-on-ink);
   --color-accent-record: var(--k-color-accent-record);
   --color-accent-record-hover: var(--k-color-accent-record-hover);
+  --color-accent-record-fill: var(--k-color-accent-record-fill);
+  --color-accent-record-fill-hover: var(--k-color-accent-record-fill-hover);
   --color-accent-record-text: var(--k-color-accent-record-text);
   --color-accent-focus: var(--k-color-accent-focus);
   --color-ink-primary: var(--k-color-ink-primary);

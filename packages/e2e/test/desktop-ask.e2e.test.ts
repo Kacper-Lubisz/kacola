@@ -169,6 +169,9 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
     await openTab('Ask')
     await pane().getByRole('heading', { name: 'Ask About This Meeting' }).waitFor()
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
+    // the provider stream stops after its 8th event — "…three attempts, then dead-letter [s" — until
+    // released: a fixed mid-stream state (a marker cut in half) for the assertions and the baseline
+    const release = api.holdAfter(8)
     await ask('What did we decide about the retry budget?')
 
     // the question appears at once, and the answer streams in under a spinner
@@ -187,11 +190,28 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
       15_000,
       'streamed text under the Answering spinner',
     )
+    // held: everything before the cut has arrived, the half marker is not shown
+    await pane()
+      .getByText(/then dead-letter/)
+      .first()
+      .waitFor({ timeout: 10_000 })
+    expect(
+      await pane()
+        .getByText(/then dead-letter/)
+        .first()
+        .textContent(),
+    ).not.toMatch(/\[s/)
     expect(partial).not.toMatch(/\[s\d/) // aliases never leak: markers are rewritten as they stream
-    await expectScreenshot(app, 'ask-streaming-light', { region: pane(), maxDiff: 0.3 })
+    // still spinner, no caret or hover: the baseline is the state
+    await w().emulateMedia({ reducedMotion: 'reduce' })
+    await w().evaluate('document.activeElement?.blur()')
+    await w().mouse.move(0, 0)
+    await expectScreenshot(app, 'ask-streaming-light', { region: pane() })
     await setScheme(w(), 'dark')
-    await expectScreenshot(app, 'ask-streaming-dark', { region: pane(), maxDiff: 0.3 })
+    await expectScreenshot(app, 'ask-streaming-dark', { region: pane() })
     await setScheme(w(), 'light')
+    await w().emulateMedia({ reducedMotion: null })
+    release()
 
     // the answer: text with [n] markers (the chips), and one chip per citation
     const answer = await poll(() => lastAnswer(SEED.long), 15_000, 'the persisted answer')
