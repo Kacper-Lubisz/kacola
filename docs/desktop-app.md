@@ -387,6 +387,48 @@ reusing the GTK app's msgids where the meaning is the same. Catalogues are JSON 
   The selected line is the exception: on its bg.selected tint tertiary is 4.2:1 (light) / 4.3:1 (dark),
   so that one line's time uses text.secondary.
 
+## Agendas (kacola wave 2)
+
+Contracts: docs/agendas.md (agenda core, drafting) and the agent channel's owner routes in
+`packages/protocol/src/agendas.ts`. Code: `features/agendas/`, folds in `@gnomeola/ui-core/agendas`.
+
+- **Data.** `['agenda', id]` holds an `AgendaView`, `['agendaHistory', id]` its `StatusChange`s — both
+  folded by `EventBridge.foldAgenda` with ui-core's `applyAgendaEvent` / `applyHistoryEvent`
+  (version-checked: an event not newer than the view is a replay; suggestions upsert by id). `['agendas']`
+  (summaries) and `['sessionAgenda', sessionId]` (the linked agenda's id) are refetched when an agenda
+  appears, changes its header or goes. `['leases', sessionId]` / `['agentAccess', sessionId]` are the
+  agent channel's; `agent.presence` lands in the ephemeral store (`presence[sessionId][leaseId]`) and
+  invalidates the leases; `settings.updated` invalidates the access (it rides `agents.allowPrivate`).
+- **Mutations** (`features/agendas/mutations.ts`) write the optimistic value WITHOUT bumping the view's
+  version, so the echo always folds over it. An add shows `tmp_…` rows until the response (folded only if
+  the echo has not already brought that version); the temporary ids live in a module-wide WeakMap keyed
+  by the call's variables (a hook rebuilds its options every render).
+- **Screens.** `#/agendas/<id>` (`agenda-page.tsx`): title, meeting line, "This meeting is happening now"
+  → Join and Record (`joinMeeting`, opens the join URL, goes to the session's Agenda tab), Plan with
+  Claude (the draft route; proposals are the dialog's own state), Add Link to Invite (written, or the
+  calendar's reason + the block to copy), the actions menu (export through the save dialog, copy, import
+  with `baseVersion`, delete), Items (goals, `SortableList` of items: status menu, edit dialog, history
+  popover, Move Up / Down) and Context (private by default, "Shared with attendees"). The session page's
+  **Agenda** tab (`agenda-pane.tsx` → `live-panel.tsx`): counts, "Not covered yet" from T-5 min, one
+  Next talking point card, suggestions (Accept for looks-covered / agent proposals, Turn into Item,
+  Dismiss), items with attribution ("auto", "checked by Claude") + Undo (an override) and evidence chips
+  (→ `?tab=transcript&segment=`), the Interview view (Told / Not told yet), compact mode, the context
+  panel (cards, agents' first; search past meetings → Add as Card); after the recording the recap
+  (`recap.tsx`: outcome / decisions / actions parsed from the item's outcome, evidence, carry-over + Open
+  Next Agenda). The header's **presence chip** (`presence.tsx`): "Claude · connected|reading", the
+  record-pulse ring while reading (none under reduced motion), recent actions in its tooltip, a popover
+  with the mode (observe / suggest / act), activity, Disconnect, and the private-meeting allow switch.
+  The sidebar's **Coming up** (`upcoming.tsx`, calendar on only): the next three meetings, Plan / Agenda.
+- **Deep links** (`deep-links.tsx`): subscribe to `onDeepLink`, then `takeDeepLink()` once;
+  `resolveAgendaLink {link, create: true, includePrivate: true}` → navigate to the agenda.
+- **Tests.** `test/agendas.test.tsx` (screens over a one-agenda fake daemon that echoes every write),
+  `test/event-bridge.test.ts` (folds, late fetch, presence), `packages/ui-core/test/agendas.test.ts`;
+  `packages/e2e/test/desktop-agenda.e2e.test.ts` against the real daemon + calendar file + fake Anthropic,
+  with `src/agent-channel-overlay.ts` answering the agent channel's owner routes while the daemon still
+  answers them 501 (it passes real handlers through once they exist); baselines
+  `agenda-{editor,planning,live,interview,presence-popover,recap}-{light,dark}` and
+  `agenda-presence-{connected,reading}-light`; `desktop-deeplink.e2e` asserts the agenda screen.
+
 ## Footprint (E-1 gate, 2026-09-30)
 
 Measured inside the headless GNOME Shell 50.4 (Wayland, `--virtual-monitor 1280x800`,

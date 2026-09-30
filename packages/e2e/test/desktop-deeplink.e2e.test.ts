@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { formatAgendaLink, formatMeetingLink } from '@gnomeola/protocol'
+import { formatAgendaLink } from '@gnomeola/protocol'
 import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
 import {
   buildDesktop,
@@ -72,7 +72,9 @@ describe('kacola:// links against the real daemon', () => {
     const taken = (await app.window.evaluate('window.gnomeola.takeDeepLink()')) as string | null
     if (taken !== null) expect(taken).toBe(agendaUrl)
     await waitForLog(app, delivered(agendaUrl))
-    // renderer: assert the agenda editor heading
+    // the renderer resolved it (resolveAgendaLink) and shows the agenda
+    await app.window.getByRole('heading', { level: 1, name: 'Deep link sync' }).waitFor({ timeout: 15_000 })
+    expect(await app.window.evaluate('location.hash')).toMatch(/^#\/agendas\/agd_/)
     // (main's {"event":"deep-link"} line for the argv link is written right after ready, before
     // launchDesktop's stdout listener exists — like the first daemon lines — so the delivered line and
     // the taken URL are what this start can prove; the warm cases below see both lines)
@@ -88,7 +90,8 @@ describe('kacola:// links against the real daemon', () => {
     await app.window.evaluate(
       'window.gnomeola.onDeepLink((u) => { globalThis.__links = [...(globalThis.__links ?? []), u] })',
     )
-    const url = formatMeetingLink('weekly-sync@example.com', '2026-10-01T09:00:00Z')
+    const v = await daemon.client.call('createAgenda', { body: { title: 'Warm sync' } })
+    const url = formatAgendaLink(v.agenda.id)
     const t0 = Date.now()
     const second = await launchSecondInstance({ display, env: env(), args: [url] })
     expect(second.exitCode, second.output).toBe(0)
@@ -96,6 +99,7 @@ describe('kacola:// links against the real daemon', () => {
     await waitForLog(app, delivered(url))
     expect(lines(app, received(url))).toHaveLength(1)
     await expect.poll(() => pushed(app)).toEqual([url])
+    await app.window.getByRole('heading', { level: 1, name: 'Warm sync' }).waitFor({ timeout: 15_000 })
     // pushed, so nothing is left to take
     expect(await app.window.evaluate('window.gnomeola.takeDeepLink()')).toBeNull()
   })
@@ -124,7 +128,8 @@ describe('kacola:// links against the real daemon', () => {
       10_000,
       'the window to close',
     )
-    const url = formatMeetingLink('series-7@example.com')
+    const v = await daemon.client.call('createAgenda', { body: { title: 'Reopened sync' } })
+    const url = formatAgendaLink(v.agenda.id)
     const opened = app.app.waitForEvent('window', { timeout: 20_000 })
     const second = await launchSecondInstance({ display, env: env(), args: ['--background', url] })
     expect(second.exitCode, second.output).toBe(0)
@@ -135,7 +140,7 @@ describe('kacola:// links against the real daemon', () => {
     const taken = (await page.evaluate('window.gnomeola.takeDeepLink()')) as string | null
     if (taken !== null) expect(taken).toBe(url)
     await waitForLog(app, delivered(url))
-    // renderer: assert the agenda editor heading
+    await page.getByRole('heading', { level: 1, name: 'Reopened sync' }).waitFor({ timeout: 15_000 })
     expect(lines(app, delivered(url))).toHaveLength(1)
     expect(app.problems()).toEqual([])
   })
