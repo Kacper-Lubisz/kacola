@@ -1,0 +1,20 @@
+{
+  "name": "@gnomeola/evals",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI eval suites for agendas + live intelligence: runners (plug-in hooks for the tracker), graders, scorecards, offline and live modes.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gnomeola/decisions": "workspace:*",
+    "@gnomeola/llm": "workspace:*",
+    "@gnomeola/protocol": "workspace:*",
+    "@gnomeola/testkit": "workspace:*"
+  }
+}

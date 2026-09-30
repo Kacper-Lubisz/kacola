@@ -1,0 +1,55 @@
+{
+  "fixture": "interview-extraction",
+  "config": "offline_local_hashing-512",
+  "metrics": {
+    "answeredPrecision": 1,
+    "answeredRecall": 0.3,
+    "answeredF1": 0.4615384615384615,
+    "answerAccuracy": 0.39285714285714285,
+    "answerExactAccuracy": 0.32142857142857145,
+    "answerRecall": 0.15,
+    "hallucinated": 0,
+    "ece": 0.3392857142857145,
+    "brier": 0.7525000000000002
+  },
+  "bands": {
+    "answeredPrecision": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "answeredRecall": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "answeredF1": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "answerAccuracy": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "answerExactAccuracy": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "answerRecall": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "hallucinated": {
+      "abs": 0.03,
+      "direction": "lower-is-better"
+    },
+    "ece": {
+      "abs": 0.03,
+      "direction": "lower-is-better"
+    },
+    "brier": {
+      "abs": 0.03,
+      "direction": "lower-is-better"
+    }
+  },
+  "recordedAt": "2026-09-30T16:16:34.860Z",
+  "notes": "interview-extraction.jsonl n=28"
+}

@@ -76,4 +76,5 @@ export {
   type DecisionsSettingsInput,
   decisionProviderFromSettings,
 } from './settings.ts'
+export * from './tasks/index.ts'
 export type * from './types.ts'

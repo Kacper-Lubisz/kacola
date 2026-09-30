@@ -1,0 +1,25 @@
+{
+  "fixture": "next-point",
+  "config": "offline_local_hashing-512",
+  "metrics": {
+    "top1": 0.6818181818181818,
+    "acceptableTop1": 0.6818181818181818,
+    "mrr": 0.8257575757575758
+  },
+  "bands": {
+    "top1": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "acceptableTop1": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "mrr": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    }
+  },
+  "recordedAt": "2026-09-30T16:16:34.860Z",
+  "notes": "next-point.jsonl n=22"
+}

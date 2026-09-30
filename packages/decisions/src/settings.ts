@@ -4,6 +4,7 @@ import { type Embedder, HashingEmbedder } from './local/embedder.ts'
 import { LocalDecisionProvider, type LocalRule } from './local/provider.ts'
 import { DEFAULT_OLLAMA_DECISION_MODEL, OllamaDecisionProvider } from './ollama.ts'
 import { DEFAULT_OPENAI_DECISION_MODEL, OpenAIDecisionProvider } from './openai.ts'
+import { AGENDA_RULES } from './tasks/index.ts'
 import type { DecisionProvider } from './types.ts'
 
 export type DecisionsProviderName = 'jev' | 'openai' | 'anthropic' | 'ollama' | 'local'
@@ -31,6 +32,7 @@ export type DecisionProviderDeps = {
   fetch?: typeof fetch
   /** For `local`: the MiniLM embedder when installed; the hashing embedder otherwise. */
   embedder?: Embedder
+  /** For `local`: rules by question tag. Default: the agenda tasks' rules. */
   rules?: readonly LocalRule[]
 }
 
@@ -53,7 +55,7 @@ export function decisionProviderFromSettings(
     case 'local':
       return new LocalDecisionProvider({
         embedder: deps.embedder ?? new HashingEmbedder(),
-        ...(deps.rules ? { rules: deps.rules } : {}),
+        rules: deps.rules ?? AGENDA_RULES,
       })
   }
 }

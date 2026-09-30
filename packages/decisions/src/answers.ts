@@ -150,12 +150,16 @@ export function stateText(state: DecisionState): string {
  * transcript-shaped state, each line), deduplicated, in order. Recall-tuned, like the regex step in
  * docs.typesafe.ai/cookbooks/pre_parsed_value_extraction_cookbook.md.
  */
+/** Fields of a structured state that label content rather than being content (never candidates). */
+const LABEL_KEYS = /^(speaker|who|id|ids|kind|type|role|tag|status|owner|at|atMs|startMs|endMs|segmentId)$/
+
 export function deriveCandidates(state: DecisionState, max = MAX_CHOICE_OPTIONS - 1): string[] {
   const texts: string[] = []
   const walk = (v: unknown) => {
     if (typeof v === 'string') texts.push(v)
     else if (Array.isArray(v)) for (const x of v) walk(x)
-    else if (v && typeof v === 'object') for (const x of Object.values(v)) walk(x)
+    else if (v && typeof v === 'object')
+      for (const [k, x] of Object.entries(v)) if (!LABEL_KEYS.test(k)) walk(x)
   }
   walk(state)
   const out: string[] = []

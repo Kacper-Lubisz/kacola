@@ -1,0 +1,80 @@
+{
+  "fixture": "item-status",
+  "config": "offline_local_hashing-512",
+  "metrics": {
+    "autoPrecision": 0.75,
+    "autoRecall": 0.5625,
+    "autoF1": 0.6666666666666666,
+    "latencyP50Ms": -5930,
+    "latencyP90Ms": 0,
+    "within30sRate": 0.25,
+    "earlyCheckoffs": 6,
+    "finalStatusAccuracy": 0.5238095238095238,
+    "finalStatusMacroF1": 0.32142857142857145,
+    "evidenceHitRate": 0.5555555555555556,
+    "coveredEce": 0.1842962962962973,
+    "coveredBrier": 0.47048790123456774,
+    "answerAccuracy": 0.16666666666666666,
+    "answerHallucinated": 1
+  },
+  "bands": {
+    "autoPrecision": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "autoRecall": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "autoF1": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "latencyP50Ms": {
+      "abs": 1000,
+      "direction": "lower-is-better"
+    },
+    "latencyP90Ms": {
+      "abs": 1000,
+      "direction": "lower-is-better"
+    },
+    "within30sRate": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "earlyCheckoffs": {
+      "abs": 1,
+      "direction": "lower-is-better"
+    },
+    "finalStatusAccuracy": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "finalStatusMacroF1": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "evidenceHitRate": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "coveredEce": {
+      "abs": 0.03,
+      "direction": "lower-is-better"
+    },
+    "coveredBrier": {
+      "abs": 0.03,
+      "direction": "lower-is-better"
+    },
+    "answerAccuracy": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "answerHallucinated": {
+      "abs": 1,
+      "direction": "lower-is-better"
+    }
+  },
+  "recordedAt": "2026-09-30T16:16:34.859Z",
+  "notes": "agenda fixtures (hostile-planning, interview-candidate, manager-1on1, standup-recurring) n=21"
+}

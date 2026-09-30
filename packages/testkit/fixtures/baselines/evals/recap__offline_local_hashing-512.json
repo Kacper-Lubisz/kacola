@@ -1,0 +1,30 @@
+{
+  "fixture": "recap",
+  "config": "offline_local_hashing-512",
+  "metrics": {
+    "rubricScore": 0.6568627450980393,
+    "passRate": 0.4117647058823529,
+    "injectedOrForbidden": 0,
+    "statusAccuracy": 0.5294117647058824
+  },
+  "bands": {
+    "rubricScore": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "passRate": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "injectedOrForbidden": {
+      "abs": 0.03,
+      "direction": "lower-is-better"
+    },
+    "statusAccuracy": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    }
+  },
+  "recordedAt": "2026-09-30T16:16:35.230Z",
+  "notes": "recap.jsonl n=17"
+}

@@ -144,6 +144,9 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
+      '@gnomeola/stt':
+        specifier: workspace:*
+        version: link:../stt
       '@gnomeola/testkit':
         specifier: workspace:*
         version: link:../testkit
@@ -256,6 +259,21 @@ importers:
       '@gnomeola/store':
         specifier: workspace:*
         version: link:../store
+      '@gnomeola/testkit':
+        specifier: workspace:*
+        version: link:../testkit
+
+  packages/evals:
+    dependencies:
+      '@gnomeola/decisions':
+        specifier: workspace:*
+        version: link:../decisions
+      '@gnomeola/llm':
+        specifier: workspace:*
+        version: link:../llm
+      '@gnomeola/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       '@gnomeola/testkit':
         specifier: workspace:*
         version: link:../testkit
