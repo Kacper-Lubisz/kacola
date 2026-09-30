@@ -1,3 +1,4 @@
+export * from './agendas.ts'
 export * from './calendar.ts'
 export * from './capture.ts'
 export * from './client.ts'

@@ -18,6 +18,13 @@ import {
   THEM,
 } from '@gnomeola/protocol'
 import { type Kysely, type RawBuilder, sql, type Transaction } from 'kysely'
+import {
+  AGENDA_SNAPSHOT_QUERIES,
+  agendaOps,
+  agendaSnapshot,
+  type Op,
+  sessionDeletedAgendaOps,
+} from '../agendas-apply.ts'
 import type {
   AudioChunkRecord,
   CommitListener,
@@ -76,6 +83,21 @@ type Built = { sessionId: string | null; data: DurableEventData }
 
 const rows = async (e: Exec, q: RawBuilder<unknown>): Promise<Row[]> => (await q.execute(e)).rows as Row[]
 const one = async (e: Exec, q: RawBuilder<unknown>): Promise<Row | undefined> => (await rows(e, q))[0]
+
+/** A dialect-neutral statement (`?` placeholders) as a Postgres query with bound parameters. */
+function bind(o: Op): RawBuilder<unknown> {
+  const parts = o.sql.split('?')
+  if (parts.length !== o.params.length + 1) throw new Error(`placeholder mismatch in: ${o.sql}`)
+  return parts
+    .slice(1)
+    .reduce<RawBuilder<unknown>>(
+      (acc, part, i) => sql`${acc}${o.params[i]}${sql.raw(part)}`,
+      sql.raw(parts[0]!),
+    )
+}
+const runOps = async (e: Exec, ops: Op[]): Promise<void> => {
+  for (const o of ops) await bind(o).execute(e)
+}
 
 export class PgStore implements StoreApi {
   readonly dialect = 'postgres' as const
@@ -203,6 +225,7 @@ export class PgStore implements StoreApi {
       }
       case 'session.deleted': {
         const id = data.sessionId
+        await runOps(e, sessionDeletedAgendaOps(id))
         await sql`DELETE FROM speakers WHERE session_id = ${id}`.execute(e)
         await sql`DELETE FROM notes WHERE session_id = ${id}`.execute(e)
         await sql`DELETE FROM note_versions WHERE session_id = ${id}`.execute(e)
@@ -299,6 +322,18 @@ export class PgStore implements StoreApi {
         await sql`UPDATE speakers SET voiceprint_id = NULL WHERE voiceprint_id = ${data.voiceprintId}`.execute(
           e,
         )
+        return
+      // ---- agendas: the same statements as the SQLite store (../agendas-apply.ts)
+      case 'agenda.upserted':
+      case 'agenda.deleted':
+      case 'agenda.item.upserted':
+      case 'agenda.item.status':
+      case 'agenda.item.deleted':
+      case 'agenda.items.reordered':
+      case 'agenda.context.upserted':
+      case 'agenda.context.deleted':
+      case 'agenda.suggestion.upserted':
+        await runOps(e, agendaOps(data))
         return
       default: {
         const never: never = data
@@ -664,6 +699,11 @@ export class PgStore implements StoreApi {
         createdAt: r.created_at as string,
         updatedAt: r.updated_at as string,
       })),
+      ...(await (async () => {
+        const got: Record<string, Row[]> = {}
+        for (const [k, q] of Object.entries(AGENDA_SNAPSHOT_QUERIES)) got[q] = await rows(this.db, sql.raw(q))
+        return agendaSnapshot((q) => got[q]!)
+      })()),
     }
   }
 

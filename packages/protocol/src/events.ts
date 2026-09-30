@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { AgendaEphemeralEvents, AgendaEvents } from './agendas.ts'
 import { CalendarStatus, Meeting } from './calendar.ts'
 import { NoteTemplate, NoteVersion } from './notes.ts'
 import { Iso, ModelInfo, QaMessage, Segment, Session, StoredSettings, TrackKind } from './schemas.ts'
@@ -28,6 +29,8 @@ export const DurableEventData = z.discriminatedUnion('type', [
   z.object({ type: z.literal('template.deleted'), id: z.string() }),
   // ---- M3: attribution (speakers, attributions, voiceprints)
   ...SpeakerEvents,
+  // ---- kacola phases 1–2: agendas (schemas in ./agendas.ts)
+  ...AgendaEvents,
 ])
 export type DurableEventData = z.infer<typeof DurableEventData>
 
@@ -63,6 +66,8 @@ export const EphemeralEventData = z.discriminatedUnion('type', [
   z.object({ type: z.literal('calendar.updated'), calendar: CalendarStatus }),
   /** A timed meeting is about to start (sent once per occurrence, shortly before its start). */
   z.object({ type: z.literal('meeting.starting'), meeting: Meeting }),
+  // ---- kacola phases 1–2: agent presence on the live channel (./agendas.ts)
+  ...AgendaEphemeralEvents,
 ])
 export type EphemeralEventData = z.infer<typeof EphemeralEventData>
 

@@ -31,6 +31,17 @@ export type EdsOptions = {
   keepTempDir?: boolean
 }
 
+export type EdsEventComponent = {
+  recurrenceId: string | null
+  summary: string
+  description: string
+  /** How many DESCRIPTION properties the VEVENT has (RFC 5545: at most one). */
+  descriptions: number
+  location: string
+  organizer: string | null
+  ical: string
+}
+
 export type EdsHandle = {
   /** The isolated environment: pass it (or a superset) to anything that must see these calendars. */
   env: Record<string, string>
@@ -39,6 +50,9 @@ export type EdsHandle = {
   createEvent: (sourceUid: string, vevent: string) => Promise<void>
   modifyEvent: (sourceUid: string, vevent: string) => Promise<void>
   removeEvent: (sourceUid: string, uid: string) => Promise<void>
+  /** Read an event back through ECal, independently of cal-agent: every VEVENT of the UID (a series'
+   *  master and its detached instances). */
+  getEvent: (sourceUid: string, uid: string) => Promise<EdsEventComponent[]>
   /** Enable or disable a calendar source through the registry. */
   setEnabled: (sourceUid: string, enabled: boolean) => Promise<void>
   logs: () => Record<string, string>
@@ -250,6 +264,8 @@ export async function startEds(opts: EdsOptions = {}): Promise<EdsHandle> {
     createEvent: (s, v) => ctl(['create', s], wrap(v)),
     modifyEvent: (s, v) => ctl(['modify', s], wrap(v)),
     removeEvent: (s, uid) => ctl(['remove', s, uid]),
+    getEvent: async (s, uid) =>
+      JSON.parse(await run('gjs', ['-m', CTL, 'get', s, uid], env)) as EdsEventComponent[],
     setEnabled: (s, enabled) => ctl(['enable', s, String(enabled)]),
     logs: () => Object.fromEntries(procs.map((p) => [p.name, p.log()])),
     close,
