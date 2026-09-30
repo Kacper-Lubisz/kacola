@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { type ParseArgsConfig, parseArgs } from 'node:util'
-import { DaemonUnreachableError, GnomeolaApiError, PROTOCOL_VERSION } from '@gnomeola/protocol'
+import { DaemonUnreachableError, GnomeolaApiError, PROTOCOL_VERSION, parseDuration } from '@gnomeola/protocol'
 import {
   agendaAdd,
   agendaCreate,
@@ -19,6 +19,7 @@ import {
 import { ask } from './commands/ask.ts'
 import { bugReport } from './commands/bugreport.ts'
 import { installCliCommand, uninstallCliCommand } from './commands/install-cli.ts'
+import { liveAttach, liveWait } from './commands/live.ts'
 import { meetingsNext, meetingsToday } from './commands/meetings.ts'
 import { notes } from './commands/notes.ts'
 import { pair, pairApprove, pairRevoke, pairToken } from './commands/pair.ts'
@@ -31,6 +32,7 @@ import { status } from './commands/status.ts'
 import { transcript } from './commands/transcript.ts'
 import { type Ctx, makeClient } from './context.ts'
 import { CliError, EXIT, usage } from './errors.ts'
+import { activeLease, leaseClient } from './lease.ts'
 import { type Io, resolveFormat } from './output.ts'
 
 export const VERSION = '0.1.0'
@@ -66,7 +68,7 @@ usage: gnomeola <command> [options]
   agenda edit <agenda> <item> [--text T] [--kind K] [--owner O | --no-owner] [--timebox D] [--outcome T]
   agenda remove <agenda> <item>
   agenda status <agenda> <item> open|in-progress|covered|skipped|parked
-                [--evidence "…"] [--note "…"] [--outcome "…"]
+                [--evidence "…"] [--segment <segment id>] [--note "…"] [--outcome "…"]
   agenda export <agenda> | import <agenda> (--from FILE | --stdin) [--merge]
                                               the markdown form: - [ ] item (10m, @ana) [kind]
   agenda link <agenda> --meeting <ref> [--start ISO]
@@ -75,7 +77,19 @@ usage: gnomeola <command> [options]
   context add [--agenda A] --title T (--file F | --stdin | --body TEXT) [--shared] [--pinned]
                                               a card for the meeting; private unless --shared
   suggest [--agenda A] "…" --kind next-point|question|missed|fact-check|looks-covered
-          [--item <item>] [--as NAME]
+          [--item <item>] [--as NAME]           (a connected agent's verb: needs a live lease)
+
+ live (a connected agent — e.g. Claude Code's Monitor tool running \`live attach\`):
+  live attach [--session current|<id>] [--as NAME] [--mode observe|suggest|act] [--replay]
+              [--no-partials] [--heartbeat 15s]
+                                              one JSON line per event (segment.final, partial,
+                                              agenda.updated, suggestion, context, agent.presence,
+                                              lease.ended, meeting.ended) until the meeting ends
+  live wait [--meeting next|<meeting id|event uid>] [--timeout 30m]
+                                              block until a recording starts; print it
+ While \`live attach\` runs, the agent verbs (agenda status|add|edit, suggest, context add) act under
+ its lease (as agent:NAME, within its mode); <agenda> may be \`live\`. GNOMEOLA_LEASE=<token> picks a
+ lease explicitly, GNOMEOLA_LEASE=none acts as the user.
   skill install [--dir DIR] [--force]         install the Claude Code skill
   install-cli [--mode auto|flatpak|macos|dev] [--bin-dir DIR] [--launch CMD] [--no-skill] [--force]
                                               put this gnomeola on PATH (+ the Claude skill)
@@ -92,7 +106,8 @@ global: --url URL (or GNOMEOLA_URL), --token T (or GNOMEOLA_TOKEN; else the one 
 output: compact JSON when stdout is not a terminal, text otherwise.
 
 exit codes: 0 ok · 1 error · 2 usage · 3 daemon unreachable · 4 not found
-            5 refused (e.g. a whole transcript without --full) · 6 capability unavailable
+            5 refused (e.g. a whole transcript without --full; a lease's mode or rate limit)
+            6 capability unavailable · 7 no live lease, or it ended (attach again)
 `
 
 const GLOBAL = {
@@ -135,6 +150,11 @@ export async function run(argv: string[], io: Io): Promise<number> {
       format: resolveFormat(v, io),
       now: new Date(),
     })
+    /** The agent verbs act under the live lease when there is one (see lease.ts). */
+    const agentCtx = (ctx: Ctx, as: string | undefined): Ctx => {
+      const lease = activeLease(io.env, as)
+      return lease ? { ...ctx, lease, client: leaseClient(ctx, lease) } : ctx
+    }
     const helpOr = (v: { help?: boolean }) => {
       if (v.help) io.stdout(HELP)
       return Boolean(v.help)
@@ -266,6 +286,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
           before: { type: 'string' },
           outcome: { type: 'string' },
           evidence: { type: 'string' },
+          segment: { type: 'string' },
           note: { type: 'string' },
           as: { type: 'string' },
           merge: { type: 'boolean' },
@@ -273,8 +294,10 @@ export async function run(argv: string[], io: Io): Promise<number> {
           remove: { type: 'boolean' },
         })
         if (helpOr(v)) return EXIT.OK
-        const ctx = ctxFor({ ...v, text: typeof v.text === 'boolean' ? v.text : undefined })
         const [sub, ...args] = p
+        const base = ctxFor({ ...v, text: typeof v.text === 'boolean' ? v.text : undefined })
+        const agentVerb = ['status', 'add', 'edit', 'show', 'export'].includes(sub ?? '')
+        const ctx = agentVerb ? agentCtx(base, v.as) : base
         switch (sub) {
           case 'create':
             await agendaCreate(ctx, {
@@ -318,9 +341,9 @@ export async function run(argv: string[], io: Io): Promise<number> {
           case 'status':
             await agendaStatus(ctx, args[0], args[1], args[2], {
               evidence: v.evidence,
+              segment: v.segment,
               note: v.note,
               outcome: v.outcome,
-              as: v.as,
             })
             break
           case 'export':
@@ -352,13 +375,14 @@ export async function run(argv: string[], io: Io): Promise<number> {
           body: { type: 'string' },
           shared: { type: 'boolean' },
           pinned: { type: 'boolean' },
+          as: { type: 'string' },
         })
         if (helpOr(v)) return EXIT.OK
         if (p[0] !== 'add')
           throw usage(
             'usage: gnomeola context add [--agenda A] --title T (--file F | --stdin | --body TEXT) [--shared]',
           )
-        await contextAdd(ctxFor(v), {
+        await contextAdd(agentCtx(ctxFor(v), v.as), {
           agenda: v.agenda,
           title: v.title,
           file: v.file,
@@ -377,7 +401,50 @@ export async function run(argv: string[], io: Io): Promise<number> {
           as: { type: 'string' },
         })
         if (helpOr(v)) return EXIT.OK
-        await suggest(ctxFor(v), p.join(' '), { agenda: v.agenda, kind: v.kind, item: v.item, as: v.as })
+        await suggest(agentCtx(ctxFor(v), v.as), p.join(' '), {
+          agenda: v.agenda,
+          kind: v.kind,
+          item: v.item,
+        })
+        break
+      }
+      case 'live': {
+        const { values: v, positionals: p } = parse(rest, {
+          session: { type: 'string' },
+          as: { type: 'string' },
+          mode: { type: 'string' },
+          replay: { type: 'boolean' },
+          'no-partials': { type: 'boolean' },
+          heartbeat: { type: 'string' },
+          meeting: { type: 'string' },
+          timeout: { type: 'string' },
+        })
+        if (helpOr(v)) return EXIT.OK
+        const secs = (x: string | undefined, name: string) => {
+          if (x === undefined) return undefined
+          try {
+            return Math.max(1, Math.round(parseDuration(/^\d+$/.test(x) ? `${x}s` : x) / 1000))
+          } catch {
+            throw usage(`${name} must be a duration like 15s or 30m`)
+          }
+        }
+        const ctx = ctxFor({ ...v, json: true })
+        if (p[0] === 'attach')
+          await liveAttach(ctx, {
+            session: v.session,
+            as: v.as,
+            mode: v.mode,
+            replay: v.replay,
+            noPartials: v['no-partials'],
+            heartbeatSec: secs(v.heartbeat, '--heartbeat'),
+          })
+        else if (p[0] === 'wait')
+          await liveWait(ctx, { meeting: v.meeting, timeoutSec: secs(v.timeout, '--timeout') })
+        else
+          throw usage(
+            p[0] ? `unknown subcommand: live ${p[0]}` : 'live what?',
+            'gnomeola live attach [--session current|<id>] [--as NAME] [--mode …] | live wait [--meeting …]',
+          )
         break
       }
       case 'speakers': {
@@ -468,6 +535,10 @@ export async function run(argv: string[], io: Io): Promise<number> {
 }
 
 function report(err: unknown, io: Io): number {
+  if (err instanceof GnomeolaApiError && err.status === 401 && /lease/i.test(err.message)) {
+    io.stderr(`gnomeola: ${err.message}\n  attach again: gnomeola live attach\n`)
+    return EXIT.LEASE
+  }
   if (err instanceof GnomeolaApiError && err.status === 401) {
     io.stderr(`gnomeola: ${err.message}\n`)
     io.stderr(
@@ -496,7 +567,17 @@ if (import.meta.main) {
     if (e.code === 'EPIPE') process.exit(process.exitCode ?? 0)
     throw e
   })
+  const stop = new AbortController()
+  // long-running commands (live attach / wait) wind down on a signal: release the lease, remove its file
+  if (process.argv[2] === 'live')
+    for (const sig of ['SIGINT', 'SIGTERM'] as const)
+      process.once(sig, () => {
+        stop.abort()
+        // a command that does not wind down still ends the process
+        setTimeout(() => process.exit(130), 3_000).unref()
+      })
   const io: Io = {
+    signal: stop.signal,
     stdout: (s) => process.stdout.write(s),
     stderr: (s) => process.stderr.write(s),
     isTTY: Boolean(process.stdout.isTTY),

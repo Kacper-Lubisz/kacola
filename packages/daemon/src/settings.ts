@@ -127,6 +127,14 @@ export class SettingsService {
     return this.view()
   }
 
+  /** Agent channel: which private sessions agents may attach to (a durable settings.updated, like any). */
+  setAgentSettings(agents: NonNullable<StoredSettings['agents']>): StoredSettings {
+    const next = mergeSettings(this.get(), { agents })
+    this.store.putSettings(next)
+    this.logger.info('settings updated', { sections: ['agents'] })
+    return next
+  }
+
   /**
    * The key a provider should use (default: the current provider's): its environment variable wins, then
    * the keyring. Null for providers that take no key.

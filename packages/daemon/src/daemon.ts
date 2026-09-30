@@ -22,6 +22,9 @@ import type { z } from 'zod'
 import pkg from '../package.json' with { type: 'json' }
 import { agendaHandlers } from './agendas/handlers.ts'
 import { AgendaService } from './agendas/service.ts'
+import { AgentChannel, type AgentLimits } from './agents/channel.ts'
+import type { SpeechGuard } from './agents/guard.ts'
+import { liveHandlers } from './agents/handlers.ts'
 import { resolveScope, runAsk } from './ask.ts'
 import { AutoRecorder } from './auto-record.ts'
 import { EventBus } from './bus.ts'
@@ -96,6 +99,13 @@ export type DaemonOptions = {
   /** Base URL of the hosted agenda page (`<base>/a/<id>`) for invitation blocks. Default
    *  GNOMEOLA_AGENDA_WEB_BASE, else none (the block carries only the kacola:// link). */
   agendaWebBase?: string | null
+  // ---- agent channel (leases, live attach)
+  /** Applied to live speech before it reaches agents. Default: pass-through (see agents/guard.ts). */
+  speechGuard?: SpeechGuard | null
+  /** Lease timeouts and per-lease rate limits (tests shorten them). */
+  agentLimits?: Partial<AgentLimits>
+  /** At most one partial per track per this many ms reaches an agent (default 1500). */
+  livePartialEveryMs?: number
 }
 
 export type Daemon = {
@@ -112,6 +122,8 @@ export type Daemon = {
   readonly dbus: DbusService | null
   readonly speakers: SpeakerService
   readonly agendas: AgendaService
+  /** The agent channel: leases, presence, the SpeechGuard seam (`agents.setGuard`, `agents.guard`). */
+  readonly agents: AgentChannel
   /** Open SSE connections. */
   readonly sseClients: number
   close(): Promise<void>
@@ -188,6 +200,16 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     webBase: o.agendaWebBase !== undefined ? o.agendaWebBase : (env.GNOMEOLA_AGENDA_WEB_BASE ?? null),
   })
   agendas.start()
+  const agents = new AgentChannel({
+    store,
+    bus,
+    agendas,
+    settings,
+    logger,
+    guard: o.speechGuard ?? undefined,
+    limits: o.agentLimits,
+  })
+  agents.start()
   const heartbeatMs = o.heartbeatMs ?? 15_000
   const pageSize = o.replayPageSize ?? 500
   const allowedOrigins = new Set(o.allowedOrigins ?? [])
@@ -361,8 +383,16 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     ...hostedHandlers(access),
     // ---- P: platform — external capture ingest
     ...externalCaptureHandlers(o.externalCapture ?? null),
-    // ---- agendas, deep links, the invite block (the live channel's handlers are a later wave's)
-    ...agendaHandlers(agendas),
+    // ---- agendas, deep links, the invite block; the agent channel (leases, live attach)
+    ...agendaHandlers(agendas, agents),
+    ...liveHandlers({
+      store,
+      bus,
+      channel: agents,
+      heartbeatMs,
+      pageSize,
+      partialEveryMs: o.livePartialEveryMs ?? 1500,
+    }),
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))
@@ -504,6 +534,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
       server.close()
       autoRecord.stop()
       agendas.stop()
+      agents.stop()
       await dbus?.stop()
       await calendar.stop()
       await sessions.stopAll()
@@ -530,6 +561,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     dbus,
     speakers: spk,
     agendas,
+    agents,
     get sseClients() {
       return sse.size
     },

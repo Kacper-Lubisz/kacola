@@ -11,6 +11,9 @@ import {
   enhanceEvents,
   GnomeolaApiError,
   type GnomeolaClient,
+  LEASE_HEADER,
+  type LeaseGrant,
+  LiveEvent,
   type RouteName,
   routes,
 } from '@gnomeola/protocol'
@@ -99,7 +102,18 @@ describe('contract: every route, real server, typed client', () => {
     const s = await c.call('createSession', { body: { title: 'contract' } })
     const priv = await c.call('createSession', { body: { title: 'private', private: true } })
     const params = { id: s.id }
-    const ag = { id: '', item: '', card: '', suggestion: '' }
+    const ag = { id: '', item: '', card: '', suggestion: '', session: '' }
+    // the agent channel: one lease on the recording the agenda is linked to
+    let grant: LeaseGrant | null = null
+    const lease = async () => {
+      grant ??= await c.call('createAgentLease', {
+        params: { id: ag.session },
+        body: { name: 'claude', mode: 'act' },
+      })
+      return grant
+    }
+    const agent = async () =>
+      createClient({ baseUrl: daemon.url, headers: { [LEASE_HEADER]: (await lease()).token } })
 
     // One entry per route: adding a route to the table without covering it here fails to compile.
     const calls: Record<RouteName, () => Promise<unknown>> = {
@@ -288,6 +302,7 @@ describe('contract: every route, real server, typed client', () => {
         })
         expect(v.agenda).toMatchObject({ title: 'Sync', meeting: { meetingId: next!.id } })
         expect(v.agenda.sessionId).not.toBeNull()
+        ag.session = v.agenda.sessionId!
         ag.id = v.agenda.id
         ag.item = v.items[0]!.id
         return v
@@ -355,7 +370,7 @@ describe('contract: every route, real server, typed client', () => {
         }),
       deleteContextCard: () => c.call('deleteContextCard', { params: { id: ag.id, cardId: ag.card } }),
       addSuggestion: async () => {
-        const sug = await c.call('addSuggestion', {
+        const sug = await (await agent()).call('addSuggestion', {
           params: { id: ag.id },
           body: { kind: 'question', text: 'ask about Q3', source: 'agent:claude' },
         })
@@ -365,7 +380,7 @@ describe('contract: every route, real server, typed client', () => {
       dismissSuggestion: () =>
         c.call('dismissSuggestion', { params: { id: ag.id, suggestionId: ag.suggestion }, body: {} }),
       acceptSuggestion: async () => {
-        const sug = await c.call('addSuggestion', {
+        const sug = await (await agent()).call('addSuggestion', {
           params: { id: ag.id },
           body: { kind: 'next-point', text: 'budget next', source: 'tracker' },
         })
@@ -383,18 +398,35 @@ describe('contract: every route, real server, typed client', () => {
         return r
       },
       deleteAgenda: () => c.call('deleteAgenda', { params: { id: ag.id } }),
-      // the live channel: contract only until the agent-channel wave
-      createAgentLease: () => notHere(c.call('createAgentLease', { params, body: { name: 'claude' } })),
-      heartbeatAgentLease: () =>
-        notHere(c.call('heartbeatAgentLease', { params: { leaseId: 'lse_x' }, body: {} })),
-      releaseAgentLease: () => notHere(c.call('releaseAgentLease', { params: { leaseId: 'lse_x' } })),
-      liveAttach: () => notHere(c.stream('liveAttach', { params }).next()),
-      listAgentLeases: () => notHere(c.call('listAgentLeases', { params })),
-      updateAgentLease: () =>
-        notHere(c.call('updateAgentLease', { params: { leaseId: 'lse_x' }, body: { mode: 'act' } })),
-      listLiveSessions: () => notHere(c.call('listLiveSessions')),
-      getAgentAccess: () => notHere(c.call('getAgentAccess', { params })),
-      setAgentAccess: () => notHere(c.call('setAgentAccess', { params, body: { allowAgents: true } })),
+      // ---- the agent channel
+      createAgentLease: async () => {
+        const g = await lease()
+        expect(g.lease).toMatchObject({ sessionId: ag.session, name: 'claude', mode: 'act' })
+        return g
+      },
+      listAgentLeases: () => c.call('listAgentLeases', { params: { id: ag.session } }),
+      heartbeatAgentLease: async () =>
+        (await agent()).call('heartbeatAgentLease', {
+          params: { leaseId: (await lease()).lease.id },
+          body: {},
+        }),
+      updateAgentLease: async () =>
+        c.call('updateAgentLease', {
+          params: { leaseId: (await lease()).lease.id },
+          body: { mode: 'suggest' },
+        }),
+      liveAttach: async () => {
+        const it = (await agent()).stream('liveAttach', { params: { id: ag.session } })
+        const first = await it.next()
+        await it.return(undefined)
+        return LiveEvent.parse(JSON.parse(first.value!.data))
+      },
+      listLiveSessions: () => c.call('listLiveSessions', { query: {} }),
+      getAgentAccess: () => c.call('getAgentAccess', { params: { id: ag.session } }),
+      setAgentAccess: () =>
+        c.call('setAgentAccess', { params: { id: ag.session }, body: { allowAgents: true } }),
+      releaseAgentLease: async () =>
+        c.call('releaseAgentLease', { params: { leaseId: (await lease()).lease.id } }),
     }
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {
       await expect(call(), name).resolves.toBeDefined()

@@ -6,6 +6,8 @@ export type Io = {
   env: Record<string, string | undefined>
   /** All of standard input (for `--stdin`); absent where there is none (MCP). */
   stdin?: () => Promise<string>
+  /** Aborted when the process is asked to stop (SIGINT/SIGTERM): long-running commands wind down. */
+  signal?: AbortSignal
 }
 
 export type Format = 'json' | 'text'

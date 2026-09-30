@@ -179,10 +179,11 @@ describe('agenda verbs through the real daemon', () => {
       'launch in March',
     ])
     await expect(stable(r.stdout)).toMatchFileSnapshot(golden('agenda-status'))
-    const back = await gnomeola(['agenda', 'status', 'next', 'promo', 'open', '--as', 'claude'], d.baseUrl)
-    expect(back.code).toBe(1)
-    expect(back.stderr).toMatch(/only the user/)
-    await ok(['agenda', 'status', 'next', '2', 'in-progress', '--as', 'claude'])
+    // acting as an agent needs a live lease (agent channel: live-agent.int.test.ts); without one, exit 7
+    const asAgent = await gnomeola(['agenda', 'status', 'next', 'promo', 'open', '--as', 'claude'], d.baseUrl)
+    expect(asAgent.code).toBe(7)
+    expect(asAgent.stderr).toMatch(/no live lease for "claude"[\s\S]*live attach --as claude/)
+    await ok(['agenda', 'status', 'next', '2', 'in-progress'])
     const show = await ok(['agenda', 'show', 'next', '--history'])
     await expect(stable(show.stdout)).toMatchFileSnapshot(golden('agenda-show'))
     const tty = await gnomeola(['agenda', 'show'], d.baseUrl, { tty: true })
@@ -211,7 +212,7 @@ describe('agenda verbs through the real daemon', () => {
     ])
   })
 
-  it('context add (private unless --shared) and suggest', async () => {
+  it('context add (private unless --shared); suggest needs a live lease', async () => {
     const c = await ok(['context', 'add', '--title', 'Q3 numbers', '--body=- revenue up 12%\n- churn flat'])
     await expect(stable(c.stdout)).toMatchFileSnapshot(golden('agenda-context'))
     expect(JSON.parse(c.stdout).card.visibility).toBe('private')
@@ -227,16 +228,13 @@ describe('agenda verbs through the real daemon', () => {
       '--shared',
     ])
     expect(JSON.parse(shared.stdout).card.visibility).toBe('shared')
-    const s = await ok([
-      'suggest',
-      'ask how the Q1 hiring plan is funded',
-      '--kind',
-      'question',
-      '--item',
-      'hiring',
-    ])
-    await expect(stable(s.stdout)).toMatchFileSnapshot(golden('agenda-suggest'))
-    expect(JSON.parse(s.stdout).suggestion.source).toBe('agent:claude')
+    // suggestions come from a connected agent (the agenda-suggest golden is live-agent.int.test.ts's)
+    const s = await gnomeola(
+      ['suggest', 'ask how the Q1 hiring plan is funded', '--kind', 'question', '--item', 'hiring'],
+      d.baseUrl,
+    )
+    expect(s.code).toBe(7)
+    expect(s.stderr).toMatch(/suggest needs a live lease[\s\S]*gnomeola live attach/)
   })
 
   it('share: the invitation block; a read-only calendar hands it back to paste', async () => {
@@ -281,7 +279,8 @@ describe('agenda verbs through the real daemon', () => {
     expect(await code(['agenda', 'status', 'next', '99', 'covered'])).toBe(4)
     expect(await code(['agenda', 'status', 'next', 'no such item', 'covered'])).toBe(4)
     expect(await code(['agenda', 'create', '--meeting', 'mtg_nope'])).toBe(4)
-    expect(await code(['suggest', 'x', '--kind', 'question', '--agenda', 'agd_nope'])).toBe(4)
+    expect(await code(['suggest', 'x', '--kind', 'question', '--agenda', 'agd_nope'])).toBe(7) // no lease
+    expect(await code(['suggest', 'x', '--kind', 'set-status'])).toBe(2)
     expect(await code(['context', 'add', '--title', 'x'])).toBe(2)
     // a big agenda is refused rather than dumped; --full is the escape hatch
     const big = await ok(['agenda', 'create', '--title', 'Big planning'])

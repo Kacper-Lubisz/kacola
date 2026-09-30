@@ -19,6 +19,7 @@ import {
   type StatusChange,
   type Suggestion,
   type SuggestionKind,
+  type SuggestionProposal,
   UpdateItemBody,
 } from '@gnomeola/protocol'
 import type Database from 'better-sqlite3'
@@ -709,7 +710,15 @@ export class AgendaStore {
 
   addSuggestion(
     agendaId: string,
-    s: { kind: SuggestionKind; text: string; itemId?: string | null; source: ChangedBy; ttlSec?: number },
+    s: {
+      kind: SuggestionKind
+      text: string
+      itemId?: string | null
+      source: ChangedBy
+      ttlSec?: number
+      /** Agent channel: the change accepting it applies (a suggest-mode agent's status change / item). */
+      proposal?: SuggestionProposal | null
+    },
   ): Suggestion {
     let out: Suggestion | undefined
     this.store.commit(() => {
@@ -728,6 +737,7 @@ export class AgendaStore {
         state: 'open',
         resolvedAt: null,
         resolvedBy: null,
+        ...(s.proposal ? { proposal: s.proposal } : {}),
       }
       return {
         sessionId: a.sessionId,
@@ -765,7 +775,26 @@ export class AgendaStore {
         sessionId: a.sessionId,
         data: { type: 'agenda.suggestion.upserted', agendaId, suggestion: s },
       }))
-      if (action === 'accept' && cur.kind === 'looks-covered' && cur.itemId) {
+      const p = cur.proposal
+      if (action === 'accept' && p?.kind === 'status' && cur.itemId) {
+        // a suggest-mode agent's status change, applied as the acceptor (the user may move anything)
+        item = this.setStatus(agendaId, cur.itemId, {
+          status: p.status,
+          by,
+          // proposals keep segment ids, not words (a deleted recording leaves nothing behind in them):
+          // the quote is read back from the transcript now, if it is still there
+          evidence: p.evidence.map((e) => ({
+            ...e,
+            quote:
+              e.quote || (e.segmentId ? (this.store.getSegment(e.segmentId)?.text ?? '').slice(0, 500) : ''),
+          })),
+          note: p.note ?? `accepted: ${cur.text}`,
+          ...(p.outcome !== null ? { outcome: p.outcome } : {}),
+        }).item
+      } else if (action === 'accept' && p?.kind === 'add-item') {
+        const [added] = this.addItems(agendaId, [p.item], { by })
+        item = added ?? null
+      } else if (action === 'accept' && cur.kind === 'looks-covered' && cur.itemId) {
         const target = this.requireItem(agendaId, cur.itemId)
         if (target.status !== 'covered')
           item = this.setStatus(agendaId, cur.itemId, {

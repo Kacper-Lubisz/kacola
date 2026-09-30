@@ -5,7 +5,6 @@ import {
   AgendaItemStatus,
   type AgendaSummary,
   type AgendaView,
-  type ChangedBy,
   type ContextCard,
   GnomeolaApiError,
   type Meeting,
@@ -17,6 +16,7 @@ import {
 } from '@gnomeola/protocol'
 import type { Ctx } from '../context.ts'
 import { CliError, EXIT, refused, usage } from '../errors.ts'
+import { leaseAgenda } from '../lease.ts'
 import { localStamp, renderJson, truncate } from '../output.ts'
 import { mapApiError } from '../sessions.ts'
 import { BUDGET, countTokens } from '../tokens.ts'
@@ -149,8 +149,16 @@ async function nextMeetingOrNull(ctx: Ctx): Promise<Meeting | null> {
 }
 
 export async function resolveAgendaId(ctx: Ctx, input: string | undefined): Promise<string> {
-  const ref = input ?? 'next'
+  // an attached agent's default is the agenda of the recording it is attached to
+  const ref = input ?? (ctx.lease ? 'live' : 'next')
   if (AGENDA_ID.test(ref)) return ref
+  if (ref === 'live') {
+    if (ctx.lease) return leaseAgenda(ctx, ctx.lease)
+    const { sessions } = await ctx.client.call('listLiveSessions', { query: {} }).catch(mapApiError)
+    const s = sessions.find((x) => x.agendaId)
+    if (!s) throw new CliError(EXIT.NOT_FOUND, 'no recording in progress has an agenda')
+    return s.agendaId!
+  }
   if (ref === 'next') {
     const m = await nextMeetingOrNull(ctx)
     if (!m) throw new CliError(EXIT.NOT_FOUND, 'there is no meeting in progress or coming up')
@@ -291,10 +299,15 @@ const kind = (v: string | undefined) => {
   return k.data
 }
 
-const agentBy = (name: string | undefined): ChangedBy | undefined => {
-  if (name === undefined) return undefined
-  if (!/^[A-Za-z0-9._-]{1,64}$/.test(name)) throw usage('--as must be a short name (letters, digits, . _ -)')
-  return `agent:${name}`
+/** Suggestions come only from an attached agent: its lease says who it is. */
+function requireLease(ctx: Ctx, what: string): NonNullable<Ctx['lease']> {
+  if (!ctx.lease)
+    throw new CliError(
+      EXIT.LEASE,
+      `${what} needs a live lease (suggestions come from a connected agent)`,
+      'attach first: gnomeola live attach [--as NAME] — and keep it running while you suggest',
+    )
+  return ctx.lease
 }
 
 function conflictHint(err: unknown): never {
@@ -447,6 +460,14 @@ export async function agendaAdd(ctx: Ctx, ref: string | undefined, texts: string
   const r = await ctx.client
     .call('addAgendaItems', { params: { id }, body: { items, ...(before ? { before } : {}) } })
     .catch(mapApiError)
+  if (r.suggestions?.length) {
+    // a suggest-mode agent: the items wait for the user to accept them
+    const suggested = r.suggestions.map(briefSuggestion)
+    if (ctx.format === 'json')
+      return ctx.io.stdout(renderJson({ agendaId: id, added: [], suggested }, ctx.io))
+    for (const s of r.suggestions) ctx.io.stdout(`suggested: ${s.text}\n`)
+    return
+  }
   const all = await view(ctx, id)
   const added = r.items.map((i) => briefItem(i, all.items.findIndex((x) => x.id === i.id) + 1))
   if (ctx.format === 'json')
@@ -499,7 +520,7 @@ export async function agendaRemove(ctx: Ctx, ref: string | undefined, itemRef: s
   ctx.io.stdout(`removed "${item.text}"\n`)
 }
 
-export type StatusOpts = { evidence?: string; note?: string; outcome?: string; as?: string }
+export type StatusOpts = { evidence?: string; segment?: string; note?: string; outcome?: string }
 
 export async function agendaStatus(
   ctx: Ctx,
@@ -518,9 +539,12 @@ export async function agendaStatus(
       params: { id, itemId: item.id },
       body: {
         status: s.data,
-        ...(agentBy(o.as) ? { by: agentBy(o.as) } : {}),
-        ...(o.evidence
-          ? { evidence: [{ segmentId: null, quote: o.evidence.slice(0, 500), confidence: null }] }
+        ...(o.evidence !== undefined || o.segment !== undefined
+          ? {
+              evidence: [
+                { segmentId: o.segment ?? null, quote: (o.evidence ?? '').slice(0, 500), confidence: null },
+              ],
+            }
           : {}),
         ...(o.note ? { note: o.note } : {}),
         ...(o.outcome !== undefined ? { outcome: o.outcome } : {}),
@@ -531,10 +555,16 @@ export async function agendaStatus(
   if (ctx.format === 'json')
     return ctx.io.stdout(
       renderJson(
-        { agendaId: id, item: briefItem(r.item, n), change: r.change && briefChange(r.change) },
+        {
+          agendaId: id,
+          item: briefItem(r.item, n),
+          change: r.change && briefChange(r.change),
+          ...(r.suggestion ? { suggested: briefSuggestion(r.suggestion) } : {}),
+        },
         ctx.io,
       ),
     )
+  if (r.suggestion) return ctx.io.stdout(`suggested (the user decides): ${r.suggestion.text}\n`)
   ctx.io.stdout(`${itemLine(r.item, n)}${r.change ? '' : '  (unchanged)'}\n`)
 }
 
@@ -605,6 +635,8 @@ export async function contextAdd(ctx: Ctx, o: ContextOpts) {
   if (!o.title) throw usage('a context card needs --title')
   const sources = [o.file !== undefined, Boolean(o.stdin), o.body !== undefined].filter(Boolean).length
   if (sources !== 1) throw usage('pass exactly one of --file F, --stdin or --body TEXT')
+  if (ctx.lease && o.shared)
+    throw refused("a connected agent's cards are private", 'only the user shares a card with invitees')
   const body = o.body ?? (await readSource(ctx, { from: o.file, stdin: o.stdin }, 'the card'))!
   if (countTokens(body) > BUDGET.contextCard)
     throw refused(
@@ -628,19 +660,23 @@ export async function contextAdd(ctx: Ctx, o: ContextOpts) {
   ctx.io.stdout(`added context "${card.title}" (${card.visibility})\n`)
 }
 
-export type SuggestOpts = { agenda?: string; kind?: string; item?: string; as?: string }
+export type SuggestOpts = { agenda?: string; kind?: string; item?: string }
 
 export async function suggest(ctx: Ctx, text: string, o: SuggestOpts) {
   if (!text.trim())
     throw usage('what is the suggestion?', 'gnomeola suggest "ask about the Q1 hiring plan" --kind question')
   const k = SuggestionKind.safeParse(o.kind)
-  if (!k.success) throw usage(`--kind must be one of ${SuggestionKind.options.join(', ')}`)
+  const kinds = SuggestionKind.options.filter((x) => x !== 'set-status' && x !== 'add-item')
+  if (!k.success || !(kinds as string[]).includes(k.data))
+    throw usage(`--kind must be one of ${kinds.join(', ')}`)
+  const lease = requireLease(ctx, 'suggest')
   const id = await resolveAgendaId(ctx, o.agenda)
   const itemId = o.item ? resolveItem(await view(ctx, id), o.item).id : undefined
   const s = await ctx.client
     .call('addSuggestion', {
       params: { id },
-      body: { kind: k.data, text, source: agentBy(o.as ?? 'claude')!, ...(itemId ? { itemId } : {}) },
+      // the daemon takes the author from the lease, whatever is sent here
+      body: { kind: k.data, text, source: `agent:${lease.name ?? 'claude'}`, ...(itemId ? { itemId } : {}) },
     })
     .catch(mapApiError)
   if (ctx.format === 'json')
