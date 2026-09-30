@@ -39,6 +39,7 @@ export async function buildMacos(o: {
   mkdirSync(join(stage, 'bin'))
   cpSync(join(REPO, 'packaging', 'macos', 'gnomeola-cli.sh'), join(stage, 'bin', 'gnomeola'))
   cpSync(join(REPO, 'THIRD_PARTY_NOTICES.md'), join(stage, 'THIRD_PARTY_NOTICES.md'))
+  cpSync(join(REPO, 'packaging', 'icons', 'org.gnome.Gnomeola-1024.png'), join(stage, 'icon.png'))
   // Chromium's licences ship with every Electron build; the Linux dist has the same file
   cpSync(
     join(REPO, 'node_modules', 'electron', 'dist', 'LICENSES.chromium.html'),

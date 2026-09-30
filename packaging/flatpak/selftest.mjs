@@ -63,7 +63,7 @@ attempt('gjs', () => {
     // check_version asks the loaded library (the typelib constants are the runtime's 2.84)
     [
       '-c',
-      "const {GLib, Gio} = imports.gi; print(`${GLib.check_version(2, 86, 0) === null ? 'glib>=2.86' : 'glib<2.86'} ${typeof Gio.DBusProxy}`)",
+      "const {GLib, Gio} = imports.gi; print((GLib.check_version(2, 86, 0) === null ? 'glib>=2.86' : 'glib<2.86') + ' ' + typeof Gio.DBusProxy)",
     ],
     { encoding: 'utf8' },
   )

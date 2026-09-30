@@ -10,7 +10,7 @@
 //   - quits (and stops the daemon it started) on SIGTERM / app.quit()
 //
 // GNOMEOLA_URL chooses the daemon URL (default http://127.0.0.1:8787); its port is the one the daemon is
-// started on. The real main (packages/desktop/src/main) replaces this file; see packaging/README.md.
+// started on. The real main (packages/desktop/src/main) replaces this file (build-flatpak.ts / build-macos.ts --app-dir).
 'use strict'
 const { app, BrowserWindow } = require('electron')
 const { spawn } = require('node:child_process')
