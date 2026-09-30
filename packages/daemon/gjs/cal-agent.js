@@ -23,8 +23,20 @@ import System from 'system'
 const PROTOCOL = 1
 const DEBOUNCE_MS = 300
 // 0 = do not wait for a remote backend to come online: its offline cache is what we want.
-const CONNECT_WAIT_S = 0
-const CONNECT_TIMEOUT_S = 10
+/** How long EDS may wait for a backend to come online before handing back the client with its offline
+ *  cache. NOT 0: seen on a real machine (2026-09-30), 0 made Google calendars (GNOME Online Accounts) wait
+ *  for a connection that never came, so every one of them hit the timeout and vanished; with a few
+ *  seconds they arrive with their cached events and update when the backend connects. */
+const CONNECT_WAIT_S = 5
+/** Online calendars (Google, Microsoft, CalDAV via GNOME Online Accounts) can take well over 10 s to
+ *  connect after login or a restart; give up on one attempt only after this long… */
+const CONNECT_TIMEOUT_S = 90
+/** …but never hold a snapshot back for a slow calendar longer than this: the others are shown and the
+ *  slow one joins a later snapshot when it connects. */
+const SNAPSHOT_WAIT_S = 10
+/** A calendar that failed to connect is retried after 30 s, doubling to at most 10 minutes. */
+const RETRY_BASE_S = 30
+const RETRY_MAX_S = 600
 const URL_RE = /https?:\/\//i
 
 // ------------------------------------------------------------------------------------------ output
@@ -292,7 +304,9 @@ function snapshot() {
   if (!window || exiting) return GLib.SOURCE_REMOVE
   // Calendars still connecting would be missing from the snapshot, making their meetings flicker out and
   // back; their connect callback schedules another snapshot (and gives up after CONNECT_TIMEOUT_S).
-  if (connecting.size) return GLib.SOURCE_REMOVE
+  const now = GLib.get_monotonic_time()
+  for (const c of connecting.values())
+    if (now - c.since < SNAPSHOT_WAIT_S * 1_000_000) return GLib.SOURCE_REMOVE
   const fromS = Math.floor(Date.parse(window.from) / 1000)
   const toS = Math.ceil(Date.parse(window.to) / 1000)
   const occurrences = []
@@ -332,14 +346,34 @@ function closeClient(c) {
   } catch (_e) {}
 }
 
-/** Sources being connected: uid → cancellable. A snapshot waits for them (see snapshot()). */
+/** Sources being connected: uid → { cancellable, since (monotonic µs) }. A snapshot waits for them, but
+ *  only up to SNAPSHOT_WAIT_S (see snapshot()). */
 const connecting = new Map()
+/** Consecutive failed connects per source, for the retry backoff. */
+const failures = new Map()
+
+function retryLater(uid, name) {
+  const n = (failures.get(uid) ?? 0) + 1
+  failures.set(uid, n)
+  const delay = Math.min(RETRY_BASE_S * 2 ** (n - 1), RETRY_MAX_S)
+  log('warn', `calendar "${name}" (${uid}): retrying in ${delay} s (attempt ${n + 1})`)
+  GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, delay, () => {
+    if (!exiting && !clients.has(uid) && !connecting.has(uid)) reconcile()
+    return GLib.SOURCE_REMOVE
+  })
+}
 
 function openClient(source) {
   const uid = source.get_uid()
   const name = source.get_display_name() || uid
   const cancellable = new Gio.Cancellable()
-  connecting.set(uid, cancellable)
+  const entry = { cancellable, since: GLib.get_monotonic_time() }
+  connecting.set(uid, entry)
+  // re-run a held-back snapshot once this calendar has had its SNAPSHOT_WAIT_S
+  GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, SNAPSHOT_WAIT_S, () => {
+    if (connecting.get(uid) === entry) schedule()
+    return GLib.SOURCE_REMOVE
+  })
   // A backend that never answers must not hold every other calendar hostage.
   const timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, CONNECT_TIMEOUT_S, () => {
     cancellable.cancel()
@@ -348,16 +382,20 @@ function openClient(source) {
   // Asynchronous, with the main loop running: connect_sync from the top level was seen to deadlock.
   ECal.Client.connect(source, ECal.ClientSourceType.EVENTS, CONNECT_WAIT_S, cancellable, (_o, res) => {
     GLib.source_remove(timeoutId)
-    if (connecting.get(uid) === cancellable) connecting.delete(uid)
+    if (connecting.get(uid) === entry) connecting.delete(uid)
     let client
     try {
       client = ECal.Client.connect_finish(res)
     } catch (e) {
-      if (!exiting) log('warn', `calendar "${name}" (${uid}) could not be opened, skipped: ${errText(e)}`)
+      if (!exiting) {
+        log('warn', `calendar "${name}" (${uid}) could not be opened: ${errText(e)}`)
+        retryLater(uid, name)
+      }
       schedule()
       return
     }
     if (exiting || cancellable.is_cancelled()) return
+    failures.delete(uid)
     client.set_default_timezone(localZone)
     const c = { source, client, view: null, name }
     clients.set(uid, c)
@@ -388,9 +426,9 @@ function reconcile() {
       clients.delete(uid)
     } else c.name = current.get(uid).get_display_name() || uid
   }
-  for (const [uid, cancellable] of connecting) {
+  for (const [uid, c] of connecting) {
     if (!current.has(uid)) {
-      cancellable.cancel()
+      c.cancellable.cancel()
       connecting.delete(uid)
     }
   }
