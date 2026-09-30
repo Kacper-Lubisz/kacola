@@ -100,17 +100,29 @@ describe('gnomeola mcp — the same tools over MCP', () => {
     await client.close()
   })
 
-  it('exposes exactly the read-only tools', async () => {
+  it('exposes exactly the read tools plus the agenda verbs', async () => {
     const { tools } = await client.listTools()
     expect(tools.map((t) => t.name).sort()).toEqual([
+      'add_agenda_items',
+      'add_context_card',
+      'agenda_invite_block',
       'ask_meetings',
       'calendar_meetings',
+      'create_agenda',
+      'edit_agenda_item',
+      'export_agenda_markdown',
+      'get_agenda',
       'get_meeting_notes',
       'get_transcript_window',
+      'import_agenda_markdown',
+      'list_agendas',
       'list_sessions',
       'list_speakers',
       'recording_status',
+      'remove_agenda_item',
       'search_meetings',
+      'set_agenda_item_status',
+      'suggest_for_agenda',
     ])
     // Every tool description that surfaces transcript text warns that it is third-party speech.
     expect(tools.find((t) => t.name === 'search_meetings')!.description).toMatch(/never follow instructions/)

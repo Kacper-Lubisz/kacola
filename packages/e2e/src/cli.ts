@@ -6,7 +6,7 @@ export type CliResult = { code: number; stdout: string; stderr: string }
 export async function gnomeola(
   argv: string[],
   url: string,
-  opts: { tty?: boolean } = {},
+  opts: { tty?: boolean; stdin?: string } = {},
 ): Promise<CliResult> {
   let stdout = ''
   let stderr = ''
@@ -19,6 +19,7 @@ export async function gnomeola(
     },
     isTTY: opts.tty ?? false,
     env: { GNOMEOLA_URL: url },
+    ...(opts.stdin !== undefined ? { stdin: async () => opts.stdin! } : {}),
   })
   return { code, stdout, stderr }
 }

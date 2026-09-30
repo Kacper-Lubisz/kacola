@@ -1,6 +1,21 @@
 #!/usr/bin/env node
 import { type ParseArgsConfig, parseArgs } from 'node:util'
 import { DaemonUnreachableError, GnomeolaApiError, PROTOCOL_VERSION } from '@gnomeola/protocol'
+import {
+  agendaAdd,
+  agendaCreate,
+  agendaEdit,
+  agendaExport,
+  agendaImport,
+  agendaLink,
+  agendaList,
+  agendaRemove,
+  agendaShare,
+  agendaShow,
+  agendaStatus,
+  contextAdd,
+  suggest,
+} from './commands/agenda.ts'
 import { ask } from './commands/ask.ts'
 import { bugReport } from './commands/bugreport.ts'
 import { installCliCommand, uninstallCliCommand } from './commands/install-cli.ts'
@@ -20,7 +35,7 @@ import { type Io, resolveFormat } from './output.ts'
 
 export const VERSION = '0.1.0'
 
-export const HELP = `gnomeola — read and search your recorded meetings
+export const HELP = `gnomeola — read and search your recorded meetings, and plan the next ones
 
 usage: gnomeola <command> [options]
 
@@ -39,6 +54,28 @@ usage: gnomeola <command> [options]
   record start [--title T] | stop [id] | status
   meetings [--next | --today]                 your calendar: what is on now / next, or today
   status                                      daemon, models and LLM health
+
+ agendas (the owner's write verbs; <agenda>: agd_… | next | latest, default next;
+          <item>: its position, id or text):
+  agenda create --meeting next|today|<meeting id|event uid> [--start ISO] [--title T]
+                [--from FILE.md | --stdin] [--private] [--no-carry-over] [--reuse]
+  agenda list [--meeting <ref>] [--since D] [--limit N]   every occurrence of that meeting's event
+  agenda show [<agenda>] [--history] [--full]
+  agenda add <agenda> "<item>"… [--kind K] [--owner O] [--timebox 10m] [--before <item>]
+                                              "<item>" may be "Text (10m, @ana) [must-cover]"
+  agenda edit <agenda> <item> [--text T] [--kind K] [--owner O | --no-owner] [--timebox D] [--outcome T]
+  agenda remove <agenda> <item>
+  agenda status <agenda> <item> open|in-progress|covered|skipped|parked
+                [--evidence "…"] [--note "…"] [--outcome "…"]
+  agenda export <agenda> | import <agenda> (--from FILE | --stdin) [--merge]
+                                              the markdown form: - [ ] item (10m, @ana) [kind]
+  agenda link <agenda> --meeting <ref> [--start ISO]
+  agenda share <agenda> [--write | --remove]  the invitation block (kacola:// link); --write puts it
+                                              in the calendar event where the calendar allows
+  context add [--agenda A] --title T (--file F | --stdin | --body TEXT) [--shared] [--pinned]
+                                              a card for the meeting; private unless --shared
+  suggest [--agenda A] "…" --kind next-point|question|missed|fact-check|looks-covered
+          [--item <item>] [--as NAME]
   skill install [--dir DIR] [--force]         install the Claude Code skill
   install-cli [--mode auto|flatpak|macos|dev] [--bin-dir DIR] [--launch CMD] [--no-skill] [--force]
                                               put this gnomeola on PATH (+ the Claude skill)
@@ -205,6 +242,144 @@ export async function run(argv: string[], io: Io): Promise<number> {
         else await meetingsNext(ctxFor(v))
         break
       }
+      case 'agenda': {
+        // `agenda edit --text T` sets an item's text; everywhere else --text is the output format
+        const itemText = rest[0] === 'edit' ? { text: { type: 'string' } } : {}
+        const { values: v, positionals: p } = parse(rest, {
+          ...(itemText as { text?: { type: 'string' } }),
+          meeting: { type: 'string' },
+          start: { type: 'string' },
+          title: { type: 'string' },
+          from: { type: 'string' },
+          stdin: { type: 'boolean' },
+          private: { type: 'boolean' },
+          'no-carry-over': { type: 'boolean' },
+          reuse: { type: 'boolean' },
+          since: { type: 'string' },
+          limit: { type: 'string' },
+          history: { type: 'boolean' },
+          full: { type: 'boolean' },
+          kind: { type: 'string' },
+          owner: { type: 'string' },
+          'no-owner': { type: 'boolean' },
+          timebox: { type: 'string' },
+          before: { type: 'string' },
+          outcome: { type: 'string' },
+          evidence: { type: 'string' },
+          note: { type: 'string' },
+          as: { type: 'string' },
+          merge: { type: 'boolean' },
+          write: { type: 'boolean' },
+          remove: { type: 'boolean' },
+        })
+        if (helpOr(v)) return EXIT.OK
+        const ctx = ctxFor({ ...v, text: typeof v.text === 'boolean' ? v.text : undefined })
+        const [sub, ...args] = p
+        switch (sub) {
+          case 'create':
+            await agendaCreate(ctx, {
+              meeting: v.meeting,
+              start: v.start,
+              title: v.title,
+              from: v.from,
+              stdin: v.stdin,
+              private: v.private,
+              noCarryOver: v['no-carry-over'],
+              reuse: v.reuse,
+            })
+            break
+          case 'list':
+            await agendaList(ctx, { meeting: v.meeting, since: v.since, limit: int(v.limit, '--limit') })
+            break
+          case 'show':
+            await agendaShow(ctx, args[0], { history: v.history, full: v.full })
+            break
+          case 'add':
+            await agendaAdd(ctx, args[0], args.slice(1), {
+              kind: v.kind,
+              owner: v.owner,
+              timebox: v.timebox,
+              before: v.before,
+            })
+            break
+          case 'edit':
+            await agendaEdit(ctx, args[0], args[1], {
+              text: typeof v.text === 'string' ? v.text : undefined,
+              kind: v.kind,
+              owner: v.owner,
+              noOwner: v['no-owner'],
+              timebox: v.timebox,
+              outcome: v.outcome,
+            })
+            break
+          case 'remove':
+            await agendaRemove(ctx, args[0], args[1])
+            break
+          case 'status':
+            await agendaStatus(ctx, args[0], args[1], args[2], {
+              evidence: v.evidence,
+              note: v.note,
+              outcome: v.outcome,
+              as: v.as,
+            })
+            break
+          case 'export':
+            await agendaExport(ctx, args[0])
+            break
+          case 'import':
+            await agendaImport(ctx, args[0], { from: v.from, stdin: v.stdin, merge: v.merge })
+            break
+          case 'link':
+            await agendaLink(ctx, args[0], { meeting: v.meeting, start: v.start })
+            break
+          case 'share':
+            await agendaShare(ctx, args[0], { write: v.write, remove: v.remove })
+            break
+          default:
+            throw usage(
+              sub ? `unknown subcommand: agenda ${sub}` : 'agenda what?',
+              'agenda create|list|show|add|edit|remove|status|export|import|link|share — see gnomeola --help',
+            )
+        }
+        break
+      }
+      case 'context': {
+        const { values: v, positionals: p } = parse(rest, {
+          agenda: { type: 'string' },
+          title: { type: 'string' },
+          file: { type: 'string' },
+          stdin: { type: 'boolean' },
+          body: { type: 'string' },
+          shared: { type: 'boolean' },
+          pinned: { type: 'boolean' },
+        })
+        if (helpOr(v)) return EXIT.OK
+        if (p[0] !== 'add')
+          throw usage(
+            'usage: gnomeola context add [--agenda A] --title T (--file F | --stdin | --body TEXT) [--shared]',
+          )
+        await contextAdd(ctxFor(v), {
+          agenda: v.agenda,
+          title: v.title,
+          file: v.file,
+          stdin: v.stdin,
+          body: v.body,
+          shared: v.shared,
+          pinned: v.pinned,
+        })
+        break
+      }
+      case 'suggest': {
+        const { values: v, positionals: p } = parse(rest, {
+          agenda: { type: 'string' },
+          kind: { type: 'string' },
+          item: { type: 'string' },
+          as: { type: 'string' },
+        })
+        if (helpOr(v)) return EXIT.OK
+        await suggest(ctxFor(v), p.join(' '), { agenda: v.agenda, kind: v.kind, item: v.item, as: v.as })
+        break
+      }
       case 'speakers': {
         const { values: v, positionals: p } = parse(rest, {})
         if (helpOr(v)) return EXIT.OK
@@ -326,6 +501,11 @@ if (import.meta.main) {
     stderr: (s) => process.stderr.write(s),
     isTTY: Boolean(process.stdout.isTTY),
     env: process.env,
+    stdin: async () => {
+      let text = ''
+      for await (const chunk of process.stdin) text += chunk
+      return text
+    },
   }
   run(process.argv.slice(2), io).then((code) => {
     process.exitCode = code

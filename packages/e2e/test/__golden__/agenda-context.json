@@ -1,0 +1,10 @@
+{
+  "agendaId": "<agd:1>",
+  "card": {
+    "id": "<ctx:1>",
+    "title": "Q3 numbers",
+    "visibility": "private",
+    "pinned": false,
+    "chars": 29
+  }
+}

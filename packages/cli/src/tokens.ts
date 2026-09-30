@@ -21,6 +21,10 @@ export const BUDGET = {
   notes: 4_000,
   /** An `ask` result, rendered — an answer and its citations, never raw transcript. */
   ask: 1_500,
+  /** An agenda (`gnomeola agenda show`/`create`/`import`), rendered; bypass with --full. */
+  agenda: 3_000,
+  /** One context card's body (`gnomeola context add`): something to glance at in a meeting, not a document. */
+  contextCard: 2_000,
   /** One search snippet, in characters (server snippets are already capped; this is belt and braces). */
   snippetChars: 240,
 } as const
