@@ -31,6 +31,10 @@ export const IPC = {
   extensionInstall: 'gnomeola:extension-install',
   autostartGet: 'gnomeola:autostart-get',
   autostartSet: 'gnomeola:autostart-set',
+  /** main → renderer: a kacola:// link (validated, canonical) for a renderer that has taken once. */
+  deepLink: 'gnomeola:deep-link',
+  /** invoke: marks the sender ready for pushes; returns and clears the pending link. */
+  deepLinkTake: 'gnomeola:deep-link-take',
 } as const
 
 // ---- fetch tunnel -----------------------------------------------------------------------------------
@@ -163,4 +167,12 @@ export interface GnomeolaBridge {
   /** Start in the background at login (Linux: autostart entry / Background portal; macOS: login item). */
   getAutostart(): Promise<AutostartState>
   setAutostart(enabled: boolean): Promise<AutostartState>
+  /**
+   * kacola:// links (`kacola://agenda/<id>`, `kacola://meeting/<uid>[?start=<iso>]`, canonical form —
+   * main validated them) opened while the window is up. Pushed only after `takeDeepLink()` was called
+   * once by this page: subscribe first, then take.
+   */
+  onDeepLink(cb: (url: string) => void): Unsubscribe
+  /** The link the app was opened with (or one that arrived before this page asked), once; null if none. */
+  takeDeepLink(): Promise<string | null>
 }

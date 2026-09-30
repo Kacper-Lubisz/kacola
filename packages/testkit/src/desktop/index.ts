@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import { existsSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { AxeBuilder } from '@axe-core/playwright'
@@ -62,7 +62,8 @@ export type DesktopApp = {
   close: () => Promise<void>
 }
 
-export async function launchDesktop(o: LaunchDesktopOptions): Promise<DesktopApp> {
+/** The app's environment: the display's (private HOME / XDG dirs, so a private single-instance lock) + `env`. */
+function desktopEnv(o: Pick<LaunchDesktopOptions, 'display' | 'env'>): Record<string, string> {
   if (!existsSync(ELECTRON_BIN)) throw new Error(`no Electron binary at ${ELECTRON_BIN} (pnpm install)`)
   const env: Record<string, string> = { ...o.display.env }
   for (const [k, v] of Object.entries(o.env ?? {})) {
@@ -72,6 +73,11 @@ export async function launchDesktop(o: LaunchDesktopOptions): Promise<DesktopApp
   env[MARKER_VAR] = o.display.env[MARKER_VAR] ?? ''
   // never the user's daemon or data: a test must pass GNOMEOLA_URL (or get a daemon spawned on a temp dir)
   env.GNOMEOLA_URL ??= 'http://127.0.0.1:9'
+  return env
+}
+
+export async function launchDesktop(o: LaunchDesktopOptions): Promise<DesktopApp> {
+  const env = desktopEnv(o)
   let out = ''
   const app = await _electron.launch({
     executablePath: ELECTRON_BIN,
@@ -148,6 +154,43 @@ export async function launchDesktop(o: LaunchDesktopOptions): Promise<DesktopApp
       clearTimeout(timer)
     },
   }
+}
+
+/**
+ * Start the app again as a plain process — the desktop file, a clicked kacola:// link — with the same
+ * display and `env` as a running launchDesktop(): the same private user-data dir, so it finds that
+ * instance's single-instance lock, hands its argv over ('second-instance') and exits.
+ */
+export async function launchSecondInstance(
+  o: Pick<LaunchDesktopOptions, 'display' | 'env' | 'args' | 'timeoutMs'>,
+): Promise<{ exitCode: number | null; signal: NodeJS.Signals | null; output: string }> {
+  const child = spawn(ELECTRON_BIN, [MAIN_ENTRY, ...(o.args ?? [])], {
+    env: desktopEnv(o),
+    cwd: DESKTOP_DIR,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let output = ''
+  child.stdout.on('data', (d: Buffer) => {
+    output += d.toString()
+  })
+  child.stderr.on('data', (d: Buffer) => {
+    output += d.toString()
+  })
+  const timeoutMs = o.timeoutMs ?? 15_000
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL')
+      reject(new Error(`the second instance did not exit within ${timeoutMs} ms:\n${output.slice(-3000)}`))
+    }, timeoutMs)
+    child.once('error', (e) => {
+      clearTimeout(timer)
+      reject(e)
+    })
+    child.once('exit', (exitCode, signal) => {
+      clearTimeout(timer)
+      resolve({ exitCode, signal, output })
+    })
+  })
 }
 
 /** The daemon supervisor's state, asked through the bridge (main's early log lines predate Playwright). */

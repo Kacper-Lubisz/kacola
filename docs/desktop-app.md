@@ -27,6 +27,7 @@ packages/desktop/
     extension.ts            "Install top-bar extension" (a copy into the user's extensions dir, never enabled)
     autostart.ts tray.ts    background mode: autostart entry / Background portal; the macOS Tray menu model
     capture.ts              in-app capture: CaptureController (daemon's waiting list → capture window → ingest)
+    deep-link.ts            kacola:// links: argv parsing, scheme registration rule, DeepLinkQueue (pure)
   src/preload/index.ts      contextBridge.exposeInMainWorld('gnomeola', …) — one function per capability
   src/preload/capture.ts    the capture window's bridge only (start/stop in, frames and state out)
   src/renderer/capture.html + capture/   the hidden capture window: getUserMedia / getDisplayMedia, AudioWorklet
@@ -156,6 +157,36 @@ Desktop Integration → "Start in the background at login" (`src/main/autostart.
   `${XDG_DATA_HOME:-~/.local/share}/gnome-shell/extensions/` — in the Flatpak the host's
   (`HOST_XDG_DATA_HOME`, else `~/.local/share`, via `--filesystem=xdg-data/gnome-shell/extensions:create`).
   Never enabled: that stays the user's call, and on Wayland the Shell sees it after the next login.
+
+## Deep links
+
+`kacola://agenda/<id>` and `kacola://meeting/<uid>[?start=<iso>]` (docs/agendas.md, "Deep links") open the
+app (`src/main/deep-link.ts`, pure and unit-tested; wired in `index.ts`):
+
+- **Registered**: macOS — `CFBundleURLTypes` in Info.plist (electron-builder `protocols` in
+  `packaging/macos/electron-builder.yml`) and `app.setAsDefaultProtocolClient('kacola')` when packaged.
+  Flatpak — `MimeType=x-scheme-handler/kacola;` + `Exec=gnomeola-app %U` in
+  `packaging/flatpak/org.gnome.Gnomeola.desktop` (the wrapper forwards `"$@"`). `build-desktop.ts` passes
+  the same `protocols`, so any desktop entry electron-builder writes carries the MimeType (the `dir`
+  target writes none). Packaged Linux never calls `setAsDefaultProtocolClient`: the desktop file is the
+  registration. Dev (unpackaged) registers Electron + the main script on macOS (unless
+  `GNOMEOLA_REGISTER_SCHEME=0`) and on Linux **only** with `GNOMEOLA_REGISTER_SCHEME=1` — there it runs
+  `xdg-settings` and changes the user's real default handler, which tests and CI must never do.
+- **Arrival**: the first argv entry that `parseKacolaLink` accepts (≤ 4000 chars, any case of the
+  scheme; anything else is ignored) on a cold start; a second launch's argv via `'second-instance'` (a
+  link shows the window even with `--background`); macOS `'open-url'`, registered before ready. Links are
+  normalised to the canonical `formatAgendaLink` / `formatMeetingLink` form — the renderer never sees
+  anything else.
+- **Handshake**: `DeepLinkQueue` holds one pending link (a newer one replaces it; the same link twice
+  within 1 s counts once). The renderer subscribes with `gnomeola.onDeepLink(cb)` and then calls
+  `gnomeola.takeDeepLink()` (`IPC.deepLinkTake`, trusted senders only), which returns and clears the
+  pending link and marks that webContents ready. Only a ready window gets links pushed
+  (`IPC.deepLink`); a reload (main-frame navigation) or a new window must take again, so a link is never
+  pushed before anyone listens.
+- **Logs** (main's stdout): `{"event":"deep-link","url":…}` when a link is accepted,
+  `{"event":"deep-link-delivered","url":…}` when the renderer has it (take or push). Tests:
+  `test/deep-link.test.ts`, `desktop-deeplink.e2e` (cold argv, a second instance —
+  `launchSecondInstance()` in the testkit —, invalid arguments, a closed window re-opened by a link).
 
 ## Packaging
 

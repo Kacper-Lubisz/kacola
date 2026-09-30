@@ -3,6 +3,7 @@ Type=Application
 Name=gnomeola
 Comment=Record, transcribe and search your meetings
 Exec=gnomeola-app %U
+MimeType=x-scheme-handler/kacola;
 Icon=org.gnome.Gnomeola
 Terminal=false
 Categories=Office;Recorder;

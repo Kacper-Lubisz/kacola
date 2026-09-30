@@ -153,6 +153,10 @@ describe.each(ARCHS)('gnomeola.app (%s)', (arch) => {
     expect(p.NSAudioCaptureUsageDescription).toMatch(/audio output/)
     expect(p.NSScreenCaptureUsageDescription).toMatch(/audio output \(not the screen\)/)
     expect(p.CFBundleIconFile).toBe('icon.icns')
+    // kacola:// deep links (electron-builder `protocols`)
+    expect(readFileSync(join(app(), 'Contents', 'Info.plist'), 'utf8')).toMatch(
+      /<key>CFBundleURLTypes<\/key>[\s\S]*?<key>CFBundleURLSchemes<\/key>\s*<array>\s*<string>kacola<\/string>/,
+    )
     expect(existsSync(join(res(), 'icon.icns'))).toBe(true)
   })
 

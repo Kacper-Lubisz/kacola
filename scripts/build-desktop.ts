@@ -146,6 +146,9 @@ export async function buildLinuxApp(o: { outDir: string; skipVite?: boolean }): 
         { from: 'THIRD_PARTY_NOTICES.md', to: 'THIRD_PARTY_NOTICES.md' },
         { from: 'extension', to: 'extension' },
       ],
+      // kacola:// deep links: MimeType=x-scheme-handler/kacola in any desktop entry electron-builder
+      // writes (the `dir` target writes none; the Flatpak ships packaging/flatpak's, which declares it)
+      protocols: [{ name: 'kacola', schemes: ['kacola'] }],
       linux: {
         target: [{ target: 'dir', arch: ['x64'] }],
         executableName: 'gnomeola',

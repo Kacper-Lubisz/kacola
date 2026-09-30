@@ -173,6 +173,10 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
     ])
       expect(info.stdout, p).toContain(p)
     expect(existsSync(join(userDir, 'app', APP))).toBe(true)
+    // the exported desktop file makes the app the kacola:// handler and passes the link on (%U)
+    const entry = readFileSync(join(userDir, 'exports', 'share', 'applications', `${APP}.desktop`), 'utf8')
+    expect(entry).toContain('MimeType=x-scheme-handler/kacola;')
+    expect(entry).toMatch(/^Exec=.*gnomeola-app.*%U/m)
   })
 
   it('inside the sandbox: natives load on Electron’s Node, PipeWire answers, the data dirs are writable', async () => {

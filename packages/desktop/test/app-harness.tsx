@@ -100,6 +100,8 @@ export function fakeBridge(over: Partial<GnomeolaBridge> = {}) {
       autostart = { enabled }
       return autostart
     }),
+    onDeepLink: vi.fn(() => () => {}),
+    takeDeepLink: vi.fn(async (): Promise<string | null> => null),
   }
   Object.assign(b, over)
   return {
