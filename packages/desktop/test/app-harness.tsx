@@ -88,8 +88,8 @@ export function fakeBridge(over: Partial<GnomeolaBridge> = {}) {
     uninstallCli: vi.fn(async () => cli),
     extensionStatus: vi.fn(async () => ({ state: 'not-installed' as const })),
     installExtension: vi.fn(async () => ({ state: 'unavailable' as const, detail: 'not yet' })),
-    ...over,
   }
+  Object.assign(b, over)
   return {
     bridge: b as unknown as GnomeolaBridge & typeof b,
     setUi: (s: UiState) => {

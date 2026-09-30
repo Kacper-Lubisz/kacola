@@ -78,6 +78,9 @@
     outline: var(--focus-ring-width) solid var(--focus-ring-color);
     outline-offset: var(--focus-ring-offset);
   }
+  * {
+    scrollbar-color: var(--border-strong-color) transparent;
+  }
   ::placeholder {
     color: var(--faint-fg-color);
   }

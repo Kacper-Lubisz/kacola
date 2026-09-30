@@ -299,7 +299,7 @@ export function Gallery() {
             <Button variant="destructive" onPress={() => setAlert(true)}>
               Delete…
             </Button>
-            <Menu label="Example menu" trigger={<Button iconEnd="chevronDown">Menu</Button>}>
+            <Menu label="Example menu" trigger={<Button iconEnd="chevronDown">Open menu</Button>}>
               <MenuGroup title="Session">
                 <MenuItem icon="edit" onAction={() => setLast('rename')}>
                   Rename

@@ -65,7 +65,7 @@ export function SessionPage({ sessionId, tab = 'transcript' }: { sessionId: stri
   return (
     <div className="flex h-full min-h-0 flex-col bg-view">
       <HeaderBar
-        controls="end"
+        controls={collapsed ? 'both' : 'end'}
         start={
           collapsed ? (
             <IconButton icon="back" label={_('Back')} tooltip={null} onPress={showSidebar} />

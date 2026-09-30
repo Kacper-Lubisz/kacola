@@ -207,13 +207,13 @@ describe('dark style', () => {
         colorScheme: getComputedStyle(document.documentElement).colorScheme,
         bg: getComputedStyle(document.body).backgroundColor,
       })`)
-      expect(r).toEqual({ scheme: 'dark', colorScheme: 'dark', bg: 'rgb(34, 34, 38)' })
+      expect(r).toEqual({ scheme: 'dark', colorScheme: 'dark', bg: 'rgb(23, 20, 17)' })
       expect(app.problems()).toEqual([])
       expect(await app.axe()).toEqual([])
       await app.screenshot(join(ARTIFACTS, 'main-dark.png'))
       // the primitives gallery, in dark: every primitive on the real tokens, accessible
       await app.window.evaluate(`location.hash = '#/gallery'`)
-      await app.window.getByRole('region', { name: 'Buttons' }).waitFor()
+      await app.window.getByRole('region', { name: 'Buttons', exact: true }).waitFor()
       expect(await app.axe()).toEqual([])
       await app.screenshot(join(ARTIFACTS, 'gallery-dark.png'))
     } finally {

@@ -182,3 +182,4 @@ export async function waitForLog(app: DesktopApp, re: RegExp, timeoutMs = 20_000
   }
 }
 export * from './footprint.ts'
+export * from './screenshot.ts'
