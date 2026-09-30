@@ -212,10 +212,9 @@ reusing the GTK app's msgids where the meaning is the same. Catalogues are JSON 
   re-records after a deliberate design change; a mismatch writes `<name>.diff.png` in `__artifacts__`).
   A first-run window opens onboarding: tests about something else call `markOnboarded(display)`. Test code compiled by
   `packages/e2e` has no DOM lib: pass page-side code to `evaluate` as a string.
-- Screenshot baselines: `matchBaseline(png, baseline, { artifactsDir })` from `@gnomeola/testkit/desktop`
-  (Playwright's own comparator; a missing baseline or `UPDATE_BASELINES=1` writes it). Take element
-  screenshots of your screen (not the frame, which shows live times), blur focus and park the pointer
-  first, and `emulateMedia({ reducedMotion: 'reduce' })` for still spinners — Playwright's
+- Baselines of one pane (the notes suite): an element screenshot of the pane (not the frame, which
+  shows live times) through `matchBaseline(png, baselinePng)` from `@gnomeola/testkit/desktop`. Blur
+  focus and park the pointer first, and `emulateMedia({ reducedMotion: 'reduce' })` for still spinners — Playwright's
   `animations: 'disabled'` injects a `<style>` the CSP refuses.
 - Third-party widgets that inject `<style>` (CodeMirror's style-mod) must be mounted in a shadow root,
   where they fall back to constructable stylesheets.

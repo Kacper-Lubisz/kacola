@@ -132,7 +132,8 @@ Calendar integration (M4) only has to pass the event's title; nothing here depen
 - `version-history.tsx`: every version newest first with a preview; Restore This Version appends a
   `restore` version (so a restore is itself undoable). `template-editor.tsx`: custom templates (name,
   keywords, body), built-ins read-only with Duplicate.
-- `kit.tsx`: local brand primitives, to be replaced by `design/primitives` (phase 2A) at merge.
+- Built only from `design/primitives` (Button, IconButton, Switch, Menu, Dialog, Banner, Spinner,
+  NavigationList, TextField / TextArea, `useToast`) and `design/icon.tsx`; Open Preferences via `useDialogs()`.
 
 **GTK** (until the cut-over): `packages/ui/src/components/notes-pane.tsx`, the GtkSourceView 5 editor
 (`notes-editor.tsx`, see docs/gtkx.md §3), and `notes-review.tsx` with the same review model.
@@ -152,7 +153,7 @@ Calendar integration (M4) only has to pass the event's title; nothing here depen
 | int | `packages/e2e/test/notes-chain.int.test.ts` | CLI → daemon → LlmNotesEngine → SDK → replayed API; refusal / 429 leave notes untouched |
 | unit | `packages/ui-core/test/notes.test.ts` | the feed (incl. restore), the query-cache folds, enhance error classes |
 | unit | `packages/desktop/test/notes.test.tsx`, `notes-files.test.ts` | review choices in/out, action items, template helpers + optimistic mutation; main's clipboard / save-dialog checks |
-| e2e | `packages/e2e/test/desktop-notes.e2e.test.ts` | Playwright port of the GTK suite below (every assertion) + rate limiting, history restore, custom templates; axe in light / dark / high contrast; screenshot baselines (`test/__screenshots__/desktop-notes/`, `UPDATE_BASELINES=1` to refresh) |
+| e2e | `packages/e2e/test/desktop-notes.e2e.test.ts` | Playwright port of the GTK suite below (every assertion) + rate limiting, history restore, custom templates; axe in light / dark / high contrast; screenshot baselines (`test/__screenshots__/desktop-notes/`, `GNOMEOLA_UPDATE_SCREENSHOTS=1` to refresh) |
 | e2e | `packages/e2e/test/ui-notes.e2e.test.ts` | AT-SPI: type into the editor, autosave, enhance against the fake Anthropic server, revert some blocks and accept others, apply, and the stored merge equals the choices; every typed version recoverable; clipboard (wl-paste), file export through the real file dialog, refusal, flush on leaving |
 | eval | `packages/llm/test/enhance.eval.test.ts` | live (needs `ANTHROPIC_API_KEY`): user lines kept verbatim (hard), fact / action recall vs reference notes (soft), injection not obeyed, cache read on re-enhance |
 
