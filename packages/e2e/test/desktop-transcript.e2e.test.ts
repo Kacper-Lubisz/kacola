@@ -402,7 +402,12 @@ describe('desktop transcript pane against the real daemon', () => {
     await w().keyboard.press('Home')
     await jump.waitFor({ timeout: 5000 })
     // not following: new lines arrive but the view stays at the top
-    const top = (await visibleRowNames(w()))[0]
+    // (Home scrolls; the virtualiser may be between frames for a moment — take the settled top line)
+    const top = await poll(
+      async () => (await visibleRowNames(w()))[0]?.includes(' at 0:00: ') && (await visibleRowNames(w()))[0],
+      5000,
+      'the view at the top',
+    )
     await new Promise((r) => setTimeout(r, 1500))
     expect((await visibleRowNames(w()))[0]).toBe(top)
 
@@ -423,6 +428,9 @@ describe('desktop transcript pane against the real daemon', () => {
   })
 
   it('stops: the partial line goes, every line becomes final, and it matches the daemon', async () => {
+    // following the live end (whatever the previous test left)
+    const jump = w().getByRole('button', { name: 'Jump to Live' })
+    if (await jump.count()) await jump.click()
     // with the window's own Stop button, as the GTK suite did
     await w().getByRole('button', { name: 'Stop', exact: true }).click()
     await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 10_000 })
