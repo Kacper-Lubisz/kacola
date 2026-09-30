@@ -1,0 +1,26 @@
+{
+  "agendaId": "<agd:1>",
+  "added": [
+    {
+      "n": 3,
+      "id": "<itm:1>",
+      "text": "Budget sign-off",
+      "kind": "decision",
+      "owner": null,
+      "timeboxMin": 5,
+      "status": "open",
+      "outcome": null
+    },
+    {
+      "n": 4,
+      "id": "<itm:2>",
+      "text": "Offsite",
+      "kind": "topic",
+      "owner": null,
+      "timeboxMin": null,
+      "status": "open",
+      "outcome": null
+    }
+  ],
+  "version": 5
+}

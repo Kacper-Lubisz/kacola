@@ -1,3 +1,12 @@
+export {
+  AgendaStore,
+  type CreateAgendaInput,
+  type ItemPatch,
+  type ListAgendasOptions,
+  type NewItemInput,
+  type StatusInput,
+} from './agendas.ts'
+export { isAgendaEvent, occurrenceKey } from './agendas-apply.ts'
 export type {
   AudioChunkRecord,
   CommitListener,

@@ -8,6 +8,11 @@ import { z } from 'zod'
 //                                           one and triggers a fresh snapshot. Sent once at start and
 //                                           whenever the window rolls.
 //   {"type":"refresh"}                     re-read everything now (e.g. after resume from suspend).
+//   {"type":"read-description", requestId, sourceUid, uid, recurrenceId, recurring}
+//                                           (v2, agendas) an event's DESCRIPTION and whether we may write it
+//   {"type":"write-description", requestId, …, expect, description}
+//                                           (v2) replace the DESCRIPTION — only if it is still `expect`
+//                                           (compare-and-swap: the daemon computes the new text, in TS)
 //
 // agent → daemon (stdout)
 //   hello      once, first: protocol version, so a stale helper is refused rather than misread.
@@ -16,11 +21,12 @@ import { z } from 'zod'
 //              added/modified/removed through a client view, or a calendar source added/removed/enabled.
 //   error      something failed; fatal ones are followed by exit and the daemon restarts the agent.
 //   log        diagnostics for the daemon's log.
+//   description / description-written   answers to the two v2 requests above, by requestId.
 //
 // The agent does no interpretation beyond what only EDS can do (recurrence expansion, time zones, which
 // attendee is "me"): join-link extraction, filtering and "next meeting" live in TypeScript, unit-tested.
 
-export const CAL_AGENT_PROTOCOL = 1
+export const CAL_AGENT_PROTOCOL = 2
 
 const Iso = z.iso.datetime({ offset: true })
 
@@ -73,7 +79,42 @@ export const AgentMessage = z.discriminatedUnion('type', [
   }),
   z.object({ type: z.literal('error'), message: z.string(), fatal: z.boolean() }),
   z.object({ type: z.literal('log'), level: z.enum(['debug', 'info', 'warn']), message: z.string() }),
+  // ---- v2: the agenda invitation block (write path)
+  z.object({
+    type: z.literal('description'),
+    requestId: z.string(),
+    /** False when the event could not be read at all (then description is '' and reason says why). */
+    ok: z.boolean(),
+    description: z.string(),
+    /** The calendar is writable and the user organises the event (or nobody does). */
+    writable: z.boolean(),
+    /** Why it is not writable (or not readable); null when it is. */
+    reason: z.string().nullable(),
+  }),
+  z.object({
+    type: z.literal('description-written'),
+    requestId: z.string(),
+    ok: z.boolean(),
+    /** False when the description already was exactly that (nothing written). */
+    changed: z.boolean(),
+    reason: z.string().nullable(),
+    /** The description was no longer `expect`: someone else changed it in between. */
+    conflict: z.boolean().optional(),
+  }),
 ])
 export type AgentMessage = z.infer<typeof AgentMessage>
 
-export type DaemonToAgent = { type: 'window'; from: string; to: string } | { type: 'refresh' }
+/** Which event a description request is about (the master of a series when `recurring`). */
+export type DescriptionRequestTarget = {
+  requestId: string
+  sourceUid: string
+  uid: string
+  recurrenceId: string | null
+  recurring: boolean
+}
+
+export type DaemonToAgent =
+  | { type: 'window'; from: string; to: string }
+  | { type: 'refresh' }
+  | ({ type: 'read-description' } & DescriptionRequestTarget)
+  | ({ type: 'write-description'; expect: string; description: string } & DescriptionRequestTarget)

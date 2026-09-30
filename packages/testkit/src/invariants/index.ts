@@ -147,6 +147,72 @@ export function checkAttribution(segments: readonly Segment[]): Violation[] {
   return v
 }
 
+const RANK: Record<string, number> = { open: 0, 'in-progress': 1, covered: 2, skipped: 2, parked: 2 }
+
+/**
+ * Agendas: an independent reading of the log's status changes. Each change starts from the status the
+ * item was left in; only the user moves an item anywhere but forward (and such a move is flagged as an
+ * override); after a user override, no automated changer (tracker, agent) touches that item until the
+ * user moves it again; every agenda-scoped event raises its agenda's version by exactly one.
+ */
+export function checkAgendaLog(events: readonly DurableEvent[]): Violation[] {
+  const v: Violation[] = []
+  const status = new Map<string, string>()
+  const lockedByUser = new Set<string>()
+  const version = new Map<string, number>()
+  for (const e of events) {
+    const d = e.data
+    if (d.type === 'agenda.upserted') {
+      version.set(d.agenda.id, d.agenda.version)
+      continue
+    }
+    if (d.type === 'agenda.deleted') {
+      version.delete(d.agendaId)
+      continue
+    }
+    if (!d.type.startsWith('agenda.') || d.type === 'agenda.suggestion.upserted') continue
+    const scoped = d as { agendaId: string; version: number }
+    const prev = version.get(scoped.agendaId)
+    if (prev === undefined)
+      v.push({ rule: 'agenda-exists', detail: `${d.type} for unknown agenda ${scoped.agendaId}` })
+    else if (scoped.version !== prev + 1)
+      v.push({ rule: 'version-steps', detail: `${scoped.agendaId}: version ${prev} -> ${scoped.version}` })
+    version.set(scoped.agendaId, scoped.version)
+    if (d.type === 'agenda.item.upserted') {
+      const was = status.get(d.item.id)
+      if (was !== undefined && was !== d.item.status)
+        v.push({
+          rule: 'status-only-by-change',
+          detail: `${d.item.id}: upsert moved ${was} -> ${d.item.status}`,
+        })
+      status.set(d.item.id, d.item.status)
+    } else if (d.type === 'agenda.item.status') {
+      const c = d.change
+      const was = status.get(c.itemId)
+      if (was !== c.from)
+        v.push({ rule: 'change-continuity', detail: `${c.itemId}: was ${was}, change says ${c.from}` })
+      const forward = RANK[c.to]! > RANK[c.from]!
+      if (c.override === forward)
+        v.push({ rule: 'override-flag', detail: `${c.itemId}: ${c.from}->${c.to} override=${c.override}` })
+      if (c.by !== 'user' && !forward)
+        v.push({ rule: 'forward-only', detail: `${c.itemId}: ${c.by} moved ${c.from}->${c.to}` })
+      if (c.by !== 'user' && lockedByUser.has(c.itemId))
+        v.push({ rule: 'manual-wins', detail: `${c.itemId}: ${c.by} changed it after the user's override` })
+      if (c.by === 'user') {
+        if (c.override) lockedByUser.add(c.itemId)
+        else lockedByUser.delete(c.itemId)
+      }
+      if (d.item.status !== c.to)
+        v.push({ rule: 'item-matches-change', detail: `${c.itemId}: item ${d.item.status}, change ${c.to}` })
+      status.set(c.itemId, c.to)
+    } else if (d.type === 'agenda.item.deleted') {
+      status.delete(d.itemId)
+      lockedByUser.delete(d.itemId)
+    }
+  }
+  return v
+}
+
 /** Throw with every violation listed — for use as a single assertion in tests. */
 export function assertNoViolations(violations: Violation[], context = ''): void {
   if (!violations.length) return

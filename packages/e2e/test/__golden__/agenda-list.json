@@ -1,0 +1,22 @@
+{
+  "agendas": [
+    {
+      "id": "<agd:1>",
+      "title": "1:1 with Ana",
+      "meeting": {
+        "eventUid": "one-on-one@x",
+        "start": "<iso>"
+      },
+      "counts": {
+        "items": 5,
+        "open": 2,
+        "inProgress": 1,
+        "covered": 1,
+        "skipped": 0,
+        "parked": 1
+      },
+      "sessionId": null,
+      "updatedAt": "<iso>"
+    }
+  ]
+}

@@ -31,6 +31,7 @@ import {
   SqliteQueryCompiler,
   sql,
 } from 'kysely'
+import { applyAgendaEvent, detachAgendasOf } from './agendas.ts'
 import { StoreError } from './errors.ts'
 import { capSnippet, SNIPPET_TOKENS, toFtsQuery } from './fts.ts'
 import { BOOKKEEPING_TABLES, migrations as defaultMigrations, type Migration, migrate } from './migrations.ts'
@@ -413,6 +414,7 @@ export class Store {
       case 'session.deleted': {
         const id = data.sessionId
         deleteNotesOf(this.db, id)
+        detachAgendasOf(this.db, id)
         this.run(compiler.deleteFrom('speakers').where('session_id', '=', id))
         this.run(compiler.deleteFrom('qa_messages').where('session_id', '=', id))
         this.run(compiler.deleteFrom('segments').where('session_id', '=', id))
@@ -443,6 +445,18 @@ export class Store {
       case 'voiceprint.upserted':
       case 'voiceprint.deleted':
         this.applySpeakerEvent(data)
+        return
+      // ---- agendas (./agendas-apply.ts)
+      case 'agenda.upserted':
+      case 'agenda.deleted':
+      case 'agenda.item.upserted':
+      case 'agenda.item.status':
+      case 'agenda.item.deleted':
+      case 'agenda.items.reordered':
+      case 'agenda.context.upserted':
+      case 'agenda.context.deleted':
+      case 'agenda.suggestion.upserted':
+        applyAgendaEvent(this.db, data)
         return
       default: {
         const never: never = data

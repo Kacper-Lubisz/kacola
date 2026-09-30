@@ -1,0 +1,10 @@
+{
+  "agendaId": "<agd:1>",
+  "suggestion": {
+    "id": "<sug:1>",
+    "kind": "question",
+    "text": "ask how the Q1 hiring plan is funded",
+    "itemId": "<itm:1>",
+    "source": "agent:claude"
+  }
+}

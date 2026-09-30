@@ -1,0 +1,46 @@
+{
+  "agenda": {
+    "id": "<agd:1>",
+    "title": "1:1 with Ana",
+    "meeting": {
+      "eventUid": "one-on-one@x",
+      "title": "1:1 with Ana",
+      "start": "<iso>",
+      "recurring": true
+    },
+    "goals": [
+      "agree the promo launch date"
+    ],
+    "private": false,
+    "version": 3,
+    "sessionId": null
+  },
+  "items": [
+    {
+      "n": 1,
+      "id": "<itm:1>",
+      "text": "Promo timeline",
+      "kind": "must-cover",
+      "owner": "ana",
+      "timeboxMin": 10,
+      "status": "open",
+      "outcome": null
+    },
+    {
+      "n": 2,
+      "id": "<itm:2>",
+      "text": "Q1 hiring plan",
+      "kind": "info-to-get",
+      "owner": "ana",
+      "timeboxMin": null,
+      "status": "open",
+      "outcome": null
+    }
+  ],
+  "context": [],
+  "suggestions": [],
+  "links": {
+    "app": "kacola://meeting/one-on-one%40x",
+    "web": "https://kacola.example/a/<agd:1>"
+  }
+}

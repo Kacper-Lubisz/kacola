@@ -14,6 +14,7 @@
   "dependencies": {
     "@gnomeola/capture": "workspace:*",
     "@gnomeola/capture-agent": "workspace:*",
+    "@gnomeola/decisions": "workspace:*",
     "@gnomeola/llm": "workspace:*",
     "@gnomeola/protocol": "workspace:*",
     "@gnomeola/server": "workspace:*",

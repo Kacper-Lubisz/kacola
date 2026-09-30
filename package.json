@@ -25,6 +25,7 @@
     "brand": "python3 brand/scripts/build.py && node brand/scripts/tokens.ts",
     "brand:tokens": "node brand/scripts/tokens.ts",
     "test:agent-eval": "node packages/e2e/scripts/agent-eval.ts",
+    "test:agenda-eval": "node packages/e2e/scripts/agenda-agent-eval.ts",
     "release-gate": "bash scripts/release-gate.sh"
   },
   "devDependencies": {

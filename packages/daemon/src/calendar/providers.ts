@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { CalendarState } from '@gnomeola/protocol'
@@ -32,7 +33,23 @@ export interface CalendarProvider {
   setWindow(from: Date, to: Date): void
   refresh(): void
   stop(): Promise<void>
+  /**
+   * Agendas: rewrite an event's description with `edit` (which gets the current description and returns
+   * the new one). Only providers that can write implement it (EDS); the others are read-only, and the
+   * caller hands the user the text to paste instead. A recurring event is edited as a whole series.
+   */
+  editDescription?(target: DescriptionTarget, edit: (current: string) => string): Promise<DescriptionEdit>
 }
+
+/** Which event to edit: the calendar (ESource UID), the iCalendar UID, and the occurrence. */
+export type DescriptionTarget = {
+  sourceUid: string
+  uid: string
+  recurrenceId: string | null
+  recurring: boolean
+}
+/** `changed: false` = the description already said exactly that (idempotent). `reason` says why not. */
+export type DescriptionEdit = { ok: true; changed: boolean } | { ok: false; reason: string }
 
 export class NoCalendar implements CalendarProvider {
   readonly name = 'none'
@@ -70,6 +87,16 @@ export class ManualCalendarProvider implements CalendarProvider {
   }
   push(s: CalendarSnapshot): void {
     this.l?.snapshot(s)
+  }
+  /** Descriptions by event UID, as editDescription sees and leaves them; `readOnly` UIDs refuse. */
+  readonly descriptions = new Map<string, string>()
+  readonly readOnly = new Set<string>()
+  async editDescription(t: DescriptionTarget, edit: (current: string) => string): Promise<DescriptionEdit> {
+    if (this.readOnly.has(t.uid)) return { ok: false, reason: 'the calendar is read-only' }
+    const cur = this.descriptions.get(t.uid) ?? ''
+    const next = edit(cur)
+    this.descriptions.set(t.uid, next)
+    return { ok: true, changed: next !== cur }
   }
   state(state: CalendarState, detail: string | null = null): void {
     this.l?.status(state, detail)
@@ -168,7 +195,11 @@ export type EdsProviderOptions = {
   env?: NodeJS.ProcessEnv
   minBackoffMs?: number
   maxBackoffMs?: number
+  /** How long a description read/write may take before it is given up (default 10 s). */
+  requestTimeoutMs?: number
 }
+
+type DescriptionReply = Extract<AgentMessage, { type: 'description' | 'description-written' }>
 
 export class EdsCalendarProvider implements CalendarProvider {
   readonly name = 'eds'
@@ -178,6 +209,8 @@ export class EdsCalendarProvider implements CalendarProvider {
   private l: ProviderListener | null = null
   private window: { from: Date; to: Date } | null = null
   private greeted = false
+  /** Description requests waiting for the agent's answer, by requestId. */
+  private readonly pending = new Map<string, (reply: DescriptionReply | { failed: string }) => void>()
 
   constructor(o: EdsProviderOptions) {
     this.o = o
@@ -204,6 +237,8 @@ export class EdsCalendarProvider implements CalendarProvider {
       },
       onMessage: (raw) => this.onMessage(raw),
       onExit: ({ code, signal, error, stderr, willRestart }) => {
+        this.greeted = false
+        this.failPending('the calendar helper exited')
         const why = error
           ? `could not run gjs: ${error}`
           : `cal-agent exited (${signal ?? `code ${code}`})${stderr ? `: ${lastLine(stderr)}` : ''}`
@@ -246,7 +281,82 @@ export class EdsCalendarProvider implements CalendarProvider {
       case 'log':
         log[m.level](`cal-agent: ${m.message}`)
         return
+      case 'description':
+      case 'description-written': {
+        const done = this.pending.get(m.requestId)
+        this.pending.delete(m.requestId)
+        done?.(m)
+        return
+      }
     }
+  }
+
+  private failPending(reason: string): void {
+    for (const [id, done] of [...this.pending]) {
+      this.pending.delete(id)
+      done({ failed: reason })
+    }
+  }
+
+  /** One request to the agent, answered by requestId (or failed on timeout / exit / not running). */
+  private request(
+    msg:
+      | Omit<Extract<DaemonToAgent, { type: 'read-description' }>, 'requestId'>
+      | Omit<Extract<DaemonToAgent, { type: 'write-description' }>, 'requestId'>,
+  ): Promise<DescriptionReply | { failed: string }> {
+    if (!this.child || !this.greeted) return Promise.resolve({ failed: 'the calendar helper is not running' })
+    const requestId = randomUUID()
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this.pending.delete(requestId)
+        resolve({ failed: 'the calendar helper did not answer' })
+      }, this.o.requestTimeoutMs ?? 10_000)
+      timer.unref()
+      this.pending.set(requestId, (r) => {
+        clearTimeout(timer)
+        resolve(r)
+      })
+      if (!this.child?.send({ ...msg, requestId } as DaemonToAgent)) {
+        this.pending.delete(requestId)
+        clearTimeout(timer)
+        resolve({ failed: 'the calendar helper is not running' })
+      }
+    })
+  }
+
+  /**
+   * Compare-and-swap through the agent: read the description (and whether we may write it), compute the
+   * new one with `edit`, write it only if it is still what we read. A concurrent change is retried once.
+   */
+  async editDescription(t: DescriptionTarget, edit: (current: string) => string): Promise<DescriptionEdit> {
+    const target = {
+      sourceUid: t.sourceUid,
+      uid: t.uid,
+      recurrenceId: t.recurrenceId,
+      recurring: t.recurring,
+    }
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const read = await this.request({ type: 'read-description', ...target })
+      if ('failed' in read) return { ok: false, reason: read.failed }
+      if (read.type !== 'description')
+        return { ok: false, reason: 'the calendar helper answered out of turn' }
+      if (!read.ok || !read.writable)
+        return { ok: false, reason: read.reason ?? 'the event cannot be written' }
+      const next = edit(read.description)
+      if (next === read.description) return { ok: true, changed: false }
+      const w = await this.request({
+        type: 'write-description',
+        ...target,
+        expect: read.description,
+        description: next,
+      })
+      if ('failed' in w) return { ok: false, reason: w.failed }
+      if (w.type !== 'description-written')
+        return { ok: false, reason: 'the calendar helper answered out of turn' }
+      if (w.ok) return { ok: true, changed: w.changed }
+      if (!w.conflict) return { ok: false, reason: w.reason ?? 'the calendar refused the change' }
+    }
+    return { ok: false, reason: 'the event kept changing while we wrote to it; try again' }
   }
 
   private sendWindow(): void {
@@ -272,6 +382,7 @@ export class EdsCalendarProvider implements CalendarProvider {
     const c = this.child
     this.child = null
     this.l = null
+    this.failPending('the calendar provider stopped')
     await c?.stop()
   }
 }

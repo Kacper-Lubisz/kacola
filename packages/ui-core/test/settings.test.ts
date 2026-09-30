@@ -64,6 +64,11 @@ describe('settings model', () => {
     expect(missingModels(models, null).map((x) => x.id)).toEqual(['final', 'vad'])
     const off = { stt: { finalPass: 'off' } } as Settings
     expect(missingModels(models, off).map((x) => x.id)).toEqual(['vad'])
+    // the decisions embedder is optional: never blocks onboarding
+    expect(missingModels([...models, m('emb', 'text-embedding', 'missing')], null).map((x) => x.id)).toEqual([
+      'final',
+      'vad',
+    ])
   })
   it('formats sizes like GNOME does', () => {
     expect(formatBytes(1_000_000)).toBe('1 MB')

@@ -5,7 +5,7 @@
 // is present with the size recorded at install time — a half-extracted or tampered directory is
 // `corrupt`, never silently used.
 
-export type ModelRole = 'live' | 'final' | 'vad' | 'tts' | 'segmentation' | 'embedding'
+export type ModelRole = 'live' | 'final' | 'vad' | 'tts' | 'segmentation' | 'embedding' | 'text-embedding'
 
 /** How a sherpa-onnx engine is configured from the files in the model directory (paths are relative). */
 export type EngineSpec =
@@ -17,6 +17,8 @@ export type EngineSpec =
   | { kind: 'vits'; model: string; tokens: string; dataDir: string }
   | { kind: 'pyannote-segmentation'; model: string }
   | { kind: 'speaker-embedding'; model: string }
+  /** A sentence embedder run by @gnomeola/decisions (onnxruntime-node), not by sherpa-onnx. */
+  | { kind: 'text-embedding'; model: string }
 
 export type CatalogEntry = {
   id: string
@@ -272,6 +274,25 @@ export const CATALOG: readonly CatalogEntry[] = [
     licenseUrl: 'https://github.com/wenet-e2e/wespeaker/blob/master/docs/pretrained.md',
   },
 
+  // ------------------------------------------------------------------ decisions (agendas wave 1B)
+  // The on-device decision provider's sentence embedder (packages/decisions, docs/decisions.md):
+  // all-MiniLM-L6-v2, int8-quantised ONNX export from Xenova, pinned to a commit. Its WordPiece
+  // vocabulary is committed in packages/decisions/assets, so the model is this one file.
+  {
+    id: 'text-embedding-minilm-l6-v2-int8',
+    role: 'text-embedding',
+    title: 'all-MiniLM-L6-v2 sentence embeddings (int8), for offline decisions',
+    url: 'https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/751bff37182d3f1213fa05d7196b954e230abad9/onnx/model_quantized.onnx',
+    sha256: 'afdb6f1a0e45b715d0bb9b11772f032c399babd23bfc31fed1c170afc848bdb1',
+    sizeBytes: 22972370,
+    format: 'file',
+    fileName: 'model_quantized.onnx',
+    requiredFiles: ['model_quantized.onnx'],
+    engine: { kind: 'text-embedding', model: 'model_quantized.onnx' },
+    license: 'Apache-2.0',
+    licenseUrl: 'https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2',
+  },
+
   // ------------------------------------------------------------------ TTS (fixture synthesis only)
   // Voices chosen for licence clarity and intelligibility: each scores <5% WER with Parakeet on the
   // fixture script (packages/stt/scripts/voice-check.ts), and each is trained on public-domain, CC0 or
@@ -309,6 +330,7 @@ export const DEFAULT_MODELS = {
   vad: 'vad-silero',
   segmentation: 'segmentation-pyannote-3.0',
   embedding: 'embedding-titanet-small-en',
+  textEmbedding: 'text-embedding-minilm-l6-v2-int8',
 } as const
 
 export function catalogEntry(id: string, catalog: readonly CatalogEntry[] = CATALOG): CatalogEntry {

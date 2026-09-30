@@ -20,7 +20,7 @@ import GLib from 'gi://GLib'
 import ICalGLib from 'gi://ICalGLib?version=3.0'
 import System from 'system'
 
-const PROTOCOL = 1
+const PROTOCOL = 2
 const DEBOUNCE_MS = 300
 // 0 = do not wait for a remote backend to come online: its offline cache is what we want.
 /** How long EDS may wait for a backend to come online before handing back the client with its offline
@@ -436,6 +436,98 @@ function reconcile() {
   schedule()
 }
 
+// ------------------------------------------------------------------------------------------ descriptions
+//
+// Agendas (protocol v2): read and compare-and-swap an event's DESCRIPTION, so the daemon can put its
+// invitation block there. The daemon computes the new text (in tested TypeScript); here we only check
+// that we may write (a writable calendar, and the user organises the event — changing someone else's
+// invitation locally would be overwritten by their next update, or rejected by the server) and write it
+// if nobody changed it in between. Nothing but DESCRIPTION is touched. A series is edited on its master
+// only (never "all instances", which would drop detached exceptions such as a moved occurrence).
+
+/** The VEVENT to edit: the master of a series (no RECURRENCE-ID), or the one-off itself. */
+function eventFor(msg) {
+  const c = clients.get(msg.sourceUid)
+  if (!c) throw new Error(`calendar ${msg.sourceUid} is not connected`)
+  const [, obj] = c.client.get_object_sync(msg.uid, null, null)
+  if (!obj) throw new Error(`no event ${msg.uid} in ${c.name}`)
+  let comp = obj
+  if (obj.isa() === ICalGLib.ComponentKind.VCALENDAR_COMPONENT) {
+    comp = null
+    for (
+      let sub = obj.get_first_component(ICalGLib.ComponentKind.VEVENT_COMPONENT);
+      sub;
+      sub = obj.get_next_component(ICalGLib.ComponentKind.VEVENT_COMPONENT)
+    ) {
+      if (recurrenceIdOf(sub) === null) {
+        comp = sub.clone()
+        break
+      }
+    }
+    if (!comp) throw new Error(`event ${msg.uid} has no master component`)
+  }
+  return { c, comp }
+}
+
+function writability(c, comp) {
+  if (c.client.is_readonly()) return `the calendar "${c.name}" is read-only`
+  const org = comp.get_first_property(ICalGLib.PropertyKind.ORGANIZER_PROPERTY)
+  const addr = org ? stripMailto(org.get_organizer()).toLowerCase() : ''
+  if (addr && !myAddresses(c.client).has(addr))
+    return `you are not the organiser of this event (organised by ${addr})`
+  return null
+}
+
+function readDescription(msg) {
+  const base = { type: 'description', requestId: String(msg.requestId ?? '') }
+  try {
+    const { c, comp } = eventFor(msg)
+    const reason = writability(c, comp)
+    send({ ...base, ok: true, description: comp.get_description() ?? '', writable: reason === null, reason })
+  } catch (e) {
+    send({ ...base, ok: false, description: '', writable: false, reason: errText(e) })
+  }
+}
+
+function writeDescription(msg) {
+  const base = { type: 'description-written', requestId: String(msg.requestId ?? '') }
+  try {
+    if (typeof msg.description !== 'string' || typeof msg.expect !== 'string')
+      throw new Error('write-description needs expect and description strings')
+    const { c, comp } = eventFor(msg)
+    const reason = writability(c, comp)
+    if (reason !== null) {
+      send({ ...base, ok: false, changed: false, reason })
+      return
+    }
+    const current = comp.get_description() ?? ''
+    if (current !== msg.expect) {
+      send({
+        ...base,
+        ok: false,
+        changed: false,
+        reason: 'the description changed meanwhile',
+        conflict: true,
+      })
+      return
+    }
+    if (current === msg.description) {
+      send({ ...base, ok: true, changed: false, reason: null })
+      return
+    }
+    // replace every DESCRIPTION property with exactly one (RFC 5545 allows one per VEVENT)
+    for (let p = comp.get_first_property(ICalGLib.PropertyKind.DESCRIPTION_PROPERTY); p; ) {
+      comp.remove_property(p)
+      p = comp.get_first_property(ICalGLib.PropertyKind.DESCRIPTION_PROPERTY)
+    }
+    if (msg.description !== '') comp.add_property(ICalGLib.Property.new_description(msg.description))
+    c.client.modify_object_sync(comp, ECal.ObjModType.THIS, ECal.OperationFlags.NONE, null)
+    send({ ...base, ok: true, changed: true, reason: null })
+  } catch (e) {
+    send({ ...base, ok: false, changed: false, reason: errText(e) })
+  }
+}
+
 // ------------------------------------------------------------------------------------------ stdin
 
 function handle(line) {
@@ -458,6 +550,10 @@ function handle(line) {
     snapshot()
   } else if (msg.type === 'refresh') {
     reconcile()
+  } else if (msg.type === 'read-description') {
+    readDescription(msg)
+  } else if (msg.type === 'write-description') {
+    writeDescription(msg)
   } else log('warn', `unknown message type ${msg.type}`)
 }
 

@@ -1,4 +1,7 @@
 import type {
+  Agenda,
+  AgendaItem,
+  ContextCard,
   DurableEvent,
   Note,
   NoteTemplate,
@@ -11,7 +14,9 @@ import type {
   SessionStatus,
   Speaker,
   SpeakerSummary,
+  StatusChange,
   StoredSettings,
+  Suggestion,
   SyncItem,
   SyncPushResult,
   TrackKind,
@@ -84,6 +89,12 @@ export type DomainSnapshot = {
   speakers: Speaker[]
   attribution: { segmentId: string; source: string }[]
   voiceprints: Voiceprint[]
+  /** Agendas: every agenda, item, status change (by agenda, version), context card and suggestion. */
+  agendas: Agenda[]
+  agendaItems: AgendaItem[]
+  agendaHistory: StatusChange[]
+  agendaContext: ContextCard[]
+  agendaSuggestions: Suggestion[]
 }
 
 // ------------------------------------------------------------------ hosted bookkeeping

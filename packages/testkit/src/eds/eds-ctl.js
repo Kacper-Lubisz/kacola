@@ -5,6 +5,7 @@
 //   gjs -m eds-ctl.js modify <sourceUid>   (iCalendar VEVENT on stdin; matched by UID)
 //   gjs -m eds-ctl.js remove <sourceUid> <uid>
 //   gjs -m eds-ctl.js enable <sourceUid> true|false
+//   gjs -m eds-ctl.js get <sourceUid> <uid>   (prints JSON: every VEVENT of the UID with its properties)
 //
 // Only ever run with the harness's environment (its private session bus); the harness enforces that.
 
@@ -29,7 +30,37 @@ function readStdin() {
   return new TextDecoder().decode(new Uint8Array(chunks))
 }
 
+let output = null
+
+function describe(comp) {
+  const rid = comp.get_first_property(ICalGLib.PropertyKind.RECURRENCEID_PROPERTY)
+  const org = comp.get_first_property(ICalGLib.PropertyKind.ORGANIZER_PROPERTY)
+  let descriptions = 0
+  for (
+    let p = comp.get_first_property(ICalGLib.PropertyKind.DESCRIPTION_PROPERTY);
+    p;
+    p = comp.get_next_property(ICalGLib.PropertyKind.DESCRIPTION_PROPERTY)
+  )
+    descriptions++
+  return {
+    recurrenceId: rid ? rid.get_value_as_string() : null,
+    summary: comp.get_summary() ?? '',
+    description: comp.get_description() ?? '',
+    descriptions,
+    location: comp.get_location() ?? '',
+    organizer: org ? org.get_organizer() : null,
+    ical: comp.as_ical_string(),
+  }
+}
+
 function apply(client) {
+  if (op === 'get') {
+    // every component of the UID: a series' master AND its detached instances
+    const [, list] = client.get_objects_for_uid_sync(arg, null)
+    const comps = (list ?? []).map((c) => describe(c.get_icalcomponent()))
+    output = JSON.stringify(comps)
+    return
+  }
   if (op === 'remove') {
     client.remove_object_sync(arg, null, ECal.ObjModType.ALL, ECal.OperationFlags.NONE, null)
     return
@@ -71,7 +102,7 @@ try {
   fail(e)
 }
 if (code === 0 && op !== 'enable') loop.run()
-if (code === 0) print('ok')
+if (code === 0) print(output ?? 'ok')
 // dispose the registry by hand: GJS finalising an ESourceRegistry during teardown crashes
 registry.run_dispose()
 System.exit(code)

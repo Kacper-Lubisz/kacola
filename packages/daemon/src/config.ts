@@ -81,6 +81,7 @@ environment:
   GNOMEOLA_REPLAY_PAGE_SIZE events per replay page on /events (default 500)
   ANTHROPIC_API_KEY        takes precedence over the keyring (Anthropic provider)
   OPENAI_API_KEY           takes precedence over the keyring (OpenAI provider)
+  TYPESAFE_API_KEY         takes precedence over the keyring (TypeSafe Jev decisions provider)
   OPENAI_BASE_URL          OpenAI-compatible endpoint (default https://api.openai.com/v1)
   GNOMEOLA_CALENDAR        eds | off | file:PATH | ics:PATH-OR-URL  (default eds; off with --fake / macOS)
   GNOMEOLA_CALENDAR_ME     your addresses (comma-separated), to read your RSVP from an ICS calendar

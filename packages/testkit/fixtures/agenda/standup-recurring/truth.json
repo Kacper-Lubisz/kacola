@@ -1,0 +1,382 @@
+{
+  "id": "standup-recurring",
+  "title": "Recurring team standup",
+  "description": "Three people: the user (mic), Ana and Ben (far end). Per-person updates, a blocker (staging certificate) settled, a migration reviewer decided implicitly, a carried-over item (offsite venue) never discussed, a livestream tangent.",
+  "sampleRate": 16000,
+  "durationMs": 98711,
+  "tracks": {
+    "mic": "mic.opus",
+    "system": "system.opus"
+  },
+  "speakers": [
+    {
+      "name": "Sam",
+      "track": "mic",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "name": "Ana",
+      "track": "system",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "name": "Ben",
+      "track": "system",
+      "source": "tts-piper-en_US-sam-medium"
+    }
+  ],
+  "utterances": [
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 2186,
+      "endMs": 4620,
+      "text": "Morning both. Let's go round quickly. I'll start.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 5213,
+      "endMs": 9630,
+      "text": "Yesterday I finished the retry logic for the queue worker. Today I'm writing the runbook.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 10047,
+      "endMs": 14188,
+      "text": "The retry budget is three attempts, then dead letter, and it is covered by tests now.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 14868,
+      "endMs": 16049,
+      "text": "No blockers for me.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 16739,
+      "endMs": 21346,
+      "text": "Thanks. Yesterday I set up the new dashboard panels for export duration.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 22106,
+      "endMs": 26535,
+      "text": "The export now takes eighteen minutes, down from almost two hours.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 27308,
+      "endMs": 33034,
+      "text": "Today I'm tidying the alerts, so we stop getting paged for the cold cache warning.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 33623,
+      "endMs": 34303,
+      "text": "That's me.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ben",
+      "startMs": 34670,
+      "endMs": 40381,
+      "text": "My turn. I'm still blocked on the staging certificate. The renewal request bounced again.",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 40949,
+      "endMs": 42092,
+      "text": "When does it expire?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ben",
+      "startMs": 42858,
+      "endMs": 46812,
+      "text": "Friday morning. After that, staging is down for everyone.",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 47205,
+      "endMs": 52361,
+      "text": "I have admin rights on the certificate portal. I can renew it straight after this call.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ben",
+      "startMs": 52946,
+      "endMs": 55386,
+      "text": "That would unblock me completely, thank you.",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ben",
+      "startMs": 55845,
+      "endMs": 60403,
+      "text": "Apart from that, I finished the migration script, and it's ready for review.",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ben",
+      "startMs": 61032,
+      "endMs": 63486,
+      "text": "Can someone look at the pull request today?",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 64259,
+      "endMs": 67144,
+      "text": "I can take it this afternoon. I know that schema well.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ben",
+      "startMs": 67749,
+      "endMs": 69700,
+      "text": "Perfect. That's all from me.",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 70400,
+      "endMs": 74052,
+      "text": "Oh, did anyone watch the launch livestream last night?",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ben",
+      "startMs": 74812,
+      "endMs": 78503,
+      "text": "Only the first ten minutes. My internet kept dropping.",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 79149,
+      "endMs": 81072,
+      "text": "Same, the video kept freezing.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 81668,
+      "endMs": 83567,
+      "text": "Okay. Anything else before we go?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 83962,
+      "endMs": 87399,
+      "text": "Just a reminder that the retro is on Thursday afternoon.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ben",
+      "startMs": 87993,
+      "endMs": 91996,
+      "text": "And I'm off on Friday afternoon, for a dentist appointment.",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Ana",
+      "startMs": 92789,
+      "endMs": 94088,
+      "text": "Thanks for the heads up.",
+      "source": "tts-piper-en_US-ljspeech-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 94975,
+      "endMs": 97211,
+      "text": "Noted. Thanks everyone, talk tomorrow.",
+      "source": "tts-piper-en_US-joe-medium"
+    }
+  ],
+  "gaps": [],
+  "silences": [],
+  "facts": [],
+  "injections": [],
+  "license": "Synthesized with Piper voices (MIT code; voices trained on public-domain, CC0 or Apache-2.0 data — see docs/stt.md). Script and audio: GPL-3.0-or-later as part of gnomeola.",
+  "agenda": {
+    "meeting": {
+      "kind": "standup",
+      "scheduledEndMs": 127211
+    },
+    "goals": [
+      "Quick updates from everyone",
+      "Unblock the staging certificate",
+      "Pick a venue for the offsite"
+    ],
+    "items": [
+      {
+        "id": "sam-update",
+        "text": "Sam's update",
+        "kind": "topic",
+        "owner": "me",
+        "expected": {
+          "status": "covered",
+          "settledAtMs": 16049,
+          "startedAtMs": 2186,
+          "evidence": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "settledBy": 3,
+          "outcome": "Retry logic done (three attempts, then dead letter); writing the runbook today; no blockers.",
+          "answer": null,
+          "answerAliases": [],
+          "implicit": false
+        }
+      },
+      {
+        "id": "ana-update",
+        "text": "Ana's update",
+        "kind": "topic",
+        "owner": "Ana",
+        "expected": {
+          "status": "covered",
+          "settledAtMs": 34303,
+          "startedAtMs": 16739,
+          "evidence": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "settledBy": 7,
+          "outcome": "Export duration panels done (18 minutes, down from two hours); tidying the cold-cache alerts today.",
+          "answer": null,
+          "answerAliases": [],
+          "implicit": false
+        }
+      },
+      {
+        "id": "ben-update",
+        "text": "Ben's update",
+        "kind": "topic",
+        "owner": "Ben",
+        "expected": {
+          "status": "covered",
+          "settledAtMs": 69700,
+          "startedAtMs": 34670,
+          "evidence": [
+            8,
+            13,
+            16
+          ],
+          "settledBy": 16,
+          "outcome": "Blocked on the staging certificate; migration script ready for review.",
+          "answer": null,
+          "answerAliases": [],
+          "implicit": false
+        }
+      },
+      {
+        "id": "cert",
+        "text": "Staging certificate blocker",
+        "kind": "must-cover",
+        "expected": {
+          "status": "covered",
+          "settledAtMs": 55386,
+          "startedAtMs": 34670,
+          "evidence": [
+            8,
+            9,
+            10,
+            11,
+            12
+          ],
+          "settledBy": 12,
+          "outcome": "Ana renews the staging certificate straight after the call (it expires Friday morning).",
+          "answer": null,
+          "answerAliases": [],
+          "implicit": false
+        }
+      },
+      {
+        "id": "migration",
+        "text": "Who reviews the database migration",
+        "kind": "decision",
+        "expected": {
+          "status": "covered",
+          "settledAtMs": 67144,
+          "startedAtMs": 55845,
+          "evidence": [
+            13,
+            14,
+            15
+          ],
+          "settledBy": 15,
+          "outcome": "Sam reviews the migration pull request this afternoon.",
+          "answer": null,
+          "answerAliases": [],
+          "implicit": true
+        }
+      },
+      {
+        "id": "offsite",
+        "text": "Offsite venue (carried over from last week)",
+        "kind": "decision",
+        "owner": "Ana",
+        "expected": {
+          "status": "not_started",
+          "settledAtMs": null,
+          "startedAtMs": null,
+          "evidence": [],
+          "settledBy": null,
+          "outcome": null,
+          "answer": null,
+          "answerAliases": [],
+          "implicit": false
+        }
+      }
+    ],
+    "tangents": [
+      17,
+      18,
+      19
+    ]
+  },
+  "generator": {
+    "script": "packages/testkit/scripts/generate-fixtures.ts",
+    "sherpaOnnx": "1.13.8",
+    "generatedAt": "2026-09-30T15:52:25.483Z"
+  }
+}
