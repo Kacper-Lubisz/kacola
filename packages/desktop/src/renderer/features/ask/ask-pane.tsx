@@ -3,31 +3,34 @@ import { _, fmt } from '@gnomeola/ui-core/i18n'
 import { type AskError, isUnavailable, type QaTurn, splitCitations, viewTurn } from '@gnomeola/ui-core/qa'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { type ReactNode, useLayoutEffect, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 import { useServices } from '../../data/services.tsx'
-import { LIcon } from '../transcript/local-icons.tsx'
 import {
-  KButton,
-  KEmptyState,
-  KNotice,
-  KSegmented,
-  KSpinner,
-  KTextField,
-} from '../transcript/local-primitives.tsx'
+  Button,
+  EmptyState,
+  Icon,
+  type IconName,
+  SegmentedControl,
+  Spinner,
+  TextField,
+} from '../../design/primitives/index.ts'
+import type { PaneProps } from '../sessions/pane.ts'
+import { useDialogs } from '../shell/dialogs.tsx'
 import { speakerName } from '../transcript/rows.ts'
-import '../transcript/transcript.css'
 import { mergeTurns, type OwnAsk, runOwnAsk } from './ask-stream.ts'
+import { addOwnAsk, finishOwnAsk, ownAsks, patchOwnAsk, stopOwnAsk } from './own-asks.ts'
 
 // Q-5 in the Electron window: ask questions about this meeting (or across recent meetings). History is
 // the qa query (getQaHistory + qa.message events from any client, via the EventBridge); this window's
 // own question streams in token by token (ephemeral store) until the durable answer arrives. `[n]`
 // markers in an answer become citation chips; a chip opens the Transcript at the cited line (the
-// session route's ?seg= / ?t= search params) — in another session for a cross-meeting answer.
+// session route's ?segment= / ?t= search params) — in another session for a cross-meeting answer.
 
 type Effort = 'low' | 'medium' | 'high'
 type Scope = 'session' | 'recent'
 const RECENT = '30d'
+const NONE: readonly OwnAsk[] = []
 
 export const citationName = (n: number, c: Citation): string =>
   fmt(_('Citation {n}: {speaker} at {time}'), {
@@ -43,38 +46,76 @@ function CitationChip({ n, c, onCite }: { n: number; c: Citation; onCite: (c: Ci
       aria-label={citationName(n, c)}
       title={_('Show this line in the transcript')}
       onClick={() => onCite(c)}
-      className="mx-0.5 inline-flex h-5 cursor-default items-center rounded-pill bg-bg-sidebar px-1.5 align-[1px] font-mono text-[12px] font-medium text-text-secondary tabular-nums outline-none hover:text-accent-record-text focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-accent-focus"
+      className="mx-0.5 inline-flex h-5 cursor-default items-center rounded-pill bg-bg-sidebar px-1.5 align-[1px] font-mono text-[12px] font-medium text-text-secondary tabular-nums focus-ring hover:text-accent-record-text"
     >
       [{n}]
     </button>
   )
 }
 
+/** A notice in place of an answer (refusal, unavailable, error): surface + border, icon, title, body. */
+function Notice({
+  icon,
+  tone,
+  title,
+  children,
+}: {
+  icon: IconName
+  tone: 'neutral' | 'info' | 'warning' | 'danger'
+  title: string
+  children?: ReactNode
+}) {
+  const colour =
+    tone === 'info'
+      ? 'text-status-info'
+      : tone === 'warning'
+        ? 'text-status-warning'
+        : tone === 'danger'
+          ? 'text-status-danger'
+          : 'text-text-secondary'
+  return (
+    <div className="flex gap-3 rounded-lg border border-border-default bg-bg-surface px-4 py-3">
+      <Icon name={icon} size={18} className={`mt-0.5 shrink-0 ${colour}`} />
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
+        <p className="m-0 type-body-strong text-text-primary">{title}</p>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 function ErrorNotice({ error }: { error: AskError }) {
+  const dialogs = useDialogs()
   if (isUnavailable(error)) {
     const credits = /no credits|credit balance|billing/i.test(error.message)
     return (
-      <KNotice
+      <Notice
+        icon={credits ? 'warning' : 'info'}
         tone={credits ? 'warning' : 'info'}
         title={
           credits ? _('The provider account has no credits left') : _('Questions aren’t available right now')
         }
       >
-        {credits
-          ? _(
-              'Add credits with your language model provider, or switch provider in Preferences, then ask again.',
-            )
-          : fmt(_('{reason}. Choose a language model provider and add an API key in Preferences.'), {
-              reason: error.message.charAt(0).toUpperCase() + error.message.slice(1),
-            })}
-      </KNotice>
+        <p className="m-0 type-callout text-text-secondary">
+          {credits
+            ? _(
+                'Add credits with your language model provider, or switch provider in Preferences, then ask again.',
+              )
+            : fmt(_('{reason}. Choose a language model provider and add an API key in Preferences.'), {
+                reason: error.message.charAt(0).toUpperCase() + error.message.slice(1),
+              })}
+        </p>
+        <Button size="sm" className="mt-1" onPress={() => dialogs.open('preferences')}>
+          {_('Open Preferences')}
+        </Button>
+      </Notice>
     )
   }
-  if (error.code === 'aborted') return <KNotice tone="neutral" title={_('Stopped')} />
+  if (error.code === 'aborted') return <Notice icon="stop" tone="neutral" title={_('Stopped')} />
   return (
-    <KNotice tone="danger" title={_('The question could not be answered')}>
-      {error.message}
-    </KNotice>
+    <Notice icon="alert" tone="danger" title={_('The question could not be answered')}>
+      <p className="m-0 type-callout text-text-secondary select-text">{error.message}</p>
+    </Notice>
   )
 }
 
@@ -83,24 +124,24 @@ function Turn({ turn, onCite }: { turn: QaTurn; onCite: (c: Citation) => void })
   return (
     <article className="flex flex-col gap-3">
       {turn.question ? (
-        <p className="type-headline m-0 self-end max-w-[85%] rounded-lg bg-bg-sidebar px-4 py-2.5 text-text-primary select-text">
+        <p className="m-0 max-w-[85%] self-end rounded-lg bg-bg-sidebar px-4 py-2.5 type-headline text-text-primary select-text">
           {turn.question}
         </p>
       ) : null}
       {view.kind === 'streaming' ? (
         <div className="flex items-start gap-3">
-          <span className="mt-1">
-            <KSpinner label={_('Answering')} />
+          <span className="mt-0.5">
+            <Spinner label={_('Answering')} size={18} />
           </span>
           <p
-            className={`type-body m-0 whitespace-pre-wrap select-text ${view.text ? 'text-text-primary' : 'text-text-secondary'}`}
+            className={`m-0 whitespace-pre-wrap type-body select-text ${view.text ? 'text-text-primary' : 'text-text-secondary'}`}
           >
             {view.text || _('Thinking…')}
           </p>
         </div>
       ) : null}
       {view.kind === 'answer' ? (
-        <p className="type-body m-0 whitespace-pre-wrap text-text-primary select-text">
+        <p className="m-0 whitespace-pre-wrap type-body text-text-primary select-text">
           {splitCitations(view.text, view.citations.length).map((p, i) =>
             p.kind === 'text' ? (
               // biome-ignore lint/suspicious/noArrayIndexKey: positional pieces of one answer
@@ -113,13 +154,15 @@ function Turn({ turn, onCite }: { turn: QaTurn; onCite: (c: Citation) => void })
         </p>
       ) : null}
       {view.kind === 'refusal' ? (
-        <KNotice tone="neutral" title={_('No answer')}>
-          {_('The model declined to answer this question. Nothing it wrote before declining is shown.')}
-        </KNotice>
+        <Notice icon="refused" tone="neutral" title={_('No answer')}>
+          <p className="m-0 type-callout text-text-secondary">
+            {_('The model declined to answer this question. Nothing it wrote before declining is shown.')}
+          </p>
+        </Notice>
       ) : null}
       {view.kind === 'error' ? <ErrorNotice error={view.error} /> : null}
       {view.kind === 'unanswered' ? (
-        <p className="type-callout m-0 text-text-secondary">{_('No answer was recorded.')}</p>
+        <p className="m-0 type-callout text-text-secondary">{_('No answer was recorded.')}</p>
       ) : null}
     </article>
   )
@@ -127,33 +170,20 @@ function Turn({ turn, onCite }: { turn: QaTurn; onCite: (c: Citation) => void })
 
 let nextAsk = 0
 
-export function AskPane({ sessionId }: { sessionId: string }) {
+export function AskPane({ session }: PaneProps) {
+  const sessionId = session.id
   const { api, queries, store } = useServices()
   const navigate = useNavigate()
   const qa = useQuery(queries.qa(sessionId))
-  const [own, setOwn] = useState<OwnAsk[]>([])
+  const own = useStore(ownAsks, (s) => s.bySession[sessionId] ?? NONE)
   const streams = useStore(store, (s) => s.streams)
   const [question, setQuestion] = useState('')
   const [effort, setEffort] = useState<Effort>('low')
   const [scope, setScope] = useState<Scope>('session')
-  const abort = useRef<AbortController | null>(null)
-  useEffect(() => () => abort.current?.abort(), [])
-
-  // a new session: its own history, none of the previous session's asks
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on session change only
-  useEffect(() => {
-    abort.current?.abort()
-    setOwn([])
-  }, [sessionId])
 
   const turns = mergeTurns(qa.data, own, streams)
   const asking = turns.some((t) => t.pending)
-
-  const patchOwn = useCallback(
-    (localId: string, p: Partial<OwnAsk>) =>
-      setOwn((cur) => cur.map((o) => (o.localId === localId ? { ...o, ...p } : o))),
-    [],
-  )
+  const streaming = own.find((o) => streams[o.localId]?.status === 'streaming' && !o.answer)
 
   const submit = () => {
     const q = question.trim()
@@ -162,9 +192,7 @@ export function AskPane({ sessionId }: { sessionId: string }) {
     following.current = true
     const localId = `ask-${Date.now().toString(36)}-${nextAsk++}`
     const since = scope === 'recent' ? RECENT : null
-    setOwn((cur) => [...cur, { localId, question: q, since, requestId: null, answer: null }])
-    const ac = new AbortController()
-    abort.current = ac
+    const signal = addOwnAsk(sessionId, { localId, question: q, since, requestId: null, answer: null })
     void runOwnAsk(
       api,
       store,
@@ -173,25 +201,26 @@ export function AskPane({ sessionId }: { sessionId: string }) {
         ? { question: q, since, effort, includePrivate: true }
         : { question: q, sessionId, effort, includePrivate: true },
       {
-        onQuestion: (requestId) => patchOwn(localId, { requestId }),
-        onAnswer: (answer) => patchOwn(localId, { answer }),
+        onQuestion: (requestId) => patchOwnAsk(sessionId, localId, { requestId }),
+        onAnswer: (answer) => patchOwnAsk(sessionId, localId, { answer }),
       },
-      ac.signal,
-    )
+      signal,
+    ).finally(() => finishOwnAsk(localId))
   }
 
   const onCite = (c: Citation) =>
     void navigate({
       to: '/sessions/$sessionId',
       params: { sessionId: c.sessionId },
-      search: { pane: 'transcript', seg: c.segmentId, t: c.startMs / 1000 },
+      search: { tab: 'transcript', segment: c.segmentId, t: c.startMs / 1000 },
     })
 
   // keep the newest exchange in view as it streams, unless the user scrolled up to read
   const scroller = useRef<HTMLDivElement | null>(null)
   const following = useRef(true)
-  const tail = turns.length
-    ? `${turns.length}:${(turns.at(-1)!.own ?? '').length}:${turns.at(-1)!.answer?.id ?? ''}`
+  const last = turns.at(-1)
+  const tail = last
+    ? `${turns.length}:${(last.own ?? '').length}:${last.answer?.id ?? ''}:${last.error?.code ?? ''}`
     : ''
   useLayoutEffect(() => {
     const el = scroller.current
@@ -201,8 +230,10 @@ export function AskPane({ sessionId }: { sessionId: string }) {
   return (
     <section aria-label={_('Ask')} className="flex min-h-0 flex-1 flex-col">
       {turns.length === 0 ? (
-        <KEmptyState
-          icon="question"
+        <EmptyState
+          compact
+          headingLevel={2}
+          icon="ask"
           title={_('Ask About This Meeting')}
           description={
             qa.isError
@@ -222,7 +253,7 @@ export function AskPane({ sessionId }: { sessionId: string }) {
           <div
             role="log"
             aria-label={_('Questions and answers')}
-            className="mx-auto flex w-full max-w-[760px] flex-col gap-8 px-6 py-5"
+            className="mx-auto flex w-full max-w-[760px] flex-col gap-8 px-4 py-5 sm:px-6"
           >
             {turns.map((t) => (
               <Turn key={t.requestId} turn={t} onCite={onCite} />
@@ -231,10 +262,11 @@ export function AskPane({ sessionId }: { sessionId: string }) {
         </div>
       )}
       <div className="shrink-0 border-t border-border-subtle bg-bg-window">
-        <div className="mx-auto flex w-full max-w-[760px] flex-col gap-2 px-6 py-3">
+        <div className="mx-auto flex w-full max-w-[760px] flex-col gap-2 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2">
-            <KTextField
+            <TextField
               label={_('Question')}
+              labelHidden
               placeholder={
                 scope === 'session'
                   ? _('Ask a question about this meeting')
@@ -242,55 +274,49 @@ export function AskPane({ sessionId }: { sessionId: string }) {
               }
               value={question}
               onChange={setQuestion}
-              onEnter={submit}
               className="flex-1"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  submit()
+                }
+              }}
             />
-            {asking ? (
-              <KButton variant="secondary" onPress={() => abort.current?.abort()}>
+            {streaming ? (
+              <Button variant="secondary" icon="stop" onPress={() => stopOwnAsk(streaming.localId)}>
                 {_('Stop')}
-              </KButton>
+              </Button>
             ) : (
-              <KButton
+              <Button
                 variant="primary"
                 icon="arrowUp"
-                isDisabled={!question.trim()}
-                aria-description={_('Ask the question about this meeting')}
+                isDisabled={!question.trim() || asking}
                 onPress={submit}
               >
                 {_('Ask')}
-              </KButton>
+              </Button>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <KSegmented<Scope>
+            <SegmentedControl<Scope>
               label={_('Scope')}
               value={scope}
               onChange={setScope}
-              options={[
-                { value: 'session', label: _('This meeting') },
-                {
-                  value: 'recent',
-                  label: _('Last 30 days'),
-                  description: _('Ask across every meeting of the last 30 days'),
-                },
+              segments={[
+                { id: 'session', label: _('This meeting') },
+                { id: 'recent', label: _('Last 30 days') },
               ]}
             />
-            <KSegmented<Effort>
+            <SegmentedControl<Effort>
               label={_('Effort')}
               value={effort}
               onChange={setEffort}
-              options={[
-                { value: 'low', label: _('Quick') },
-                { value: 'medium', label: _('Balanced') },
-                { value: 'high', label: _('Thorough'), description: _('Slower, reads more closely') },
+              segments={[
+                { id: 'low', label: _('Quick') },
+                { id: 'medium', label: _('Balanced') },
+                { id: 'high', label: _('Thorough') },
               ]}
             />
-            {asking ? (
-              <span className="type-caption inline-flex items-center gap-1.5 text-text-secondary">
-                <LIcon name="loader" size={14} className="k-spin" />
-                {_('Answering…')}
-              </span>
-            ) : null}
           </div>
         </div>
       </div>

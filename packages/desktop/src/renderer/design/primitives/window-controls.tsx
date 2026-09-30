@@ -1,7 +1,7 @@
 import { _ } from '@gnomeola/ui-core/i18n'
+import { Button as AriaButton } from 'react-aria-components'
 import { useServices } from '../../data/services.tsx'
-import type { IconName } from '../icon-paths.ts'
-import { Button } from './button.tsx'
+import { Icon, type IconName } from '../icon.tsx'
 
 // Window buttons for the frameless window, placed per org.gnome.desktop.wm.preferences button-layout
 // ("appmenu:minimize,maximize,close" → nothing on the left, three on the right). macOS draws native
@@ -37,17 +37,16 @@ export function WindowControls({ side }: { side: 'start' | 'end' }) {
   const buttons = parseButtonLayout(appInfo.buttonLayout)[side]
   if (!buttons.length) return null
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-2 px-1">
       {buttons.map((b) => (
-        <Button
+        <AriaButton
           key={b}
-          circular
-          variant="flat"
-          icon={ICON[b]}
           aria-label={LABEL[b]()}
-          className="!size-6 bg-hover"
           onPress={() => bridge.windowControl(b)}
-        />
+          className="app-no-drag flex size-6 cursor-default items-center justify-center rounded-full bg-bg-hover text-text-primary focus-ring data-[hovered]:bg-bg-selected data-[pressed]:bg-border-default"
+        >
+          <Icon name={ICON[b]} size={b === 'maximize' ? 12 : 14} />
+        </AriaButton>
       ))}
     </div>
   )

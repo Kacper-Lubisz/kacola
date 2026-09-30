@@ -3,7 +3,7 @@ import { _, fmt } from '@gnomeola/ui-core/i18n'
 import type { TranscriptRow } from '@gnomeola/ui-core/transcript'
 import { useMutation } from '@tanstack/react-query'
 import { useServices } from '../../data/services.tsx'
-import { KButton } from '../transcript/local-primitives.tsx'
+import { Button } from '../../design/primitives/index.ts'
 import { speakerName } from '../transcript/rows.ts'
 import { PENDING_SPEAKER, speakerError, splitSpeakerMutation } from './mutations.ts'
 
@@ -19,7 +19,7 @@ export function LineActions({
 }: {
   sessionId: string
   row: TranscriptRow
-  onError: (message: string | null) => void
+  onError: (message: string) => void
 }) {
   const { api, queryClient } = useServices()
   const mutation = useMutation(splitSpeakerMutation(api, queryClient))
@@ -31,30 +31,27 @@ export function LineActions({
   const mic = row.track === 'mic'
   const pending = row.speakerId === PENDING_SPEAKER
   return (
-    <section
-      aria-label={_('Selected line')}
-      className="flex shrink-0 items-center gap-3 border-t border-border-subtle bg-bg-window px-5 py-2"
-    >
-      <p className="type-callout m-0 min-w-0 flex-1 truncate text-text-secondary">
-        {mic ? fmt(_('{line} — your microphone is always you'), { line: where }) : where}
-      </p>
-      {mic ? null : (
-        <KButton
-          size="sm"
-          icon="userPlus"
-          isDisabled={mutation.isPending || pending}
-          aria-description={fmt(_('Give the line {line} to a new speaker'), { line: where })}
-          onPress={() => {
-            onError(null)
-            mutation.mutate(
-              { sessionId, speakerId: row.speakerId ?? THEM, segmentIds: [row.segmentId!] },
-              { onError: (e) => onError(speakerError(e)) },
-            )
-          }}
-        >
-          {_('Someone Else Said This')}
-        </KButton>
-      )}
+    <section aria-label={_('Selected line')} className="shrink-0 border-t border-border-subtle bg-bg-window">
+      <div className="mx-auto flex w-full max-w-[860px] items-center gap-3 px-4 py-2 sm:px-6">
+        <p className="m-0 min-w-0 flex-1 truncate type-callout text-text-secondary">
+          {mic ? fmt(_('{line} — your microphone is always you'), { line: where }) : where}
+        </p>
+        {mic ? null : (
+          <Button
+            size="sm"
+            icon="split"
+            isDisabled={mutation.isPending || pending}
+            onPress={() =>
+              mutation.mutate(
+                { sessionId, speakerId: row.speakerId ?? THEM, segmentIds: [row.segmentId!] },
+                { onError: (e) => onError(speakerError(e)) },
+              )
+            }
+          >
+            {_('Someone Else Said This')}
+          </Button>
+        )}
+      </div>
     </section>
   )
 }

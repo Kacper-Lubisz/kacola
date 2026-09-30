@@ -3,8 +3,8 @@ import { formatDuration } from '@gnomeola/ui-core/format'
 import { _ } from '@gnomeola/ui-core/i18n'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { memo, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react'
+import { Button } from '../../design/primitives/index.ts'
 import { SpeakerChip } from '../speakers/speaker-chip.tsx'
-import { KButton } from './local-primitives.tsx'
 import { type DisplayRow, isLine, rowName, splitMatches } from './rows.ts'
 import './transcript.css'
 
@@ -320,7 +320,7 @@ export function TranscriptList({
       </div>
       {live && detached ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
-          <KButton
+          <Button
             variant="primary"
             pill
             icon="arrowDown"
@@ -332,7 +332,7 @@ export function TranscriptList({
             }}
           >
             {_('Jump to Live')}
-          </KButton>
+          </Button>
         </div>
       ) : null}
     </div>

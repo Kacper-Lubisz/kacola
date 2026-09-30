@@ -1,48 +1,52 @@
-import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
+import { _, fmt } from '@gnomeola/ui-core/i18n'
 import { useQuery } from '@tanstack/react-query'
-import { useRouterState } from '@tanstack/react-router'
+import { useRouterState, useSearch } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 import { useServices } from '../../data/services.tsx'
+import {
+  Banner,
+  EmptyState,
+  IconButton,
+  Spinner,
+  TextField,
+  useToast,
+} from '../../design/primitives/index.ts'
+import type { PaneProps } from '../sessions/pane.ts'
 import { LineActions } from '../speakers/line-actions.tsx'
-import { SpeakersDialog } from '../speakers/speakers-dialog.tsx'
-import { KButton, KEmptyState, KIconButton, KNotice, KSpinner, KTextField } from './local-primitives.tsx'
 import { buildRows, citedIndex, findMatches, gapsOf, isLine } from './rows.ts'
-import type { SessionSearch } from './search-params.ts'
+import type { CitationTarget } from './search-params.ts'
 import { TranscriptList, type TranscriptListHandle } from './transcript-list.tsx'
 
 // The Transcript pane: the transcript query (kept current by the EventBridge's folds: segment revisions,
 // live → final, attribution changes) + the live partial lines (ephemeral store) + recorded gaps, in a
-// virtualised list; a toolbar with search-within and the Speakers dialog; the selected line's actions
-// (Someone Else Said This) underneath. Citation targets come in as the route's search params.
+// virtualised list; search-within in a slim toolbar; the selected line's actions (Someone Else Said
+// This) underneath. Citation targets come in as the session route's ?segment= / ?t= search params.
 
 const LIVE = new Set(['recording', 'paused'])
 
-export function TranscriptPane({ sessionId, target }: { sessionId: string; target?: SessionSearch }) {
+export function TranscriptPane({ session }: PaneProps) {
+  const sessionId = session.id
   const { queries, store } = useServices()
-  const session = useQuery(queries.session(sessionId)).data
+  const toast = useToast()
   const transcript = useQuery(queries.transcript(sessionId))
   const speakers = useQuery(queries.speakers(sessionId)).data
-  const live = session ? LIVE.has(session.status) : false
+  const live = LIVE.has(session.status)
   const partials = useStore(store, (s) => s.partials[sessionId])
-  const tracks = session?.tracks
-  const gaps = useMemo(() => gapsOf(tracks ? { tracks } : undefined), [tracks])
+  const gaps = useMemo(() => gapsOf(session), [session])
   const rows = useMemo(
     () => (transcript.data ? buildRows(transcript.data, speakers, live ? partials : undefined, gaps) : []),
     [transcript.data, speakers, partials, live, gaps],
   )
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [speakersOpen, setSpeakersOpen] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const list = useRef<TranscriptListHandle | null>(null)
   const [detach, setDetach] = useState(0)
 
-  // ---- search within
+  // ---- search within (Ctrl+F while the pane is shown)
   const [searching, setSearching] = useState(false)
   const [query, setQuery] = useState('')
   const [matchAt, setMatchAt] = useState(0)
-  const searchInput = useRef<HTMLInputElement | null>(null)
   const matches = useMemo(() => findMatches(rows, query), [rows, query])
   const current = matches.length ? matches[Math.min(matchAt, matches.length - 1)]! : -1
   const goToMatch = useCallback(
@@ -63,30 +67,35 @@ export function TranscriptPane({ sessionId, target }: { sessionId: string; targe
     jumpedFor.current = query
     goToMatch(0)
   }, [searching, query, matches, goToMatch])
+  const closeSearch = () => {
+    setSearching(false)
+    setQuery('')
+    jumpedFor.current = ''
+    list.current?.focus()
+  }
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f') {
         e.preventDefault()
         setSearching(true)
-        requestAnimationFrame(() => searchInput.current?.focus())
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // ---- citation targets (?seg= / ?t=): scroll to the line, select it, flash it. Once per navigation
-  // (the router's per-navigation key), retried as rows arrive in case the line is not loaded yet.
+  // ---- citation targets (?segment= / ?t=): scroll to the line, select it, flash it. Once per
+  // navigation (the router's per-navigation key), retried as rows arrive in case it is not loaded yet.
+  const target = useSearch({ strict: false }) as CitationTarget
   const navKey = useRouterState({ select: (s) => s.location.state.__TSR_key ?? '' })
   const [flash, setFlash] = useState<{ id: string; key: string } | null>(null)
   const handled = useRef('')
-  const seg = target?.seg
-  const t = target?.t
+  const { segment, t } = target
   useEffect(() => {
-    if (seg === undefined && t === undefined) return
-    const key = `${navKey}|${seg ?? ''}|${t ?? ''}`
+    if (segment === undefined && t === undefined) return
+    const key = `${navKey}|${segment ?? ''}|${t ?? ''}`
     if (handled.current === key) return
-    const i = citedIndex(rows, seg, t === undefined ? undefined : t * 1000)
+    const i = citedIndex(rows, segment, t === undefined ? undefined : t * 1000)
     if (i === -1) return
     handled.current = key
     const id = rows[i]!.id
@@ -95,9 +104,9 @@ export function TranscriptPane({ sessionId, target }: { sessionId: string; targe
     setFlash({ id, key })
     // after the list has laid out (the pane may have just become visible)
     requestAnimationFrame(() => list.current?.scrollToIndex(i, 'center'))
-  }, [rows, seg, t, navKey])
+  }, [rows, segment, t, navKey])
 
-  // perf: snapshot in hand → first painted frame (read by the perf e2e via the Performance API)
+  // perf: snapshot in hand → first painted frame (read by the perf e2e through the Performance API)
   const loadedAt = useRef<number | null>(null)
   if (transcript.data && loadedAt.current === null) loadedAt.current = performance.now()
   const onFirstPaint = useCallback((n: number) => {
@@ -110,25 +119,34 @@ export function TranscriptPane({ sessionId, target }: { sessionId: string; targe
   let body: React.ReactNode
   if (transcript.isPending) {
     body = (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3">
-        <KSpinner label={_('Loading Transcript…')} size={24} />
-        <p className="type-callout m-0 text-text-secondary">{_('Loading Transcript…')}</p>
+      <div className="flex flex-1 items-center justify-center">
+        <Spinner label={_('Loading Transcript…')} />
       </div>
     )
   } else if (transcript.isError && rows.length === 0) {
     body = (
-      <div className="p-6">
-        <KNotice tone="danger" role="alert" title={_('Could Not Load the Transcript')}>
-          {transcript.error.message}
-        </KNotice>
-      </div>
+      <EmptyState
+        compact
+        headingLevel={2}
+        icon="warning"
+        title={_('Could Not Load the Transcript')}
+        description={transcript.error.message}
+      />
     )
   } else if (rows.length === 0) {
     body = live ? (
-      <KEmptyState icon="mic" title={_('Listening…')} description={_('Lines appear here as people speak.')} />
+      <EmptyState
+        compact
+        headingLevel={2}
+        icon="mic"
+        title={_('Listening…')}
+        description={_('Lines appear here as people speak.')}
+      />
     ) : (
-      <KEmptyState
-        icon="fileText"
+      <EmptyState
+        compact
+        headingLevel={2}
+        icon="transcript"
         title={_('No Transcript')}
         description={_('Nothing was transcribed in this session.')}
       />
@@ -152,31 +170,35 @@ export function TranscriptPane({ sessionId, target }: { sessionId: string; targe
 
   return (
     <section aria-label={_('Transcript')} className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center gap-2 px-5 pb-2">
+      <div className="mx-auto flex h-10 w-full max-w-[860px] shrink-0 items-center gap-2 px-4 sm:px-6">
         {live ? (
           <span className="inline-flex items-center gap-1.5 type-caption font-semibold text-accent-record-text">
             <span aria-hidden className="size-2 rounded-pill bg-accent-record" />
-            {session?.status === 'paused' ? _('Paused') : _('Live')}
+            {session.status === 'paused' ? _('Paused') : _('Live')}
           </span>
         ) : null}
         <div className="flex-1" />
         {searching ? (
           <div className="flex items-center gap-1">
-            <KTextField
+            <TextField
               label={_('Search the transcript')}
+              labelHidden
               placeholder={_('Search the transcript')}
-              leadingIcon="search"
               value={query}
               onChange={setQuery}
-              inputRef={searchInput}
-              onEnter={(shift) => goToMatch(matchAt + (shift ? -1 : 1))}
-              onEscape={() => {
-                setSearching(false)
-                setQuery('')
+              autoFocus
+              inputClassName="!h-8 w-60"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  goToMatch(matchAt + (e.shiftKey ? -1 : 1))
+                } else if (e.key === 'Escape') {
+                  e.preventDefault()
+                  closeSearch()
+                }
               }}
-              className="w-64"
             />
-            <span aria-live="polite" className="type-mono min-w-[64px] text-center text-text-secondary">
+            <span aria-live="polite" className="min-w-[72px] text-center type-mono text-text-secondary">
               {query.trim()
                 ? matches.length
                   ? fmt(_('{n} of {total}'), {
@@ -186,72 +208,58 @@ export function TranscriptPane({ sessionId, target }: { sessionId: string; targe
                   : _('No matches')
                 : ''}
             </span>
-            <KIconButton
+            <IconButton
               icon="chevronUp"
+              size="sm"
               label={_('Previous Match')}
               isDisabled={!matches.length}
               onPress={() => goToMatch(matchAt - 1)}
             />
-            <KIconButton
+            <IconButton
               icon="chevronDown"
+              size="sm"
               label={_('Next Match')}
               isDisabled={!matches.length}
               onPress={() => goToMatch(matchAt + 1)}
             />
-            <KIconButton
-              icon="x"
-              label={_('Close Search')}
-              onPress={() => {
-                setSearching(false)
-                setQuery('')
-              }}
-            />
+            <IconButton icon="close" size="sm" label={_('Close Search')} onPress={closeSearch} />
           </div>
         ) : (
-          <KIconButton
+          <IconButton
             icon="search"
+            size="sm"
             label={_('Search the Transcript')}
-            onPress={() => {
-              setSearching(true)
-              requestAnimationFrame(() => searchInput.current?.focus())
-            }}
+            tooltip={_('Search the transcript (Ctrl+F)')}
+            isDisabled={!rows.length}
+            onPress={() => setSearching(true)}
           />
         )}
-        <KButton variant="ghost" size="sm" icon="users" onPress={() => setSpeakersOpen(true)}>
-          {_('Speakers')}
-        </KButton>
       </div>
-      {session?.status === 'recovered' ? (
-        <div className="px-5 pb-2">
-          <KNotice tone="warning" title={_('Recovered Session')}>
-            {_('gnomeola stopped unexpectedly while recording. Everything up to that point was kept.')}
-          </KNotice>
+      {session.status === 'recovered' ? (
+        <div className="mx-auto w-full max-w-[860px] px-4 pb-2 sm:px-6">
+          <Banner
+            tone="warning"
+            title={_(
+              'gnomeola stopped unexpectedly while recording this session. Everything up to then was kept.',
+            )}
+          />
         </div>
       ) : null}
-      {session?.status === 'failed' && session.error ? (
-        <div className="px-5 pb-2">
-          <KNotice tone="danger" title={_('Recording Failed')}>
-            {session.error}
-          </KNotice>
-        </div>
-      ) : null}
-      {error ? (
-        <div className="px-5 pb-2">
-          <KNotice tone="danger" role="alert" title={_('Could not change the speaker')}>
-            {error}
-          </KNotice>
+      {session.status === 'failed' && session.error ? (
+        <div className="mx-auto w-full max-w-[860px] px-4 pb-2 sm:px-6">
+          <Banner tone="danger" title={fmt(_('Recording failed: {reason}'), { reason: session.error })} />
         </div>
       ) : null}
       {body}
       {selectedRow && isLine(selectedRow) && selectedRow.kind === 'segment' ? (
-        <LineActions sessionId={sessionId} row={selectedRow} onError={setError} />
+        <LineActions
+          sessionId={sessionId}
+          row={selectedRow}
+          onError={(m) =>
+            toast(fmt(_('Could not change the speaker: {reason}'), { reason: m }), { tone: 'error' })
+          }
+        />
       ) : null}
-      {gaps.length && rows.length ? (
-        <p className="sr-only">
-          {fmt(ngettext('{n} recorded gap', '{n} recorded gaps', gaps.length), { n: gaps.length })}
-        </p>
-      ) : null}
-      <SpeakersDialog sessionId={sessionId} isOpen={speakersOpen} onClose={() => setSpeakersOpen(false)} />
     </section>
   )
 }

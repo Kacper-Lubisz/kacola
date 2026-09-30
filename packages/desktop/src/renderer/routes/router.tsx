@@ -10,9 +10,10 @@ import {
 } from '@tanstack/react-router'
 import { keys } from '../data/keys.ts'
 import type { Services } from '../data/services.tsx'
-import { HeaderBar, StatusPage } from '../design/primitives/index.ts'
+import { EmptyState, HeaderBar } from '../design/primitives/index.ts'
+import { SESSION_TABS, type SessionTab } from '../features/sessions/pane.ts'
 import { SessionPage } from '../features/sessions/session-page.tsx'
-import { parseSessionSearch } from '../features/transcript/search-params.ts'
+import { parseTime } from '../features/transcript/search-params.ts'
 import { Gallery } from './gallery.tsx'
 import { MainLayout, NoSessionSelected } from './main-layout.tsx'
 
@@ -21,7 +22,8 @@ import { MainLayout, NoSessionSelected } from './main-layout.tsx'
 // what it shows (so navigation waits for data instead of flashing empty), and add it to routeTree.
 //
 //   /                       main layout, nothing selected
-//   /sessions/$sessionId    main layout, one session
+//   /sessions/$sessionId    main layout, one session; ?tab=transcript|ask|notes|details, ?segment=<id>
+//                           or ?t=<seconds> (a citation: the transcript pane scrolls to that line)
 //   /gallery                every primitive in every state (design in code, with HMR)
 
 const rootRoute = createRootRouteWithContext<Services>()({ component: Outlet })
@@ -33,8 +35,12 @@ const indexRoute = createRoute({ getParentRoute: () => mainRoute, path: '/', com
 const sessionRoute = createRoute({
   getParentRoute: () => mainRoute,
   path: '/sessions/$sessionId',
-  // ?pane= (which view) and ?seg= / ?t= (a line to show): features/transcript/search-params.ts
-  validateSearch: parseSessionSearch,
+  validateSearch: (s: Record<string, unknown>): { tab?: SessionTab; segment?: string; t?: number } => ({
+    ...(SESSION_TABS.includes(s.tab as SessionTab) ? { tab: s.tab as SessionTab } : {}),
+    ...(typeof s.segment === 'string' ? { segment: s.segment } : {}),
+    // a time in seconds: the transcript shows the line playing then (features/transcript/search-params.ts)
+    ...parseTime(s.t),
+  }),
   loader: async ({ context: { queryClient, queries }, params }) => {
     // seed from the list the sidebar already holds, so selecting a row costs no round trip
     const listed = queryClient.getQueryData<SessionsState>(keys.sessions())?.byId.get(params.sessionId)
@@ -44,13 +50,13 @@ const sessionRoute = createRoute({
   },
   component: function SessionRoute() {
     const { sessionId } = sessionRoute.useParams()
-    const search = sessionRoute.useSearch()
-    return <SessionPage sessionId={sessionId} search={search} />
+    const { tab } = sessionRoute.useSearch()
+    return <SessionPage key={sessionId} sessionId={sessionId} tab={tab} />
   },
   errorComponent: () => (
     <div className="flex h-full flex-col">
       <HeaderBar controls="end" />
-      <StatusPage
+      <EmptyState
         icon="warning"
         title={_('Session Not Found')}
         description={_('It may have been deleted.')}

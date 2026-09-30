@@ -1,6 +1,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { platformPaths } from '@gnomeola/protocol'
 
 // Tokens from `gnomeola pair`, one per host, in ${XDG_CONFIG_HOME:-~/.config}/gnomeola/hosts.json (0600).
 // A loopback daemon needs none; every remote host does. Resolution order for a request: --token, then
@@ -9,9 +10,12 @@ import { dirname, join } from 'node:path'
 export type HostEntry = { token: string; deviceId: string; name: string; pairedAt: string }
 export type Hosts = Record<string, HostEntry>
 
-export function hostsFile(env: Record<string, string | undefined>): string {
-  const base = env.XDG_CONFIG_HOME || join(env.HOME || homedir(), '.config')
-  return join(base, 'gnomeola', 'hosts.json')
+export function hostsFile(
+  env: Record<string, string | undefined>,
+  platform: string = process.platform,
+): string {
+  // macOS: ~/Library/Application Support/gnomeola unless XDG_CONFIG_HOME is set (platformPaths)
+  return join(platformPaths({ platform, env, home: env.HOME || homedir() }).configDir, 'hosts.json')
 }
 
 /** Base URLs are compared without a trailing slash. */

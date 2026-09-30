@@ -18,6 +18,7 @@ import {
   visibleRowNames,
 } from '../src/desktop-ui.ts'
 import { SEED, seedMeetings } from '../src/seed.ts'
+import { markOnboarded } from '../src/ui.ts'
 
 // Port of ui-transcript.e2e.test.ts (V-9a / T-6) to the Electron window: the transcript pane against
 // the real daemon (child process, fake capture + STT pipeline), asserted by role + accessible name.
@@ -72,6 +73,10 @@ describe('desktop transcript pane against the real daemon', () => {
     daemon = await startDaemon({ dataDir, env: { GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE) } })
     display = await startHeadlessDisplay({ size: '1280x800' })
     markerId = display.env.GNOMEOLA_HEADLESS_ID!
+    markOnboarded(
+      display,
+      (await daemon.client.call('listModels')).models.map((m) => m.id),
+    )
     app = await launchDesktop({
       display,
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
@@ -203,7 +208,7 @@ describe('desktop transcript pane against the real daemon', () => {
     const { segments } = await daemon.client.call('getTranscript', { params: { id: SEED.long } })
     const target = segments.find((s) => s.text.startsWith('Planning item 900:'))!
     await w().evaluate(
-      `location.hash = ${JSON.stringify(`#/sessions/${SEED.long}?pane=transcript&seg=${target.id}`)}`,
+      `location.hash = ${JSON.stringify(`#/sessions/${SEED.long}?tab=transcript&segment=${target.id}`)}`,
     )
     await poll(
       async () => JSON.stringify(await selectedRowNames(w())) === JSON.stringify([rowName(target)]),
@@ -212,9 +217,7 @@ describe('desktop transcript pane against the real daemon', () => {
     )
     expect(await visibleRowNames(w())).toContain(rowName(target))
     // by time: 2000 s is item 500's line
-    await w().evaluate(
-      `location.hash = ${JSON.stringify(`#/sessions/${SEED.long}?pane=transcript&t=2001.5`)}`,
-    )
+    await w().evaluate(`location.hash = ${JSON.stringify(`#/sessions/${SEED.long}?tab=transcript&t=2001.5`)}`)
     await poll(
       async () => (await selectedRowNames(w()))[0]?.includes('Planning item 500:'),
       5000,

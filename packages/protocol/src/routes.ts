@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { CalendarStatus, JoinMeetingBody, ListMeetingsQuery, MeetingList, NextMeeting } from './calendar.ts'
+import { externalCaptureRoutes } from './capture.ts'
 import {
   AudioChunkBody,
   AudioChunkResult,
@@ -51,6 +52,8 @@ export type RouteDef = {
   body?: z.ZodType
   /** A schema for JSON routes, or 'sse' for streaming routes. */
   response: z.ZodType | 'sse'
+  /** P-3: the request body is this content type, streamed to the handler unparsed (not JSON). */
+  rawBody?: string
 }
 
 // Query booleans arrive as strings on the wire but clients should be able to pass real booleans.
@@ -281,6 +284,8 @@ export const routes = {
     body: FinalizeAudioBody,
     response: Session,
   },
+  // ---- P: platform — external capture ingest (the macOS app supplies audio; schemas in ./capture.ts)
+  ...externalCaptureRoutes,
 } as const satisfies Record<string, RouteDef>
 
 export type Routes = typeof routes

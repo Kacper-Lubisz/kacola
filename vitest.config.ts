@@ -15,6 +15,8 @@ export default defineConfig({
       {
         // React component tests (*.test.tsx) opt into a DOM with `// @vitest-environment jsdom`.
         esbuild: { jsx: 'automatic' },
+        // the desktop renderer's brand-asset alias (packages/desktop/electron.vite.config.ts)
+        resolve: { alias: { '@brand': new URL('./brand', import.meta.url).pathname } },
         test: {
           ...common,
           ...hermetic,

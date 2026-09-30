@@ -24,6 +24,7 @@ import {
   startFakeAnthropic,
 } from '../src/fake-anthropic.ts'
 import { SEED, seedMeetings } from '../src/seed.ts'
+import { markOnboarded } from '../src/ui.ts'
 
 // Port of ui-ask.e2e.test.ts (V-9a / Q-5) to the Electron window. The whole chain is real — Electron
 // renderer → fetch tunnel → gnomeolad (child process) → @gnomeola/llm → provider SDK → HTTP — and only
@@ -110,7 +111,7 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
     await g.getByText(label, { exact: true }).click()
     await poll(async () => g.getByRole('radio', { name: label }).isChecked(), 3000, `${label} chosen`)
   }
-  const answering = () => pane().getByRole('status', { name: 'Answering' })
+  const answering = () => pane().getByRole('progressbar', { name: 'Answering' })
 
   beforeAll(async () => {
     buildDesktop()
@@ -130,6 +131,10 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
     await daemon.client.call('updateSettings', { body: { llm: { provider: 'anthropic' } } })
     display = await startHeadlessDisplay({ size: '1280x800' })
     markerId = display.env.GNOMEOLA_HEADLESS_ID!
+    markOnboarded(
+      display,
+      (await daemon.client.call('listModels')).models.map((m) => m.id),
+    )
     app = await launchDesktop({
       display,
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
