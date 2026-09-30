@@ -2,7 +2,7 @@
   "name": "@gnomeola/ui-core",
   "version": "0.1.0",
   "private": true,
-  "description": "The window's data layer, shared by the GTK and Electron apps: pure folds, feeds, the store and the i18n shim. GTK-free, DOM-free, Node-free; a protocol client only.",
+  "description": "The Electron window's data layer: pure folds, feeds, view logic and the i18n shim. DOM-free and Node-free; a protocol client only.",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "exports": {

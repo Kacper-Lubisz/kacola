@@ -2,7 +2,7 @@ import type { AnyEvent, AskStreamEvent, Citation, QaMessage } from '@gnomeola/pr
 
 // Q&A for one session as the UI sees it: history from GET /sessions/:id/qa, durable `qa.message`
 // events (from this window or any other client), the POST /ask stream of the question this window is
-// asking, and ephemeral `qa.delta` events (another client's answer arriving). Pure; no GTK.
+// asking, and ephemeral `qa.delta` events (another client's answer arriving). Pure.
 //
 // A turn is one question and its answer, keyed by requestId. While this window's own ask is in
 // flight its turn is keyed `local:<n>` until the stream's `question` event names the real requestId.

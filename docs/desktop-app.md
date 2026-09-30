@@ -1,14 +1,14 @@
 # The Electron window (packages/desktop)
 
-The window is moving from GTK (`packages/ui`, GTKX) to Electron. Both run until the cut-over (E-12): the
-GTK app and the Electron app share `packages/ui-core`. This page is the contract for everyone building
-screens in `packages/desktop`.
+The window is Electron. It replaced the GTK 4 / libadwaita app (`packages/ui`, GTKX), which was deleted
+at the cut-over (E-12) once every behaviour of its suites was asserted here (the checklist at the end).
+This page is the contract for everyone building screens in `packages/desktop`.
 
 ```
-packages/ui-core/          the data layer, GTK-free, DOM-free, Node-free (moved from packages/ui/src/data)
-  src/{sessions,transcript,qa,notes,speakers,settings,format,follow,list-diff}.ts   pure folds + view logic
-  src/{store,hooks,source,daemon-source,demo-source}.ts                            the GTK app's store/feeds
-  src/i18n.ts                                                                      _(), ngettext(), fmt()
+packages/ui-core/          the data layer, DOM-free, Node-free (moved from the GTK app's src/data)
+  src/{sessions,transcript,qa,notes,speakers,settings,format}.ts   pure folds, feeds + view logic
+  src/hooks.ts                                                     useNow()
+  src/i18n.ts                                                      _(), ngettext(), fmt()
   import as '@gnomeola/ui-core/<file>' (subpath exports, no barrel)
 
 packages/desktop/
@@ -45,6 +45,7 @@ packages/desktop/
     features/onboarding/    first run: models, capture, calendar, CLI + skill
     features/about/         About (Granola credit, licence, notices)
   test/                     unit + jsdom component tests (vitest `unit` project)
+  translations/             gnomeola.pot + LINGUAS (scripts/i18n-pot.ts; see "Translations")
 packages/testkit/src/desktop/   Playwright-for-Electron harness + footprint probes
 packages/e2e/test/desktop-*.{int,e2e}.test.ts   tunnel/supervisor against the real daemon; window e2e
 ```
@@ -290,8 +291,8 @@ full height) and runs axe over it in light, dark and high contrast. Icons: impor
 Dialogs: `useDialogs().open('preferences')`; toasts: `useToast()(text, { tone: 'error' })`.
 
 **Strings.** Every user-visible string through `_()` / `ngettext()` from `@gnomeola/ui-core/i18n`,
-reusing the GTK app's msgids where the meaning is the same. Catalogues are JSON from main
-(`gnomeola.catalogue()`); compiling `translations/*.po` to JSON is E-10.
+the literal msgid as the first argument (never a variable). Catalogues are JSON from main
+(`gnomeola.catalogue()`); see "Translations".
 
 **Tests.**
 - Pure logic, data layer: `packages/desktop/test/*.test.ts` (unit project, Node).
@@ -355,6 +356,51 @@ reusing the GTK app's msgids where the meaning is the same. Catalogues are JSON 
 - Timestamps use text.tertiary, as the spec says (the corrected tertiary is 4.5:1 on every background).
   The selected line is the exception: on its bg.selected tint tertiary is 4.2:1 (light) / 4.3:1 (dark),
   so that one line's time uses text.secondary.
+
+## Headless test display
+
+Every window e2e runs inside a throwaway GNOME session from `@gnomeola/testkit/ui`
+(`startHeadlessDisplay()`), never on the developer's desktop:
+
+| process | why |
+| --- | --- |
+| `dbus-daemon` ×3 | private **session**, **system** and **accessibility** buses. The private system bus keeps the Shell away from the real logind / GDM. No service activation is configured, so nothing is spawned behind our back. |
+| `at-spi2-registryd` | the AT-SPI registry, started explicitly (Fedora's bus launcher would activate it through systemd, which fails here). |
+| `gnome-shell --headless --virtual-monitor WxH --wayland --no-x11` | the compositor, in a custom session mode without the overview. Chosen over bare mutter for `org.gnome.Shell.Screenshot` and `RemoteDesktop` (real keyboard input). No GPU: Chromium falls back to SwiftShader. |
+| `python3 atspi-driver.py` | AT-SPI client (`gi.repository.Atspi`), JSON lines over stdio — what `desktop-atspi` reads Chromium's tree with. |
+
+Host requirements: `gnome-shell` 50, `dbus-daemon` (the reference implementation), `at-spi2-core`,
+`python3` with PyGObject and the `Atspi-2.0` typelib, and `setpriv` (util-linux). A missing piece fails
+`startHeadlessDisplay()` loudly with every process's log — tests never skip.
+
+Isolation: `XDG_RUNTIME_DIR`, `HOME` and every `XDG_*_HOME` point into a fresh `/tmp/gnomeola-ui-*` dir;
+`GSETTINGS_BACKEND=keyfile` with a seeded keyfile (no welcome dialog, animations, lock or notification
+banners); the environment is built from scratch, so `DISPLAY` / `WAYLAND_DISPLAY` / the session bus
+cannot leak in. Every child runs under `setpriv --pdeathsig SIGKILL` and carries
+`GNOMEOLA_HEADLESS_ID=<id>`; `close()` stops them in reverse order, then kills anything in `/proc` still
+carrying the marker (`markedPids(id)` → `[]` is how suites assert a clean teardown).
+`startHeadlessDisplay({ extensions: [dir] })` installs and enables Shell extensions in that session only
+(the extension suites and `install.e2e`). The harness's own e2e (`packages/testkit/src/ui/e2e/
+harness.e2e.test.ts`) drives a 60-line PyGObject app (`fixture-app.py`).
+
+## Translations
+
+Every user-visible string goes through `_()` / `ngettext()` from `@gnomeola/ui-core/i18n`, with `fmt()` for
+named placeholders *after* translation (`fmt(_('{speaker} at {time}: {text}'), {…})`, so translators can
+reorder). Module-level label tables are functions (`providers()`, `statusLabel()`), so they translate
+when used, not at import time.
+
+- `packages/desktop/translations/gnomeola.pot` is generated by `pnpm --filter @gnomeola/desktop i18n:pot`
+  (GNU xgettext ≥ 0.23 reads TSX) from `src/renderer` and `packages/ui-core/src`, deterministically (no
+  creation date). `test/i18n.test.ts` (unit, no xgettext) fails when a wrapped string is missing from the
+  template, when the template has stale entries, or when `_()` is called with a non-literal.
+- At run time main loads `<lang>.json` for the first preferred language (`LANGUAGE`, then `LC_ALL` /
+  `LC_MESSAGES` / `LANG`, then the system's) from `resources/locale` (packaged) or `GNOMEOLA_LOCALE_DIR`,
+  and the renderer installs it with `setTranslator` before the first paint; English is the source strings.
+  Asserted by desktop-shell's translation test with a catalogue in a temp dir.
+- Only English exists. Adding a language: `msginit -i translations/gnomeola.pot -l de -o
+  translations/de.po`, list it in `translations/LINGUAS`; compiling `.po` → `<lang>.json` into the
+  packaged `resources/locale` is not wired yet (E-10).
 
 ## Footprint (E-1 gate, 2026-09-30)
 
@@ -423,8 +469,8 @@ run as an unprivileged user (Chromium's sandbox refuses root).
 
 ### GTK → desktop checklist
 
-Every behavioural assertion of the GTK window's suites and where the Electron window asserts it, so
-nothing is dropped when `packages/ui` goes (E-12). ✓ = asserted by a desktop e2e against the real daemon
+Every behavioural assertion of the GTK window's suites (deleted with `packages/ui` at the cut-over, E-12)
+and where the Electron window asserts it, so nothing was dropped. ✓ = asserted by a desktop e2e against the real daemon
 (or the protocol stub where the GTK test used one); n/a = GTK plumbing with no Electron meaning.
 
 | GTK test (file › test) | desktop equivalent | status |

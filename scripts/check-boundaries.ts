@@ -1,6 +1,6 @@
 // G-6 — the one architectural rule, enforced rather than hoped for.
 //
-// Client packages (the UI and the CLI) may depend on @gnomeola/protocol and nothing else from this
+// Client packages (the window, the CLI and the web client) may depend on @gnomeola/protocol and nothing else from this
 // workspace. They must never reach the store, capture, STT, LLM or daemon internals: that discipline
 // is what lets the backend move to a remote host without the clients noticing.
 //
@@ -10,14 +10,13 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
-export const CLIENT_PACKAGES = ['ui', 'cli', 'web', 'ui-core', 'desktop'] as const
+export const CLIENT_PACKAGES = ['cli', 'web', 'ui-core', 'desktop'] as const
 export const ALLOWED_INTERNAL = new Set(['@gnomeola/protocol'])
 /**
  * The window's shared data layer (@gnomeola/ui-core) is itself a client: it may import only protocol,
- * and the two window apps (GTK `ui`, Electron `desktop`) may import it on top. Nothing else changes.
+ * and the window (`desktop`, Electron) may import it on top. Nothing else changes.
  */
 export const CLIENT_ALLOWED: Record<(typeof CLIENT_PACKAGES)[number], ReadonlySet<string>> = {
-  ui: new Set(['@gnomeola/protocol', '@gnomeola/ui-core']),
   desktop: new Set(['@gnomeola/protocol', '@gnomeola/ui-core']),
   cli: ALLOWED_INTERNAL,
   web: ALLOWED_INTERNAL,
@@ -138,15 +137,15 @@ export function checkLayers(root: string, rules = LAYER_RULES): Violation[] {
 }
 
 // Runtime rules for the Electron split (docs/desktop-app.md): code that runs in a web context must
-// not reach Node, and the shared data layer must run in both apps' contexts.
-//   ui-core/src            no Node builtins, no electron, no GTK — it runs in the renderer and in GTKX
+// not reach Node, and the shared data layer must run in a web context.
+//   ui-core/src            no Node builtins, no electron — it runs in the renderer
 //   desktop/src/renderer   no Node builtins, no electron: everything privileged crosses the preload bridge
 //   desktop/src/preload    electron only (sandboxed preload: no Node builtins)
 // desktop/src/main may use Node and electron, but never workspace sources beyond the client allowance
 // above: the daemon and CLI are spawned from built bundles by path, never imported.
 export const RUNTIME_RULES: { dir: string; forbid: RegExp; why: string }[] = [
-  { dir: 'packages/ui-core/src', forbid: /^(node:|electron$|@gtkx\/)/, why: 'Node, electron or GTK' },
-  { dir: 'packages/desktop/src/renderer', forbid: /^(node:|electron$|@gtkx\/)/, why: 'Node or electron' },
+  { dir: 'packages/ui-core/src', forbid: /^(node:|electron$)/, why: 'Node or electron' },
+  { dir: 'packages/desktop/src/renderer', forbid: /^(node:|electron$)/, why: 'Node or electron' },
   { dir: 'packages/desktop/src/preload', forbid: /^node:/, why: 'Node in a sandboxed preload' },
 ]
 
@@ -183,7 +182,7 @@ if (import.meta.main) {
   }
   if (v.length || l.length || rt.length) process.exit(1)
   console.log(
-    `✓ boundaries clean (${CLIENT_PACKAGES.join(', ')} depend only on @gnomeola/protocol; ui and desktop also on ui-core)`,
+    `✓ boundaries clean (${CLIENT_PACKAGES.join(', ')} depend only on @gnomeola/protocol; desktop also on ui-core)`,
   )
   console.log(`✓ runtime clean (${RUNTIME_RULES.map((r) => r.dir).join(', ')})`)
   console.log(`✓ layers clean (${Object.keys(LAYER_RULES).join(', ')})`)

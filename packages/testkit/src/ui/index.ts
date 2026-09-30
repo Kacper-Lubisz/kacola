@@ -18,8 +18,9 @@ import { MARKER_VAR, type Spawned, spawnGuarded, stopProcess, sweepMarked } from
 export type { AccessibleNode, FindQuery } from './driver.ts'
 export { markedPids } from './processes.ts'
 
-// V-9a infrastructure: a throwaway GNOME session that a GTK app can be launched into and driven
-// through its accessibility tree, without touching the desktop of whoever runs the tests.
+// V-9a infrastructure: a throwaway GNOME session that an app (the Electron window, the GTK fixture app)
+// can be launched into and driven through its accessibility tree, without touching the desktop of
+// whoever runs the tests.
 //
 // What gets started, all under a private temp dir and all killed by close():
 //

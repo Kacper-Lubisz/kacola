@@ -1,7 +1,7 @@
 import type { AnyEvent, Segment, SessionStatus, TrackKind, Transcript } from '@gnomeola/protocol'
 import type { SpeakersState } from './speakers.ts'
 
-// One session's transcript as the UI sees it, and the pure fold that keeps it current. No GTK here.
+// One session's transcript as the UI sees it, and the pure fold that keeps it current. Pure.
 //
 //   segments  durable, revisioned: a segment id is upserted live → final with a higher `revision`;
 //             a lower or equal revision is a replay and is ignored.

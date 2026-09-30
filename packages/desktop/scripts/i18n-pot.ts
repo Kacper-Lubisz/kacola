@@ -1,5 +1,5 @@
-// Regenerate translations/gnomeola.pot from every `_()` / `ngettext()` call in src/ (and ../ui-core/src) with GNU xgettext (0.23+
-// understands TypeScript and TSX). `pnpm --filter @gnomeola/ui i18n:pot`.
+// Regenerate translations/gnomeola.pot from every `_()` / `ngettext()` call in src/renderer (and ../ui-core/src) with GNU
+// xgettext (0.23+ understands TypeScript and TSX). `pnpm --filter @gnomeola/desktop i18n:pot`.
 //
 // Output is deterministic (sorted inputs, no creation date) so the template only changes when a
 // message does; test/i18n.test.ts fails when src has a message the template lacks.
@@ -8,7 +8,8 @@ import { readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node
 import { join, relative } from 'node:path'
 
 const PKG = join(import.meta.dirname, '..')
-const SRC = join(PKG, 'src')
+/** The window's strings: only the renderer shows text (main and preload have none to translate). */
+const SRC = join(PKG, 'src', 'renderer')
 /** The shared data layer (packages/ui-core): its strings belong to this catalogue too. */
 const CORE_SRC = join(PKG, '..', 'ui-core', 'src')
 export const POT = join(PKG, 'translations', 'gnomeola.pot')

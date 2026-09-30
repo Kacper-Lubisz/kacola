@@ -1,9 +1,9 @@
 // Translatable strings (S-5). Every user-visible string is wrapped in `_()` (or `ngettext()`), which
-// is what `scripts/i18n-extract.ts` scans for to produce po/gnomeola.pot. At startup index.tsx installs
-// the GNU gettext translator from ./gettext.ts (GLib's dgettext against a bound text domain); until
-// then — and in unit tests, which run without GTK — the source string is returned unchanged.
+// is what packages/desktop/scripts/i18n-pot.ts scans for to produce translations/gnomeola.pot. At startup
+// the renderer installs a translator over the JSON catalogue main hands it; until then — and in unit
+// tests — the source string is returned unchanged.
 //
-// This module has no GTK imports on purpose: data/ uses it too, and data/ must stay GTK-free.
+// No DOM or Node imports: the folds in this package use it too, and they run anywhere.
 
 export type Translator = {
   gettext: (msgid: string) => string
