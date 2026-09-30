@@ -15,7 +15,7 @@ import { join } from 'node:path'
 import { ExternalCaptureHub } from '@gnomeola/capture'
 import { SyncAgent } from '@gnomeola/capture-agent/sync'
 import { createClient } from '@gnomeola/protocol'
-import { ModelManager } from '@gnomeola/stt'
+import { defaultModelsDir, ModelManager } from '@gnomeola/stt'
 import { IcsCalendarProvider } from './calendar/ics.ts'
 import { EdsCalendarProvider, FileCalendarProvider, NoCalendar } from './calendar/providers.ts'
 import { parseConfig, UsageError } from './config.ts'
@@ -59,7 +59,8 @@ function keyringFor(kind: string, service: string): Keyring {
 async function main(): Promise<void> {
   let cfg: ReturnType<typeof parseConfig>
   try {
-    cfg = parseConfig(process.argv.slice(2))
+    // GNOMEOLA_PLATFORM: resolve the config as another platform would (tests run the macOS setup here)
+    cfg = parseConfig(process.argv.slice(2), process.env, process.env.GNOMEOLA_PLATFORM || process.platform)
   } catch (err) {
     if (err instanceof UsageError) {
       process.stderr.write(`${err.message}\n`)
@@ -105,7 +106,7 @@ async function main(): Promise<void> {
   } else if (cfg.capture === 'external') {
     // P-3 (macOS): the app captures and streams each track to the ingest route
     const hub = new ExternalCaptureHub()
-    const models = new ModelManager()
+    const models = new ModelManager({ dir: defaultModelsDir(process.env, cfg.platform) })
     opts.externalCapture = hub
     opts.pipeline = new RecordingPipeline({
       models,
@@ -115,7 +116,7 @@ async function main(): Promise<void> {
     opts.devices = new ExternalDevices()
     opts.models = new SttModels(models)
   } else {
-    const models = new ModelManager()
+    const models = new ModelManager({ dir: defaultModelsDir(process.env, cfg.platform) })
     opts.pipeline = new RecordingPipeline({ models })
     opts.devices = new PipeWireDevices()
     opts.models = new SttModels(models)

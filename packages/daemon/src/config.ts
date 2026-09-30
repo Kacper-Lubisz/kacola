@@ -85,6 +85,8 @@ environment:
   GNOMEOLA_CALENDAR        eds | off | file:PATH | ics:PATH-OR-URL  (default eds; off with --fake / macOS)
   GNOMEOLA_CALENDAR_ME     your addresses (comma-separated), to read your RSVP from an ICS calendar
   GNOMEOLA_CAPTURE         pipewire | external     (default pipewire; external on macOS)
+  GNOMEOLA_PLATFORM        resolve defaults as this platform (tests: darwin on Linux)
+  GNOMEOLA_SECURITY_BIN    the macOS security binary for the keychain keyring (tests: a fake)
   GNOMEOLA_DBUS            session | off           (default session; off with --fake)
   GNOMEOLA_MIC_ACTIVITY    pipewire[:SOURCE] | off (default pipewire; off with --fake)
   GNOMEOLA_MIC_IDLE_STOP_MS stop a mic-triggered recording after this long idle (default 30000)
