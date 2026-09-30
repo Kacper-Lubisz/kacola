@@ -75,7 +75,14 @@ export function fakeBridge(over: Partial<GnomeolaBridge> = {}) {
     cliStatus: vi.fn(async () => cli),
     installCli: vi.fn(async (force: boolean) => {
       void force
-      cli = { ...(cli as Extract<CliInstallState, { state: 'installed' }>), state: 'installed' }
+      cli = {
+        state: 'installed',
+        path: '/home/u/.local/bin/gnomeola',
+        skillPath: '/home/u/.claude/skills/meeting-context/SKILL.md',
+        onPath: true,
+        shadowedBy: null,
+        needsAdmin: null,
+      }
       return cli
     }),
     uninstallCli: vi.fn(async () => cli),
