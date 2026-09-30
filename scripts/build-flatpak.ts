@@ -126,7 +126,8 @@ export async function buildFlatpak(o: {
     repo,
     bundle,
     bundleBytes: bundle ? statSync(bundle).size : null,
-    appBytes: du(join(out, 'build', 'files')),
+    // lib/debug ships separately as the .Debug extension
+    appBytes: du(join(out, 'build', 'files')) - du(join(out, 'build', 'files', 'lib', 'debug')),
   }
 }
 
