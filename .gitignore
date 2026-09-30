@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# electron-vite output (packages/desktop)
+out/
 coverage/
 *.log
 .DS_Store

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { checkBoundaries, checkLayers, importsIn, isForbidden } from './check-boundaries.ts'
+import { checkBoundaries, checkLayers, checkRuntime, importsIn, isForbidden } from './check-boundaries.ts'
 
 function fixtureRepo(files: Record<string, string>): string {
   const root = mkdtempSync(join(tmpdir(), 'gnomeola-boundaries-'))
@@ -57,6 +57,49 @@ describe('boundary rule', () => {
       'packages/cli/src/main.ts': `import { routes } from '@gnomeola/protocol'`,
     })
     expect(checkBoundaries(root)).toEqual([])
+  })
+})
+
+describe('window clients (Electron split)', () => {
+  it('lets the two window apps import ui-core, and nobody else', () => {
+    const root = fixtureRepo({
+      'packages/desktop/package.json': JSON.stringify({
+        dependencies: { '@gnomeola/protocol': 'workspace:*', '@gnomeola/ui-core': 'workspace:*' },
+      }),
+      'packages/desktop/src/renderer/a.ts': `import { x } from '@gnomeola/ui-core/sessions'`,
+      'packages/desktop/src/main/b.ts': `import { d } from '@gnomeola/daemon'\nimport { e } from '../../../daemon/src/main.ts'`,
+      'packages/ui-core/package.json': JSON.stringify({
+        dependencies: { '@gnomeola/protocol': 'workspace:*' },
+      }),
+      'packages/ui-core/src/c.ts': `import { db } from '@gnomeola/store'`,
+      'packages/cli/package.json': JSON.stringify({ dependencies: { '@gnomeola/ui-core': 'workspace:*' } }),
+    })
+    expect(checkBoundaries(root).map((v) => `${v.pkg} ${v.where} ${v.specifier}`)).toEqual([
+      'cli package.json#dependencies @gnomeola/ui-core',
+      'ui-core packages/ui-core/src/c.ts @gnomeola/store',
+      'desktop packages/desktop/src/main/b.ts @gnomeola/daemon',
+      'desktop packages/desktop/src/main/b.ts ../../../daemon/src/main.ts',
+    ])
+  })
+
+  it('keeps Node out of ui-core, the renderer and the preload', () => {
+    const root = fixtureRepo({
+      'packages/ui-core/src/a.ts': `import { readFileSync } from 'node:fs'`,
+      'packages/desktop/src/renderer/b.tsx': `import { ipcRenderer } from 'electron'\nimport React from 'react'`,
+      'packages/desktop/src/preload/c.ts': `import { contextBridge } from 'electron'\nimport { join } from 'node:path'`,
+      'packages/desktop/src/main/d.ts': `import { app } from 'electron'\nimport { join } from 'node:path'`,
+    })
+    expect(checkRuntime(root).map((v) => `${v.where} ${v.specifier}`)).toEqual([
+      'packages/ui-core/src/a.ts node:fs',
+      'packages/desktop/src/renderer/b.tsx electron',
+      'packages/desktop/src/preload/c.ts node:path',
+    ])
+  })
+
+  it('the real repository is clean', () => {
+    const root = join(import.meta.dirname, '..')
+    expect(checkBoundaries(root)).toEqual([])
+    expect(checkRuntime(root)).toEqual([])
   })
 })
 

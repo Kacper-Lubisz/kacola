@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { setTranslator } from '@gnomeola/ui-core/i18n'
 import * as GLib from '@gtkx/gi/glib'
 import { t } from '@gtkx/runtime'
-import { setTranslator } from './index.ts'
 
 // The GNU gettext side of ./index.ts, the same mechanism @gtkx/i18n uses (bindtextdomain through
 // libc, lookups through GLib's dgettext/dngettext), without pulling in i18next: we only need `_()`.

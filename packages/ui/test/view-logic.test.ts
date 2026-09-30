@@ -2,10 +2,9 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { AudioDevice, ModelInfo, Settings } from '@gnomeola/protocol'
-import { afterEach, describe, expect, it } from 'vitest'
-import { Follow } from '../src/data/follow.ts'
-import { applySplice, diffKeys } from '../src/data/list-diff.ts'
-import { noticesText, parseNotices } from '../src/data/notices.ts'
+import { Follow } from '@gnomeola/ui-core/follow'
+import { _, fmt, ngettext, setTranslator } from '@gnomeola/ui-core/i18n'
+import { applySplice, diffKeys } from '@gnomeola/ui-core/list-diff'
 import {
   deviceChoices,
   finalPasses,
@@ -15,9 +14,10 @@ import {
   providers,
   valueAt,
   withStored,
-} from '../src/data/settings.ts'
+} from '@gnomeola/ui-core/settings'
+import { afterEach, describe, expect, it } from 'vitest'
+import { noticesText, parseNotices } from '../src/data/notices.ts'
 import { readUiState, shouldOnboard, uiStatePath, writeUiState } from '../src/data/ui-state.ts'
-import { _, fmt, ngettext, setTranslator } from '../src/i18n/index.ts'
 
 describe('list diff (one splice per model update)', () => {
   const cases: [string[], string[]][] = [

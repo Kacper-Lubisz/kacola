@@ -766,7 +766,7 @@ msgstr ""
 msgid "Started"
 msgstr ""
 
-#: src/components/session-detail.tsx:129 src/data/format.ts:60
+#: src/components/session-detail.tsx:129 ../ui-core/src/format.ts:60
 msgid "Not started"
 msgstr ""
 
@@ -834,7 +834,7 @@ msgstr ""
 msgid "About gnomeola"
 msgstr ""
 
-#: src/components/sidebar.tsx:88 src/data/format.ts:61
+#: src/components/sidebar.tsx:88 ../ui-core/src/format.ts:61
 msgid "Recording"
 msgstr ""
 
@@ -1047,110 +1047,110 @@ msgstr ""
 msgid "Demo data"
 msgstr ""
 
-#: src/data/format.ts:27
+#: ../ui-core/src/format.ts:27
 msgid "just now"
 msgstr ""
 
-#: src/data/format.ts:28
+#: ../ui-core/src/format.ts:28
 msgid "{n} min ago"
 msgstr ""
 
-#: src/data/format.ts:30
+#: ../ui-core/src/format.ts:30
 msgid "{n} h ago"
 msgstr ""
 
-#: src/data/format.ts:31
+#: ../ui-core/src/format.ts:31
 msgid "Yesterday"
 msgstr ""
 
-#: src/data/format.ts:62
+#: ../ui-core/src/format.ts:62
 msgid "Paused"
 msgstr ""
 
-#: src/data/format.ts:63
+#: ../ui-core/src/format.ts:63
 msgid "Finished"
 msgstr ""
 
-#: src/data/format.ts:64
+#: ../ui-core/src/format.ts:64
 msgid "Recovered"
 msgstr ""
 
-#: src/data/format.ts:65
+#: ../ui-core/src/format.ts:65
 msgid "Failed"
 msgstr ""
 
-#: src/data/format.ts:110
+#: ../ui-core/src/format.ts:110
 msgid "Untitled session"
 msgstr ""
 
-#: src/data/settings.ts:10
+#: ../ui-core/src/settings.ts:10
 msgid "Anthropic (Claude)"
 msgstr ""
 
-#: src/data/settings.ts:11
+#: ../ui-core/src/settings.ts:11
 msgid "OpenAI (GPT)"
 msgstr ""
 
-#: src/data/settings.ts:12
+#: ../ui-core/src/settings.ts:12
 msgid "Ollama (on this computer)"
 msgstr ""
 
-#: src/data/settings.ts:13
+#: ../ui-core/src/settings.ts:13
 msgid "None (questions off)"
 msgstr ""
 
-#: src/data/settings.ts:17
+#: ../ui-core/src/settings.ts:17
 msgid "During the recording"
 msgstr ""
 
-#: src/data/settings.ts:18
+#: ../ui-core/src/settings.ts:18
 msgid "After the recording"
 msgstr ""
 
-#: src/data/settings.ts:19
+#: ../ui-core/src/settings.ts:19
 msgid "Off (live transcript only)"
 msgstr ""
 
-#: src/data/settings.ts:23
+#: ../ui-core/src/settings.ts:23
 msgid "Keep"
 msgstr ""
 
-#: src/data/settings.ts:24
+#: ../ui-core/src/settings.ts:24
 msgid "Delete once transcribed"
 msgstr ""
 
-#: src/data/settings.ts:25
+#: ../ui-core/src/settings.ts:25
 msgid "Delete after some days"
 msgstr ""
 
-#: src/data/settings.ts:47
+#: ../ui-core/src/settings.ts:47
 msgid "Default"
 msgstr ""
 
-#: src/data/settings.ts:52
+#: ../ui-core/src/settings.ts:52
 msgid "{device} (default)"
 msgstr ""
 
-#: src/data/settings.ts:56
+#: ../ui-core/src/settings.ts:56
 msgid "{device} (not connected)"
 msgstr ""
 
-#: src/data/settings.ts:91
+#: ../ui-core/src/settings.ts:91
 msgid "Live transcription"
 msgstr ""
 
-#: src/data/settings.ts:92
+#: ../ui-core/src/settings.ts:92
 msgid "Accurate transcription"
 msgstr ""
 
-#: src/data/settings.ts:93
+#: ../ui-core/src/settings.ts:93
 msgid "Voice detection"
 msgstr ""
 
-#: src/data/settings.ts:94
+#: ../ui-core/src/settings.ts:94
 msgid "Speaker turns"
 msgstr ""
 
-#: src/data/settings.ts:95
+#: ../ui-core/src/settings.ts:95
 msgid "Speaker recognition"
 msgstr ""

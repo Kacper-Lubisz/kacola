@@ -1,5 +1,7 @@
 import { writeFileSync } from 'node:fs'
 import { extractActionItems, type Session } from '@gnomeola/protocol'
+import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { exportFileName, exportMarkdown, type NotesFeed, type NotesFeedState } from '@gnomeola/ui-core/notes'
 import * as Gio from '@gtkx/gi/gio'
 import * as GLib from '@gtkx/gi/glib'
 import * as Gtk from '@gtkx/gi/gtk'
@@ -16,8 +18,6 @@ import {
   GtkSeparator,
 } from '@gtkx/jsx/gtk'
 import { useMemo, useRef, useState } from 'react'
-import { exportFileName, exportMarkdown, type NotesFeed, type NotesFeedState } from '../data/notes.ts'
-import { _, fmt } from '../i18n/index.ts'
 import { NamedButton } from './named-button.tsx'
 import { NotesEditor } from './notes-editor.tsx'
 import { NotesReview } from './notes-review.tsx'

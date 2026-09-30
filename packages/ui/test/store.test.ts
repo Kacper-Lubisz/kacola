@@ -9,12 +9,12 @@ import {
   Health,
   Session,
 } from '@gnomeola/protocol'
+import { createDaemonSource } from '@gnomeola/ui-core/daemon-source'
+import { createDemoSource } from '@gnomeola/ui-core/demo-source'
+import type { DataSource, SubscribeHandlers } from '@gnomeola/ui-core/source'
+import { SessionStore } from '@gnomeola/ui-core/store'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readConfig } from '../src/data/config.ts'
-import { createDaemonSource } from '../src/data/daemon-source.ts'
-import { createDemoSource } from '../src/data/demo-source.ts'
-import type { DataSource, SubscribeHandlers } from '../src/data/source.ts'
-import { SessionStore } from '../src/data/store.ts'
 
 const mk = (id: string, createdAt: string, over: Partial<Session> = {}): Session =>
   Session.parse({

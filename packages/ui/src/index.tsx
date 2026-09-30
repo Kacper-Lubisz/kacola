@@ -1,14 +1,14 @@
 import { fileURLToPath } from 'node:url'
+import { createDaemonSource } from '@gnomeola/ui-core/daemon-source'
+import { createDemoSource } from '@gnomeola/ui-core/demo-source'
+import { _ } from '@gnomeola/ui-core/i18n'
+import { SessionStore } from '@gnomeola/ui-core/store'
 import * as GLib from '@gtkx/gi/glib'
 import { createRoot } from '@gtkx/react'
 import { App } from './app.tsx'
 import { readConfig } from './data/config.ts'
-import { createDaemonSource } from './data/daemon-source.ts'
-import { createDemoSource } from './data/demo-source.ts'
-import { SessionStore } from './data/store.ts'
 import { Gallery } from './gallery.tsx'
 import { installGettext } from './i18n/gettext.ts'
-import { _ } from './i18n/index.ts'
 
 // Entry point. GNOMEOLA_UI_DEMO=1 runs against an in-process fake; otherwise the daemon at
 // GNOMEOLA_URL (default http://127.0.0.1:8787).

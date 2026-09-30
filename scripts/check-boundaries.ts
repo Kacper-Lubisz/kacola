@@ -10,8 +10,19 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
-export const CLIENT_PACKAGES = ['ui', 'cli', 'web'] as const
+export const CLIENT_PACKAGES = ['ui', 'cli', 'web', 'ui-core', 'desktop'] as const
 export const ALLOWED_INTERNAL = new Set(['@gnomeola/protocol'])
+/**
+ * The window's shared data layer (@gnomeola/ui-core) is itself a client: it may import only protocol,
+ * and the two window apps (GTK `ui`, Electron `desktop`) may import it on top. Nothing else changes.
+ */
+export const CLIENT_ALLOWED: Record<(typeof CLIENT_PACKAGES)[number], ReadonlySet<string>> = {
+  ui: new Set(['@gnomeola/protocol', '@gnomeola/ui-core']),
+  desktop: new Set(['@gnomeola/protocol', '@gnomeola/ui-core']),
+  cli: ALLOWED_INTERNAL,
+  web: ALLOWED_INTERNAL,
+  'ui-core': ALLOWED_INTERNAL,
+}
 
 export type Violation = { pkg: string; where: string; specifier: string }
 
@@ -24,10 +35,10 @@ export function importsIn(source: string): string[] {
   return out
 }
 
-export function isForbidden(specifier: string): boolean {
+export function isForbidden(specifier: string, allowed: ReadonlySet<string> = ALLOWED_INTERNAL): boolean {
   if (specifier.startsWith('@gnomeola/')) {
     const name = specifier.split('/').slice(0, 2).join('/')
-    return !ALLOWED_INTERNAL.has(name)
+    return !allowed.has(name)
   }
   // relative escapes into sibling packages, e.g. '../../store/src/index.ts'
   return /(^|\/)\.\.\/(\.\.\/)*(store|capture|stt|llm|daemon|testkit)\//.test(specifier)
@@ -47,6 +58,7 @@ function walk(dir: string, acc: string[] = []): string[] {
 export function checkBoundaries(root: string): Violation[] {
   const violations: Violation[] = []
   for (const pkg of CLIENT_PACKAGES) {
+    const allowed = CLIENT_ALLOWED[pkg]
     const dir = join(root, 'packages', pkg)
     const manifest = join(dir, 'package.json')
     if (!existsSync(manifest)) continue
@@ -56,12 +68,13 @@ export function checkBoundaries(root: string): Violation[] {
     >
     for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
       for (const dep of Object.keys(json[field] ?? {})) {
-        if (isForbidden(dep)) violations.push({ pkg, where: `package.json#${field}`, specifier: dep })
+        if (isForbidden(dep, allowed))
+          violations.push({ pkg, where: `package.json#${field}`, specifier: dep })
       }
     }
     for (const file of walk(dir)) {
       for (const spec of importsIn(readFileSync(file, 'utf8'))) {
-        if (isForbidden(spec)) violations.push({ pkg, where: relative(root, file), specifier: spec })
+        if (isForbidden(spec, allowed)) violations.push({ pkg, where: relative(root, file), specifier: spec })
       }
     }
   }
@@ -124,19 +137,54 @@ export function checkLayers(root: string, rules = LAYER_RULES): Violation[] {
   return out
 }
 
+// Runtime rules for the Electron split (docs/desktop-app.md): code that runs in a web context must
+// not reach Node, and the shared data layer must run in both apps' contexts.
+//   ui-core/src            no Node builtins, no electron, no GTK — it runs in the renderer and in GTKX
+//   desktop/src/renderer   no Node builtins, no electron: everything privileged crosses the preload bridge
+//   desktop/src/preload    electron only (sandboxed preload: no Node builtins)
+// desktop/src/main may use Node and electron, but never workspace sources beyond the client allowance
+// above: the daemon and CLI are spawned from built bundles by path, never imported.
+export const RUNTIME_RULES: { dir: string; forbid: RegExp; why: string }[] = [
+  { dir: 'packages/ui-core/src', forbid: /^(node:|electron$|@gtkx\/)/, why: 'Node, electron or GTK' },
+  { dir: 'packages/desktop/src/renderer', forbid: /^(node:|electron$|@gtkx\/)/, why: 'Node or electron' },
+  { dir: 'packages/desktop/src/preload', forbid: /^node:/, why: 'Node in a sandboxed preload' },
+]
+
+export function checkRuntime(root: string, rules = RUNTIME_RULES): Violation[] {
+  const out: Violation[] = []
+  for (const r of rules) {
+    for (const file of walk(join(root, r.dir))) {
+      if (/\.test\.tsx?$/.test(file)) continue
+      for (const spec of importsIn(readFileSync(file, 'utf8')))
+        if (r.forbid.test(spec)) out.push({ pkg: r.dir, where: relative(root, file), specifier: spec })
+    }
+  }
+  return out
+}
+
 if (import.meta.main) {
   const root = join(import.meta.dirname, '..')
   const v = checkBoundaries(root)
   const l = checkLayers(root)
+  const rt = checkRuntime(root)
+  if (rt.length) {
+    console.error('✗ runtime violations (see RUNTIME_RULES in scripts/check-boundaries.ts):')
+    for (const x of rt) console.error(`  ${x.where} imports ${x.specifier}`)
+  }
   if (v.length) {
-    console.error('✗ boundary violations — clients may only import @gnomeola/protocol:')
+    console.error(
+      '✗ boundary violations — clients may only import @gnomeola/protocol (+ ui-core for the windows):',
+    )
     for (const x of v) console.error(`  ${x.pkg}: ${x.where} imports ${x.specifier}`)
   }
   if (l.length) {
     console.error('✗ layer violations (see LAYER_RULES in scripts/check-boundaries.ts):')
     for (const x of l) console.error(`  ${x.pkg}: ${x.where} imports ${x.specifier}`)
   }
-  if (v.length || l.length) process.exit(1)
-  console.log(`✓ boundaries clean (${CLIENT_PACKAGES.join(', ')} depend only on @gnomeola/protocol)`)
+  if (v.length || l.length || rt.length) process.exit(1)
+  console.log(
+    `✓ boundaries clean (${CLIENT_PACKAGES.join(', ')} depend only on @gnomeola/protocol; ui and desktop also on ui-core)`,
+  )
+  console.log(`✓ runtime clean (${RUNTIME_RULES.map((r) => r.dir).join(', ')})`)
   console.log(`✓ layers clean (${Object.keys(LAYER_RULES).join(', ')})`)
 }

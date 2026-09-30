@@ -2,5 +2,6 @@ packages:
   - packages/*
 onlyBuiltDependencies:
   - better-sqlite3
+  - electron
   - esbuild
   - sherpa-onnx-node

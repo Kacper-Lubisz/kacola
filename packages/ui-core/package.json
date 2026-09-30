@@ -1,0 +1,24 @@
+{
+  "name": "@gnomeola/ui-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The window's data layer, shared by the GTK and Electron apps: pure folds, feeds, the store and the i18n shim. GTK-free, DOM-free, Node-free; a protocol client only.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gnomeola/protocol": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "react": "19.3.0"
+  }
+}

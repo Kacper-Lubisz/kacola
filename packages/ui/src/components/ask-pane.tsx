@@ -1,4 +1,16 @@
 import { type Citation, formatOffset } from '@gnomeola/protocol'
+import { Follow } from '@gnomeola/ui-core/follow'
+import { escapeMarkup } from '@gnomeola/ui-core/format'
+import { _, fmt } from '@gnomeola/ui-core/i18n'
+import {
+  type AskError,
+  isUnavailable,
+  type QaFeed,
+  type QaFeedState,
+  type QaTurn,
+  splitCitations,
+  viewTurn,
+} from '@gnomeola/ui-core/qa'
 import * as Gtk from '@gtkx/gi/gtk'
 import { AdwClamp, AdwSpinner, AdwStatusPage } from '@gtkx/jsx/adw'
 import {
@@ -14,18 +26,6 @@ import {
 } from '@gtkx/jsx/gtk'
 import { useProperty, useSignal } from '@gtkx/react'
 import { type ReactNode, useRef, useState } from 'react'
-import { Follow } from '../data/follow.ts'
-import { escapeMarkup } from '../data/format.ts'
-import {
-  type AskError,
-  isUnavailable,
-  type QaFeed,
-  type QaFeedState,
-  type QaTurn,
-  splitCitations,
-  viewTurn,
-} from '../data/qa.ts'
-import { _, fmt } from '../i18n/index.ts'
 import { NamedButton } from './named-button.tsx'
 import { speakerName } from './transcript-view.tsx'
 

@@ -1,0 +1,124 @@
+import type { GnomeolaClient } from '@gnomeola/protocol'
+import { fromHistory } from '@gnomeola/ui-core/qa'
+import { fromSnapshot } from '@gnomeola/ui-core/sessions'
+import { fromSummaries } from '@gnomeola/ui-core/speakers'
+import { fromSegments } from '@gnomeola/ui-core/transcript'
+import { QueryClient, queryOptions } from '@tanstack/react-query'
+import { keys } from './keys.ts'
+
+// Query definitions: one queryOptions() per resource, built on the tunnelled protocol client. Loaders
+// call `qc.ensureQueryData(q.x(...))`, components `useQuery(q.x(...))` / `useSuspenseQuery` — never an
+// inline queryKey. Event-driven resources (anything the EventBridge folds) are `staleTime: Infinity`:
+// the bridge keeps them fresh, so a refetch would only race it.
+
+export type Api = Pick<GnomeolaClient, 'call' | 'stream' | 'ask' | 'subscribe'>
+
+const live = {
+  staleTime: Number.POSITIVE_INFINITY,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+} as const
+/** Folded states hold Maps; React Query's structural sharing only understands plain JSON. */
+const folded = { ...live, structuralSharing: false } as const
+
+export function createQueries(api: Api) {
+  return {
+    health: () =>
+      queryOptions({ queryKey: keys.health(), queryFn: ({ signal }) => api.call('health', { signal }) }),
+    sessions: () =>
+      queryOptions({
+        queryKey: keys.sessions(),
+        queryFn: async ({ signal }) => {
+          const health = await api.call('health', { signal })
+          const { sessions } = await api.call('listSessions', {
+            query: { includePrivate: true, limit: 500 },
+            signal,
+          })
+          return fromSnapshot(sessions, health.lastSeq)
+        },
+        ...folded,
+      }),
+    session: (id: string) =>
+      queryOptions({
+        queryKey: keys.session(id),
+        queryFn: ({ signal }) =>
+          api.call('getSession', { params: { id }, query: { includePrivate: true }, signal }),
+        ...live,
+      }),
+    transcript: (id: string) =>
+      queryOptions({
+        queryKey: keys.transcript(id),
+        queryFn: async ({ signal }) =>
+          fromSegments(
+            (await api.call('getTranscript', { params: { id }, query: { includePrivate: true }, signal }))
+              .segments,
+          ),
+        ...folded,
+      }),
+    qa: (id: string) =>
+      queryOptions({
+        queryKey: keys.qa(id),
+        queryFn: async ({ signal }) =>
+          fromHistory(
+            (await api.call('getQaHistory', { params: { id }, query: { includePrivate: true }, signal }))
+              .messages,
+          ),
+        ...folded,
+      }),
+    speakers: (id: string) =>
+      queryOptions({
+        queryKey: keys.speakers(id),
+        queryFn: async ({ signal }) =>
+          fromSummaries(
+            (await api.call('listSpeakers', { params: { id }, query: { includePrivate: true }, signal }))
+              .speakers,
+          ),
+        ...folded,
+      }),
+    notes: (id: string) =>
+      queryOptions({
+        queryKey: keys.notes(id),
+        queryFn: ({ signal }) =>
+          api.call('getNotes', { params: { id }, query: { includePrivate: true }, signal }),
+        ...live,
+      }),
+    settings: () =>
+      queryOptions({
+        queryKey: keys.settings(),
+        queryFn: ({ signal }) => api.call('getSettings', { signal }),
+        ...live,
+      }),
+    models: () =>
+      queryOptions({
+        queryKey: keys.models(),
+        queryFn: async ({ signal }) => (await api.call('listModels', { signal })).models,
+      }),
+    devices: () =>
+      queryOptions({
+        queryKey: keys.devices(),
+        queryFn: async ({ signal }) => (await api.call('listDevices', { signal })).devices,
+      }),
+    search: (q: string) =>
+      queryOptions({
+        queryKey: keys.search(q),
+        queryFn: ({ signal }) => api.call('search', { query: { q, includePrivate: true }, signal }),
+        enabled: q.trim() !== '',
+      }),
+  }
+}
+
+export type Queries = ReturnType<typeof createQueries>
+
+export function createQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        // offline = the event stream is down (onlineManager follows the bridge): wait, do not fail
+        networkMode: 'online',
+        retry: (n, err) => n < 2 && !(err as { status?: number }).status,
+        staleTime: 30_000,
+      },
+      mutations: { networkMode: 'online', retry: false },
+    },
+  })
+}

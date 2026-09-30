@@ -1,9 +1,9 @@
+import { StoreProvider } from '@gnomeola/ui-core/hooks'
+import type { SessionStore } from '@gnomeola/ui-core/store'
 import { AdwApplication } from '@gtkx/jsx/adw'
 import { DialogsProvider } from './components/dialogs.tsx'
 import { MainWindow, type WindowOptions } from './components/main-window.tsx'
 import { installStyles } from './components/styles.ts'
-import { StoreProvider } from './data/hooks.ts'
-import type { SessionStore } from './data/store.ts'
 
 // Keyboard shortcuts for the window actions (GNOME conventions: Ctrl+, for Preferences).
 const ACCELS = [

@@ -1,9 +1,9 @@
+import { diffKeys } from '@gnomeola/ui-core/list-diff'
 import type * as GObject from '@gtkx/gi/gobject'
 import * as Gtk from '@gtkx/gi/gtk'
 import { GtkListView, GtkSignalListItemFactory } from '@gtkx/jsx/gtk'
 import { createPortal, useProperty } from '@gtkx/react'
 import { memo, type ReactNode, type Ref, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { diffKeys } from '../data/list-diff.ts'
 
 // A virtualised list: a real GtkListView over a GtkStringList of row keys, with each visible
 // GtkListItem's content rendered by React through a portal. Only rows on screen exist as widgets.

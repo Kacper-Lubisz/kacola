@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2024", "DOM", "DOM.Iterable", "DOM.AsyncIterable"],
+    "jsx": "react-jsx",
+    "types": ["node"]
+  },
+  "include": ["src/main", "src/preload", "src/shared", "test", "fuses.config.ts", "electron.vite.config.ts"]
+}

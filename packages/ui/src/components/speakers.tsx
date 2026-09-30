@@ -1,4 +1,9 @@
 import { formatOffset, ME, type SpeakerSummary, THEM } from '@gnomeola/protocol'
+import { formatDuration } from '@gnomeola/ui-core/format'
+import { useStore } from '@gnomeola/ui-core/hooks'
+import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
+import { type SpeakersFeedState, speakerClass } from '@gnomeola/ui-core/speakers'
+import type { TranscriptRow } from '@gnomeola/ui-core/transcript'
 import * as Gtk from '@gtkx/gi/gtk'
 import { AdwActionRow, AdwClamp, AdwDialog, AdwHeaderBar, AdwToolbarView } from '@gtkx/jsx/adw'
 import {
@@ -13,11 +18,6 @@ import {
   GtkScrolledWindow,
 } from '@gtkx/jsx/gtk'
 import { useEffect, useRef, useState } from 'react'
-import { formatDuration } from '../data/format.ts'
-import { useStore } from '../data/hooks.ts'
-import { type SpeakersFeedState, speakerClass } from '../data/speakers.ts'
-import type { TranscriptRow } from '../data/transcript.ts'
-import { _, fmt, ngettext } from '../i18n/index.ts'
 import { NamedButton } from './named-button.tsx'
 import { colourDescription, speakerName } from './transcript-view.tsx'
 

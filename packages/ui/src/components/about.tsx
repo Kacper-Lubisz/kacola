@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { _ } from '@gnomeola/ui-core/i18n'
 import type * as Adw from '@gtkx/gi/adw'
 import * as Gtk from '@gtkx/gi/gtk'
 import { AdwAboutDialog } from '@gtkx/jsx/adw'
@@ -8,7 +9,6 @@ import { useCallback, useRef } from 'react'
 import notices from '../../../../THIRD_PARTY_NOTICES.md?raw'
 import pkg from '../../package.json' with { type: 'json' }
 import { noticesText, parseNotices } from '../data/notices.ts'
-import { _ } from '../i18n/index.ts'
 import { nameInternalLists } from './a11y.ts'
 
 // S-4: About. The licence is GPL-3.0-or-later (Gtk.License.GPL_3_0 is "GPL 3.0 or later" in GTK). The

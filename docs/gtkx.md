@@ -67,8 +67,8 @@ packages/ui/
 └─ test/*.test.ts          unit tests for data/ and the translation template (root `unit` project)
 ```
 
-**Rule of thumb:** anything that can be a pure function goes in `src/data/` (or another GTK-free module)
-and gets a `*.test.ts`. Components stay thin. `@gtkx/*` imports must never appear in `src/data/`,
+**Rule of thumb:** anything that can be a pure function goes in `packages/ui-core` (shared with the Electron app; or another GTK-free module)
+and gets a `*.test.ts`. Components stay thin. `@gtkx/*` imports must never appear in ui-core (`pnpm boundaries` enforces it),
 because the root vitest runs those tests without a display.
 
 The UI may import **only** `@gnomeola/protocol` from this workspace (`pnpm boundaries` enforces it,
@@ -757,7 +757,7 @@ exists; not wired up.
 
 ## 10. Translations (S-5)
 
-Every user-visible string goes through `_()` / `ngettext()` from `src/i18n/index.ts`, with `fmt()` for
+Every user-visible string goes through `_()` / `ngettext()` from `@gnomeola/ui-core/i18n`, with `fmt()` for
 named placeholders *after* translation (`fmt(_('{speaker} at {time}: {text}'), {…})`, so translators
 can reorder). That module is GTK-free (the data layer uses it too); until `src/i18n/gettext.ts`
 installs the translator at startup — `bindtextdomain('gnomeola', localeDir)` through libc via

@@ -1,3 +1,4 @@
+import { _ } from '@gnomeola/ui-core/i18n'
 import * as Adw from '@gtkx/gi/adw'
 import * as Gtk from '@gtkx/gi/gtk'
 import * as GtkSource from '@gtkx/gi/gtksource'
@@ -6,7 +7,6 @@ import { GtkScrolledWindow } from '@gtkx/jsx/gtk'
 import { GtkSourceBuffer, GtkSourceView } from '@gtkx/jsx/gtksource'
 import { useProperty } from '@gtkx/react'
 import { useMemo } from 'react'
-import { _ } from '../i18n/index.ts'
 
 // N-1 — the markdown notes editor: a GtkSourceView 5 with markdown highlighting and an Adwaita style
 // scheme that follows light/dark. GtkSource-5 bindings come from a vendored GIR (packages/ui/gir, see

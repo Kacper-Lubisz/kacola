@@ -1,0 +1,95 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import { DEFAULT_BASE_URL } from '@gnomeola/protocol'
+
+// Main-process configuration, from the environment and argv (the app has no config file of its own:
+// settings that matter live in the daemon). The desktop equivalent of packages/ui/src/data/config.ts.
+
+export type DesktopConfig = {
+  baseUrl: string
+  /** M8 device token for a remote gnomeola. Stays in main: the tunnel adds it, the renderer never sees it. */
+  token?: string
+  /** True when baseUrl is a loopback address — the only case in which we may start a daemon ourselves. */
+  loopback: boolean
+  /** Start without a window (`--background`): the CLI uses this to bring a daemon up. */
+  background: boolean
+  /** The daemon entry to spawn (a built daemon.mjs, or packages/daemon/src/main.ts in dev). */
+  daemonEntry: string | null
+  /** Extra args for a spawned daemon (tests pass --data-dir, fakes…). */
+  daemonArgs: string[]
+  uiStatePath: string
+}
+
+const LOOPBACK = new Set(['127.0.0.1', 'localhost', '::1', '[::1]'])
+
+/**
+ * M8: a remote gnomeola needs a device token — GNOMEOLA_TOKEN, else the one `gnomeola pair` saved for
+ * this URL in ${XDG_CONFIG_HOME:-~/.config}/gnomeola/hosts.json. A loopback daemon needs none.
+ */
+export function tokenFor(env: Record<string, string | undefined>, baseUrl: string): string | undefined {
+  if (env.GNOMEOLA_TOKEN) return env.GNOMEOLA_TOKEN
+  const file = join(env.XDG_CONFIG_HOME || join(env.HOME || homedir(), '.config'), 'gnomeola', 'hosts.json')
+  if (!existsSync(file)) return undefined
+  try {
+    const hosts = JSON.parse(readFileSync(file, 'utf8')) as Record<string, { token?: string }>
+    return hosts[baseUrl.replace(/\/+$/, '')]?.token
+  } catch {
+    return undefined
+  }
+}
+
+export function uiStatePath(env: Record<string, string | undefined>): string {
+  if (env.GNOMEOLA_UI_STATE_FILE) return env.GNOMEOLA_UI_STATE_FILE
+  const base = env.XDG_STATE_HOME || join(env.HOME || homedir(), '.local', 'state')
+  return join(base, 'gnomeola', 'ui-state.json')
+}
+
+/**
+ * Which daemon to spawn: GNOMEOLA_DAEMON_ENTRY, else a bundled daemon.mjs next to the app (packaged
+ * builds put it in resources/daemon/), else the repo's packages/daemon/src/main.ts (dev), else none.
+ */
+export function daemonEntry(
+  env: Record<string, string | undefined>,
+  o: { resourcesPath?: string; appDir: string },
+): string | null {
+  if (env.GNOMEOLA_DAEMON_ENTRY) return env.GNOMEOLA_DAEMON_ENTRY
+  const candidates = [
+    ...(o.resourcesPath ? [join(o.resourcesPath, 'daemon', 'daemon.mjs')] : []),
+    // out/main → packages/desktop → packages/daemon
+    join(o.appDir, '..', '..', '..', 'daemon', 'dist', 'daemon.mjs'),
+    join(o.appDir, '..', '..', '..', 'daemon', 'src', 'main.ts'),
+  ]
+  return candidates.find((p) => existsSync(p)) ?? null
+}
+
+export function readDesktopConfig(
+  env: Record<string, string | undefined>,
+  argv: readonly string[],
+  o: { resourcesPath?: string; appDir: string },
+): DesktopConfig {
+  const baseUrl = ((env.GNOMEOLA_URL ?? '').trim() || DEFAULT_BASE_URL).replace(/\/+$/, '')
+  let host: string
+  try {
+    host = new URL(baseUrl).hostname
+  } catch {
+    throw new Error(`GNOMEOLA_URL is not a URL: ${JSON.stringify(baseUrl)}`)
+  }
+  const token = tokenFor(env, baseUrl)
+  let daemonArgs: string[] = []
+  if (env.GNOMEOLA_DAEMON_ARGS) {
+    const parsed = JSON.parse(env.GNOMEOLA_DAEMON_ARGS) as unknown
+    if (!Array.isArray(parsed) || !parsed.every((a) => typeof a === 'string'))
+      throw new Error('GNOMEOLA_DAEMON_ARGS must be a JSON array of strings')
+    daemonArgs = parsed
+  }
+  return {
+    baseUrl,
+    ...(token ? { token } : {}),
+    loopback: LOOPBACK.has(host),
+    background: argv.includes('--background'),
+    daemonEntry: daemonEntry(env, o),
+    daemonArgs,
+    uiStatePath: uiStatePath(env),
+  }
+}

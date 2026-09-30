@@ -28,6 +28,7 @@ export const ALLOWED = new Set([
   'BlueOak-1.0.0',
   'Python-2.0',
   'LGPL-2.1-or-later',
+  'LGPL-3.0-only',
   'LGPL-3.0-or-later',
   'GPL-3.0-or-later',
   // data only (models, voices, corpora): attribution is given in the table below
@@ -98,6 +99,12 @@ export const DATA: { name: string; licence: string; source: string; note: string
     licence: 'CC-BY-4.0',
     source: 'Panayotov et al., openslr.org/12',
     note: 'test fixture librispeech-3p',
+  },
+  {
+    name: 'Adwaita symbolic icons (adwaita-icon-theme)',
+    licence: 'LGPL-3.0-only',
+    source: 'GNOME Project, adwaita-icon-theme (dual LGPL-3.0 / CC-BY-SA-3.0)',
+    note: 'path data of a few symbolic icons in the Electron window (packages/desktop/src/renderer/design)',
   },
 ]
 

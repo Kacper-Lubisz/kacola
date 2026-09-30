@@ -24,7 +24,7 @@ events, so replaying the log reproduces the tables byte for byte (`packages/stor
 **Optimistic concurrency.** `PUT /sessions/:id/notes {markdown, baseVersion}` is a 409 unless
 `baseVersion` is the current head; saving unchanged text writes nothing. The window autosaves 800 ms after
 the last keystroke and flushes on leaving a session. On a 409 it re-reads the head and saves the draft
-on top — the other text stays in history, so nothing is lost either way (`packages/ui/src/data/notes.ts`).
+on top — the other text stays in history, so nothing is lost either way (`packages/ui-core/src/notes.ts`).
 
 Routes (`packages/protocol/src/notes.ts`): `getNotes`, `putNotes`, `listNoteVersions`, `enhanceNotes`
 (SSE), `mergeNotes`, `restoreNoteVersion`, `getActionItems`, `listTemplates`, `putTemplate`,
