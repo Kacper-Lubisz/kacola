@@ -6,13 +6,15 @@ import { join } from 'node:path'
 import { createClient, type GnomeolaClient } from '@gnomeola/protocol'
 import { waitFor } from '@gnomeola/testkit/daemon'
 import { DbusProbe, startPrivateBus } from '@gnomeola/testkit/dbus'
+import { type CdpWindow, connectCdp } from '@gnomeola/testkit/desktop'
+import { type HeadlessDisplay, startHeadlessDisplay } from '@gnomeola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildFlatpak } from '../../../scripts/build-flatpak.ts'
 import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
 import { REPO } from '../src/runtime.ts'
 
-// P-5: the Flatpak, installed and driven for real. The bundle (scripts/build-flatpak.ts; placeholder main
-// until packages/desktop lands) is installed into a throwaway `--user` installation (FLATPAK_USER_DIR) with
+// P-5/P-7: the Flatpak of the real desktop app, installed and driven for real. The bundle
+// (scripts/build-flatpak.ts, from scripts/build-desktop.ts' linux-unpacked) is installed into a throwaway `--user` installation (FLATPAK_USER_DIR) with
 // a throwaway HOME, so nothing touches the user's own Flatpaks, data or ~/.local/bin. Inside the sandbox:
 // the natives load on the app's Electron, pw-record reaches PipeWire, the data lands in ~/.var/app; the
 // app starts the daemon in the background; the CLI — inside the sandbox, and through the host shim that
@@ -66,9 +68,15 @@ function env(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
   }
 }
 
-function run(cmd: string, args: string[], extra: Record<string, string> = {}, timeoutMs = 60_000) {
+function run(
+  cmd: string,
+  args: string[],
+  extra: Record<string, string> = {},
+  timeoutMs = 60_000,
+  fullEnv?: NodeJS.ProcessEnv,
+) {
   return new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve, reject) => {
-    const c = spawn(cmd, args, { env: env(extra), stdio: ['ignore', 'pipe', 'pipe'] })
+    const c = spawn(cmd, args, { env: fullEnv ?? env(extra), stdio: ['ignore', 'pipe', 'pipe'] })
     let stdout = ''
     let stderr = ''
     c.stdout.on('data', (d: Buffer) => {
@@ -291,5 +299,109 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
     expect(r.code, r.stderr).toBe(0)
     expect(existsSync(join(home, '.local', 'bin', 'gnomeola'))).toBe(false)
     expect(existsSync(join(home, '.claude', 'skills', 'meeting-context'))).toBe(false)
+  })
+})
+
+describe('the windowed app inside the sandbox (zypak), in the headless GNOME Shell', () => {
+  // The real window: Chromium's sandbox through zypak inside Flatpak's, Wayland from the headless Shell,
+  // the daemon it spawns inside the sandbox. Driven over the DevTools protocol (the packaged build
+  // allows it only with GNOMEOLA_ALLOW_REMOTE_DEBUGGING=1); the port is reachable because the sandbox
+  // shares the network namespace (--share=network).
+  let display: HeadlessDisplay
+  let cdp: CdpWindow
+  let windowed: ChildProcess
+  let cdpPort = 0
+
+  /** The display's session (Wayland, private buses) with this suite's HOME and installation. */
+  const windowEnv = (): NodeJS.ProcessEnv => {
+    const e: NodeJS.ProcessEnv = { ...env(), ...display.env, HOME: home, FLATPAK_USER_DIR: userDir }
+    // XDG_*_HOME point into the display's temp dirs; the sandbox uses this suite's HOME instead. Nothing
+    // of the caller's own session may leak in (an X11 DISPLAY would be a way out of the headless Shell).
+    for (const k of ['XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME', 'XDG_STATE_HOME', 'DISPLAY'])
+      delete e[k]
+    return { ...e, GNOMEOLA_ALLOW_REMOTE_DEBUGGING: '1' }
+  }
+  /** flatpak ps / kill see instances by XDG_RUNTIME_DIR: the display's, for this one. */
+  const inDisplay = (args: string[]) => run('flatpak', args, {}, 30_000, windowEnv())
+  const stopWindowed = async () => {
+    await inDisplay(['kill', APP]).catch(() => {})
+    windowed?.kill('SIGKILL')
+    await waitFor(async () => !(await healthy()), 15_000, 'the windowed app’s daemon to go away')
+  }
+
+  beforeAll(async () => {
+    await stopApp()
+    display = await startHeadlessDisplay({ size: '1280x800' })
+    const empty = readFileSync(await display.screenshot(join(home, 'empty.png')))
+    cdpPort = await freePort()
+    windowed = spawn('flatpak', ['run', '--user', APP, `--remote-debugging-port=${cdpPort}`], {
+      env: windowEnv(),
+      stdio: ['ignore', 'ignore', 'ignore'],
+    })
+    children.add(windowed)
+    cdp = await connectCdp(cdpPort, 90_000)
+    await cdp.window.getByRole('dialog', { name: 'Welcome to gnomeola' }).waitFor({ timeout: 30_000 })
+    const shown = readFileSync(await display.screenshot(join(home, 'windowed.png')))
+    expect(shown.equals(empty), 'the Shell shows the window').toBe(false)
+  }, 180_000)
+
+  afterAll(async () => {
+    await cdp?.disconnect().catch(() => {})
+    await stopWindowed().catch(() => {})
+    await display?.close()
+  }, 60_000)
+
+  it('the window maps in the Shell and runs sandboxed (app:// origin, the sandbox’s daemon)', async () => {
+    expect(await cdp.window.title()).toBe('Gnomeola')
+    expect(await cdp.window.evaluate('location.href')).toBe('app://gnomeola/index.html')
+    await waitFor(healthy, 30_000, 'the daemon the windowed app spawned inside the sandbox')
+    const ps = await inDisplay(['ps', '--columns=application'])
+    expect(ps.stdout).toContain(APP)
+  })
+
+  it('onboarding installs the CLI through the host shim (flatpak run --command=gnomeola)', async () => {
+    const welcome = cdp.window.getByRole('dialog', { name: 'Welcome to gnomeola' })
+    expect(
+      await welcome.getByRole('switch', { name: 'Install command-line tool and Claude skill' }).isChecked(),
+    ).toBe(true)
+    await welcome.getByRole('button', { name: 'Skip for Now' }).click()
+    const shim = join(home, '.local', 'bin', 'gnomeola')
+    await waitFor(() => existsSync(shim), 30_000, 'the host shim from onboarding')
+    expect(readFileSync(shim, 'utf8')).toContain(`'flatpak' 'run' '--command=gnomeola' '${APP}'`)
+    expect(readFileSync(shim, 'utf8')).toContain(`flatpak run ${APP} --background`)
+    expect(existsSync(join(home, '.claude', 'skills', 'meeting-context', 'SKILL.md'))).toBe(true)
+    const st = await run('sh', [shim, 'sessions', 'list'])
+    expect(st.code, st.stderr).toBe(0)
+    expect(JSON.parse(st.stdout).sessions.map((s: { title: string }) => s.title)).toContain('Flatpak standup')
+  })
+
+  it('the renderer shows the session list from the sandboxed daemon', async () => {
+    const list = cdp.window.getByRole('listbox', { name: 'Sessions' })
+    const row = list.getByRole('option', { name: /Flatpak standup/ })
+    await row.waitFor({ timeout: 20_000 })
+    await row.click()
+    await cdp.window.getByRole('heading', { name: 'Flatpak standup' }).waitFor({ timeout: 10_000 })
+    await display.screenshot(join(REPO, 'packages', 'e2e', 'test', '__artifacts__', 'flatpak-window.png'))
+  })
+
+  it('Preferences installs the top-bar extension into the host’s extensions dir (never enabled)', async () => {
+    await cdp.window.keyboard.press('Control+,')
+    const prefs = cdp.window.getByRole('dialog', { name: 'Preferences' })
+    await prefs.getByRole('tab', { name: 'Integration' }).click()
+    const row = prefs.getByText('Top-bar extension').locator('../..')
+    await row.getByRole('button', { name: 'Install' }).click()
+    await row.getByText(/^Installed\./).waitFor({ timeout: 20_000 })
+    const dest = join(home, '.local', 'share', 'gnome-shell', 'extensions', 'gnomeola@gnomeola.org')
+    for (const f of ['metadata.json', 'extension.js', 'schemas/gschemas.compiled'])
+      expect(existsSync(join(dest, f)), f).toBe(true)
+    await cdp.window.keyboard.press('Escape')
+    expect(cdp.problems()).toEqual([])
+  })
+
+  it('closing the window keeps the app and its daemon running in the sandbox', async () => {
+    await cdp.window.evaluate('window.gnomeola.windowControl("close")')
+    await new Promise((r) => setTimeout(r, 3000))
+    expect(windowed.exitCode).toBeNull()
+    expect(await healthy()).toBe(true)
   })
 })

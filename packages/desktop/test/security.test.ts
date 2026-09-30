@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { FUSES } from '../fuses.config.ts'
 import {
   CSP,
+  captureWindowOptions,
   devCsp,
   isAllowedNavigation,
   isExternalUrl,
@@ -116,6 +117,28 @@ describe('permissions', () => {
     expect(permissionAllowed('media', { mediaTypes: ['audio', 'video'] }, true)).toBe(false)
     expect(permissionAllowed('media', {}, true)).toBe(false)
     expect(permissionAllowed('geolocation', {}, true)).toBe(false)
+    // getDisplayMedia (loopback system audio, macOS): the capture window only
+    expect(permissionAllowed('display-capture', {}, true)).toBe(true)
+  })
+})
+
+describe('the capture window', () => {
+  it('is hidden, unthrottled, gesture-free audio — and exactly as sandboxed as the main window', () => {
+    const o = captureWindowOptions({ preload: '/p/capture.cjs' })
+    expect(o).toMatchObject({ show: false, skipTaskbar: true, focusable: false })
+    expect(o.webPreferences).toMatchObject({
+      preload: '/p/capture.cjs',
+      contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false,
+      nodeIntegrationInWorker: false,
+      webSecurity: true,
+      backgroundThrottling: false,
+      autoplayPolicy: 'no-user-gesture-required',
+    })
+    const main = windowOptions({ preload: '/p/capture.cjs', platform: 'linux', dark: false }).webPreferences!
+    const { backgroundThrottling: _b, autoplayPolicy: _a, ...rest } = o.webPreferences!
+    expect(rest).toEqual(main)
   })
 })
 

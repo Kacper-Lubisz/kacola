@@ -49,8 +49,10 @@ class TrackStream {
   readonly sessionId: string
   epoch = 0
   private next = 0
-  /** Frames of the current epoch, the last RESEND_SECONDS of them (oldest first). */
-  private ring: PcmFrame[] = []
+  /** Every frame gets a sequence number: the order they are sent in, across epochs. */
+  private seq = 0
+  /** The last RESEND_SECONDS of frames, oldest first (may span an epoch change). */
+  private ring: { seq: number; frame: PcmFrame }[] = []
   private ringSamples = 0
   private wake: (() => void) | null = null
   stopped = false
@@ -83,18 +85,16 @@ class TrackStream {
   newEpoch(): void {
     this.epoch = this.deps.newEpoch?.() ?? (Math.random() * 0xffffffff) >>> 0
     this.next = 0
-    this.ring = []
-    this.ringSamples = 0
   }
 
   push(samples: Int16Array): void {
     if (this.stopped) return
-    const f: PcmFrame = { epoch: this.epoch, sample: this.next, samples }
+    const frame: PcmFrame = { epoch: this.epoch, sample: this.next, samples }
     this.next += samples.length
-    this.ring.push(f)
+    this.ring.push({ seq: this.seq++, frame })
     this.ringSamples += samples.length
-    while (this.ringSamples - (this.ring[0]?.samples.length ?? 0) >= RESEND_SECONDS * SAMPLE_RATE) {
-      this.ringSamples -= this.ring.shift()!.samples.length
+    while (this.ringSamples - (this.ring[0]?.frame.samples.length ?? 0) >= RESEND_SECONDS * SAMPLE_RATE) {
+      this.ringSamples -= this.ring.shift()!.frame.samples.length
     }
     this.wake?.()
   }
@@ -105,20 +105,19 @@ class TrackStream {
     this.wake?.()
   }
 
-  /** The oldest kept frame of the epoch onward, then live frames as they come (a new epoch restarts at 0). */
+  /**
+   * One request's frames: from the oldest kept frame of the current epoch (a reconnect resends what the
+   * daemon may have missed; an older epoch is never resent — the daemon would re-anchor on it), then
+   * every frame as it comes, in order.
+   */
   private async *frames(): AsyncGenerator<PcmFrame> {
-    let epoch = this.epoch
-    let cursor = this.ring[0]?.sample ?? this.next
+    let cursor = this.ring.find((x) => x.frame.epoch === this.epoch)?.seq ?? this.seq
     for (;;) {
       if (this.stopped) return
-      if (epoch !== this.epoch) {
-        epoch = this.epoch
-        cursor = 0
-      }
-      const f = this.ring.find((x) => x.sample >= cursor)
-      if (f) {
-        cursor = f.sample + f.samples.length
-        yield f
+      const e = this.ring.find((x) => x.seq >= cursor)
+      if (e) {
+        cursor = e.seq + 1
+        yield e.frame
         continue
       }
       await new Promise<void>((r) => {
@@ -131,6 +130,7 @@ class TrackStream {
   private async loop(): Promise<void> {
     let attempt = 0
     while (!this.stopped) {
+      const since = Date.now()
       try {
         const r = await this.deps.ingest({
           sessionId: this.sessionId,
@@ -144,6 +144,8 @@ class TrackStream {
         if (this.stopped) return
         this.errors++
         this.deps.log?.({ event: 'capture', kind: 'ingest-error', track: this.track, error: String(err) })
+        // a request that ran for a while was a working connection: back off from scratch
+        if (Date.now() - since > 10_000) attempt = 0
         const ms = this.deps.retryMs?.(attempt) ?? Math.min(250 * 2 ** attempt, 5000)
         attempt++
         await new Promise((r) => setTimeout(r, ms))

@@ -140,6 +140,29 @@ describe('installCli', () => {
     expect(r2.shim.path).toMatch(/\.local\/bin\/gnomeola$/)
   })
 
+  it('macos: our current shim already in /usr/local/bin (the app’s admin prompt put it there) is installed', () => {
+    const spec = shimSpec('macos', { appPath: '/Applications/gnomeola.app' })
+    const content = renderShim(spec)
+    const fs: Fs = {
+      ...nodeFs,
+      exists: (p) => p === '/usr/local/bin' || p === '/usr/local/bin/gnomeola' || nodeFs.exists(p),
+      read: (p) => (p === '/usr/local/bin/gnomeola' ? content : nodeFs.read(p)),
+      writable: (d) => (d === '/usr/local/bin' ? false : nodeFs.writable(d)),
+    }
+    const home = tempHome()
+    const r = installCli({ spec, home, path: '', skill: null, dryRun: true }, fs)
+    expect(r.shim).toEqual({ path: '/usr/local/bin/gnomeola', action: 'unchanged' })
+    expect(r.needsAdmin).toBeNull()
+    // an OLD shim there cannot be updated without admin: fall back and say so
+    const old: Fs = {
+      ...fs,
+      read: (p) => (p === '/usr/local/bin/gnomeola' ? `${content}# old\n` : nodeFs.read(p)),
+    }
+    const r2 = installCli({ spec, home, path: '', skill: null, dryRun: true }, old)
+    expect(r2.needsAdmin).toBe('/usr/local/bin')
+    expect(r2.shim.path).toBe(join(home, '.local', 'bin', 'gnomeola'))
+  })
+
   it('keeps a skill the user edited', () => {
     const home = tempHome()
     installCli({ spec: dev(), home, path: '', skill: { source: SKILL } })
@@ -173,6 +196,19 @@ describe('uninstallCli', () => {
     installCli({ spec: dev(), home, path: '', skill: { source: SKILL } })
     writeFileSync(join(home, '.claude', 'skills', 'meeting-context', 'SKILL.md'), 'mine')
     expect(uninstallCli({ mode: 'dev', home }).skill!.action).toBe('kept-edited')
+  })
+
+  it('macos: our shim in a directory it cannot write is reported as needing admin, not an error', () => {
+    const home = tempHome()
+    const content = renderShim(shimSpec('macos', { appPath: '/A.app' }))
+    const fs: Fs = {
+      ...nodeFs,
+      exists: (p) => p === '/usr/local/bin/gnomeola' || nodeFs.exists(p),
+      read: (p) => (p === '/usr/local/bin/gnomeola' ? content : nodeFs.read(p)),
+      writable: (d) => (d === '/usr/local/bin' ? false : nodeFs.writable(d)),
+    }
+    const r = uninstallCli({ mode: 'macos', home, keepSkill: true }, fs)
+    expect(r).toMatchObject({ removed: [], keptForeign: [], needsAdmin: ['/usr/local/bin/gnomeola'] })
   })
 })
 
