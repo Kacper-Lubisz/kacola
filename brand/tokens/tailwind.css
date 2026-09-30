@@ -26,6 +26,10 @@
   --color-status-warning: var(--k-color-status-warning);
   --color-status-danger: var(--k-color-status-danger);
   --color-status-info: var(--k-color-status-info);
+  --color-status-success-text: var(--k-color-status-success-text);
+  --color-status-warning-text: var(--k-color-status-warning-text);
+  --color-status-danger-text: var(--k-color-status-danger-text);
+  --color-status-info-text: var(--k-color-status-info-text);
   --color-speaker-1: var(--k-color-speaker-1);
   --color-speaker-2: var(--k-color-speaker-2);
   --color-speaker-3: var(--k-color-speaker-3);

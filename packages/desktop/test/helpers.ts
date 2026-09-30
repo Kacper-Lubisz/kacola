@@ -57,14 +57,29 @@ export const ephemeral = (data: EphemeralEvent['data'], sessionId: string | null
  * A daemon stand-in for the EventBridge: `call` answers health / listSessions (and records every call),
  * `subscribe` hands the test the handlers so it can connect, drop and feed events at will.
  */
-export function fakeDaemon(init: { sessions?: Session[]; lastSeq?: number } = {}) {
+export type Handler = (opts: { params?: Record<string, string>; query?: unknown; body?: unknown }) => unknown
+
+export function fakeDaemon(
+  init: {
+    sessions?: Session[]
+    lastSeq?: number
+    /** Answers for other routes (by route name); may throw to fail the call. */
+    handlers?: Record<string, Handler>
+  } = {},
+) {
   const state = { sessions: init.sessions ?? [], lastSeq: init.lastSeq ?? 0, fail: null as Error | null }
   const calls: string[] = []
+  /** Every call with its options (params, body …), in order. */
+  const log: { name: string; opts: Parameters<Handler>[0] }[] = []
   const subs: SubscribeOptions[] = []
+  const handlers: Record<string, Handler> = { ...init.handlers }
   const client: BridgeClient = {
-    call: (async (name: string) => {
+    call: (async (name: string, opts: Parameters<Handler>[0] = {}) => {
       calls.push(name)
+      log.push({ name, opts })
       if (state.fail) throw state.fail
+      const h = handlers[name]
+      if (h) return h(opts)
       if (name === 'health') return { lastSeq: state.lastSeq }
       if (name === 'listSessions') return { sessions: state.sessions }
       throw new Error(`fakeDaemon: unexpected call ${name}`)
@@ -85,6 +100,8 @@ export function fakeDaemon(init: { sessions?: Session[]; lastSeq?: number } = {}
   return {
     state,
     calls,
+    log,
+    handlers,
     subs,
     client,
     current,

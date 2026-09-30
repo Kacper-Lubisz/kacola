@@ -1,6 +1,7 @@
 export * from './archive.ts'
 export { type DefaultsWatcher, ManualDefaultsWatcher, PwMetadataWatcher } from './defaults-watcher.ts'
 export * from './devices.ts'
+export * from './external.ts'
 export * from './file-source.ts'
 export * from './levels.ts'
 export * from './pipewire.ts'

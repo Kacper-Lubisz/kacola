@@ -114,6 +114,13 @@ export function createQueries(api: Api) {
         queryKey: keys.devices(),
         queryFn: async ({ signal }) => (await api.call('listDevices', { signal })).devices,
       }),
+    calendar: () =>
+      queryOptions({
+        queryKey: keys.calendar(),
+        queryFn: ({ signal }) => api.call('calendarStatus', { signal }),
+        // calendar.updated keeps it fresh (EventBridge.foldStatus)
+        ...live,
+      }),
     search: (q: string) =>
       queryOptions({
         queryKey: keys.search(q),

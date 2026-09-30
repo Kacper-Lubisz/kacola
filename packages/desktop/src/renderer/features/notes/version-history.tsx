@@ -2,10 +2,9 @@ import type { NoteTemplate, NoteVersion } from '@gnomeola/protocol'
 import { formatClockTime } from '@gnomeola/ui-core/format'
 import { _, fmt } from '@gnomeola/ui-core/i18n'
 import { useQuery } from '@tanstack/react-query'
-import { RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import { useServices } from '../../data/services.tsx'
-import { KButton, KDialog, KListBox, KListItem, KSpinner } from './kit.tsx'
+import { Button, Dialog, NavigationList, Spinner } from '../../design/primitives/index.ts'
 
 // N-1 — the notes' history: every version ever written (each autosave, each enhancement, each applied
 // review, each restore), newest first, with a preview and "Restore This Version". Restoring appends a
@@ -67,87 +66,102 @@ export function VersionHistory({
     }
   }
 
+  const items = newestFirst.map((v) => {
+    const title = versionTitle(v, templates)
+    const label = fmt(_('Version {n}'), { n: v.version })
+    return {
+      id: String(v.version),
+      textValue: `${label} ${title}`,
+      content: (
+        <div className="flex flex-col gap-0.5 px-3 py-2">
+          <span className="flex items-baseline gap-2">
+            <span className="type-body-strong">{label}</span>
+            {v.version === headVersion ? (
+              <span className="rounded-pill bg-bg-sidebar px-2 type-caption text-text-secondary">
+                {_('Current')}
+              </span>
+            ) : null}
+          </span>
+          <span className="flex gap-2 type-caption text-text-secondary">
+            <span>{title}</span>
+            <span aria-hidden="true">·</span>
+            <time dateTime={v.createdAt} className="font-mono text-[12px] tabular-nums">
+              {formatClockTime(v.createdAt)}
+            </time>
+          </span>
+        </div>
+      ),
+    }
+  })
+
   return (
-    <KDialog isOpen={isOpen} onOpenChange={onOpenChange} title={_('Version History')} wide>
-      <div className="flex min-h-0 flex-1 gap-0 border-t border-border-subtle">
-        <div className="w-72 shrink-0 overflow-y-auto border-r border-border-subtle p-2">
-          {!versions && !error ? <KSpinner label={_('Loading…')} /> : null}
-          {error ? <p className="m-2 text-callout text-status-danger">{(error as Error).message}</p> : null}
+    <Dialog
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      title={_('Version History')}
+      size="lg"
+      footer={
+        <>
+          {failed ? (
+            <p role="alert" className="m-0 flex-1 self-center type-callout text-status-danger-text">
+              {fmt(_('The version could not be restored: {reason}'), { reason: failed })}
+            </p>
+          ) : (
+            <p className="m-0 flex-1 self-center type-caption text-text-secondary">
+              {_('Restoring adds a new version; nothing in this list is ever removed.')}
+            </p>
+          )}
+          <Button
+            variant="primary"
+            icon="restore"
+            isDisabled={!selected || busy || selected.version === headVersion}
+            onPress={() => selected && void restore(selected)}
+          >
+            {_('Restore This Version')}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex h-[min(60vh,520px)] min-h-0 overflow-hidden rounded-lg border border-border-subtle">
+        <div className="w-60 shrink-0 overflow-y-auto border-r border-border-subtle py-1">
+          {!versions && !error ? (
+            <div className="p-3">
+              <Spinner label={_('Loading…')} size={20} />
+            </div>
+          ) : null}
+          {error ? (
+            <p className="m-3 type-callout text-status-danger-text">{(error as Error).message}</p>
+          ) : null}
           {versions && versions.length === 0 ? (
-            <p className="m-2 text-callout text-text-secondary">{_('Nothing written yet')}</p>
+            <p className="m-3 type-callout text-text-secondary">{_('Nothing written yet')}</p>
           ) : null}
           {versions?.length ? (
-            <KListBox
+            <NavigationList
               label={_('Versions')}
-              items={newestFirst.map((v) => ({ ...v, id: v.version }))}
-              selected={selected?.version ?? null}
-              onSelect={(k) => setPicked(Number(k))}
-            >
-              {(v) => {
-                const title = versionTitle(v, templates)
-                const current = v.version === headVersion
-                const time = formatClockTime(v.createdAt)
-                return (
-                  <KListItem id={v.version} textValue={`${fmt(_('Version {n}'), { n: v.version })} ${title}`}>
-                    <span className="flex items-baseline gap-2">
-                      <span className="text-body-strong">{fmt(_('Version {n}'), { n: v.version })}</span>
-                      {current ? (
-                        <span className="rounded-pill bg-bg-sidebar px-2 text-caption text-text-secondary">
-                          {_('Current')}
-                        </span>
-                      ) : null}
-                    </span>
-                    <span className="flex gap-2 text-caption text-text-secondary">
-                      <span>{title}</span>
-                      <span aria-hidden="true">·</span>
-                      <time dateTime={v.createdAt} className="font-mono text-[12px] tabular-nums">
-                        {time}
-                      </time>
-                    </span>
-                  </KListItem>
-                )
-              }}
-            </KListBox>
+              items={items}
+              selected={selected ? String(selected.version) : null}
+              onSelect={(id) => setPicked(Number(id))}
+              className="px-1"
+            />
           ) : null}
         </div>
-        <div className="flex min-w-0 flex-1 flex-col">
-          {selected ? (
-            <section
-              aria-label={fmt(_('Text of version {n}'), { n: selected.version })}
-              className="min-h-0 flex-1 overflow-y-auto px-6 py-4"
-            >
-              <h3 className="m-0 mb-2 font-display text-[15px] font-semibold">
-                {fmt(_('Version {n}'), { n: selected.version })} · {versionTitle(selected, templates)}
-              </h3>
-              <pre className="m-0 whitespace-pre-wrap break-words font-sans text-body text-text-primary">
-                {selected.markdown || _('(empty)')}
-              </pre>
-            </section>
-          ) : null}
-        </div>
+        {selected ? (
+          <section
+            aria-label={fmt(_('Text of version {n}'), { n: selected.version })}
+            // a scrolling preview must be reachable from the keyboard (axe scrollable-region-focusable)
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: a named, scrollable region
+            tabIndex={0}
+            className="min-w-0 flex-1 overflow-y-auto px-5 py-4"
+          >
+            <h3 className="m-0 mb-2 font-display text-[15px] font-semibold">
+              {fmt(_('Version {n}'), { n: selected.version })} · {versionTitle(selected, templates)}
+            </h3>
+            <pre className="m-0 whitespace-pre-wrap break-words font-sans type-body text-text-primary">
+              {selected.markdown || _('(empty)')}
+            </pre>
+          </section>
+        ) : null}
       </div>
-      <div className="flex items-center gap-2 border-t border-border-subtle px-6 py-3">
-        {failed ? (
-          <p role="alert" className="m-0 flex-1 text-callout text-status-danger">
-            {fmt(_('The version could not be restored: {reason}'), { reason: failed })}
-          </p>
-        ) : (
-          <p className="m-0 flex-1 text-caption text-text-secondary">
-            {_('Restoring adds a new version; nothing in this list is ever removed.')}
-          </p>
-        )}
-        <KButton variant="ghost" onPress={() => onOpenChange(false)}>
-          {_('Close')}
-        </KButton>
-        <KButton
-          variant="primary"
-          icon={RotateCcw}
-          isDisabled={!selected || busy || selected.version === headVersion}
-          onPress={() => selected && void restore(selected)}
-        >
-          {_('Restore This Version')}
-        </KButton>
-      </div>
-    </KDialog>
+    </Dialog>
   )
 }

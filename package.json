@@ -2,7 +2,7 @@
   "name": "gnomeola",
   "private": true,
   "version": "0.1.0",
-  "description": "A GNOME-native meeting recorder and transcriber \u2014 inspired by Granola.",
+  "description": "A GNOME-native meeting recorder and transcriber — inspired by Granola.",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "packageManager": "pnpm@10.19.0",
@@ -29,9 +29,13 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
+    "@electron/fuses": "1.8.0",
     "@stryker-mutator/core": "^10.0.0",
     "@stryker-mutator/vitest-runner": "^10.0.0",
     "@types/node": "^24.0.0",
+    "electron": "44.5.1",
+    "electron-builder": "26.15.3",
+    "esbuild": "^0.28.2",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
   }

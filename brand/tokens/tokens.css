@@ -112,7 +112,7 @@
   --k-color-border-strong: #cbbfa8;
   --k-color-text-primary: #1f1b16;
   --k-color-text-secondary: #5e564b;
-  --k-color-text-tertiary: #8a7f6e;
+  --k-color-text-tertiary: #70675a;
   --k-color-text-on-accent: #ffffff;
   --k-color-text-on-ink: #f6f1e7;
   --k-color-accent-record: #e0482b;
@@ -124,6 +124,10 @@
   --k-color-status-warning: #b7791f;
   --k-color-status-danger: #b3341b;
   --k-color-status-info: #2f6fa3;
+  --k-color-status-success-text: #3b7448;
+  --k-color-status-warning-text: #8f5e18;
+  --k-color-status-danger-text: #b3341b;
+  --k-color-status-info-text: #2e6c9f;
   --k-color-speaker-1: #c24a2e;
   --k-color-speaker-2: #1f6f78;
   --k-color-speaker-3: #b7791f;
@@ -148,7 +152,7 @@
   --k-color-border-strong: #4a4138;
   --k-color-text-primary: #f3ece0;
   --k-color-text-secondary: #b3a895;
-  --k-color-text-tertiary: #857a69;
+  --k-color-text-tertiary: #978c7b;
   --k-color-text-on-accent: #ffffff;
   --k-color-text-on-ink: #1f1b16;
   --k-color-accent-record: #f0603f;
@@ -160,6 +164,10 @@
   --k-color-status-warning: #e0a54a;
   --k-color-status-danger: #f58a72;
   --k-color-status-info: #6fa6d6;
+  --k-color-status-success-text: #6fb07f;
+  --k-color-status-warning-text: #e0a54a;
+  --k-color-status-danger-text: #f58a72;
+  --k-color-status-info-text: #6fa6d6;
   --k-color-speaker-1: #e8775c;
   --k-color-speaker-2: #4fa3ac;
   --k-color-speaker-3: #e0a54a;
@@ -185,7 +193,7 @@
     --k-color-border-strong: #4a4138;
     --k-color-text-primary: #f3ece0;
     --k-color-text-secondary: #b3a895;
-    --k-color-text-tertiary: #857a69;
+    --k-color-text-tertiary: #978c7b;
     --k-color-text-on-accent: #ffffff;
     --k-color-text-on-ink: #1f1b16;
     --k-color-accent-record: #f0603f;
@@ -197,6 +205,10 @@
     --k-color-status-warning: #e0a54a;
     --k-color-status-danger: #f58a72;
     --k-color-status-info: #6fa6d6;
+    --k-color-status-success-text: #6fb07f;
+    --k-color-status-warning-text: #e0a54a;
+    --k-color-status-danger-text: #f58a72;
+    --k-color-status-info-text: #6fa6d6;
     --k-color-speaker-1: #e8775c;
     --k-color-speaker-2: #4fa3ac;
     --k-color-speaker-3: #e0a54a;

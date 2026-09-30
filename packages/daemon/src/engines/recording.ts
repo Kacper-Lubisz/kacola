@@ -39,8 +39,13 @@ import type {
 
 export type RecordingPipelineOptions = {
   models: ModelManager
-  /** Test seam: a capture source other than PipeWire (e.g. FileCaptureSource). */
-  captureFactory?: () => CaptureSource
+  /**
+   * P-3: where audio comes from. 'pipewire' (default): pw-record children. 'external': a client streams it
+   * to the ingest route (macOS), and `captureFactory` must hand out the hub's source for the session.
+   */
+  backend?: 'pipewire' | 'external'
+  /** A capture source other than PipeWire (FileCaptureSource in tests, the external hub on macOS). */
+  captureFactory?: (opts: PipelineStartOptions) => CaptureSource
 }
 
 const known = (id: string, role: 'live' | 'final') => CATALOG.some((e) => e.id === id && e.role === role)
@@ -53,16 +58,24 @@ function int16ToFloat(s: Int16Array): Float32Array {
 
 export class RecordingPipeline implements TranscriptionPipeline {
   private readonly models: ModelManager
-  private readonly captureFactory: () => CaptureSource
+  private readonly captureFactory: (opts: PipelineStartOptions) => CaptureSource
+  private readonly backend: 'pipewire' | 'external'
 
   constructor(opts: RecordingPipelineOptions) {
     this.models = opts.models
+    this.backend = opts.backend ?? 'pipewire'
+    if (this.backend === 'external' && !opts.captureFactory)
+      throw new Error('the external capture backend needs a captureFactory (the ingest hub)')
     this.captureFactory = opts.captureFactory ?? (() => new PipeWireCaptureSource())
   }
 
   async health() {
-    const pw = spawnSync('pw-record', ['--version'], { stdio: 'ignore' })
-    if (pw.error) return { available: false, backend: 'pipewire', detail: 'pw-record is not installed' }
+    const backend = this.backend
+    if (backend === 'pipewire') {
+      // never probed for 'external': a macOS daemon has no pw-record and must not look for one
+      const pw = spawnSync('pw-record', ['--version'], { stdio: 'ignore' })
+      if (pw.error) return { available: false, backend, detail: 'pw-record is not installed' }
+    }
     const missing: string[] = []
     for (const id of [DEFAULT_MODELS.live, DEFAULT_MODELS.final, DEFAULT_MODELS.vad]) {
       const s = await this.models.status(id)
@@ -70,7 +83,7 @@ export class RecordingPipeline implements TranscriptionPipeline {
     }
     return {
       available: true,
-      backend: 'pipewire',
+      backend,
       detail: missing.length
         ? `models not ready: ${missing.join(', ')} (transcription unavailable until downloaded)`
         : null,
@@ -163,7 +176,7 @@ export class RecordingPipeline implements TranscriptionPipeline {
       },
     })
 
-    const capture = this.captureFactory()
+    const capture = this.captureFactory(opts)
     const offs = [
       capture.on('frame', (f) => {
         if (f.synthetic) return
@@ -243,6 +256,24 @@ export type RecordingDiarizer = Awaited<ReturnType<typeof createDiarizer>>
 export class PipeWireDevices implements DeviceProvider {
   async list(): Promise<AudioDevice[]> {
     return listDevices()
+  }
+}
+
+/**
+ * P-3: with external capture the app picks the devices (the OS default microphone, and the system audio
+ * loopback); the daemon only knows the defaults exist.
+ */
+export class ExternalDevices implements DeviceProvider {
+  async list(): Promise<AudioDevice[]> {
+    return [
+      {
+        name: 'default',
+        description: 'Default microphone (chosen by the app)',
+        kind: 'source',
+        isDefault: true,
+      },
+      { name: 'default', description: 'System audio (captured by the app)', kind: 'sink', isDefault: true },
+    ]
   }
 }
 

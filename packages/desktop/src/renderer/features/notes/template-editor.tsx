@@ -1,10 +1,9 @@
 import type { NoteTemplate } from '@gnomeola/protocol'
 import { _, fmt } from '@gnomeola/ui-core/i18n'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Plus, Trash } from 'lucide-react'
 import { useState } from 'react'
 import { useServices } from '../../data/services.tsx'
-import { KButton, KDialog, KListBox, KListItem, KTextField } from './kit.tsx'
+import { Button, Dialog, NavigationList, TextArea, TextField } from '../../design/primitives/index.ts'
 import { deleteTemplateMutation, parseKeywords, putTemplateMutation, templateIdFor } from './notes-data.ts'
 
 // N-3 — custom templates: the built-ins (read-only, shown for reference and to copy from) and the
@@ -80,50 +79,55 @@ export function TemplateEditor({
   }
   const valid = draft.name.trim() !== '' && draft.body.trim() !== ''
 
+  const items = [{ id: NEW, name: _('New template'), builtIn: false }, ...templates]
+    .filter((t) => t.id !== NEW || selected === NEW)
+    .map((t) => ({
+      id: t.id,
+      textValue: t.name,
+      content: (
+        <div className="flex flex-col gap-0.5 px-3 py-2">
+          <span className="type-body-strong">{t.name}</span>
+          <span className="type-caption text-text-secondary">
+            {t.id === NEW ? _('Not saved yet') : t.builtIn ? _('Built-in') : _('Custom')}
+          </span>
+        </div>
+      ),
+    }))
+
   return (
-    <KDialog isOpen={isOpen} onOpenChange={onOpenChange} title={_('Notes Templates')} wide>
-      <div className="flex min-h-0 flex-1 border-t border-border-subtle">
-        <div className="flex w-64 shrink-0 flex-col gap-2 overflow-y-auto border-r border-border-subtle p-2">
-          <KButton size="sm" icon={Plus} onPress={() => startFrom(null)} className="self-start">
+    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} title={_('Notes Templates')} size="lg">
+      <div className="flex h-[min(64vh,560px)] min-h-0 overflow-hidden rounded-lg border border-border-subtle">
+        <div className="flex w-56 shrink-0 flex-col gap-2 overflow-y-auto border-r border-border-subtle py-2">
+          <Button size="sm" icon="add" onPress={() => startFrom(null)} className="mx-3 self-start">
             {_('New Template')}
-          </KButton>
-          <KListBox
+          </Button>
+          <NavigationList
             label={_('Templates')}
-            items={[{ id: NEW, name: _('New template'), builtIn: false }, ...templates].filter(
-              (t) => t.id !== NEW || selected === NEW,
-            )}
+            items={items}
             selected={selected}
-            onSelect={(k) => pick(String(k))}
-          >
-            {(t) => (
-              <KListItem id={t.id} textValue={t.name}>
-                <span className="text-body-strong">{t.name}</span>
-                <span className="text-caption text-text-secondary">
-                  {t.id === NEW ? _('Not saved yet') : t.builtIn ? _('Built-in') : _('Custom')}
-                </span>
-              </KListItem>
-            )}
-          </KListBox>
+            onSelect={pick}
+            className="px-1"
+          />
         </div>
         <form
-          className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-4"
+          className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4"
           onSubmit={(e) => {
             e.preventDefault()
             if (valid && !readOnly) save()
           }}
         >
           {readOnly ? (
-            <p className="m-0 text-callout text-text-secondary">
+            <p className="m-0 type-callout text-text-secondary">
               {_('Built-in templates cannot be changed. Duplicate one to make it your own.')}
             </p>
           ) : null}
-          <KTextField
+          <TextField
             label={_('Name')}
             value={draft.name}
             onChange={(name) => setDraft((d) => ({ ...d, name }))}
             isDisabled={readOnly}
           />
-          <KTextField
+          <TextField
             label={_('Keywords')}
             description={_(
               'Comma-separated. A meeting whose title (or calendar event) contains one gets this template.',
@@ -132,42 +136,37 @@ export function TemplateEditor({
             onChange={(keywords) => setDraft((d) => ({ ...d, keywords }))}
             isDisabled={readOnly}
           />
-          <KTextField
+          <TextArea
             label={_('Template')}
             description={_('The structure and guidance the notes should follow, in Markdown.')}
-            multiline
-            rows={12}
-            mono
+            rows={10}
             value={draft.body}
             onChange={(body) => setDraft((d) => ({ ...d, body }))}
             isDisabled={readOnly}
           />
           {error ? (
-            <p role="alert" className="m-0 text-callout text-status-danger">
+            <p role="alert" className="m-0 type-callout text-status-danger-text">
               {fmt(_('The template could not be saved: {reason}'), { reason: (error as Error).message })}
             </p>
           ) : null}
           <div className="flex items-center gap-2">
             {current && !current.builtIn ? (
-              <KButton variant="destructive" icon={Trash} isDisabled={del.isPending} onPress={remove}>
+              <Button variant="destructive" icon="delete" isDisabled={del.isPending} onPress={remove}>
                 {_('Delete Template')}
-              </KButton>
+              </Button>
             ) : null}
             {readOnly && current ? (
-              <KButton onPress={() => startFrom(current)}>{_('Duplicate')}</KButton>
+              <Button onPress={() => startFrom(current)}>{_('Duplicate')}</Button>
             ) : null}
             <span className="flex-1" />
-            <KButton variant="ghost" onPress={() => onOpenChange(false)}>
-              {_('Close')}
-            </KButton>
             {!readOnly ? (
-              <KButton type="submit" variant="primary" isDisabled={!valid || put.isPending}>
+              <Button type="submit" variant="primary" isDisabled={!valid || put.isPending}>
                 {_('Save Template')}
-              </KButton>
+              </Button>
             ) : null}
           </div>
         </form>
       </div>
-    </KDialog>
+    </Dialog>
   )
 }

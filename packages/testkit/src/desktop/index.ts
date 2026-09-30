@@ -181,5 +181,5 @@ export async function waitForLog(app: DesktopApp, re: RegExp, timeoutMs = 20_000
     await new Promise((r) => setTimeout(r, 50))
   }
 }
-export * from './baseline.ts'
 export * from './footprint.ts'
+export * from './screenshot.ts'

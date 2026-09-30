@@ -1,0 +1,95 @@
+# gnomeola as a Flatpak: the Electron app (window + daemon + CLI on one runtime) on the freedesktop 25.08
+# runtime and the Electron BaseApp.
+#
+# Build with scripts/build-flatpak.ts, which first assembles ./input (git-ignored):
+#
+#   input/app/                     the unpacked Electron app — electron-builder's `linux-unpacked` output
+#     gnomeola                     of packages/desktop (--app-dir), or, until that lands, the stock
+#     resources/app/ | app.asar    Electron 44 binary with packaging/placeholder as its main
+#     resources/runtime/           dist/runtime from scripts/build-runtime.ts: daemon.mjs, cli.mjs,
+#                                  diarize-worker.mjs, root/ (gjs helpers, D-Bus XML), node_modules/
+#                                  (better-sqlite3, sherpa-onnx-node + sherpa-onnx-linux-<arch>)
+#   input/bin/                     the launchers (packaging/flatpak/bin)
+#   input/share/                   desktop file, metainfo and icon (copied from packaging/)
+#
+# The runtime already ships pw-record / pw-dump (PipeWire), ffmpeg and stdbuf. It lacks secret-tool
+# (built below from libsecret) and gjs (the D-Bus bridge and the EDS calendar agent run on it):
+# modules/gjs.yml builds mozjs 140 + gjs 1.88.
+id: org.gnome.Gnomeola
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '25.08'
+command: gnomeola-app
+separate-locales: false
+# only to build mozjs (modules/gjs.yml)
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.llvm20
+finish-args:
+  # the window
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+  # the daemon: loopback HTTP for the window, CLI and top-bar extension; LLM providers and model downloads
+  - --share=network
+  # capture: pw-record / pw-dump talk to PipeWire directly (mic and the default sink's monitor)
+  - --filesystem=xdg-run/pipewire-0
+  # calendar: Evolution Data Server (GNOME Online Accounts calendars) through the cal-agent
+  - --talk-name=org.gnome.evolution.dataserver.*
+  # the top-bar extension reaches the daemon on the session bus
+  - --own-name=org.gnome.Gnomeola
+  # API keys in the user's keyring (secret-tool)
+  - --talk-name=org.freedesktop.secrets
+  # install-cli: the `gnomeola` shim and the Claude skill; the "install top-bar extension" button
+  - --filesystem=~/.local/bin:create
+  - --filesystem=~/.claude/skills:create
+  - --filesystem=xdg-data/gnome-shell/extensions:create
+  # GNOME's accent colour / dark style via the Settings portal are always reachable; nothing else
+  - --env=ELECTRON_TRASH=gio
+  # gjs (modules/gjs.yml) runs on the /app GLib but the runtime's typelibs
+  - --env=GI_TYPELIB_PATH=/app/lib/girepository-1.0:/usr/lib/x86_64-linux-gnu/girepository-1.0
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/man
+  - '*.a'
+  - '*.la'
+modules:
+  - name: libsecret
+    buildsystem: meson
+    config-opts:
+      - -Dmanpage=false
+      - -Dvapi=false
+      - -Dgtk_doc=false
+      - -Dintrospection=false
+      - -Dbash_completion=disabled
+      - -Dtpm2=false
+    cleanup:
+      - /lib
+      - /share
+    sources:
+      - type: archive
+        url: https://download.gnome.org/sources/libsecret/0.21/libsecret-0.21.7.tar.xz
+        sha256: 6b452e4750590a2b5617adc40026f28d2f4903de15f1250e1d1c40bfd68ed55e
+
+  - modules/gjs.yml
+
+  - name: gnomeola
+    buildsystem: simple
+    sources:
+      - type: dir
+        path: input
+    build-commands:
+      - cp -a app /app/main
+      - chmod +x /app/main/gnomeola
+      # bin/: gnomeola-app (the window, through zypak so Chromium's sandbox works inside Flatpak's),
+      # gnomeola and gnomeolad (the CLI and the daemon: the same Electron binary as Node — the RunAsNode
+      # fuse stays on), gnomeola-selftest (natives, PipeWire and the data dirs, from inside the sandbox)
+      - install -Dm755 -t /app/bin bin/*
+      - install -Dm644 share/selftest.mjs /app/share/gnomeola/selftest.mjs
+      - install -Dm644 share/org.gnome.Gnomeola.desktop /app/share/applications/org.gnome.Gnomeola.desktop
+      - install -Dm644 share/org.gnome.Gnomeola.metainfo.xml /app/share/metainfo/org.gnome.Gnomeola.metainfo.xml
+      - install -Dm644 share/org.gnome.Gnomeola.svg /app/share/icons/hicolor/scalable/apps/org.gnome.Gnomeola.svg

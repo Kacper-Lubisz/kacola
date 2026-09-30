@@ -1,4 +1,4 @@
-import type { MergeChoice, NoteTemplate, Session, TemplateSuggestion } from '@gnomeola/protocol'
+import type { MergeChoice, NoteTemplate, TemplateSuggestion } from '@gnomeola/protocol'
 import { _, fmt } from '@gnomeola/ui-core/i18n'
 import {
   enhanceProblem,
@@ -8,12 +8,21 @@ import {
   type NotesFeedState,
 } from '@gnomeola/ui-core/notes'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, Clock, Copy, FileDown, Info, Sparkles, TriangleAlert, X } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button as AriaButton } from 'react-aria-components'
+import { useRef, useState } from 'react'
 import { useServices } from '../../data/services.tsx'
+import {
+  Banner,
+  Button,
+  IconButton,
+  Menu,
+  MenuItem,
+  MenuSeparator,
+  Spinner,
+  useToast,
+} from '../../design/primitives/index.ts'
+import type { PaneProps } from '../sessions/pane.ts'
+import { useDialogs } from '../shell/dialogs.tsx'
 import { ActionItems } from './action-items.tsx'
-import { KBanner, KButton, KIconButton, KMenu, KMenuItem, KMenuSeparator, KSpinner, KToast } from './kit.tsx'
 import { useNotesFeed } from './notes-data.ts'
 import './notes.css'
 import { NotesEditor } from './notes-editor.tsx'
@@ -57,7 +66,7 @@ function Enhancing({ text, templateName }: { text: string; templateName: string 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="mx-auto flex w-full max-w-[720px] items-center gap-3 px-6 pt-5 pb-3">
-        <KSpinner label={_('Enhancing')} />
+        <Spinner label={_('Enhancing')} size={20} />
         <div className="flex min-w-0 flex-col">
           <span className="text-body-strong">
             {fmt(_('Enhancing your notes with the {template} template…'), { template: templateName })}
@@ -68,7 +77,7 @@ function Enhancing({ text, templateName }: { text: string; templateName: string 
         </div>
       </div>
       <div className="mx-6 h-0.5 overflow-hidden rounded-pill bg-border-subtle" aria-hidden="true">
-        <div className="notes-progress h-full w-1/3 rounded-pill bg-accent-record" />
+        <div className="notes-progress h-full w-1/3 rounded-pill bg-record-fill" />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <section
@@ -103,9 +112,10 @@ function EnhanceProblemBanner({
         : problem === 'unavailable'
           ? _('Enhancing needs a language model provider. Set one up in Preferences.')
           : null
+  const title = fmt(_('Your notes were not enhanced: {reason}'), { reason: err.message })
   return (
     <div className="mx-auto w-full max-w-[720px] px-6 pb-3">
-      <KBanner
+      <Banner
         tone={
           problem === 'refused' || problem === 'quota'
             ? 'warning'
@@ -113,39 +123,37 @@ function EnhanceProblemBanner({
               ? 'info'
               : 'danger'
         }
-        icon={problem === 'unavailable' ? Info : TriangleAlert}
-        actions={
-          <>
+        title={hint ? `${title} — ${hint}` : title}
+        action={
+          <div className="flex shrink-0 items-center gap-2">
             {problem === 'unavailable' && onOpenPreferences ? (
-              <KButton size="sm" onPress={onOpenPreferences}>
+              <Button size="sm" onPress={onOpenPreferences}>
                 {_('Open Preferences')}
-              </KButton>
+              </Button>
             ) : null}
             {problem === 'quota' || problem === 'other' ? (
-              <KButton size="sm" onPress={onRetry}>
+              <Button size="sm" onPress={onRetry}>
                 {_('Try Again')}
-              </KButton>
+              </Button>
             ) : null}
-            <KIconButton icon={X} label={_('Dismiss')} onPress={() => feed.dismissEnhanceError()} />
-          </>
+            <IconButton
+              icon="close"
+              label={_('Dismiss')}
+              tooltip={null}
+              onPress={() => feed.dismissEnhanceError()}
+            />
+          </div>
         }
-      >
-        <p className="m-0">{fmt(_('Your notes were not enhanced: {reason}'), { reason: err.message })}</p>
-        {hint ? <p className="m-0 mt-0.5 text-caption text-text-secondary">{hint}</p> : null}
-      </KBanner>
+      />
     </div>
   )
 }
 
 /** The session frame's Notes tab (PaneProps: `{ session }`, phase 2A). */
-export function NotesPane({
-  session,
-  onOpenPreferences,
-}: {
-  session: Session
-  /** Offered when enhancing needs a provider set up (the shell's Preferences dialog). */
-  onOpenPreferences?: () => void
-}) {
+export function NotesPane({ session }: PaneProps) {
+  const dialogs = useDialogs()
+  const onOpenPreferences = () => dialogs.open('preferences')
+  const say = useToast()
   const sessionId = session.id
   const { queries, bridge } = useServices()
   const { data: tpl } = useQuery(queries.templates(sessionId))
@@ -153,26 +161,12 @@ export function NotesPane({
   const [merging, setMerging] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [templatesOpen, setTemplatesOpen] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastTemplate = useRef<string | undefined>(undefined)
-
-  const say = useCallback((msg: string) => {
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    setToast(msg)
-    toastTimer.current = setTimeout(() => setToast(null), 4000)
-  }, [])
-  useEffect(
-    () => () => {
-      if (toastTimer.current) clearTimeout(toastTimer.current)
-    },
-    [],
-  )
 
   if (!feed || !state) {
     return (
       <div className="flex h-full items-center justify-center bg-bg-window">
-        <KSpinner label={_('Loading…')} size={24} />
+        <Spinner label={_('Loading…')} />
       </div>
     )
   }
@@ -197,7 +191,7 @@ export function NotesPane({
       await bridge.copyText(text)
       say(done)
     } catch (err) {
-      say(fmt(_('Could not copy: {reason}'), { reason: (err as Error).message }))
+      say(fmt(_('Could not copy: {reason}'), { reason: (err as Error).message }), { tone: 'error' })
     }
   }
   const exportFile = async () => {
@@ -209,7 +203,9 @@ export function NotesPane({
       })
       if (r.saved) say(fmt(_('Notes exported to {path}'), { path: r.path }))
     } catch (err) {
-      say(fmt(_('The notes could not be exported: {reason}'), { reason: (err as Error).message }))
+      say(fmt(_('The notes could not be exported: {reason}'), { reason: (err as Error).message }), {
+        tone: 'error',
+      })
     }
   }
   const restore = async (version: number) => {
@@ -228,44 +224,46 @@ export function NotesPane({
         className="mx-auto flex w-full max-w-[960px] items-center gap-2 px-6 py-3"
       >
         <div className="flex">
-          <KButton
+          <Button
             variant="primary"
-            icon={Sparkles}
+            icon="enhance"
             aria-label={_('Enhance Notes')}
             isDisabled={!canEnhance}
             className="rounded-r-none"
             onPress={() => enhance()}
           >
             {_('Enhance')}
-          </KButton>
-          <KMenu
+          </Button>
+          <Menu
             label={_('Templates')}
-            onAction={(k) => (k === '__manage__' ? setTemplatesOpen(true) : enhance(k))}
+            placement="bottom start"
             trigger={
-              <AriaButton
+              <Button
+                variant="primary"
+                icon="chevronDown"
                 aria-label={_('Choose a Template')}
                 isDisabled={!canEnhance}
-                className="inline-flex h-9 w-8 cursor-default items-center justify-center rounded-r-md border-l border-[color-mix(in_srgb,var(--k-color-text-on-ink)_25%,transparent)] bg-ink-primary text-text-on-ink outline-none data-[hovered]:bg-[color-mix(in_srgb,var(--k-color-ink-primary)_86%,var(--k-color-bg-window))] data-[disabled]:opacity-45 data-[focus-visible]:outline-[3px] data-[focus-visible]:outline-solid data-[focus-visible]:outline-accent-focus data-[focus-visible]:outline-offset-2"
-              >
-                <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" />
-              </AriaButton>
+                className="rounded-l-none border-l border-[color-mix(in_srgb,var(--k-color-text-on-ink)_25%,transparent)] !px-2"
+              />
             }
           >
             {templates.map((t) => (
-              <KMenuItem key={t.id} id={t.id} textValue={t.name}>
-                <span className="flex-1">
-                  {t.id === suggestedId
-                    ? fmt(_('Enhance as {template} (suggested)'), { template: t.name })
-                    : fmt(_('Enhance as {template}'), { template: t.name })}
+              <MenuItem key={t.id} textValue={t.name} onAction={() => enhance(t.id)}>
+                <span className="flex items-center gap-2">
+                  <span className="flex-1">
+                    {t.id === suggestedId
+                      ? fmt(_('Enhance as {template} (suggested)'), { template: t.name })
+                      : fmt(_('Enhance as {template}'), { template: t.name })}
+                  </span>
+                  {t.builtIn ? null : <span className="type-caption text-text-secondary">{_('Custom')}</span>}
                 </span>
-                {t.builtIn ? null : <span className="text-caption text-text-secondary">{_('Custom')}</span>}
-              </KMenuItem>
+              </MenuItem>
             ))}
-            <KMenuSeparator />
-            <KMenuItem id="__manage__" textValue={_('Manage Templates…')}>
+            <MenuSeparator />
+            <MenuItem icon="edit" onAction={() => setTemplatesOpen(true)}>
               {_('Manage Templates…')}
-            </KMenuItem>
-          </KMenu>
+            </MenuItem>
+          </Menu>
         </div>
         <div className="ml-2 flex min-w-0 flex-1 flex-col">
           <span className="truncate text-caption text-text-secondary" role="status">
@@ -277,15 +275,15 @@ export function NotesPane({
               : suggestionHint(tpl?.suggested, nameOf(suggestedId))}
           </span>
         </div>
-        <KIconButton icon={Clock} label={_('Version History')} onPress={() => setHistoryOpen(true)} />
-        <KIconButton
-          icon={Copy}
+        <IconButton icon="clock" label={_('Version History')} onPress={() => setHistoryOpen(true)} />
+        <IconButton
+          icon="copy"
           label={_('Copy Notes as Markdown')}
           isDisabled={!hasText}
           onPress={() => void copy(exportMarkdown(session, state.draft), _('Notes copied as Markdown'))}
         />
-        <KIconButton
-          icon={FileDown}
+        <IconButton
+          icon="exportFile"
           label={_('Export Notes')}
           tooltip={_('Export Notes to a Markdown File')}
           isDisabled={!hasText}
@@ -327,14 +325,13 @@ export function NotesPane({
                   onChange={(md) => feed.edit(md)}
                 />
               ) : state.status === 'error' ? (
-                <p className="m-6 text-body text-status-danger">{saveStatus(state)}</p>
+                <p className="m-6 text-body text-status-danger-text">{saveStatus(state)}</p>
               ) : null}
             </div>
             <ActionItems markdown={state.draft} onCopy={(t) => void copy(t, _('Action items copied'))} />
           </div>
         )}
       </div>
-      <KToast message={toast} />
       <VersionHistory
         sessionId={sessionId}
         isOpen={historyOpen}

@@ -2,6 +2,7 @@ import type {
   AnyEvent,
   DurableEvent,
   GnomeolaClient,
+  ModelInfo,
   NotesState,
   NoteVersion,
   Session,
@@ -212,7 +213,18 @@ export class EventBridge {
       this.stats.applied++
     }
     applyEphemeral(this.store, e)
+    this.foldStatus(e)
     for (const l of [...this.listeners]) l(e)
+  }
+
+  /** Ephemeral status reports that also refresh a cached query (models, calendar). */
+  private foldStatus(e: AnyEvent): void {
+    const d = e.data
+    if (d.type === 'model.progress')
+      this.qc.setQueryData<ModelInfo[]>(keys.models(), (cur) =>
+        cur?.map((m) => (m.id === d.model.id ? d.model : m)),
+      )
+    else if (d.type === 'calendar.updated') this.qc.setQueryData(keys.calendar(), d.calendar)
   }
 
   private foldDurable(e: DurableEvent): void {

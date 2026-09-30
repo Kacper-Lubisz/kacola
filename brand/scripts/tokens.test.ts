@@ -38,27 +38,26 @@ const mix = (fg: string, alpha: number, bg: string) =>
     .map((v) => v.toString(16).padStart(2, '0'))
     .join('')}`
 
+const GROUNDS = ['bg.window', 'bg.sidebar', 'bg.surface', 'bg.raised']
+/**
+ * Every colour used as text: the text.* tokens that sit on backgrounds, plus each *Text variant
+ * (accent.recordText, status.<tone>Text). Derived from the file so a new text token is checked automatically.
+ */
+const TEXT_TOKENS = Object.keys(palette('light')).filter(
+  (n) => (n.startsWith('text.') && !n.startsWith('text.on')) || n.endsWith('Text'),
+)
+const FILL_TOKENS = ['status.success', 'status.warning', 'status.danger', 'status.info', 'accent.record']
+
 // [foreground, background, minimum ratio]
 const PAIRS: [string, string, number][] = [
-  ['text.primary', 'bg.window', 4.5],
-  ['text.primary', 'bg.surface', 4.5],
-  ['text.primary', 'bg.sidebar', 4.5],
-  ['text.primary', 'bg.raised', 4.5],
-  ['text.secondary', 'bg.window', 4.5],
-  ['text.secondary', 'bg.surface', 4.5],
-  ['text.secondary', 'bg.sidebar', 4.5],
-  ['text.secondary', 'bg.raised', 4.5],
-  ['accent.recordText', 'bg.surface', 4.5],
-  ['accent.recordText', 'bg.window', 4.5],
-  ['status.danger', 'bg.surface', 4.5],
+  // every text colour: WCAG AA body text on every background
+  ...TEXT_TOKENS.flatMap((t) => GROUNDS.map((g): [string, string, number] => [t, g, 4.5])),
   ['text.onInk', 'ink.primary', 4.5],
   // large/bold button labels on red (WCAG AA large text / UI components)
   ['text.onAccent', 'accent.record', 3],
   ['text.onAccent', 'accent.recordHover', 3],
-  // hint text (13px and up only) and non-text status marks: 3:1
-  ['text.tertiary', 'bg.surface', 3],
-  ['text.tertiary', 'bg.window', 3],
-  ['accent.record', 'bg.surface', 3],
+  // fills, icons and marks: 3:1 against the window and surfaces they sit on
+  ...FILL_TOKENS.flatMap((t) => ['bg.window', 'bg.surface'].map((g): [string, string, number] => [t, g, 3])),
 ]
 
 const MODES: Mode[] = ['light', 'dark', 'light-high-contrast', 'dark-high-contrast']
@@ -86,6 +85,22 @@ describe('brand tokens: WCAG contrast', () => {
       for (const bg of ['bg.window', 'bg.surface', 'bg.sidebar', 'bg.raised'])
         expect(contrast(p['border.default']!, p[bg]!), `${mode} border on ${bg}`).toBeGreaterThanOrEqual(3)
     }
+  })
+
+  it('checks every text colour, including the text-safe status variants', () => {
+    expect(TEXT_TOKENS).toEqual(
+      expect.arrayContaining([
+        'text.primary',
+        'text.secondary',
+        'text.tertiary',
+        'accent.recordText',
+        'status.successText',
+        'status.warningText',
+        'status.dangerText',
+        'status.infoText',
+      ]),
+    )
+    expect(TEXT_TOKENS).toHaveLength(8)
   })
 
   it('matches the spec values that the design language is built on', () => {

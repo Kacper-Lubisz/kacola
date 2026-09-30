@@ -14,6 +14,7 @@ import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemo
 import { buildDesktop, type DesktopApp, launchDesktop, matchBaseline } from '@gnomeola/testkit/desktop'
 import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { markOnboarded } from '../src/desktop.ts'
 import { loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
 import { SEED, seedMeetings } from '../src/seed.ts'
 
@@ -39,6 +40,7 @@ let markerId = ''
 beforeAll(async () => {
   buildDesktop()
   display = await startHeadlessDisplay({ size: '1280x800' })
+  markOnboarded(display)
   markerId = display.env.GNOMEOLA_HEADLESS_ID!
 }, 300_000)
 
@@ -98,6 +100,9 @@ function helpers(getApp: () => DesktopApp, getDaemon: () => DaemonHandle, scheme
       const text = (l) => [...l.childNodes].filter((n) => !n.classList?.contains('cm-placeholder')).map((n) => n.textContent).join('')
       return lines.map(text).join('\\n')
     })()`)) as string
+  /** A toast in the shell's Notifications region. */
+  const toast = (text: string) =>
+    w().getByRole('region', { name: 'Notifications' }).getByText(text, { exact: false })
   const status = (text: string) => w().locator('[data-notes-pane] [role="status"]', { hasText: text })
   const shot = async (name: string) => {
     const file = join(ARTIFACTS, `${name}-${scheme}.png`)
@@ -106,7 +111,8 @@ function helpers(getApp: () => DesktopApp, getDaemon: () => DaemonHandle, scheme
     await w().mouse.move(0, 0)
     // the pane only: the session frame around it belongs to another screen (and shows live times)
     await w().locator('[data-notes-pane]').screenshot({ path: file, caret: 'initial' })
-    return matchBaseline(file, join(BASELINES, `${name}-${scheme}.png`), { artifactsDir: ARTIFACTS })
+    const failure = matchBaseline(file, join(BASELINES, `${name}-${scheme}.png`))
+    if (failure) throw new Error(failure)
   }
   const axe = async () => expect(await getApp().axe()).toEqual([])
   /** The held stream shows `text`, and nothing more arrives (the fake server is holding it). */
@@ -130,7 +136,7 @@ function helpers(getApp: () => DesktopApp, getDaemon: () => DaemonHandle, scheme
       'the held stream to settle',
     )
   }
-  return { w, versions, head, openSession, editor, editorText, status, shot, axe, streamedUpTo }
+  return { w, versions, head, openSession, editor, editorText, status, toast, shot, axe, streamedUpTo }
 }
 
 describe('Notes in the Electron window: type, enhance, review, apply (light)', () => {
@@ -313,7 +319,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     await list.getByRole('listitem', { name: 'Book the retro room', exact: true }).waitFor({ timeout: 5000 })
     expect(await list.getByRole('listitem').count()).toBe(3)
     await h.w().getByRole('button', { name: 'Copy Action Items' }).click()
-    await h.status('Action items copied').waitFor({ timeout: 5000 })
+    await h.toast('Action items copied').waitFor({ timeout: 5000 })
     const copied = await ctx.app.evaluateMain(({ clipboard }) => clipboard.readText())
     expect(copied).toBe(
       '- [ ] Add an alert on the dead-letter queue — owner: Bruno — due: Friday\n' +
@@ -326,7 +332,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
 
   it('copies the notes to the clipboard as markdown', async () => {
     await h.w().getByRole('button', { name: 'Copy Notes as Markdown' }).click()
-    await h.status('Notes copied as Markdown').waitFor({ timeout: 5000 })
+    await h.toast('Notes copied as Markdown').waitFor({ timeout: 5000 })
     const pasted = await ctx.app.evaluateMain(({ clipboard }) => clipboard.readText())
     const note = await h.head(SEED.retro)
     expect(pasted).toMatch(/^# Sprint retro\n\n\d{4}-\d{2}-\d{2}\n\n/)
@@ -355,7 +361,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     }, out)
     await h.w().getByRole('button', { name: 'Export Notes' }).click()
     await waitFor(() => existsSync(out), 10_000, 'the exported file')
-    await h.status('Notes exported to').waitFor({ timeout: 5000 })
+    await h.toast('Notes exported to').waitFor({ timeout: 5000 })
     const note = await h.head(SEED.retro)
     expect(readFileSync(out, 'utf8')).toMatch(/^# Sprint retro\n\n\d{4}-\d{2}-\d{2}\n\n/)
     expect(readFileSync(out, 'utf8').endsWith(note.markdown)).toBe(true)
@@ -369,26 +375,26 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
   })
 
   it('dismissing the save dialog writes nothing and says nothing', async () => {
-    await h.status('Notes exported to').waitFor({ state: 'detached', timeout: 10_000 })
+    await h.toast('Notes exported to').waitFor({ state: 'detached', timeout: 10_000 })
     await ctx.app.evaluateMain(({ dialog }) => {
       dialog.showSaveDialog = (async () => ({ canceled: true, filePath: '' })) as typeof dialog.showSaveDialog
     })
     await h.w().getByRole('button', { name: 'Export Notes' }).click()
     await new Promise((r) => setTimeout(r, 500))
-    expect(await h.status('Notes exported to').count()).toBe(0)
+    expect(await h.toast('Notes exported to').count()).toBe(0)
   })
 
   it('a refusal leaves the notes exactly as they were and says so', async () => {
     const before = await h.versions(SEED.retro)
     ctx.api.enqueue(...loadCassette(join(CASSETTES, 'refusal.json')))
     await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
-    const alert = h.w().getByRole('alert').filter({ hasText: 'Your notes were not enhanced' })
+    const alert = h.w().getByRole('status', { name: /Your notes were not enhanced/ })
     await alert.waitFor({ timeout: 20_000 })
     expect(await alert.textContent()).toContain('Nothing was changed')
     expect(await h.versions(SEED.retro)).toEqual(before)
     expect(await h.editorText()).toBe(before.at(-1)!.markdown)
     await h.axe()
-    await h.w().getByRole('button', { name: 'Dismiss' }).click()
+    await alert.getByRole('button', { name: 'Dismiss' }).click()
     await alert.waitFor({ state: 'detached' })
   })
 
@@ -401,7 +407,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
       headers: { ...limited.headers, 'retry-after': '0', 'retry-after-ms': '10' },
     })
     await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
-    const alert = h.w().getByRole('alert').filter({ hasText: 'Your notes were not enhanced' })
+    const alert = h.w().getByRole('status', { name: /Your notes were not enhanced/ })
     await alert.waitFor({ timeout: 20_000 })
     expect(await alert.textContent()).toContain('limiting requests')
     expect(await h.versions(SEED.retro)).toEqual(before)
@@ -439,7 +445,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     expect(await preview.textContent()).toContain('retry budgt three attmpts')
     await dialog.getByRole('button', { name: 'Restore This Version' }).click()
     await dialog.waitFor({ state: 'detached' })
-    await h.status(`Version ${typed.version} restored`).waitFor({ timeout: 5000 })
+    await h.toast(`Version ${typed.version} restored`).waitFor({ timeout: 5000 })
     const after = await h.versions(SEED.retro)
     expect(after.slice(0, before.length)).toEqual(before)
     expect(after.at(-1)).toMatchObject({ kind: 'restore', restoredFrom: typed.version, markdown: TYPED })

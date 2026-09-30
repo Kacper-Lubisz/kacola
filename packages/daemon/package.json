@@ -19,6 +19,7 @@
     "@gnomeola/server": "workspace:*",
     "@gnomeola/store": "workspace:*",
     "@gnomeola/stt": "workspace:*",
+    "ical.js": "^2.2.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {

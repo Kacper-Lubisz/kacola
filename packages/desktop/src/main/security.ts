@@ -53,6 +53,8 @@ export function windowOptions(o: {
   preload: string
   platform: NodeJS.Platform
   dark: boolean
+  /** The app icon (Linux/Windows window icon; macOS takes the bundle's). */
+  icon?: string
 }): BrowserWindowConstructorOptions {
   return {
     width: 1100,
@@ -62,8 +64,9 @@ export function windowOptions(o: {
     show: false,
     title: 'Gnomeola',
     // paint the window background before the first frame so there is no white flash in dark mode
-    backgroundColor: o.dark ? '#222226' : '#fafafb',
-    // Linux: our own Adwaita-style header bar (CSD); macOS: native traffic lights over our header bar
+    backgroundColor: o.dark ? '#171411' : '#f6f1e7', // brand bg.window
+    ...(o.icon && o.platform !== 'darwin' ? { icon: o.icon } : {}),
+    // Linux: our own header bar (CSD); macOS: native traffic lights over our header bar
     ...(o.platform === 'darwin'
       ? { titleBarStyle: 'hiddenInset' as const }
       : { frame: false, titleBarStyle: 'hidden' as const }),

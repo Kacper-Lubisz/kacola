@@ -2,7 +2,7 @@ import type { Hunk, MergeChoice } from '@gnomeola/protocol'
 import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
 import { type Review, reviewChanges, setAll, setChoice, sideText, startReview } from '@gnomeola/ui-core/notes'
 import { useState } from 'react'
-import { KButton, KSwitch } from './kit.tsx'
+import { Button, Switch } from '../../design/primitives/index.ts'
 
 // N-4 — the review of an enhanced version against the head, built on @gnomeola/protocol's notes-diff
 // (the daemon recomputes the same hunks, so "change 3" means the same blocks on both sides). One card
@@ -60,13 +60,15 @@ function Change({
     >
       <div className="flex items-center gap-3">
         <h3 className="m-0 flex-1 font-display text-[15px] font-semibold">{title}</h3>
-        <KSwitch
+        <Switch
           isSelected={useEnhanced}
           onChange={(v) => onChoose(v ? 'enhanced' : 'mine')}
-          label={fmt(_('Use enhanced text for change {n}'), { n })}
+          aria-label={fmt(_('Use enhanced text for change {n}'), { n })}
         >
-          <span aria-hidden="true">{_('Use enhanced')}</span>
-        </KSwitch>
+          <span aria-hidden="true" className="type-callout text-text-secondary">
+            {_('Use enhanced')}
+          </span>
+        </Switch>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Side title={_('Your notes')} text={mine} chosen={!useEnhanced} />
@@ -107,29 +109,29 @@ export function NotesReview({
           )}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <KButton size="sm" onPress={() => setReview((r) => setAll(r, 'enhanced'))}>
+          <Button size="sm" onPress={() => setReview((r) => setAll(r, 'enhanced'))}>
             {_('Use All Enhanced')}
-          </KButton>
-          <KButton size="sm" onPress={() => setReview((r) => setAll(r, 'mine'))}>
+          </Button>
+          <Button size="sm" onPress={() => setReview((r) => setAll(r, 'mine'))}>
             {_('Keep All Mine')}
-          </KButton>
+          </Button>
           <span className="flex-1" />
-          <KButton
+          <Button
             variant="ghost"
             isDisabled={busy}
             aria-describedby="notes-discard-desc"
             onPress={() => onApply(review.hunks.map(() => 'mine'))}
           >
             {_('Discard')}
-          </KButton>
-          <KButton
+          </Button>
+          <Button
             variant="primary"
             isDisabled={busy}
             aria-describedby="notes-apply-desc"
             onPress={() => onApply(review.choices)}
           >
             {_('Apply')}
-          </KButton>
+          </Button>
           <span id="notes-discard-desc" hidden>
             {_('Close the review and keep your notes exactly as they are')}
           </span>

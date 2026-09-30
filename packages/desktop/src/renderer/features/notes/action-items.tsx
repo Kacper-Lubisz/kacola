@@ -1,8 +1,7 @@
 import { type ActionItem, extractActionItems } from '@gnomeola/protocol'
 import { _, fmt } from '@gnomeola/ui-core/i18n'
-import { CircleCheck, Circle as CircleIcon, Copy } from 'lucide-react'
 import { useMemo } from 'react'
-import { KIconButton } from './kit.tsx'
+import { Icon, IconButton } from '../../design/primitives/index.ts'
 
 // N-5 — action items parsed live from the notes as they are typed (the same deterministic parser the
 // daemon, CLI and skill use): task-list items anywhere, list items under an action-items heading, with
@@ -29,8 +28,8 @@ export function ActionItems({ markdown, onCopy }: { markdown: string; onCopy: (t
         <h2 id="notes-action-items" className="m-0 flex-1 font-display text-[15px] font-semibold">
           {_('Action Items')}
         </h2>
-        <KIconButton
-          icon={Copy}
+        <IconButton
+          icon="copy"
           label={_('Copy Action Items')}
           onPress={() => onCopy(actionItemsMarkdown(items))}
         />
@@ -50,19 +49,9 @@ export function ActionItems({ markdown, onCopy }: { markdown: string; onCopy: (t
               className="flex items-start gap-2.5 border-t border-border-subtle py-2 first:border-t-0"
             >
               {i.done ? (
-                <CircleCheck
-                  size={18}
-                  strokeWidth={1.75}
-                  aria-hidden="true"
-                  className="mt-0.5 shrink-0 text-status-success"
-                />
+                <Icon name="success" size={18} className="mt-0.5 shrink-0 text-status-success" />
               ) : (
-                <CircleIcon
-                  size={18}
-                  strokeWidth={1.75}
-                  aria-hidden="true"
-                  className="mt-0.5 shrink-0 text-text-tertiary"
-                />
+                <Icon name="task" size={18} className="mt-0.5 shrink-0 text-text-tertiary" />
               )}
               <div className="flex min-w-0 flex-col">
                 <span className={`text-body ${i.done ? 'text-text-secondary line-through' : ''}`}>
