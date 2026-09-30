@@ -192,6 +192,9 @@ describe.each(ARCHS)('gnomeola.app (%s)', (arch) => {
       'ELECTRON_RUN_AS_NODE=1 exec "$resources/../MacOS/gnomeola" "$resources/runtime/cli.mjs"',
     )
     expect(existsSync(join(res(), 'LICENSES.chromium.html'))).toBe(true)
+    // the menu-bar Tray icon (1x / 2x); no top-bar extension on macOS
+    for (const f of ['tray.png', 'tray@2x.png']) expect(existsSync(join(res(), f)), f).toBe(true)
+    expect(existsSync(join(res(), 'extension'))).toBe(false)
     expect(existsSync(join(res(), 'THIRD_PARTY_NOTICES.md'))).toBe(true)
   })
 

@@ -310,6 +310,7 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
   let display: HeadlessDisplay
   let cdp: CdpWindow
   let windowed: ChildProcess
+  let portal: ChildProcess | undefined
   let cdpPort = 0
 
   /** The display's session (Wayland, private buses) with this suite's HOME and installation. */
@@ -332,6 +333,34 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
   beforeAll(async () => {
     await stopApp()
     display = await startHeadlessDisplay({ size: '1280x800' })
+    // zypak starts Chromium's renderer / GPU processes through the Flatpak portal's Spawn (sub-sandboxes);
+    // a real session D-Bus-activates it, the headless one's private bus has no service files: start it
+    portal = spawn('/usr/libexec/flatpak-portal', ['--replace'], { env: windowEnv(), stdio: 'ignore' })
+    children.add(portal)
+    await waitFor(
+      async () =>
+        (
+          await run(
+            'gdbus',
+            [
+              'call',
+              '--session',
+              '--dest',
+              'org.freedesktop.DBus',
+              '--object-path',
+              '/org/freedesktop/DBus',
+              '--method',
+              'org.freedesktop.DBus.NameHasOwner',
+              'org.freedesktop.portal.Flatpak',
+            ],
+            {},
+            5_000,
+            windowEnv(),
+          )
+        ).stdout.includes('true'),
+      10_000,
+      'the Flatpak portal on the headless session bus',
+    )
     const empty = readFileSync(await display.screenshot(join(home, 'empty.png')))
     cdpPort = await freePort()
     windowed = spawn('flatpak', ['run', '--user', APP, `--remote-debugging-port=${cdpPort}`], {
@@ -348,6 +377,7 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
   afterAll(async () => {
     await cdp?.disconnect().catch(() => {})
     await stopWindowed().catch(() => {})
+    portal?.kill()
     await display?.close()
   }, 60_000)
 
@@ -380,7 +410,10 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
     const row = list.getByRole('option', { name: /Flatpak standup/ })
     await row.waitFor({ timeout: 20_000 })
     await row.click()
-    await cdp.window.getByRole('heading', { name: 'Flatpak standup' }).waitFor({ timeout: 10_000 })
+    await cdp.window.getByRole('heading', { level: 1, name: 'Flatpak standup' }).waitFor({ timeout: 10_000 })
+    expect(await cdp.window.getByRole('heading', { name: 'No Session Selected' }).count()).toBe(0)
+    expect(await row.getAttribute('aria-selected')).toBe('true')
+    await new Promise((r) => setTimeout(r, 500)) // the compositor's next frame
     await display.screenshot(join(REPO, 'packages', 'e2e', 'test', '__artifacts__', 'flatpak-window.png'))
   })
 
