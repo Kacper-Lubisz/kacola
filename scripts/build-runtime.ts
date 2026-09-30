@@ -12,6 +12,7 @@
 //   node_modules/better-sqlite3                  natives, external to the bundle: N-API builds, so the
 //   node_modules/sherpa-onnx-node                same binary loads in Node and in Electron (no rebuild)
 //   node_modules/sherpa-onnx-<platform>-<arch>   one per --target (darwin ones fetched with `npm pack`)
+//   node_modules/onnxruntime-node (+ -common)    the decisions embedder's runtime, binaries for --target only
 //   runtime.json                                 what was built, for packaging and the tests
 //
 // Paths: source files find their assets with `import.meta.dirname`, which in a bundle is the bundle's
@@ -25,6 +26,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -38,9 +40,9 @@ export type Target = `${'linux' | 'darwin'}-${'x64' | 'arm64'}`
 export const HOST_TARGET = `${process.platform}-${process.arch}` as Target
 
 /** Natives that stay outside the bundle and ship as packages beside it. */
-export const EXTERNAL = ['better-sqlite3', 'sherpa-onnx-node']
+export const EXTERNAL = ['better-sqlite3', 'sherpa-onnx-node', 'onnxruntime-node']
 /** Runtime assets, repo-relative (directories are copied whole). */
-const ASSETS = ['packages/daemon/gjs', 'packages/daemon/dbus']
+const ASSETS = ['packages/daemon/gjs', 'packages/daemon/dbus', 'packages/decisions/assets']
 
 const SHERPA_VERSION = (): string =>
   (JSON.parse(readFileSync(require_('sherpa-onnx-node/package.json'), 'utf8')) as { version: string }).version
@@ -51,6 +53,8 @@ function require_(spec: string): string {
   if (existsSync(from)) return from
   const fromStore = join(REPO, 'packages', 'store', 'node_modules', ...spec.split('/'))
   if (existsSync(fromStore)) return fromStore
+  const fromDecisions = join(REPO, 'packages', 'decisions', 'node_modules', ...spec.split('/'))
+  if (existsSync(fromDecisions)) return fromDecisions
   throw new Error(`cannot find ${spec}`)
 }
 
@@ -179,6 +183,24 @@ export function stageNatives(outDir: string, targets: Target[]): void {
     if (existsSync(local)) cpSync(local, dest, { recursive: true, dereference: true })
     else fetchPackage(`${name}@${version}`, dest)
   }
+
+  // onnxruntime-node (the on-device decisions embedder) ships every platform's binary in one package
+  // (~300 MB): keep dist/ and only the targets' binaries; its one runtime dependency is pure JS.
+  // realpath: pnpm links the package; its dependencies sit next to the real directory in the store
+  const ort = realpathSync(require_('onnxruntime-node'))
+  const ortOut = join(nm, 'onnxruntime-node')
+  mkdirSync(ortOut, { recursive: true })
+  for (const f of ['package.json', 'README.md', 'dist'])
+    cpSync(join(ort, f), join(ortOut, f), { recursive: true, dereference: true })
+  for (const t of targets) {
+    const [platform, arch] = t.split('-')
+    const bin = join('bin', 'napi-v6', platform!, arch!)
+    cpSync(join(ort, bin), join(ortOut, bin), { recursive: true, dereference: true })
+  }
+  cpSync(join(dirname(ort), 'onnxruntime-common'), join(nm, 'onnxruntime-common'), {
+    recursive: true,
+    dereference: true,
+  })
 }
 
 const CACHE = join(REPO, 'node_modules', '.cache', 'gnomeola-natives')

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { AutoRecordSettings, DEFAULT_AUTO_RECORD, SessionMeeting } from './calendar.ts'
+import { DecisionsHealth, DecisionsSettings, StoredDecisionsSettings } from './decisions.ts'
 
 // ---------------------------------------------------------------- primitives
 
@@ -141,7 +142,7 @@ export type AudioDevice = z.infer<typeof AudioDevice>
 
 export const ModelInfo = z.object({
   id: z.string(),
-  role: z.enum(['live', 'final', 'vad', 'segmentation', 'embedding']),
+  role: z.enum(['live', 'final', 'vad', 'segmentation', 'embedding', 'text-embedding']),
   title: z.string(),
   sizeBytes: z.int().nonnegative(),
   state: z.enum(['missing', 'downloading', 'ready', 'corrupt']),
@@ -163,7 +164,7 @@ export type AgentSettings = z.infer<typeof AgentSettings>
 export const LlmProvider = z.enum(['anthropic', 'openai', 'ollama', 'none'])
 export type LlmProvider = z.infer<typeof LlmProvider>
 /** Hosted providers that need an API key (each has its own, from the environment or the keyring). */
-export const KEYED_PROVIDERS = ['anthropic', 'openai'] as const
+export const KEYED_PROVIDERS = ['anthropic', 'openai', 'typesafe'] as const
 export type KeyedProvider = (typeof KEYED_PROVIDERS)[number]
 export const isKeyedProvider = (p: string): p is KeyedProvider =>
   (KEYED_PROVIDERS as readonly string[]).includes(p)
@@ -199,11 +200,16 @@ export const Settings = z.object({
   /** Agent channel: private sessions the user let agents attach to (set through PUT
    *  /sessions/:id/agent-access, not the settings patch). Optional so older settings still parse. */
   agents: AgentSettings.optional(),
+  /** Agendas wave 1B: the typed-decision provider. Optional so older stored settings still parse. */
+  decisions: DecisionsSettings.optional(),
 })
 export type Settings = z.infer<typeof Settings>
 
 /** Settings as persisted: everything except the derived, read-only `apiKeyConfigured`. */
-export const StoredSettings = Settings.extend({ llm: Settings.shape.llm.omit({ apiKeyConfigured: true }) })
+export const StoredSettings = Settings.extend({
+  llm: Settings.shape.llm.omit({ apiKeyConfigured: true }),
+  decisions: StoredDecisionsSettings.optional(),
+})
 export type StoredSettings = z.infer<typeof StoredSettings>
 
 export const SettingsPatch = z.object({
@@ -213,6 +219,7 @@ export const SettingsPatch = z.object({
   retention: Settings.shape.retention.partial().optional(),
   autoRecord: AutoRecordSettings.partial().optional(),
   speakers: SpeakerSettings.partial().optional(),
+  decisions: StoredDecisionsSettings.partial().optional(),
 })
 export type SettingsPatch = z.infer<typeof SettingsPatch>
 
@@ -224,6 +231,8 @@ export const Health = z.object({
   capture: z.object({ available: z.boolean(), backend: z.string(), detail: z.string().nullable() }),
   models: z.array(ModelInfo),
   llm: z.object({ provider: z.string(), ready: z.boolean() }),
+  /** Agendas wave 1B. Optional: daemons before the decision layer do not report it. */
+  decisions: DecisionsHealth.optional(),
 })
 export type Health = z.infer<typeof Health>
 

@@ -1,6 +1,7 @@
 // Generates the fixture meetings in packages/testkit/fixtures from scripted dialogue.
 //
 //   node packages/testkit/scripts/generate-fixtures.ts [fixture-id …]
+//   node packages/testkit/scripts/generate-fixtures.ts --agenda [fixture-id …]   (fixtures/agenda/<id>)
 //
 // Speech is synthesized with sherpa-onnx Piper voices (downloaded and checksum-verified through the stt
 // model manager) and placed on a two-track timeline: the mic track carries the user's lines, the system
@@ -29,6 +30,9 @@ import { join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import type { TrackKind } from '@gnomeola/protocol'
 import { createTts, ModelManager, type SherpaTts, sherpaVersion } from '@gnomeola/stt'
+import { AGENDA_FIXTURES_DIR } from '../src/evals/datasets.ts'
+import type { AgendaTruth } from '../src/fixtures/agenda-schema.ts'
+import { AGENDA_FIXTURE_SCRIPTS, type AgendaDef } from '../src/fixtures/agenda-scripts.ts'
 import { FIXTURES_DIR } from '../src/fixtures/index.ts'
 import { GroundTruth, type Utterance } from '../src/fixtures/schema.ts'
 import {
@@ -194,7 +198,55 @@ function libriText(root: string, id: string): string {
 
 // ------------------------------------------------------------------------------------- generator
 
-async function generate(def: FixtureDef, models: ModelManager): Promise<void> {
+/** Per-item ground truth from the line labels (`starts`/`evidence`/`settles`/`tangent`), on the real timeline. */
+function agendaTruth(agenda: AgendaDef, lines: Line[], utterances: Utterance[]): AgendaTruth {
+  const lastEnd = Math.max(...utterances.map((u) => u.endMs))
+  const known = new Set(agenda.items.map((i) => i.id))
+  lines.forEach((l, i) => {
+    for (const id of [...(l.starts ?? []), ...(l.evidence ?? []), ...(l.settles ?? [])])
+      if (!known.has(id)) throw new Error(`line ${i} labels unknown agenda item ${id}`)
+  })
+  return {
+    meeting: {
+      kind: agenda.meeting.kind,
+      ...(agenda.meeting.userRole ? { userRole: agenda.meeting.userRole } : {}),
+      scheduledEndMs: Math.round(lastEnd + agenda.meeting.scheduledEndAfterLastMs),
+    },
+    goals: agenda.goals,
+    items: agenda.items.map((it) => {
+      const evidence = lines.flatMap((l, i) =>
+        [l.starts, l.evidence, l.settles].some((xs) => xs?.includes(it.id)) ? [i] : [],
+      )
+      const settledBy = lines.findIndex((l) => l.settles?.includes(it.id))
+      const settled = settledBy >= 0
+      return {
+        id: it.id,
+        text: it.text,
+        kind: it.kind,
+        ...(it.owner ? { owner: it.owner } : {}),
+        ...(it.timeboxMin ? { timeboxMin: it.timeboxMin } : {}),
+        expected: {
+          status: settled ? 'covered' : evidence.length ? 'in_progress' : 'not_started',
+          settledAtMs: settled ? utterances[settledBy]!.endMs : null,
+          startedAtMs: evidence.length ? utterances[evidence[0]!]!.startMs : null,
+          evidence,
+          settledBy: settled ? settledBy : null,
+          outcome: it.outcome,
+          answer: it.answer ?? null,
+          answerAliases: it.answerAliases ?? [],
+          implicit: settled && (it.implicit ?? false),
+        },
+      }
+    }),
+    tangents: lines.flatMap((l, i) => (l.tangent ? [i] : [])),
+  }
+}
+
+async function generate(
+  def: FixtureDef & { agenda?: AgendaDef },
+  models: ModelManager,
+  root = FIXTURES_DIR,
+): Promise<void> {
   console.log(`\n== ${def.id}`)
   const rand = mulberry32(seedOf(def.id))
   const speakers = new Map(def.speakers.map((s) => [s.name, s]))
@@ -293,7 +345,7 @@ async function generate(def: FixtureDef, models: ModelManager): Promise<void> {
     for (let i = 0; i < n; i++) buf[i] = Math.max(-1, Math.min(1, buf[i]!))
   }
 
-  const dir = join(FIXTURES_DIR, def.id)
+  const dir = join(root, def.id)
   mkdirSync(dir, { recursive: true })
   const tmp = join(tmpdir(), `gnomeola-fixture-${process.pid}`)
   mkdirSync(tmp, { recursive: true })
@@ -352,6 +404,15 @@ async function generate(def: FixtureDef, models: ModelManager): Promise<void> {
     facts: placed.flatMap((p, i) => (p.line.fact ? [{ key: p.line.fact, text: p.text, utterance: i }] : [])),
     injections: placed.flatMap((p, i) => (p.line.injection ? [i] : [])),
     license: def.license,
+    ...(def.agenda
+      ? {
+          agenda: agendaTruth(
+            def.agenda,
+            placed.map((p) => p.line),
+            utterances,
+          ),
+        }
+      : {}),
     generator: {
       script: 'packages/testkit/scripts/generate-fixtures.ts',
       sherpaOnnx: sherpaVersion().version,
@@ -367,10 +428,13 @@ async function generate(def: FixtureDef, models: ModelManager): Promise<void> {
 }
 
 if (import.meta.main) {
-  const wanted = process.argv.slice(2)
-  const defs = wanted.length ? FIXTURES.filter((f) => wanted.includes(f.id)) : FIXTURES
+  const args = process.argv.slice(2)
+  const agenda = args.includes('--agenda')
+  const wanted = args.filter((a) => a !== '--agenda')
+  const all: (FixtureDef & { agenda?: AgendaDef })[] = agenda ? AGENDA_FIXTURE_SCRIPTS : FIXTURES
+  const defs = wanted.length ? all.filter((f) => wanted.includes(f.id)) : all
   if (wanted.length && defs.length !== wanted.length)
     throw new Error(`unknown fixture in ${wanted.join(', ')}`)
   const models = new ModelManager()
-  for (const def of defs) await generate(def, models)
+  for (const def of defs) await generate(def, models, agenda ? AGENDA_FIXTURES_DIR : FIXTURES_DIR)
 }

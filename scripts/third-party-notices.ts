@@ -91,6 +91,12 @@ export const DATA: { name: string; licence: string; source: string; note: string
     note: 'optional, selectable in Preferences (icefall Zipformers are Apache-2.0)',
   },
   {
+    name: 'all-MiniLM-L6-v2 sentence embeddings (int8 ONNX) + bert-base-uncased WordPiece vocabulary',
+    licence: 'Apache-2.0',
+    source: 'sentence-transformers/all-MiniLM-L6-v2 (ONNX export: Xenova/all-MiniLM-L6-v2)',
+    note: 'on-device decisions provider; model downloaded on demand, vocabulary in packages/decisions/assets',
+  },
+  {
     name: 'Piper voices joe, sam / LJSpeech, cori',
     licence: 'CC0-1.0',
     source: 'rhasspy/piper-voices',

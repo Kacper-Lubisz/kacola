@@ -67,11 +67,13 @@ tree; do not edit it by hand.
 | @tanstack/virtual-core | 3.17.11 | MIT | https://tanstack.com/virtual |
 | @types/node | 18.19.130, 26.6.3 | MIT | https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node |
 | @types/react | 19.3.0 | MIT | https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react |
+| @typesafe-ai/sdk | 0.6.0 | MIT | https://docs.typesafe.ai/sdk/javascript |
 | @vercel/blob | 2.8.0 | Apache-2.0 | https://vercel.com/storage/blob |
 | @vercel/cli-config | 0.3.0 | Apache-2.0 | https://vercel.com/docs/projects/project-configuration/global-configuration |
 | @vercel/cli-exec | 1.0.1 | Apache-2.0 | https://vercel.com |
 | @vercel/oidc | 3.8.9 | Apache-2.0 | https://vercel.com |
 | accepts | 2.0.0 | MIT | https://github.com/jshttp/accepts#readme |
+| adm-zip | 0.6.1 | MIT | https://github.com/cthackers/adm-zip |
 | ajv | 8.20.0 | MIT | https://ajv.js.org |
 | ajv-formats | 3.0.1 | MIT | https://github.com/ajv-validator/ajv-formats#readme |
 | aria-hidden | 1.2.6 | MIT | https://github.com/theKashey/aria-hidden#readme |
@@ -96,6 +98,8 @@ tree; do not edit it by hand.
 | cross-spawn | 7.0.6 | MIT | https://github.com/moxystudio/node-cross-spawn |
 | csstype | 3.2.3 | MIT | https://github.com/frenic/csstype#readme |
 | debug | 4.4.3 | MIT | https://github.com/debug-js/debug#readme |
+| define-data-property | 1.1.4 | MIT | https://github.com/ljharb/define-data-property#readme |
+| define-properties | 1.2.1 | MIT | https://github.com/ljharb/define-properties#readme |
 | defu | 6.1.7 | MIT | https://github.com/unjs/defu#readme |
 | depd | 2.0.0 | MIT | https://github.com/dougwilson/nodejs-depd#readme |
 | destr | 2.0.5 | MIT | https://github.com/unjs/destr#readme |
@@ -109,6 +113,7 @@ tree; do not edit it by hand.
 | es-object-atoms | 1.1.2 | MIT | https://github.com/ljharb/es-object-atoms#readme |
 | esbuild | 0.28.2 | MIT | https://github.com/evanw/esbuild#readme |
 | escape-html | 1.0.3 | MIT | https://github.com/component/escape-html#readme |
+| escape-string-regexp | 4.0.0 | MIT | https://github.com/sindresorhus/escape-string-regexp#readme |
 | etag | 1.8.1 | MIT | https://github.com/jshttp/etag#readme |
 | eventsource | 3.0.7 | MIT | https://github.com/EventSource/eventsource#readme |
 | eventsource-parser | 3.1.1 | MIT | https://github.com/rexxars/eventsource-parser#readme |
@@ -128,7 +133,10 @@ tree; do not edit it by hand.
 | get-proto | 1.0.1 | MIT | https://github.com/ljharb/get-proto#readme |
 | get-stream | 6.0.1 | MIT | https://github.com/sindresorhus/get-stream#readme |
 | giget | 3.3.1 | MIT | https://github.com/unjs/giget#readme |
+| global-agent | 4.1.3 | BSD-3-Clause | https://github.com/gajus/global-agent#readme |
+| globalthis | 1.0.4 | MIT | https://github.com/ljharb/System.global#readme |
 | gopd | 1.2.0 | MIT | https://github.com/ljharb/gopd#readme |
+| has-property-descriptors | 1.0.2 | MIT | https://github.com/inspect-js/has-property-descriptors#readme |
 | has-symbols | 1.1.0 | MIT | https://github.com/ljharb/has-symbols#readme |
 | hasown | 2.0.4 | MIT | https://github.com/inspect-js/hasOwn#readme |
 | hono | 4.13.10 | MIT | https://hono.dev |
@@ -155,6 +163,7 @@ tree; do not edit it by hand.
 | lightningcss-linux-x64-gnu | 1.33.0 | MPL-2.0 | https://github.com/parcel-bundler/lightningcss#readme |
 | lightningcss-linux-x64-musl | 1.33.0 | MPL-2.0 | https://github.com/parcel-bundler/lightningcss#readme |
 | lucide-react | 1.49.0 | ISC | https://lucide.dev |
+| matcher | 4.0.0 | MIT | https://github.com/sindresorhus/matcher#readme |
 | math-intrinsics | 1.1.0 | MIT | https://github.com/es-shims/math-intrinsics#readme |
 | media-typer | 1.1.1 | MIT | https://github.com/jshttp/media-typer#readme |
 | merge-descriptors | 2.0.0 | MIT | https://github.com/sindresorhus/merge-descriptors#readme |
@@ -169,10 +178,13 @@ tree; do not edit it by hand.
 | npm-run-path | 4.0.1 | MIT | https://github.com/sindresorhus/npm-run-path#readme |
 | object-assign | 4.1.1 | MIT | https://github.com/sindresorhus/object-assign#readme |
 | object-inspect | 1.13.4 | MIT | https://github.com/inspect-js/object-inspect |
+| object-keys | 1.1.1 | MIT | https://github.com/ljharb/object-keys#readme |
 | ohash | 2.0.12 | MIT | https://github.com/unjs/ohash#readme |
 | on-finished | 2.4.1 | MIT | https://github.com/jshttp/on-finished#readme |
 | once | 1.4.0 | ISC | https://github.com/isaacs/once#readme |
 | onetime | 5.1.2 | MIT | https://github.com/sindresorhus/onetime#readme |
+| onnxruntime-common | 1.30.0 | MIT | https://github.com/Microsoft/onnxruntime#readme |
+| onnxruntime-node | 1.30.0 | MIT | https://github.com/Microsoft/onnxruntime#readme |
 | os-paths | 4.4.0 | MIT | https://github.com/rivy/js.os-paths#readme |
 | parseurl | 1.3.3 | MIT | https://github.com/pillarjs/parseurl#readme |
 | path-key | 3.1.1 | MIT | https://github.com/sindresorhus/path-key#readme |
@@ -214,7 +226,9 @@ tree; do not edit it by hand.
 | router | 2.2.0 | MIT | https://github.com/pillarjs/router#readme |
 | safer-buffer | 2.1.2 | MIT | https://github.com/ChALkeR/safer-buffer#readme |
 | scheduler | 0.27.0, 0.28.0 | MIT | https://react.dev/ |
+| semver | 7.8.5 | ISC | https://github.com/npm/node-semver#readme |
 | send | 1.2.1 | MIT | https://github.com/pillarjs/send#readme |
+| serialize-error | 8.1.0 | MIT | https://github.com/sindresorhus/serialize-error#readme |
 | seroval | 1.6.8 | MIT | https://github.com/lxsmnsyc/seroval/tree/main/packages/seroval |
 | seroval-plugins | 1.6.8 | MIT | https://github.com/lxsmnsyc/seroval/tree/main/packages/plugins |
 | serve-static | 2.2.1 | MIT | https://github.com/expressjs/serve-static#readme |
@@ -241,6 +255,7 @@ tree; do not edit it by hand.
 | toidentifier | 1.0.1 | MIT | https://github.com/component/toidentifier#readme |
 | ts-algebra | 2.0.0 | MIT | https://github.com/ThomasAribart/ts-algebra#readme |
 | tslib | 2.8.1 | 0BSD | https://www.typescriptlang.org/ |
+| type-fest | 0.20.2 | (MIT OR CC0-1.0) | https://github.com/sindresorhus/type-fest#readme |
 | type-is | 2.1.0 | MIT | https://github.com/jshttp/type-is#readme |
 | undici | 6.29.0 | MIT | https://undici.nodejs.org |
 | undici-types | 5.26.5, 8.9.0 | MIT | https://undici.nodejs.org |
@@ -270,6 +285,7 @@ tree; do not edit it by hand.
 | NeMo TitaNet-small speaker embeddings (en) | CC-BY-4.0 | NVIDIA NeMo via k2-fsa/sherpa-onnx releases | default speaker embedding model (M3); downloaded at first run |
 | WeSpeaker ResNet34 speaker embeddings (VoxCeleb) | CC-BY-4.0 | wenet-e2e/wespeaker via k2-fsa/sherpa-onnx releases | optional alternative embedding model, benchmarked in docs/stt.md |
 | Whisper / Moonshine / Zipformer alternatives | MIT | k2-fsa/sherpa-onnx releases | optional, selectable in Preferences (icefall Zipformers are Apache-2.0) |
+| all-MiniLM-L6-v2 sentence embeddings (int8 ONNX) + bert-base-uncased WordPiece vocabulary | Apache-2.0 | sentence-transformers/all-MiniLM-L6-v2 (ONNX export: Xenova/all-MiniLM-L6-v2) | on-device decisions provider; model downloaded on demand, vocabulary in packages/decisions/assets |
 | Piper voices joe, sam / LJSpeech, cori | CC0-1.0 | rhasspy/piper-voices | test fixtures only (sam: Apache-2.0; ljspeech, cori: public domain) |
 | LibriSpeech test-clean excerpts | CC-BY-4.0 | Panayotov et al., openslr.org/12 | test fixture librispeech-3p |
 | Bricolage Grotesque (variable) | OFL-1.1 | google/fonts ofl/bricolagegrotesque (Ateliertriay) | brand typeface: headings, wordmark, buttons; brand/fonts/ (licence alongside) |

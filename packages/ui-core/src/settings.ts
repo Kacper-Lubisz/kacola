@@ -60,13 +60,24 @@ export function deviceChoices(
 
 /** A `settings.updated` event carries StoredSettings: keep the derived key flag we already know. */
 export function withStored(prev: Settings | null, stored: StoredSettings): Settings {
-  return { ...stored, llm: { ...stored.llm, apiKeyConfigured: prev?.llm.apiKeyConfigured ?? false } }
+  const { decisions, ...rest } = stored
+  return {
+    ...rest,
+    llm: { ...stored.llm, apiKeyConfigured: prev?.llm.apiKeyConfigured ?? false },
+    ...(decisions
+      ? { decisions: { ...decisions, apiKeyConfigured: prev?.decisions?.apiKeyConfigured ?? false } }
+      : {}),
+  }
 }
 
-/** Models the configured pipeline needs: live + VAD always, the final model unless the pass is off. */
+/**
+ * Models the configured pipeline needs: live + VAD always, the final model unless the pass is off. The
+ * decisions text embedder is optional (the on-device provider falls back to a model-free embedder), so it
+ * never blocks onboarding.
+ */
 export function requiredModels(models: readonly ModelInfo[], settings: Settings | null): ModelInfo[] {
   const finalOff = settings?.stt.finalPass === 'off'
-  return models.filter((m) => !(finalOff && m.role === 'final'))
+  return models.filter((m) => !(finalOff && m.role === 'final') && m.role !== 'text-embedding')
 }
 
 export const missingModels = (models: readonly ModelInfo[], settings: Settings | null): ModelInfo[] =>
@@ -93,4 +104,5 @@ export const roleLabel = (role: ModelInfo['role']): string =>
     vad: _('Voice detection'),
     segmentation: _('Speaker turns'),
     embedding: _('Speaker recognition'),
+    'text-embedding': _('Offline decisions'),
   })[role]

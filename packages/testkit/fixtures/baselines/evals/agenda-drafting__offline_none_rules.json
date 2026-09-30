@@ -1,0 +1,35 @@
+{
+  "fixture": "agenda-drafting",
+  "config": "offline_none_rules",
+  "metrics": {
+    "conceptRecall": 0.9821428571428571,
+    "passRate": 0.9285714285714286,
+    "privateLeaks": 0,
+    "itemCountOkRate": 0.9285714285714286,
+    "kindAccuracy": 0.7307692307692307
+  },
+  "bands": {
+    "conceptRecall": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "passRate": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "privateLeaks": {
+      "abs": 0.03,
+      "direction": "lower-is-better"
+    },
+    "itemCountOkRate": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    },
+    "kindAccuracy": {
+      "abs": 0.03,
+      "direction": "higher-is-better"
+    }
+  },
+  "recordedAt": "2026-09-30T16:16:35.227Z",
+  "notes": "agenda-drafting.jsonl n=14"
+}
