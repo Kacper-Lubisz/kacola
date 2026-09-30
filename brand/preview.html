@@ -196,8 +196,8 @@
   .btn.destructive { background: var(--k-color-bg-surface); color: var(--k-color-status-danger-text); border-color: var(--k-color-status-danger); }
   .btn.destructive:hover, .btn.destructive.is-hover { background: color-mix(in srgb, var(--k-color-bg-surface), var(--k-color-status-danger) 7%); }
   .btn.destructive:active, .btn.destructive.is-pressed { background: color-mix(in srgb, var(--k-color-bg-surface), var(--k-color-status-danger) 13%); }
-  .btn.destructive.confirm { background: var(--k-color-accent-record); color: var(--k-color-text-on-accent); border-color: transparent; }
-  .btn.destructive.confirm:hover, .btn.destructive.confirm.is-hover { background: var(--k-color-accent-record-hover); }
+  .btn.destructive.confirm { background: var(--k-color-accent-record-fill); color: var(--k-color-text-on-accent); border-color: transparent; }
+  .btn.destructive.confirm:hover, .btn.destructive.confirm.is-hover { background: var(--k-color-accent-record-fill-hover); }
   .btn.link { background: none; border: 0; padding: 0 2px; height: auto; color: var(--k-color-accent-record-text); }
   .btn.link:hover, .btn.link.is-hover { text-decoration: underline; text-underline-offset: 3px; }
 
@@ -212,11 +212,11 @@
   .rec {
     position: relative; display: inline-flex; align-items: center; gap: 10px;
     height: 44px; padding: 0 20px 0 18px; border-radius: 999px; border: 0; cursor: pointer;
-    background: var(--k-color-accent-record); color: var(--k-color-text-on-accent);
+    background: var(--k-color-accent-record-fill); color: var(--k-color-text-on-accent);
     font: 600 16px/1 var(--k-font-family-display); letter-spacing: -0.005em;
     transition: background-color var(--k-duration-fast) var(--k-easing-out), transform var(--k-duration-fast) var(--k-easing-out);
   }
-  .rec:hover, .rec.is-hover { background: var(--k-color-accent-record-hover); }
+  .rec:hover, .rec.is-hover { background: var(--k-color-accent-record-fill-hover); }
   .rec:active { transform: translateY(0.5px); }
   .rec:focus-visible { outline: var(--k-focus-ring-width) solid var(--k-color-accent-focus); outline-offset: var(--k-focus-ring-offset); }
   .rec .dot { position: relative; width: 10px; height: 10px; border-radius: 50%; background: #fff; }
@@ -820,7 +820,7 @@
     Background: ['bg.window', 'bg.sidebar', 'bg.surface', 'bg.raised', 'bg.hover', 'bg.selected'],
     Border: ['border.subtle', 'border.default', 'border.strong'],
     Text: ['text.primary', 'text.secondary', 'text.tertiary', 'text.onAccent', 'text.onInk'],
-    Accent: ['accent.record', 'accent.recordHover', 'accent.recordText', 'accent.focus', 'ink.primary'],
+    Accent: ['accent.record', 'accent.recordHover', 'accent.recordFill', 'accent.recordFillHover', 'accent.recordText', 'accent.focus', 'ink.primary'],
     Status: ['status.success', 'status.warning', 'status.danger', 'status.info', 'status.successText', 'status.warningText', 'status.dangerText', 'status.infoText'],
     Speakers: ['speaker.1', 'speaker.2', 'speaker.3', 'speaker.4', 'speaker.5', 'speaker.6'],
   }

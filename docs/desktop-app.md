@@ -148,10 +148,13 @@ Chromium on Linux does not reliably map from `nativeTheme.themeSource`. **The ac
 red): the portal's accent colour is ignored. Tests and screenshots: `GNOMEOLA_COLOR_SCHEME=light|dark`,
 `GNOMEOLA_CONTRAST=high`.
 
-Deviations forced by the axe gate (4.5:1 for our 13–15px text): filled record-red surfaces that carry
-white text (the Record button, a confirming destructive button) use `--record-fill-color` (#C93D22
-light / #D0401F dark, 5.0 / 4.7:1) instead of accent.record (4.09 / 3.26:1) — dots, rings and the live
-indicator stay accent.record; status *text* uses the `status.*Text` tokens.
+Deviations forced by the axe gate (4.5:1 for our 13–15px text), all brand tokens now (brand/README.md,
+held by `brand/scripts/tokens.test.ts`): filled record-red surfaces that carry white text (the Record
+button, a confirming destructive button) use `accent.recordFill` / `recordFillHover` (#C93D22 / #B3341B
+light, #D0401F / #C93D22 dark: white text 5.0 / 4.7:1), which `--record-fill-color` maps onto, instead of
+accent.record (4.09 / 3.26:1) — dots, rings and the live indicator stay accent.record; status *text* uses
+the `status.*Text` tokens; `text.tertiary` is the corrected #70675A / #978C7B (4.5:1 on every
+background). No colour in the renderer is a literal: everything is a `--k-*` token or a semantic alias.
 
 The window icon on Linux is `brand/icons/png/512.png` (packaged: `resources/icon.png`). Linux has no
 application menu (so Electron's default Ctrl+R / Ctrl+Shift+I accelerators are gone); the window's
@@ -216,6 +219,15 @@ reusing the GTK app's msgids where the meaning is the same. Catalogues are JSON 
   shows live times) through `matchBaseline(png, baselinePng)` from `@gnomeola/testkit/desktop`. Blur
   focus and park the pointer first, and `emulateMedia({ reducedMotion: 'reduce' })` for still spinners — Playwright's
   `animations: 'disabled'` injects a `<style>` the CSP refuses.
+- **Baselines are deterministic, and every threshold is ≤ 1%** (`expectScreenshot` default `maxDiff`
+  0.01, `baseline()` 0.005). A live screen is frozen, not tolerated: the fake pipeline's
+  `deterministic: true` advances audio a fixed step per tick (finals due in audio time), and
+  `hold: { atMs, releaseFile }` freezes every recording at `atMs` — still recording, re-sending its open
+  partial lines and a steady level — until the test writes `releaseFile`
+  (`desktop-transcript.e2e.test.ts`); a provider stream is held with `api.holdAfter(n)` from
+  `packages/e2e/src/fake-anthropic.ts` (`desktop-ask`, `desktop-notes`). Then reduced motion (no caret
+  blink, pulse or spinner), blur the focus and park the pointer before the shot. A baseline that needs
+  more than 1% has something live in it: freeze that instead of raising the threshold.
 - Third-party widgets that inject `<style>` (CodeMirror's style-mod) must be mounted in a shadow root,
   where they fall back to constructable stylesheets.
 - The client packages may not import testkit (`pnpm boundaries`), which is why window tests live in
@@ -243,8 +255,9 @@ reusing the GTK app's msgids where the meaning is the same. Catalogues are JSON 
   painted frame); `desktop-transcript.e2e.test.ts` reads it and times End / ten Page Downs on the
   1,350-line fixture (`__artifacts__/desktop-transcript-perf.json`). 2026-09-30: first paint 11–12 ms,
   End 9–18 ms, ten Page Downs 15–44 ms (GTK: commit ~7 ms, End ~320 ms, ten Page Downs ~350 ms).
-- Timestamps use text.secondary, not the spec's text.tertiary: tertiary on the surfaces is 3.9:1 and
-  the axe gate needs 4.5:1 at 13px.
+- Timestamps use text.tertiary, as the spec says (the corrected tertiary is 4.5:1 on every background).
+  The selected line is the exception: on its bg.selected tint tertiary is 4.2:1 (light) / 4.3:1 (dark),
+  so that one line's time uses text.secondary.
 
 ## Footprint (E-1 gate, 2026-09-30)
 

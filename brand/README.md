@@ -93,4 +93,10 @@ var(--k-color-bg-surface))` (Tailwind: `bg-speaker-1/14`).
   `status.*` colours are for fills, icons and marks (3:1 on window and surface; light `status.warning` is 2.99:1 on
   `bg.sidebar`, so don't put warning marks on the sidebar without a label). Destructive button text and error
   messages use `status.dangerText`.
+- Added `accent.recordFill` / `accent.recordFillHover` (#C93D22 / #B3341B light, #D0401F / #C93D22 dark) for
+  filled record-red surfaces that carry regular-size white text — the Record button's 15px label, a confirming
+  destructive button. White on `accent.record` is 4.09:1 light / 3.26:1 dark, enough for large or bold text
+  (the 3:1 the token test asks of it) but not for AA body text; the fill is darkened just enough for 5.0 / 4.7:1
+  (tested at 4.5:1, and 3:1 against the window so it still reads as record red). Dots, rings, the live
+  indicator and the brand dot stay `accent.record`. Tailwind: `bg-accent-record-fill`.
 - Added `typography.emptyState` (Fraunces Italic 28/34, 600) so the empty-state headline has a token.
