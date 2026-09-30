@@ -1,0 +1,5 @@
+{
+  "agendaId": "<agd:1>",
+  "markdown": "# 1:1 with Ana\n\n## Goals\n- agree the promo launch date\n\n## Items\n- [x] Promo timeline (10m, @ana) [must-cover]\n  > launch in March\n- [~] Q1 hiring plan (@ana) [info-to-get]\n- [ ] Budget sign-off (5m) [decision]\n- [ ] Offsite (5m, @me)\n",
+  "version": 14
+}

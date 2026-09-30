@@ -221,6 +221,57 @@ describe('hosted contract: every route', () => {
           c.call('putTemplate', { params: { id: 'mine' }, body: { name: 'x', keywords: [], body: 'y' } }),
         ),
       deleteTemplate: () => notHere(c.call('deleteTemplate', { params: { id: 'mine' } })),
+      // agendas: device-local until the team-sharing phase
+      listAgendas: () => notHere(c.call('listAgendas', { query: {} })),
+      createAgenda: () => notHere(c.call('createAgenda', { body: { title: 'x' } })),
+      resolveAgendaLink: () => notHere(c.call('resolveAgendaLink', { body: { link: 'kacola://agenda/a' } })),
+      getAgenda: () => notHere(c.call('getAgenda', { params: { id: 'agd_x' } })),
+      updateAgenda: () => notHere(c.call('updateAgenda', { params: { id: 'agd_x' }, body: {} })),
+      deleteAgenda: () => notHere(c.call('deleteAgenda', { params: { id: 'agd_x' } })),
+      getAgendaHistory: () => notHere(c.call('getAgendaHistory', { params: { id: 'agd_x' } })),
+      addAgendaItems: () =>
+        notHere(c.call('addAgendaItems', { params: { id: 'agd_x' }, body: { items: [{ text: 'x' }] } })),
+      updateAgendaItem: () =>
+        notHere(c.call('updateAgendaItem', { params: { id: 'agd_x', itemId: 'itm_x' }, body: {} })),
+      deleteAgendaItem: () =>
+        notHere(c.call('deleteAgendaItem', { params: { id: 'agd_x', itemId: 'itm_x' } })),
+      setAgendaItemStatus: () =>
+        notHere(
+          c.call('setAgendaItemStatus', {
+            params: { id: 'agd_x', itemId: 'itm_x' },
+            body: { status: 'covered' },
+          }),
+        ),
+      reorderAgendaItems: () =>
+        notHere(c.call('reorderAgendaItems', { params: { id: 'agd_x' }, body: { itemIds: ['itm_x'] } })),
+      exportAgendaMarkdown: () => notHere(c.call('exportAgendaMarkdown', { params: { id: 'agd_x' } })),
+      importAgendaMarkdown: () =>
+        notHere(
+          c.call('importAgendaMarkdown', { params: { id: 'agd_x' }, body: { markdown: '', baseVersion: 1 } }),
+        ),
+      addContextCard: () =>
+        notHere(c.call('addContextCard', { params: { id: 'agd_x' }, body: { title: 't', body: 'b' } })),
+      updateContextCard: () =>
+        notHere(c.call('updateContextCard', { params: { id: 'agd_x', cardId: 'ctx_x' }, body: {} })),
+      deleteContextCard: () =>
+        notHere(c.call('deleteContextCard', { params: { id: 'agd_x', cardId: 'ctx_x' } })),
+      addSuggestion: () =>
+        notHere(
+          c.call('addSuggestion', {
+            params: { id: 'agd_x' },
+            body: { kind: 'question', text: 'x', source: 'tracker' },
+          }),
+        ),
+      acceptSuggestion: () =>
+        notHere(c.call('acceptSuggestion', { params: { id: 'agd_x', suggestionId: 'sug_x' }, body: {} })),
+      dismissSuggestion: () =>
+        notHere(c.call('dismissSuggestion', { params: { id: 'agd_x', suggestionId: 'sug_x' }, body: {} })),
+      agendaInviteBlock: () => notHere(c.call('agendaInviteBlock', { params: { id: 'agd_x' }, body: {} })),
+      createAgentLease: () =>
+        notHere(c.call('createAgentLease', { params: { id: s.id }, body: { name: 'claude' } })),
+      heartbeatAgentLease: () => notHere(c.call('heartbeatAgentLease', { params: { leaseId: 'lse_x' } })),
+      releaseAgentLease: () => notHere(c.call('releaseAgentLease', { params: { leaseId: 'lse_x' } })),
+      liveAttach: () => notHere(c.stream('liveAttach', { params }).next()),
     }
     const seen: RouteName[] = []
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {

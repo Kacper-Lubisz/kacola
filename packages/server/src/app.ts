@@ -294,6 +294,33 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     putAudioChunk: ({ params, body }) => putChunk(audio, params.id, params.chunkSeq, body),
     getAudioStatus: ({ params }) => audioStatus(audio, params.id),
     finalizeAudio: ({ params, body }) => finalize(audio, params.id, body),
+
+    // ---- agendas stay on the recording device until the team-sharing phase (which serves the web link)
+    listAgendas: 'unsupported',
+    createAgenda: 'unsupported',
+    resolveAgendaLink: 'unsupported',
+    getAgenda: 'unsupported',
+    updateAgenda: 'unsupported',
+    deleteAgenda: 'unsupported',
+    getAgendaHistory: 'unsupported',
+    addAgendaItems: 'unsupported',
+    updateAgendaItem: 'unsupported',
+    deleteAgendaItem: 'unsupported',
+    setAgendaItemStatus: 'unsupported',
+    reorderAgendaItems: 'unsupported',
+    exportAgendaMarkdown: 'unsupported',
+    importAgendaMarkdown: 'unsupported',
+    addContextCard: 'unsupported',
+    updateContextCard: 'unsupported',
+    deleteContextCard: 'unsupported',
+    addSuggestion: 'unsupported',
+    acceptSuggestion: 'unsupported',
+    dismissSuggestion: 'unsupported',
+    agendaInviteBlock: 'unsupported',
+    createAgentLease: 'unsupported',
+    heartbeatAgentLease: 'unsupported',
+    releaseAgentLease: 'unsupported',
+    liveAttach: 'unsupported',
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))

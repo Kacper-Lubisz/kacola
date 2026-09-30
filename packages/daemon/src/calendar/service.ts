@@ -3,7 +3,7 @@ import type { EventBus } from '../bus.ts'
 import { DaemonError } from '../errors.ts'
 import type { Logger } from '../logger.ts'
 import { currentAndNext, endOfLocalDay, inWindow, isTimedMeeting, toMeetings, upcoming } from './meetings.ts'
-import type { CalendarInfo, CalendarProvider } from './providers.ts'
+import type { CalendarInfo, CalendarProvider, DescriptionEdit } from './providers.ts'
 
 // C-3: the daemon's calendar. Holds the latest snapshot from the provider in memory (the calendar
 // itself is the source of truth — nothing here is durable), keeps the provider's expansion window
@@ -175,6 +175,23 @@ export class CalendarService {
   upcoming(max = 12): Meeting[] {
     const now = this.now()
     return upcoming(this.meetings, now, endOfLocalDay(now, 1), max)
+  }
+
+  /**
+   * Agendas: rewrite a meeting's description through the provider (the invitation block). Providers that
+   * cannot write (ICS, a JSON file) refuse with a reason the user can act on.
+   */
+  async editDescription(m: Meeting, edit: (current: string) => string): Promise<DescriptionEdit> {
+    const p = this.d.provider
+    if (!p.editDescription)
+      return {
+        ok: false,
+        reason: `the ${p.name} calendar provider is read-only: paste the block into the invitation yourself`,
+      }
+    return p.editDescription(
+      { sourceUid: m.calendar.id, uid: m.uid, recurrenceId: m.recurrenceId, recurring: m.recurring },
+      edit,
+    )
   }
 
   onStarting(fn: Listener): () => void {

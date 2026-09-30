@@ -199,6 +199,60 @@ export const pgMigrations: readonly Migration[] = [
       );
     `,
   },
+  {
+    // agendas (mirror of the SQLite migration of the same name). Flags stay integers here too: the rows
+    // are written by one dialect-neutral set of statements (../agendas-apply.ts).
+    version: 6,
+    name: 'agendas',
+    up: `
+      CREATE TABLE agendas (
+        id text COLLATE "C" PRIMARY KEY,
+        meeting_uid text COLLATE "C",
+        occurrence_key text COLLATE "C",
+        meeting_start text COLLATE "C",
+        session_id text COLLATE "C",
+        private integer NOT NULL,
+        version integer NOT NULL,
+        created_at text COLLATE "C" NOT NULL,
+        updated_at text COLLATE "C" NOT NULL,
+        data text NOT NULL
+      );
+      CREATE INDEX agendas_meeting ON agendas (meeting_uid, occurrence_key);
+      CREATE INDEX agendas_session ON agendas (session_id);
+      CREATE INDEX agendas_updated ON agendas (updated_at);
+      CREATE TABLE agenda_items (
+        id text COLLATE "C" PRIMARY KEY,
+        agenda_id text COLLATE "C" NOT NULL,
+        position integer NOT NULL,
+        status text NOT NULL,
+        evidence text NOT NULL,
+        data text NOT NULL
+      );
+      CREATE INDEX agenda_items_agenda ON agenda_items (agenda_id, position);
+      CREATE TABLE agenda_item_history (
+        agenda_id text COLLATE "C" NOT NULL,
+        version integer NOT NULL,
+        item_id text COLLATE "C" NOT NULL,
+        evidence text NOT NULL,
+        data text NOT NULL,
+        PRIMARY KEY (agenda_id, version)
+      );
+      CREATE INDEX agenda_item_history_item ON agenda_item_history (item_id);
+      CREATE TABLE agenda_context (
+        id text COLLATE "C" PRIMARY KEY,
+        agenda_id text COLLATE "C" NOT NULL,
+        data text NOT NULL
+      );
+      CREATE INDEX agenda_context_agenda ON agenda_context (agenda_id);
+      CREATE TABLE agenda_suggestions (
+        id text COLLATE "C" PRIMARY KEY,
+        agenda_id text COLLATE "C" NOT NULL,
+        state text NOT NULL,
+        data text NOT NULL
+      );
+      CREATE INDEX agenda_suggestions_agenda ON agenda_suggestions (agenda_id);
+    `,
+  },
 ]
 
 const LOCK_KEY = 0x676e6f6d // 'gnom'

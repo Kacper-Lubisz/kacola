@@ -4,6 +4,8 @@ export type Io = {
   /** Whether stdout is a terminal. Agents and pipes get JSON by default. */
   isTTY: boolean
   env: Record<string, string | undefined>
+  /** All of standard input (for `--stdin`); absent where there is none (MCP). */
+  stdin?: () => Promise<string>
 }
 
 export type Format = 'json' | 'text'

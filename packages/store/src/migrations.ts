@@ -223,6 +223,69 @@ export const migrations: readonly Migration[] = [
       ) STRICT;
     `,
   },
+  {
+    // kacola phases 1–2 — agendas (see ./agendas-apply.ts). Mirrored, same version and name, in
+    // ./pg/migrations.ts. Every table is keys + a JSON `data` column written only from events that carry
+    // their full post-state, so both dialects apply them with the same statements. No foreign key to
+    // sessions: an agenda belongs to the calendar occurrence and outlives its recording.
+    version: 6,
+    name: 'agendas',
+    up: `
+      CREATE TABLE agendas (
+        id TEXT PRIMARY KEY,
+        meeting_uid TEXT,
+        -- which occurrence of a series: RECURRENCE-ID (or start) for recurring events, '' for one-offs
+        occurrence_key TEXT,
+        meeting_start TEXT,
+        session_id TEXT,
+        private INTEGER NOT NULL,
+        version INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        data TEXT NOT NULL
+      ) STRICT;
+      CREATE INDEX agendas_meeting ON agendas (meeting_uid, occurrence_key);
+      CREATE INDEX agendas_session ON agendas (session_id);
+      CREATE INDEX agendas_updated ON agendas (updated_at);
+
+      CREATE TABLE agenda_items (
+        id TEXT PRIMARY KEY,
+        agenda_id TEXT NOT NULL,
+        position INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        -- JSON Evidence[]: its own column so deleting a session can drop quotes from its transcript
+        evidence TEXT NOT NULL,
+        data TEXT NOT NULL
+      ) STRICT;
+      CREATE INDEX agenda_items_agenda ON agenda_items (agenda_id, position);
+
+      -- every status change, keyed by the agenda version the change produced
+      CREATE TABLE agenda_item_history (
+        agenda_id TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        item_id TEXT NOT NULL,
+        evidence TEXT NOT NULL,
+        data TEXT NOT NULL,
+        PRIMARY KEY (agenda_id, version)
+      ) STRICT;
+      CREATE INDEX agenda_item_history_item ON agenda_item_history (item_id);
+
+      CREATE TABLE agenda_context (
+        id TEXT PRIMARY KEY,
+        agenda_id TEXT NOT NULL,
+        data TEXT NOT NULL
+      ) STRICT;
+      CREATE INDEX agenda_context_agenda ON agenda_context (agenda_id);
+
+      CREATE TABLE agenda_suggestions (
+        id TEXT PRIMARY KEY,
+        agenda_id TEXT NOT NULL,
+        state TEXT NOT NULL,
+        data TEXT NOT NULL
+      ) STRICT;
+      CREATE INDEX agenda_suggestions_agenda ON agenda_suggestions (agenda_id);
+    `,
+  },
 ]
 
 /**

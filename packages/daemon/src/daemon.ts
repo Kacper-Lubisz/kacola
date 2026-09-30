@@ -20,6 +20,8 @@ import type { AuthConfig } from '@gnomeola/server/auth'
 import { Store } from '@gnomeola/store'
 import type { z } from 'zod'
 import pkg from '../package.json' with { type: 'json' }
+import { agendaHandlers } from './agendas/handlers.ts'
+import { AgendaService } from './agendas/service.ts'
 import { resolveScope, runAsk } from './ask.ts'
 import { AutoRecorder } from './auto-record.ts'
 import { EventBus } from './bus.ts'
@@ -90,6 +92,10 @@ export type DaemonOptions = {
   // ---- P: platform
   /** External capture (macOS): recordings waiting for audio from the app, fed by the ingest route. */
   externalCapture?: ExternalCaptureHub | null
+  // ---- agendas
+  /** Base URL of the hosted agenda page (`<base>/a/<id>`) for invitation blocks. Default
+   *  GNOMEOLA_AGENDA_WEB_BASE, else none (the block carries only the kacola:// link). */
+  agendaWebBase?: string | null
 }
 
 export type Daemon = {
@@ -105,6 +111,7 @@ export type Daemon = {
   readonly control: RecordingControl
   readonly dbus: DbusService | null
   readonly speakers: SpeakerService
+  readonly agendas: AgendaService
   /** Open SSE connections. */
   readonly sseClients: number
   close(): Promise<void>
@@ -174,6 +181,13 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
   })
   speakers = new SpeakerService({ store, sessions, settings: () => settings.get(), logger })
   const spk = speakers
+  const agendas = new AgendaService({
+    store,
+    calendar,
+    logger,
+    webBase: o.agendaWebBase !== undefined ? o.agendaWebBase : (env.GNOMEOLA_AGENDA_WEB_BASE ?? null),
+  })
+  agendas.start()
   const heartbeatMs = o.heartbeatMs ?? 15_000
   const pageSize = o.replayPageSize ?? 500
   const allowedOrigins = new Set(o.allowedOrigins ?? [])
@@ -347,6 +361,8 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     ...hostedHandlers(access),
     // ---- P: platform — external capture ingest
     ...externalCaptureHandlers(o.externalCapture ?? null),
+    // ---- agendas, deep links, the invite block (the live channel's handlers are a later wave's)
+    ...agendaHandlers(agendas),
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))
@@ -422,7 +438,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
       logger.error('response failed its schema', { route: name, issues: checked.error.issues.slice(0, 5) })
       throw new DaemonError('internal', `response for ${name} failed validation`)
     }
-    sendJson(res, name === 'createSession' ? 201 : 200, checked.data)
+    sendJson(res, name === 'createSession' || name === 'createAgenda' ? 201 : 200, checked.data)
   }
 
   const server: Server = createServer((req, res) => {
@@ -487,6 +503,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
       logger.info('shutting down')
       server.close()
       autoRecord.stop()
+      agendas.stop()
       await dbus?.stop()
       await calendar.stop()
       await sessions.stopAll()
@@ -512,6 +529,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     control,
     dbus,
     speakers: spk,
+    agendas,
     get sseClients() {
       return sse.size
     },

@@ -13,6 +13,7 @@ import type {
   SyncItem,
   SyncPushResult,
 } from '@gnomeola/protocol'
+import { agendaSnapshot } from './agendas-apply.ts'
 import type {
   AudioChunkRecord,
   CommitListener,
@@ -171,6 +172,7 @@ export class SqliteStoreApi implements StoreApi {
           .all() as { id: string; speaker_source: string }[]
       ).map((r) => ({ segmentId: r.id, source: r.speaker_source })),
       voiceprints: s.voiceprints().sort(byKey((v) => v.id)),
+      ...agendaSnapshot((q) => this.db.prepare(q).all() as Row[]),
     }
   }
 

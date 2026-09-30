@@ -103,6 +103,15 @@ export function ingestSubject(data: DurableEventData): {
     case 'settings.updated':
     case 'template.upserted':
     case 'template.deleted':
+    case 'agenda.upserted':
+    case 'agenda.deleted':
+    case 'agenda.item.upserted':
+    case 'agenda.item.status':
+    case 'agenda.item.deleted':
+    case 'agenda.items.reordered':
+    case 'agenda.context.upserted':
+    case 'agenda.context.deleted':
+    case 'agenda.suggestion.upserted':
       return { sessionId: null, segmentId: null }
   }
 }
@@ -119,7 +128,7 @@ export function ingestSubject(data: DurableEventData): {
  *   - M3 speakers, merges and attributions apply when their session (and every speaker they name)
  *     exists; voiceprints are biometric, device-local data and are never stored here, even if pushed;
  *   - settings and notes templates are device-local and never synced; deleting an absent session is a
- *     no-op.
+ *     no-op; agendas are device-local until the team-sharing phase.
  */
 export function decideIngest(data: DurableEventData, facts: IngestFacts): IngestDecision {
   switch (data.type) {
@@ -173,6 +182,18 @@ export function decideIngest(data: DurableEventData, facts: IngestFacts): Ingest
     case 'settings.updated':
     case 'template.upserted':
     case 'template.deleted':
+      return { kind: 'skip' }
+    // Agendas stay on the device for now: sharing them (and what an invitee may see — never private
+    // context) is the team-sharing phase's decision, made explicitly, not by replicating the log.
+    case 'agenda.upserted':
+    case 'agenda.deleted':
+    case 'agenda.item.upserted':
+    case 'agenda.item.status':
+    case 'agenda.item.deleted':
+    case 'agenda.items.reordered':
+    case 'agenda.context.upserted':
+    case 'agenda.context.deleted':
+    case 'agenda.suggestion.upserted':
       return { kind: 'skip' }
   }
 }

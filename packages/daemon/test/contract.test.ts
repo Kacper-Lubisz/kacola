@@ -99,6 +99,7 @@ describe('contract: every route, real server, typed client', () => {
     const s = await c.call('createSession', { body: { title: 'contract' } })
     const priv = await c.call('createSession', { body: { title: 'private', private: true } })
     const params = { id: s.id }
+    const ag = { id: '', item: '', card: '', suggestion: '' }
 
     // One entry per route: adding a route to the table without covering it here fails to compile.
     const calls: Record<RouteName, () => Promise<unknown>> = {
@@ -275,6 +276,118 @@ describe('contract: every route, real server, typed client', () => {
         ).rejects.toMatchObject({ status: 415 })
         return true
       },
+
+      // ---- agendas, in the order a user goes through them (the "Sync" meeting is being recorded)
+      createAgenda: async () => {
+        const { next } = await c.call('nextMeeting')
+        const v = await c.call('createAgenda', {
+          body: {
+            meetingId: next!.id,
+            markdown: '- [ ] Promo timeline (10m, @ana) [must-cover]\n- [ ] Budget\n',
+          },
+        })
+        expect(v.agenda).toMatchObject({ title: 'Sync', meeting: { meetingId: next!.id } })
+        expect(v.agenda.sessionId).not.toBeNull()
+        ag.id = v.agenda.id
+        ag.item = v.items[0]!.id
+        return v
+      },
+      listAgendas: async () => {
+        const r = await c.call('listAgendas', { query: {} })
+        expect(r.agendas.map((a) => a.id)).toEqual([ag.id])
+        return r
+      },
+      getAgenda: () => c.call('getAgenda', { params: { id: ag.id } }),
+      updateAgenda: () => c.call('updateAgenda', { params: { id: ag.id }, body: { goals: ['agree dates'] } }),
+      addAgendaItems: () =>
+        c.call('addAgendaItems', {
+          params: { id: ag.id },
+          body: { items: [{ text: 'Offsite', kind: 'question' }] },
+        }),
+      updateAgendaItem: () =>
+        c.call('updateAgendaItem', { params: { id: ag.id, itemId: ag.item }, body: { timeboxMin: 15 } }),
+      setAgendaItemStatus: async () => {
+        const r = await c.call('setAgendaItemStatus', {
+          params: { id: ag.id, itemId: ag.item },
+          body: { status: 'covered', evidence: [{ segmentId: null, quote: 'agreed', confidence: null }] },
+        })
+        expect(r.change).toMatchObject({ from: 'open', to: 'covered', by: 'user' })
+        return r
+      },
+      getAgendaHistory: () => c.call('getAgendaHistory', { params: { id: ag.id } }),
+      reorderAgendaItems: async () => {
+        const v = await c.call('getAgenda', { params: { id: ag.id } })
+        return c.call('reorderAgendaItems', {
+          params: { id: ag.id },
+          body: { itemIds: v.items.map((i) => i.id).reverse() },
+        })
+      },
+      exportAgendaMarkdown: async () => {
+        const r = await c.call('exportAgendaMarkdown', { params: { id: ag.id } })
+        expect(r.markdown, r.markdown).toContain('- [x] Promo timeline (15m, @ana) [must-cover]')
+        return r
+      },
+      importAgendaMarkdown: async () => {
+        const r = await c.call('exportAgendaMarkdown', { params: { id: ag.id } })
+        return c.call('importAgendaMarkdown', {
+          params: { id: ag.id },
+          body: { markdown: `${r.markdown}- [ ] From markdown\n`, baseVersion: r.version },
+        })
+      },
+      deleteAgendaItem: async () => {
+        const v = await c.call('getAgenda', { params: { id: ag.id } })
+        const i = v.items.find((x) => x.text === 'From markdown')!
+        return c.call('deleteAgendaItem', { params: { id: ag.id, itemId: i.id } })
+      },
+      addContextCard: async () => {
+        const card = await c.call('addContextCard', {
+          params: { id: ag.id },
+          body: { title: 'Q3', body: '- up 12%' },
+        })
+        ag.card = card.id
+        expect(card.visibility).toBe('private')
+        return card
+      },
+      updateContextCard: () =>
+        c.call('updateContextCard', {
+          params: { id: ag.id, cardId: ag.card },
+          body: { visibility: 'shared' },
+        }),
+      deleteContextCard: () => c.call('deleteContextCard', { params: { id: ag.id, cardId: ag.card } }),
+      addSuggestion: async () => {
+        const sug = await c.call('addSuggestion', {
+          params: { id: ag.id },
+          body: { kind: 'question', text: 'ask about Q3', source: 'agent:claude' },
+        })
+        ag.suggestion = sug.id
+        return sug
+      },
+      dismissSuggestion: () =>
+        c.call('dismissSuggestion', { params: { id: ag.id, suggestionId: ag.suggestion }, body: {} }),
+      acceptSuggestion: async () => {
+        const sug = await c.call('addSuggestion', {
+          params: { id: ag.id },
+          body: { kind: 'next-point', text: 'budget next', source: 'tracker' },
+        })
+        return c.call('acceptSuggestion', { params: { id: ag.id, suggestionId: sug.id }, body: {} })
+      },
+      resolveAgendaLink: async () => {
+        const r = await c.call('resolveAgendaLink', { body: { link: `kacola://agenda/${ag.id}` } })
+        expect(r.agenda?.agenda.id).toBe(ag.id)
+        expect(r.meeting?.title).toBe('Sync')
+        return r
+      },
+      agendaInviteBlock: async () => {
+        const r = await c.call('agendaInviteBlock', { params: { id: ag.id }, body: { write: true } })
+        expect(r).toMatchObject({ written: true, appLink: `kacola://agenda/${ag.id}`, webLink: null })
+        return r
+      },
+      deleteAgenda: () => c.call('deleteAgenda', { params: { id: ag.id } }),
+      // the live channel: contract only until the agent-channel wave
+      createAgentLease: () => notHere(c.call('createAgentLease', { params, body: { name: 'claude' } })),
+      heartbeatAgentLease: () => notHere(c.call('heartbeatAgentLease', { params: { leaseId: 'lse_x' } })),
+      releaseAgentLease: () => notHere(c.call('releaseAgentLease', { params: { leaseId: 'lse_x' } })),
+      liveAttach: () => notHere(c.stream('liveAttach', { params }).next()),
     }
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {
       await expect(call(), name).resolves.toBeDefined()

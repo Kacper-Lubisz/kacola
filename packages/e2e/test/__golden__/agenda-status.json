@@ -1,0 +1,20 @@
+{
+  "agendaId": "<agd:1>",
+  "item": {
+    "n": 1,
+    "id": "<itm:1>",
+    "text": "Promo timeline",
+    "kind": "must-cover",
+    "owner": "ana",
+    "timeboxMin": 10,
+    "status": "covered",
+    "outcome": "launch in March"
+  },
+  "change": {
+    "itemId": "<itm:1>",
+    "from": "open",
+    "to": "covered",
+    "by": "user",
+    "at": "<iso>"
+  }
+}

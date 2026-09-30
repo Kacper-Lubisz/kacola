@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { agendaRoutes } from './agendas.ts'
 import { CalendarStatus, JoinMeetingBody, ListMeetingsQuery, MeetingList, NextMeeting } from './calendar.ts'
 import { externalCaptureRoutes } from './capture.ts'
 import {
@@ -286,6 +287,8 @@ export const routes = {
   },
   // ---- P: platform — external capture ingest (the macOS app supplies audio; schemas in ./capture.ts)
   ...externalCaptureRoutes,
+  // ---- kacola phases 1–2: agendas, deep links, the invite block, the live channel (./agendas.ts)
+  ...agendaRoutes,
 } as const satisfies Record<string, RouteDef>
 
 export type Routes = typeof routes
