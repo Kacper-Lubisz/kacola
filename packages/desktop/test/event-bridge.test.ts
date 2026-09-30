@@ -1,4 +1,4 @@
-import type { QaMessage, Settings } from '@gnomeola/protocol'
+import type { CalendarStatus, QaMessage, Settings } from '@gnomeola/protocol'
 import { fromHistory, type QaState } from '@gnomeola/ui-core/qa'
 import type { SessionsState } from '@gnomeola/ui-core/sessions'
 import { fromSummaries, type SpeakersState } from '@gnomeola/ui-core/speakers'
@@ -307,5 +307,32 @@ describe('connection, gaps and reconnects', () => {
     await flush()
     bridge.stop()
     expect(daemon.current().signal!.aborted).toBe(true)
+  })
+})
+
+describe('status reports into queries (models, calendar)', () => {
+  it('model.progress updates the cached model list; calendar.updated replaces the calendar status', async () => {
+    const { daemon, bridge, qc, store } = setup({ lastSeq: 1 })
+    bridge.start()
+    await bridge.ready
+    const m = { id: 'w', role: 'final', title: 'w', sizeBytes: 1, state: 'missing', progress: null } as const
+    // nothing cached: nothing created
+    daemon.emit(ephemeral({ type: 'model.progress', model: { ...m, state: 'downloading', progress: 0.2 } }))
+    expect(qc.getQueryData(keys.models())).toBeUndefined()
+    qc.setQueryData(keys.models(), [m, { ...m, id: 'v' }])
+    daemon.emit(ephemeral({ type: 'model.progress', model: { ...m, state: 'downloading', progress: 0.4 } }))
+    expect(
+      qc.getQueryData<{ id: string; progress: number | null }[]>(keys.models())!.map((x) => x.progress),
+    ).toEqual([0.4, null])
+    expect(store.getState().modelProgress.w!.progress).toBe(0.4)
+    const cal: CalendarStatus = {
+      state: 'ok',
+      provider: 'file',
+      detail: null,
+      calendars: [{ id: 'w', name: 'Work' }],
+      updatedAt: null,
+    }
+    daemon.emit(ephemeral({ type: 'calendar.updated', calendar: cal }))
+    expect(qc.getQueryData(keys.calendar())).toEqual(cal)
   })
 })

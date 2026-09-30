@@ -22,6 +22,7 @@ import {
   NavigationList,
   RecordButton,
   SearchField,
+  useSplitView,
 } from '../../design/primitives/index.ts'
 import { useDialogs } from '../shell/dialogs.tsx'
 import { useRecorder } from './recorder.ts'
@@ -62,6 +63,8 @@ export function SessionSidebar({ missingModels }: { missingModels: number }) {
   const navigate = useNavigate()
   const dialogs = useDialogs()
   const recorder = useRecorder()
+  // collapsed, the sidebar is the whole window: its header bar carries both window-button groups
+  const { collapsed } = useSplitView()
   const [query, setQuery] = useState('')
   const all = data?.ordered ?? []
   // relative times ("5 min ago") keep moving; a recording's clock ticks every second
@@ -94,7 +97,7 @@ export function SessionSidebar({ missingModels }: { missingModels: number }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <HeaderBar
-        controls="start"
+        controls={collapsed ? 'both' : 'start'}
         start={
           <RecordButton
             state={recorder.state}

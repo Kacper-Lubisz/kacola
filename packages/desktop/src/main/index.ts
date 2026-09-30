@@ -8,6 +8,7 @@ import {
   type IpcMainEvent,
   type IpcMainInvokeEvent,
   ipcMain,
+  Menu,
   type MessagePortMain,
   nativeTheme,
   net,
@@ -16,6 +17,7 @@ import {
   shell,
   type WebContents,
 } from 'electron'
+import pkg from '../../package.json' with { type: 'json' }
 import {
   type AppInfo,
   type DaemonStatus,
@@ -194,7 +196,8 @@ function wireIpc(): void {
   handle(
     IPC.appInfo,
     (): AppInfo => ({
-      version: app.getVersion(),
+      // the app's own version (app.getVersion() is Electron's when run unpackaged from out/main)
+      version: pkg.version,
       electron: process.versions.electron,
       platform: process.platform,
       daemonUrl: config.baseUrl,
@@ -213,7 +216,9 @@ function wireIpc(): void {
   )
   handle(IPC.i18n, () =>
     loadCatalogue(
-      app.isPackaged ? join(process.resourcesPath, 'locale') : join(HERE, '..', 'locale'),
+      // GNOMEOLA_LOCALE_DIR: a directory of <lang>.json catalogues (tests; the GTK app honours it too)
+      process.env.GNOMEOLA_LOCALE_DIR ||
+        (app.isPackaged ? join(process.resourcesPath, 'locale') : join(HERE, '..', 'locale')),
       preferredLanguages(process.env, app.getPreferredSystemLanguages()),
     ),
   )
@@ -323,6 +328,10 @@ app.on('before-quit', (e) => {
 for (const sig of ['SIGTERM', 'SIGINT'] as const) process.on(sig, () => app.quit())
 
 void app.whenReady().then(async () => {
+  // Linux: no application menu, so Electron's default accelerators (Ctrl+R reload, Ctrl+Shift+I
+  // devtools) are gone; the window's own shortcuts live in the renderer (features/shell/shortcuts.tsx).
+  // macOS keeps the default menu (Cmd+Q, the Edit menu's copy / paste).
+  if (process.platform !== 'darwin') Menu.setApplicationMenu(null)
   wireSession()
   wireIpc()
   readButtonLayout()

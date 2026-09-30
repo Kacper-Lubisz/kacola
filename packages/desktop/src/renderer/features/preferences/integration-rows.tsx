@@ -42,7 +42,8 @@ export function cliSubtitle(s: CliInstallState | undefined): string {
 export function useCliInstall() {
   const { bridge } = useServices()
   const qc = useQueryClient()
-  const status = useQuery({ queryKey: CLI_KEY, queryFn: () => bridge.cliStatus(), staleTime: 10_000 })
+  // always re-checked when shown: another install (or the user) may have changed PATH since
+  const status = useQuery({ queryKey: CLI_KEY, queryFn: () => bridge.cliStatus(), refetchOnMount: 'always' })
   const [busy, setBusy] = useState(false)
   const run = async (fn: () => Promise<CliInstallState>): Promise<CliInstallState> => {
     setBusy(true)
