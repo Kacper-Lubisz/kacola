@@ -16,7 +16,7 @@ import { ExternalCaptureHub } from '@gnomeola/capture'
 import { SyncAgent } from '@gnomeola/capture-agent/sync'
 import { createClient } from '@gnomeola/protocol'
 import { DEFAULT_MODELS, defaultModelsDir, ModelManager } from '@gnomeola/stt'
-import { heuristicGuard } from './agents/guard.ts'
+import { heuristicGuard, passThroughGuard } from './agents/guard.ts'
 import { IcsCalendarProvider } from './calendar/ics.ts'
 import { EdsCalendarProvider, FileCalendarProvider, NoCalendar } from './calendar/providers.ts'
 import { parseConfig, UsageError } from './config.ts'
@@ -126,7 +126,10 @@ async function main(): Promise<void> {
   }
   opts.agentLimits = cfg.agentLimits
   opts.livePartialEveryMs = cfg.livePartialEveryMs
+  // decisions (default): leave unset so the daemon uses the tracker's decision-based guard
   if (cfg.speechGuard === 'heuristic') opts.speechGuard = heuristicGuard
+  if (cfg.speechGuard === 'none') opts.speechGuard = passThroughGuard
+  if (!cfg.tracker) opts.tracker = false
   opts.qaEngine = cfg.fakeQa ? new FakeQaEngine() : new LlmQaEngine()
   opts.notesEngine = cfg.fakeQa ? new FakeNotesEngine() : new LlmNotesEngine()
 

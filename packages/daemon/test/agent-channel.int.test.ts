@@ -148,6 +148,7 @@ describe('agent channel', () => {
     dir = mkdtempSync(join(tmpdir(), 'gnomeola-agents-'))
     daemon = await createDaemon({
       dataDir: dir,
+      tracker: false, // the channel on its own
       port: 0,
       pipeline,
       keyring: new MemoryKeyring(),

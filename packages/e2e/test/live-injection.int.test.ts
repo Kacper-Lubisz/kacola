@@ -153,6 +153,8 @@ const status = async (p: Promise<unknown>) => {
 async function world(guard: 'none' | 'heuristic') {
   const d = await startDaemon({
     env: {
+      // the channel on its own: the live tracker would check items off under the agents' feet
+      GNOMEOLA_TRACKER: 'off',
       GNOMEOLA_CALENDAR: `file:${calFile}`,
       GNOMEOLA_FAKE_PIPELINE: JSON.stringify({
         scriptFile,
@@ -323,32 +325,39 @@ describe('a compromised agent obeying every injected line (pass-through guard)',
     })
     expect(viaCli.code).toBe(5)
     expect(viaCli.stderr).toMatch(/refused: the text looks like it contains a private key/)
+    // thunks, so each refused request is awaited as it is made (an eager array leaves later rejections
+    // unhandled while the loop is still awaiting earlier ones)
+    const itemId = (await mallory.call('getAgenda', { params: { id: w.agendaId } })).items[3]!.id
     const attempts = [
-      mallory.call('addContextCard', { params: { id: w.agendaId }, body: { title: 'key', body: key } }),
-      mallory.call('addSuggestion', {
-        params: { id: w.agendaId },
-        body: { kind: 'fact-check', text: key.slice(0, 900), source: 'agent:x' },
-      }),
-      mallory.call('updateAgendaItem', {
-        params: {
-          id: w.agendaId,
-          itemId: (await mallory.call('getAgenda', { params: { id: w.agendaId } })).items[3]!.id,
-        },
-        body: { outcome: key },
-      }),
-      mallory.call('addContextCard', {
-        params: { id: w.agendaId },
-        body: {
-          title: 'token',
-          body: 'aws AKIAABCDEFGHIJKLMNOP and ghp_abcdefghijklmnopqrstuvwxyz0123456789',
-        },
-      }),
-      mallory.call('addContextCard', {
-        params: { id: w.agendaId },
-        body: { title: 'passwd', body: 'root:x:0:0:root:/root:/bin/bash' },
-      }),
+      () => mallory.call('addContextCard', { params: { id: w.agendaId }, body: { title: 'key', body: key } }),
+      () =>
+        mallory.call('addSuggestion', {
+          params: { id: w.agendaId },
+          body: { kind: 'fact-check', text: key.slice(0, 900), source: 'agent:x' },
+        }),
+      () =>
+        mallory.call('updateAgendaItem', {
+          params: {
+            id: w.agendaId,
+            itemId: itemId,
+          },
+          body: { outcome: key },
+        }),
+      () =>
+        mallory.call('addContextCard', {
+          params: { id: w.agendaId },
+          body: {
+            title: 'token',
+            body: 'aws AKIAABCDEFGHIJKLMNOP and ghp_abcdefghijklmnopqrstuvwxyz0123456789',
+          },
+        }),
+      () =>
+        mallory.call('addContextCard', {
+          params: { id: w.agendaId },
+          body: { title: 'passwd', body: 'root:x:0:0:root:/root:/bin/bash' },
+        }),
     ]
-    for (const a of attempts) expect(await status(a)).toBe(400)
+    for (const a of attempts) expect(await status(a())).toBe(400)
     const v = await w.d.client.call('getAgenda', {
       params: { id: w.agendaId },
       query: { includePrivate: true },

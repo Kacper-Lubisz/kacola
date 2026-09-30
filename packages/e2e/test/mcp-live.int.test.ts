@@ -82,6 +82,8 @@ beforeAll(async () => {
   )
   d = await startDaemon({
     env: {
+      // the channel on its own: the live tracker would check items off under the agents' feet
+      GNOMEOLA_TRACKER: 'off',
       GNOMEOLA_CALENDAR: `file:${calFile}`,
       GNOMEOLA_FAKE_PIPELINE: JSON.stringify({
         scriptFile: FIXTURE,
