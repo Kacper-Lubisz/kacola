@@ -423,7 +423,10 @@ describe('desktop transcript pane against the real daemon', () => {
   })
 
   it('stops: the partial line goes, every line becomes final, and it matches the daemon', async () => {
-    await daemon.client.call('stopSession', { params: { id: liveId } })
+    // with the window's own Stop button, as the GTK suite did
+    await w().getByRole('button', { name: 'Stop', exact: true }).click()
+    await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 10_000 })
+    expect((await daemon.client.call('getSession', { params: { id: liveId } })).status).toBe('stopped')
     const { segments } = await poll(
       async () => {
         const t = await daemon.client.call('getTranscript', { params: { id: liveId } })
