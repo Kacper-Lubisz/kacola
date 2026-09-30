@@ -53,7 +53,7 @@ export type DesktopApp = {
   /** Console errors, page errors and CSP violations seen so far. */
   problems: () => string[]
   /** axe-core over the current page: violations as "rule-id: target" strings (empty = clean). */
-  axe: (opts?: { disableRules?: string[] }) => Promise<string[]>
+  axe: (opts?: { disableRules?: string[]; incomplete?: boolean }) => Promise<string[]>
   /** PNG of the page as Chromium renders it. */
   screenshot: (path: string) => Promise<string>
   /** Evaluate in the main process (Playwright passes the electron module). */
@@ -114,7 +114,12 @@ export async function launchDesktop(o: LaunchDesktopOptions): Promise<DesktopApp
         .setLegacyMode(true)
         .disableRules(opts.disableRules ?? [])
         .analyze()
-      return r.violations.flatMap((v) =>
+      // `incomplete`: also what axe could not decide (e.g. text over an image or a gradient) — for
+      // callers that want to see every contrast check that did not pass outright
+      return [
+        ...r.violations,
+        ...(opts.incomplete ? r.incomplete.map((i) => ({ ...i, id: `${i.id} (incomplete)` })) : []),
+      ].flatMap((v) =>
         v.nodes.map(
           (n) => `${v.id}: ${n.target.join(' ')} ${n.html.slice(0, 120)} — ${n.failureSummary ?? v.help}`,
         ),
