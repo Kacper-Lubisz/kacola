@@ -54,7 +54,12 @@ export class OnnxEmbedder implements Embedder {
     this.#batch = batch
   }
 
-  /** `dir` = the installed model directory (the model manager's path for TEXT_EMBEDDING_MODEL_ID). */
+  /**
+   * `dir` = the installed model directory (the model manager's path for TEXT_EMBEDDING_MODEL_ID).
+   * `batch` defaults to 1: the int8 model quantises activations dynamically over the whole input tensor,
+   * padding included, so a batched text's vector would depend on its neighbours (measured: cosine 0.991
+   * between batched and single). One text per run keeps embeddings reproducible; it costs ~2 ms a text.
+   */
   static async create(dir: string, opts: { maxLength?: number; batch?: number; threads?: number } = {}) {
     const file = join(dir, TEXT_EMBEDDING_MODEL_FILE)
     if (!existsSync(file)) throw new Error(`text embedding model not found at ${file}`)
@@ -69,7 +74,7 @@ export class OnnxEmbedder implements Embedder {
       session,
       WordPieceTokenizer.fromFile(),
       opts.maxLength ?? 256,
-      opts.batch ?? 16,
+      opts.batch ?? 1,
     )
   }
 
