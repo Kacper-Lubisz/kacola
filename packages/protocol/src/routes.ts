@@ -192,7 +192,7 @@ export const routes = {
     /** Stores (or clears, with null) a provider's key; `provider` defaults to the current one. */
     body: z.object({
       key: z.string().min(1).nullable(),
-      provider: z.enum(['anthropic', 'openai']).optional(),
+      provider: z.enum(['anthropic', 'openai', 'typesafe']).optional(),
     }),
     response: z.object({ configured: z.boolean() }),
   },

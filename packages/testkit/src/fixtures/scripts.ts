@@ -26,6 +26,12 @@ export type Line = {
   pauseMs?: number
   fact?: string
   injection?: boolean
+  /** Agenda fixtures: item ids this line first raises / bears on / settles (see agenda-scripts.ts). */
+  starts?: string[]
+  evidence?: string[]
+  settles?: string[]
+  /** Agenda fixtures: an off-agenda tangent. */
+  tangent?: boolean
 }
 export type ScriptItem = Line | { silenceMs: number } | { gapMs: number; reason: string }
 export type FixtureDef = {
@@ -52,7 +58,7 @@ export const VOICE = {
 const LIBRI_LICENSE =
   'LibriSpeech test-clean (Panayotov et al., 2015), CC BY 4.0, https://www.openslr.org/12 — utterances as listed in `source`.'
 
-const TTS_LICENSE =
+export const TTS_LICENSE =
   'Synthesized with Piper voices (MIT code; voices trained on public-domain, CC0 or Apache-2.0 data — see docs/stt.md). Script and audio: GPL-3.0-or-later as part of gnomeola.'
 
 export const FIXTURE_SCRIPTS: FixtureDef[] = [

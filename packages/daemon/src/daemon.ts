@@ -30,6 +30,7 @@ import { type CalendarProvider, NoCalendar } from './calendar/providers.ts'
 import { CalendarService } from './calendar/service.ts'
 import { RecordingControl } from './control.ts'
 import { DbusService } from './dbus/service.ts'
+import { DecisionsService } from './decisions.ts'
 import { apiErrorBody, DaemonError, toDaemonError } from './errors.ts'
 import { streamEvents } from './events-stream.ts'
 import { externalCaptureHandlers } from './external-capture.ts'
@@ -96,6 +97,9 @@ export type DaemonOptions = {
   /** Base URL of the hosted agenda page (`<base>/a/<id>`) for invitation blocks. Default
    *  GNOMEOLA_AGENDA_WEB_BASE, else none (the block carries only the kacola:// link). */
   agendaWebBase?: string | null
+  // ---- Agendas wave 1B: decisions
+  /** The installed text-embedding model's directory (null = not downloaded: hashing fallback). */
+  decisionEmbedderDir?: () => Promise<string | null>
 }
 
 export type Daemon = {
@@ -112,6 +116,8 @@ export type Daemon = {
   readonly dbus: DbusService | null
   readonly speakers: SpeakerService
   readonly agendas: AgendaService
+  /** Agendas wave 1B: the typed-decision provider the settings select. */
+  readonly decisions: DecisionsService
   /** Open SSE connections. */
   readonly sseClients: number
   close(): Promise<void>
@@ -156,6 +162,11 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
   const devices = o.devices ?? new NoDevices()
   const engine = o.qaEngine ?? null
   const settings = new SettingsService({ store, keyring: o.keyring ?? new NoKeyring(), env, logger })
+  const decisions = new DecisionsService({
+    settings,
+    logger,
+    ...(o.decisionEmbedderDir ? { embedderDir: o.decisionEmbedderDir } : {}),
+  })
   // M3: the speaker service and the session manager need each other; bound late.
   let speakers: SpeakerService | null = null
   const sessions = new SessionManager({
@@ -242,6 +253,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     capture: await pipeline.health(),
     models: await models.list(),
     llm: { provider: settings.get().llm.provider, ready: await llmReady() },
+    decisions: await decisions.health(),
   })
 
   const handlers: Handlers = {
@@ -524,6 +536,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     bus,
     logger,
     sessions,
+    decisions,
     settings,
     calendar,
     control,

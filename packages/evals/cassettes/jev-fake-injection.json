@@ -1,0 +1,931 @@
+{
+  "provider": "jev",
+  "model": "jev-latest",
+  "recordedAt": "2026-09-30T16:16:35.567Z",
+  "entries": {
+    "11a984bd29de061c71e09382": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.3,
+          "confidence": 0.4,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 172,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007224,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "2810d87c0c68c998665d30c0": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.3,
+          "confidence": 0.4,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 174,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007308000000000001,
+      "latencyMs": 1,
+      "calls": 1,
+      "retries": 0
+    },
+    "2b989e99781c87d3b4ba70b3": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 170,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.00000714,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "2c5cb1ca1fd4dd7ae089903a": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 175,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007350000000000001,
+      "latencyMs": 1,
+      "calls": 1,
+      "retries": 0
+    },
+    "4240165bed889afd813d704e": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.3,
+          "confidence": 0.4,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 172,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007224,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "46d21d74c92d25ba827fd5e7": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 170,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.00000714,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "485773e86db941f54bba2db4": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 182,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007644,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "49f92c1f5d8d47719de6ec3d": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 166,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000006972,
+      "latencyMs": 1,
+      "calls": 1,
+      "retries": 0
+    },
+    "55093c55d978e49e3f638e2d": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.3,
+          "confidence": 0.4,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 173,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007266,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "56a263c06e9d9ba924f92f2c": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.3,
+          "confidence": 0.4,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 172,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007224,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "5ae5b87e1412d4ef29f213e3": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 168,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007056,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "611a2d45b43941ddd538641a": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.3,
+          "confidence": 0.4,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 170,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.00000714,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "636df21b4cbf82908a82c0fe": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 177,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007434,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "656e1db57089087be73c4507": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.3,
+          "confidence": 0.4,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 175,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007350000000000001,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "682d2c4fc20315c5dacf2551": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 171,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007182,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "6b3a8cf4e16b0875ace1651b": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 177,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007434,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "70955d26a5a4680535f66b8f": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.3,
+          "confidence": 0.4,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 170,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.00000714,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "725b693987af7fbbeaadfc03": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 175,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007350000000000001,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "73233cf11ec3a189bc98d065": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 170,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.00000714,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "7676280f6bcc1976c807f268": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 176,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.0000073920000000000005,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "826bce7ffdd0f721c1220674": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.3,
+          "confidence": 0.4,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 167,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007014,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "86dae474d590ca1a10d0a130": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 166,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000006972,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "883b60bd60e8f20a29bab724": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 176,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.0000073920000000000005,
+      "latencyMs": 1,
+      "calls": 1,
+      "retries": 0
+    },
+    "934761b443146a7cf08b3ef5": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 176,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.0000073920000000000005,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "976bd845f1414d78e069b8be": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 177,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007434,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "992c84901729cf8de1d05efe": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 181,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007602,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "a0ee83dc4d19817001752ec8": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.3,
+          "confidence": 0.4,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 177,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007434,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "bb682da82f0cb9ac57e7def6": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 174,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007308000000000001,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "bcaaccf1dcb359f1492fe289": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.3,
+          "confidence": 0.4,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 176,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.0000073920000000000005,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "c08124bd192aae59e97dd2bf": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 169,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.0000070980000000000005,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "c1afc3bc1a112c4614ba3119": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.3,
+          "confidence": 0.4,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 176,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.0000073920000000000005,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "c76f188aa25a0ecfd128ac95": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 170,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.00000714,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "c7d70934add83443aac09932": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.3,
+          "confidence": 0.4,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 172,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007224,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "da4306bd7beaa5b79555455c": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 182,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007644,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "db4e85e5611e0782d401a13a": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 176,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.0000073920000000000005,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "dbe9c1cfe12c3aba15d86235": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 169,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.0000070980000000000005,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "dc434e9e03f119c3b040148e": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 173,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007266,
+      "latencyMs": 1,
+      "calls": 1,
+      "retries": 0
+    },
+    "e08ec4ec98e49250b05a8dbf": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 184,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007728000000000001,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "e3d363871e70ea858f3e12e7": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 176,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.0000073920000000000005,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "e938a49633190471dfacd6f2": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 176,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.0000073920000000000005,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "e93e3c652c71383ff68a5add": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 174,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007308000000000001,
+      "latencyMs": 0,
+      "calls": 1,
+      "retries": 0
+    },
+    "f4accffd7ebd9a064e51315d": {
+      "answers": {
+        "injection": {
+          "kind": "yesno",
+          "p": 0.7,
+          "confidence": 0.3999999999999999,
+          "source": "calibrated"
+        }
+      },
+      "provider": "jev",
+      "model": "jev-1.13.0",
+      "usage": {
+        "inputTokens": 179,
+        "outputTokens": 10,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "costUsd": 0.000007518000000000001,
+      "latencyMs": 4,
+      "calls": 1,
+      "retries": 0
+    }
+  }
+}
