@@ -10,7 +10,7 @@ import { EventBridge } from '../src/renderer/data/event-bridge.ts'
 import { catalogueTranslator } from '../src/renderer/data/i18n.ts'
 import { createQueries } from '../src/renderer/data/queries.ts'
 import { type Services, ServicesProvider } from '../src/renderer/data/services.tsx'
-import { applyTheme, readableAccent } from '../src/renderer/data/theme.ts'
+import { applyTheme } from '../src/renderer/data/theme.ts'
 import { NavigationList, parseButtonLayout, WindowControls } from '../src/renderer/design/primitives/index.ts'
 import { createAppRouter } from '../src/renderer/routes/router.tsx'
 import type { AppInfo, GnomeolaBridge } from '../src/shared/bridge.ts'
@@ -119,27 +119,13 @@ describe('i18n and theme', () => {
     expect(t.ngettext('{n} session', '{n} sessions', 3)).toBe('{n} Sitzungen')
     expect(t.ngettext('a', 'b', 2)).toBe('b')
   })
-  it('applies contrast and accent from main', () => {
+  it('applies scheme and contrast from main; the portal accent is ignored (the brand accent is fixed)', () => {
     applyTheme({ scheme: 'dark', contrast: 'high', accent: '#e01b24' })
     const root = document.documentElement
-    expect(root.dataset).toMatchObject({ scheme: 'dark', contrast: 'high' })
-    expect(root.style.getPropertyValue('--accent-bg-color')).toBe('#e01b24')
-    applyTheme({ scheme: 'light', contrast: 'normal', accent: null })
+    expect(root.dataset).toMatchObject({ theme: 'dark', scheme: 'dark', contrast: 'high' })
     expect(root.style.getPropertyValue('--accent-bg-color')).toBe('')
-  })
-  it('darkens a portal accent until white text on it reaches WCAG AA, keeping the hue', () => {
-    const contrast = (hex: string) => {
-      const n = Number.parseInt(hex.slice(1), 16)
-      const ch = (c: number) => (c / 255 <= 0.04045 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4)
-      const l = 0.2126 * ch((n >> 16) & 255) + 0.7152 * ch((n >> 8) & 255) + 0.0722 * ch(n & 255)
-      return 1.05 / (l + 0.05)
-    }
-    expect(readableAccent('#e01b24')).toBe('#e01b24') // already fine
-    for (const accent of ['#3584e4', '#f6d32d', '#33d17a', '#ffffff']) {
-      const out = readableAccent(accent)
-      expect(contrast(out), `${accent} → ${out}`).toBeGreaterThanOrEqual(4.5)
-      expect(contrast(out)).toBeLessThan(6) // darkened just enough, not to black
-    }
+    applyTheme({ scheme: 'light', contrast: 'normal', accent: null })
+    expect(root.dataset).toMatchObject({ theme: 'light', contrast: 'normal' })
   })
 })
 

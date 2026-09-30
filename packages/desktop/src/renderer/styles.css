@@ -1,57 +1,54 @@
 @import "tailwindcss";
+@import "./design/theme-reset.css";
+/* the kacola brand (brand/README.md): bundled OFL fonts (no network fonts — the CSP allows none),
+   the --k-* tokens with light / dark / high contrast / reduced motion, and their Tailwind mapping */
+@import "../../../../brand/tokens/fonts.css";
+@import "../../../../brand/tokens/tokens.css";
+@import "../../../../brand/tokens/tailwind.css";
 @import "./design/tokens.css";
 
 /*
- * Tailwind sees ONLY our tokens: the default palette, radii and fonts are cleared, so a class like
- * `bg-blue-500` does not exist and every colour in the app is a design token. Utilities:
- *   bg-window bg-view bg-headerbar bg-sidebar bg-card bg-accent bg-destructive … (backgrounds)
- *   text-fg text-dim text-accent text-destructive text-on-accent …                (foregrounds)
- *   border-line rounded-button rounded-card font-sans font-mono
+ * Utilities. Brand names (brand/tokens/tailwind.css): bg-bg-window bg-bg-sidebar bg-bg-surface
+ * bg-bg-raised bg-accent-record bg-ink-primary text-text-primary text-text-secondary text-text-tertiary
+ * text-accent-record-text border-border-default font-display font-sans font-editorial font-mono
+ * text-title1 type-overline rounded-md rounded-pill shadow-e1..e3 animate-record-pulse.
+ * Semantic aliases (design/tokens.css), for screens that mean a role rather than a colour:
  */
-@theme {
-  --color-*: initial;
-  --radius-*: initial;
-  --font-*: initial;
-}
-
 @theme inline {
   --color-window: var(--window-bg-color);
   --color-view: var(--view-bg-color);
   --color-headerbar: var(--headerbar-bg-color);
   --color-sidebar: var(--sidebar-bg-color);
-  --color-sidebar-backdrop: var(--sidebar-backdrop-color);
   --color-card: var(--card-bg-color);
   --color-dialog: var(--dialog-bg-color);
   --color-popover: var(--popover-bg-color);
   --color-accent: var(--accent-bg-color);
+  --color-record-fill: var(--record-fill-color);
+  --color-record-fill-hover: var(--record-fill-hover-color);
   --color-destructive: var(--destructive-bg-color);
-  --color-success: var(--success-bg-color);
-  --color-warning: var(--warning-bg-color);
-  --color-error: var(--error-bg-color);
   --color-hover: var(--hover-bg-color);
-  --color-active: var(--active-bg-color);
   --color-selected: var(--selected-bg-color);
-  --color-shade: var(--shade-color);
   --color-line: var(--border-color);
+  --color-line-subtle: var(--border-subtle-color);
+  --color-line-strong: var(--border-strong-color);
 
   --color-fg: var(--window-fg-color);
   --color-view-fg: var(--view-fg-color);
   --color-sidebar-fg: var(--sidebar-fg-color);
   --color-dim: var(--dim-fg-color);
+  --color-faint: var(--faint-fg-color);
   --color-accent-fg: var(--accent-color);
   --color-on-accent: var(--accent-fg-color);
   --color-destructive-fg: var(--destructive-color);
   --color-on-destructive: var(--destructive-fg-color);
+  --color-success-fg: var(--success-color);
   --color-warning-fg: var(--warning-color);
-  --color-on-warning: var(--warning-fg-color);
+  --color-info-fg: var(--info-color);
 
   --radius-button: var(--button-radius);
   --radius-card: var(--card-radius);
-  --radius-window: var(--window-radius);
+  --radius-dialog: var(--dialog-radius);
   --radius-full: 9999px;
-
-  --font-sans: var(--font-family);
-  --font-mono: var(--monospace-font-family);
 }
 
 @layer base {
@@ -63,16 +60,26 @@
   body {
     margin: 0;
     font-family: var(--font-family);
-    font-size: var(--font-size);
+    font-size: var(--k-typography-body-size);
+    line-height: var(--k-typography-body-line-height);
     background: var(--window-bg-color);
     color: var(--window-fg-color);
     -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
     user-select: none;
     overflow: hidden;
   }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--display-font-family);
+  }
   :focus-visible {
     outline: var(--focus-ring-width) solid var(--focus-ring-color);
-    outline-offset: -1px;
+    outline-offset: var(--focus-ring-offset);
+  }
+  ::placeholder {
+    color: var(--faint-fg-color);
   }
 }
 
@@ -83,10 +90,28 @@
   }
 }
 
+/* The shared focus ring, for React Aria's data-focus-visible (keyboard focus only). */
+@utility focus-ring {
+  outline: none;
+  &[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
 /* Draggable header bars (frameless window). Interactive children opt out. */
 @utility app-drag {
   -webkit-app-region: drag;
 }
 @utility app-no-drag {
   -webkit-app-region: no-drag;
+}
+
+/* The record pulse: a ring scaling out while fading; none under reduced motion (brand/README.md). */
+@utility record-pulse {
+  animation: k-record-pulse var(--k-duration-pulse) var(--k-easing-in-out) infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 0;
+  }
 }

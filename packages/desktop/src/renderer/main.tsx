@@ -14,6 +14,7 @@ import { catalogueTranslator } from './data/i18n.ts'
 import { createQueries, createQueryClient } from './data/queries.ts'
 import { type Services, ServicesProvider } from './data/services.tsx'
 import { applyTheme } from './data/theme.ts'
+import { ToastProvider } from './design/primitives/index.ts'
 import { createAppRouter } from './routes/router.tsx'
 
 // Renderer bootstrap: theme and translations from main first (so the first paint is already right),
@@ -53,7 +54,9 @@ async function boot(): Promise<void> {
             navigate={(to) => void router.navigate({ to })}
             useHref={(to) => router.buildLocation({ to }).href}
           >
-            <RouterProvider router={router} />
+            <ToastProvider>
+              <RouterProvider router={router} />
+            </ToastProvider>
           </AriaRouterProvider>
         </QueryClientProvider>
       </ServicesProvider>
