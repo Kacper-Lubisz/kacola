@@ -42,7 +42,15 @@ describe('BrowserWindow options', () => {
   })
 
   it('paints the dark background before the first frame in dark mode', () => {
-    expect(windowOptions({ preload: '', platform: 'linux', dark: true }).backgroundColor).toBe('#222226')
+    expect(windowOptions({ preload: '', platform: 'linux', dark: true }).backgroundColor).toBe('#171411')
+    expect(windowOptions({ preload: '', platform: 'linux', dark: false }).backgroundColor).toBe('#f6f1e7')
+  })
+
+  it('gives the Linux window the brand icon; macOS takes the bundle icon', () => {
+    expect(windowOptions({ preload: '', platform: 'linux', dark: false, icon: '/i.png' }).icon).toBe('/i.png')
+    expect(
+      windowOptions({ preload: '', platform: 'darwin', dark: false, icon: '/i.png' }).icon,
+    ).toBeUndefined()
   })
 })
 

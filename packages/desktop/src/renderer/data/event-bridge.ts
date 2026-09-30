@@ -1,4 +1,4 @@
-import type { AnyEvent, DurableEvent, GnomeolaClient, Session, Settings } from '@gnomeola/protocol'
+import type { AnyEvent, DurableEvent, GnomeolaClient, ModelInfo, Session, Settings } from '@gnomeola/protocol'
 import { isDurable } from '@gnomeola/protocol'
 import { applyQaEvent, type QaState } from '@gnomeola/ui-core/qa'
 import { applyEvent, fromSnapshot, type SessionsState } from '@gnomeola/ui-core/sessions'
@@ -191,6 +191,17 @@ export class EventBridge {
       this.stats.applied++
     }
     applyEphemeral(this.store, e)
+    this.foldStatus(e)
+  }
+
+  /** Ephemeral status reports that also refresh a cached query (models, calendar). */
+  private foldStatus(e: AnyEvent): void {
+    const d = e.data
+    if (d.type === 'model.progress')
+      this.qc.setQueryData<ModelInfo[]>(keys.models(), (cur) =>
+        cur?.map((m) => (m.id === d.model.id ? d.model : m)),
+      )
+    else if (d.type === 'calendar.updated') this.qc.setQueryData(keys.calendar(), d.calendar)
   }
 
   private foldDurable(e: DurableEvent): void {

@@ -29,7 +29,11 @@ export default defineConfig({
     root: resolve(import.meta.dirname, 'src/renderer'),
     plugins: [react(), tailwindcss()],
     resolve: {
-      alias: { 'node:crypto': resolve(import.meta.dirname, 'src/renderer/shims/node-crypto.ts') },
+      alias: {
+        'node:crypto': resolve(import.meta.dirname, 'src/renderer/shims/node-crypto.ts'),
+        // the kacola brand assets (logos) — `@brand/logo/icon.svg?url`
+        '@brand': resolve(import.meta.dirname, '..', '..', 'brand'),
+      },
     },
     build: {
       rollupOptions: { input: { index: resolve(import.meta.dirname, 'src/renderer/index.html') } },

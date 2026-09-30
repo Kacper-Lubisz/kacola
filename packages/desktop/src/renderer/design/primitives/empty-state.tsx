@@ -41,7 +41,9 @@ export function EmptyState({
         {title}
       </H>
       {description ? (
-        <p className={`m-0 max-w-[42ch] text-balance text-text-secondary ${compact ? 'type-callout' : 'type-body'}`}>
+        <p
+          className={`m-0 max-w-[42ch] text-balance text-text-secondary ${compact ? 'type-callout' : 'type-body'}`}
+        >
           {description}
         </p>
       ) : null}

@@ -49,7 +49,7 @@
   --ink-fg-color: var(--k-color-text-on-ink);
 
   /* status */
-  --destructive-bg-color: var(--k-color-accent-record);
+  --destructive-bg-color: var(--record-fill-color);
   --destructive-fg-color: var(--k-color-text-on-accent);
   --destructive-color: var(--k-color-status-danger);
   --success-color: var(--k-color-status-success);

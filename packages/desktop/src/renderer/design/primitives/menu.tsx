@@ -1,13 +1,13 @@
 import type { ReactElement, ReactNode } from 'react'
 import {
   Dialog as AriaDialog,
-  DialogTrigger,
-  Header,
   Menu as AriaMenu,
   MenuItem as AriaMenuItem,
+  Popover as AriaPopover,
+  DialogTrigger,
+  Header,
   MenuSection,
   MenuTrigger,
-  Popover as AriaPopover,
   Separator,
 } from 'react-aria-components'
 import { Icon, type IconName } from '../icon.tsx'
@@ -72,7 +72,7 @@ export function MenuItem({
       onAction={onAction}
       isDisabled={isDisabled}
       textValue={textValue ?? (typeof children === 'string' ? children : undefined)}
-      className={`flex cursor-default items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-[15px] outline-none data-[focused]:bg-bg-hover data-[disabled]:opacity-45 ${destructive ? 'text-status-danger' : ''}`}
+      className={`flex cursor-default items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-[15px] outline-none data-[focused]:bg-bg-hover data-[disabled]:opacity-45 ${destructive ? 'text-status-danger-text' : ''}`}
     >
       {icon ? <Icon name={icon} size={16} className="text-text-secondary" /> : null}
       <span className="flex-1">{children}</span>
@@ -88,7 +88,9 @@ export function MenuSeparator() {
 export function MenuGroup({ title, children }: { title?: string; children: ReactNode }) {
   return (
     <MenuSection>
-      {title ? <Header className="px-2.5 pt-1.5 pb-1 type-overline text-text-tertiary">{title}</Header> : null}
+      {title ? (
+        <Header className="px-2.5 pt-1.5 pb-1 type-overline text-text-tertiary">{title}</Header>
+      ) : null}
       {children}
     </MenuSection>
   )

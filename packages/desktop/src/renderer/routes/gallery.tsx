@@ -69,7 +69,13 @@ const Caption = ({ children }: { children: ReactNode }) => (
 const VARIANTS: ButtonVariant[] = ['primary', 'secondary', 'ghost', 'destructive', 'link']
 const SIZES: ButtonSize[] = ['sm', 'md', 'lg']
 
-function StaticButton({ variant, state }: { variant: ButtonVariant; state: 'hovered' | 'pressed' | 'focus-visible' }) {
+function StaticButton({
+  variant,
+  state,
+}: {
+  variant: ButtonVariant
+  state: 'hovered' | 'pressed' | 'focus-visible'
+}) {
   return (
     <span
       aria-hidden="true"
@@ -150,7 +156,12 @@ export function Gallery() {
               />
             </div>
             <div className="flex flex-wrap items-center gap-4">
-              <RecordButton state="paused" elapsedMs={1_512_000} onStop={() => {}} onResume={() => setLast('resume')} />
+              <RecordButton
+                state="paused"
+                elapsedMs={1_512_000}
+                onStop={() => {}}
+                onResume={() => setLast('resume')}
+              />
               <RecordButton state="stopping" elapsedMs={3_725_000} />
             </div>
           </Section>
@@ -167,11 +178,28 @@ export function Gallery() {
           <Section title="Inputs" wide>
             <div className="grid gap-4 sm:grid-cols-2">
               <TextField label="Session title" placeholder="Untitled meeting" />
-              <TextField label="Ollama URL" type="url" defaultValue="http://127.0.0.1:11434" description="Where Ollama listens." />
-              <TextField label="API key" type="password" placeholder="sk-…" errorMessage="That key was refused" isInvalid />
+              <TextField
+                label="Ollama URL"
+                type="url"
+                defaultValue="http://127.0.0.1:11434"
+                description="Where Ollama listens."
+              />
+              <TextField
+                label="API key"
+                type="password"
+                placeholder="sk-…"
+                errorMessage="That key was refused"
+                isInvalid
+              />
               <TextField label="Disabled" defaultValue="read only" isDisabled />
               <SearchField label="Search sessions" />
-              <NumberField label="Days to keep audio" value={days} onChange={setDays} minValue={1} maxValue={3650} />
+              <NumberField
+                label="Days to keep audio"
+                value={days}
+                onChange={setDays}
+                minValue={1}
+                maxValue={3650}
+              />
               <Select
                 label="Provider"
                 value={choice}
@@ -330,7 +358,11 @@ export function Gallery() {
               </Button>
             </div>
             <Banner title="Lost the connection to the daemon. Reconnecting…" />
-            <Banner tone="warning" title="A speech model is not downloaded yet" action={<Button size="sm">Set Up</Button>} />
+            <Banner
+              tone="warning"
+              title="A speech model is not downloaded yet"
+              action={<Button size="sm">Set Up</Button>}
+            />
             <Banner tone="danger" title="Recording failed: the microphone disappeared" />
             <Banner tone="success" title="All models are ready" />
           </Section>

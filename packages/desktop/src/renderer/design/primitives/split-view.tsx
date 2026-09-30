@@ -71,7 +71,10 @@ export function SplitView({
           </Aside>
         ) : null}
         {contentShown ? (
-          <Main aria-label={landmarks ? contentLabel : undefined} className="flex min-h-0 min-w-0 flex-1 flex-col bg-view text-view-fg">
+          <Main
+            aria-label={landmarks ? contentLabel : undefined}
+            className="flex min-h-0 min-w-0 flex-1 flex-col bg-view text-view-fg"
+          >
             {content}
           </Main>
         ) : null}

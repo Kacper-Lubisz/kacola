@@ -3,6 +3,8 @@ import {
   Button as AriaButton,
   NumberField as AriaNumberField,
   SearchField as AriaSearchField,
+  Select as AriaSelect,
+  TextArea as AriaTextArea,
   TextField as AriaTextField,
   FieldError,
   Group,
@@ -11,10 +13,8 @@ import {
   ListBox,
   ListBoxItem,
   Popover,
-  Select as AriaSelect,
   SelectValue,
   Text,
-  TextArea as AriaTextArea,
 } from 'react-aria-components'
 import { Icon } from '../icon.tsx'
 
@@ -48,7 +48,7 @@ function Help({ description, errorMessage }: Pick<FieldBase, 'description' | 'er
           {description}
         </Text>
       ) : null}
-      <FieldError className="type-caption text-status-danger">{errorMessage}</FieldError>
+      <FieldError className="type-caption text-status-danger-text">{errorMessage}</FieldError>
     </>
   )
 }
@@ -86,7 +86,11 @@ export function TextField({
       className={`flex flex-col gap-1.5 ${className}`}
     >
       <FieldLabel label={label} hidden={labelHidden} />
-      <Input placeholder={placeholder} spellCheck={type === 'text'} className={`${INPUT} ${inputClassName}`} />
+      <Input
+        placeholder={placeholder}
+        spellCheck={type === 'text'}
+        className={`${INPUT} ${inputClassName}`}
+      />
       <Help description={description} errorMessage={errorMessage} />
     </AriaTextField>
   )

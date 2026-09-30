@@ -41,6 +41,11 @@ const bridge: GnomeolaBridge = {
   catalogue: () => ipcRenderer.invoke(IPC.i18n),
   windowControl: (c: WindowControl) => ipcRenderer.send(IPC.windowControl, c),
   openExternal: (url: string) => ipcRenderer.invoke(IPC.openExternal, url),
+  cliStatus: () => ipcRenderer.invoke(IPC.cliStatus),
+  installCli: (force: boolean) => ipcRenderer.invoke(IPC.cliInstall, force === true),
+  uninstallCli: () => ipcRenderer.invoke(IPC.cliUninstall),
+  extensionStatus: () => ipcRenderer.invoke(IPC.extensionStatus),
+  installExtension: () => ipcRenderer.invoke(IPC.extensionInstall),
 }
 
 contextBridge.exposeInMainWorld('gnomeola', bridge)

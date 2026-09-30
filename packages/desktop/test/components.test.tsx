@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { setTranslator } from '@gnomeola/ui-core/i18n'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createMemoryHistory, RouterProvider } from '@tanstack/react-router'
+import { QueryClient } from '@tanstack/react-query'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -12,8 +11,8 @@ import { createQueries } from '../src/renderer/data/queries.ts'
 import { type Services, ServicesProvider } from '../src/renderer/data/services.tsx'
 import { applyTheme } from '../src/renderer/data/theme.ts'
 import { NavigationList, parseButtonLayout, WindowControls } from '../src/renderer/design/primitives/index.ts'
-import { createAppRouter } from '../src/renderer/routes/router.tsx'
 import type { AppInfo, GnomeolaBridge } from '../src/shared/bridge.ts'
+import { renderApp } from './app-harness.tsx'
 import { fakeDaemon, session, until, upserted } from './helpers.ts'
 
 // Component tests (Testing Library, jsdom): role + name queries, the same way the e2e suite and a
@@ -130,29 +129,11 @@ describe('i18n and theme', () => {
 })
 
 describe('the first screen', () => {
-  it('shows connecting, then the session list; a new session appears live; selecting routes to it', async () => {
-    const daemon = fakeDaemon({ sessions: [session('ses_a', { title: 'Standup' })], lastSeq: 1 })
-    const qc = new QueryClient()
-    const store = createEphemeralStore()
-    daemon.state.fail = new Error('not yet')
-    const s = services({
-      api: daemon.client as never,
-      queries: createQueries(daemon.client as never),
-      queryClient: qc,
-      store,
-      events: new EventBridge(daemon.client, qc, store, { driveOnline: false, retryMs: 20 }),
-    })
-    const router = createAppRouter(s, createMemoryHistory({ initialEntries: ['/'] }))
-    s.events.start()
-    render(
-      <ServicesProvider services={s}>
-        <QueryClientProvider client={qc}>
-          <RouterProvider router={router} />
-        </QueryClientProvider>
-      </ServicesProvider>,
-    )
+  it('shows can’t-reach, then the session list; a new session appears live; selecting routes to it', async () => {
+    const app = renderApp({ sessions: [session('ses_a', { title: 'Standup' })] })
+    app.daemon.state.fail = new Error('not yet')
     await screen.findByRole('heading', { name: 'Can’t Reach gnomeola' })
-    daemon.state.fail = null
+    app.daemon.state.fail = null
     const list = await screen.findByRole('listbox', { name: 'Sessions' })
     expect(
       within(list)
@@ -162,7 +143,7 @@ describe('the first screen', () => {
     screen.getByRole('heading', { name: 'No Session Selected' })
 
     act(() =>
-      daemon.emit(
+      app.daemon.emit(
         upserted(2, session('ses_b', { title: 'Design review', createdAt: '2026-09-29T00:00:00.000Z' })),
       ),
     )
@@ -170,8 +151,8 @@ describe('the first screen', () => {
     expect(within(list).getAllByRole('option')[0]!.textContent).toContain('Design review')
 
     fireEvent.click(within(list).getByRole('option', { name: /Design review/ }))
-    await until(() => router.state.location.pathname === '/sessions/ses_b')
+    await until(() => app.router.state.location.pathname === '/sessions/ses_b')
     await screen.findByRole('heading', { level: 1, name: 'Design review' })
-    s.events.stop()
+    app.stop()
   })
 })

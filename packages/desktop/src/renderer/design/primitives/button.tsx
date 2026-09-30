@@ -54,7 +54,7 @@ const VARIANT: Record<ButtonVariant, string> = {
     'bg-bg-surface text-text-primary border border-border-default data-[hovered]:border-border-strong data-[hovered]:bg-[color-mix(in_srgb,var(--k-color-bg-surface),var(--k-color-text-primary)_4%)] data-[pressed]:bg-bg-selected',
   ghost: 'bg-transparent text-text-primary data-[hovered]:bg-bg-hover data-[pressed]:bg-bg-selected',
   destructive:
-    'bg-bg-surface text-status-danger border border-status-danger data-[hovered]:bg-[color-mix(in_srgb,var(--k-color-bg-surface),var(--k-color-status-danger)_8%)] data-[pressed]:bg-[color-mix(in_srgb,var(--k-color-bg-surface),var(--k-color-status-danger)_14%)]',
+    'bg-bg-surface text-status-danger-text border border-status-danger data-[hovered]:bg-[color-mix(in_srgb,var(--k-color-bg-surface),var(--k-color-status-danger)_8%)] data-[pressed]:bg-[color-mix(in_srgb,var(--k-color-bg-surface),var(--k-color-status-danger)_14%)]',
   link: 'bg-transparent text-accent-record-text !h-auto !px-0 underline-offset-2 data-[hovered]:underline',
 }
 const CONFIRM =

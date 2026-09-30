@@ -41,7 +41,12 @@ export function Dialog({
   className?: string
 }) {
   return (
-    <ModalOverlay isOpen={isOpen} onOpenChange={onOpenChange} isDismissable={isDismissable} className={OVERLAY}>
+    <ModalOverlay
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      isDismissable={isDismissable}
+      className={OVERLAY}
+    >
       <Modal
         className={`flex max-h-[calc(100vh-32px)] w-full ${WIDTH[size]} flex-col overflow-hidden rounded-xl bg-bg-raised text-text-primary shadow-e3 outline-none`}
       >

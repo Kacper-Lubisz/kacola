@@ -1,5 +1,14 @@
 import { _ } from '@gnomeola/ui-core/i18n'
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { Icon } from '../icon.tsx'
 
@@ -62,6 +71,7 @@ function ToastView({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
     return () => clearTimeout(t)
   }, [held, timeout])
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: hover / focus only pause the timeout
     <div
       role={toast.tone === 'error' ? 'alert' : 'status'}
       onPointerEnter={() => setHeld(true)}
