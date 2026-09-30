@@ -50,6 +50,8 @@ export function mapApiError(err: unknown): never {
   if (err instanceof GnomeolaApiError) {
     if (err.code === 'not_found') throw new CliError(EXIT.NOT_FOUND, err.message)
     if (err.code === 'unavailable') throw new CliError(EXIT.UNAVAILABLE, err.message)
+    if (err.code === 'bad_request' && /^refused/.test(err.message))
+      throw new CliError(EXIT.REFUSED, err.message)
     if (err.code === 'bad_request') throw new CliError(EXIT.USAGE, err.message)
     if (err.code === 'conflict') throw new CliError(EXIT.ERROR, err.message)
     // agent channel: a lease that is gone, a mode or rule that refuses, a rate limit

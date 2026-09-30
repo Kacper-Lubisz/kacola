@@ -132,6 +132,29 @@ const ENDED: Session['status'][] = ['stopped', 'recovered', 'failed']
 const MAX_ACTIONS = 50
 const MAX_ENDED = 100
 
+/** Routes a lease token may reach (handlers still check scope and mode). */
+const AGENT_ROUTES = new Set([
+  'health',
+  'nextMeeting',
+  'listAgendas',
+  'getAgenda',
+  'getAgendaHistory',
+  'exportAgendaMarkdown',
+  'agendaInviteBlock', // reading the links only: writing to the calendar is refused in the handler
+  'setAgendaItemStatus',
+  'addAgendaItems',
+  'updateAgendaItem',
+  'addContextCard',
+  'addSuggestion',
+  'heartbeatAgentLease',
+  'releaseAgentLease',
+  'liveAttach',
+  'listLiveSessions',
+  'getAgentAccess',
+])
+/** …and these for its own recording only. */
+const OWN_SESSION_ROUTES = new Set(['getSession', 'getTranscript', 'listSpeakers'])
+
 const sha = (s: string) => createHash('sha256').update(s).digest()
 const clip = (s: string, n = 80) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
 
@@ -369,6 +392,20 @@ export class AgentChannel {
   requireOwner(req: IncomingMessage, what: string): void {
     if (req.headers[LEASE_HEADER] !== undefined)
       throw new DaemonError('unauthorized', `a connected agent cannot ${what}; only the user can`)
+  }
+
+  /**
+   * The routes a lease token may reach. Anything else with a token is refused before its handler runs:
+   * a lease is the agent's identity for every request it makes, not a key it may leave off at will (it
+   * can, of course, as any local process can call the loopback API; then it is the user's CLI and gets
+   * no agent attribution at all, which the skill forbids). Session reads are for its own recording only.
+   */
+  gate(req: IncomingMessage, route: string, params: Record<string, string>): void {
+    if (req.headers[LEASE_HEADER] === undefined) return
+    const r = this.fromRequest(req)!
+    if (AGENT_ROUTES.has(route)) return
+    if (OWN_SESSION_ROUTES.has(route) && params.id === r.lease.sessionId) return
+    throw new DaemonError('unauthorized', `a connected agent cannot use ${route}`)
   }
 
   private touch(r: Rec): void {

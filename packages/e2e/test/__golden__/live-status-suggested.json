@@ -1,0 +1,21 @@
+{
+  "agendaId": "<agd:1>",
+  "item": {
+    "n": 1,
+    "id": "<itm:1>",
+    "text": "Launch date for invoicing v2",
+    "kind": "decision",
+    "owner": null,
+    "timeboxMin": null,
+    "status": "<either>",
+    "outcome": "<either>"
+  },
+  "change": null,
+  "suggested": {
+    "id": "<sug:1>",
+    "kind": "set-status",
+    "text": "\"Launch date for invoicing v2\" looks covered",
+    "itemId": "<itm:1>",
+    "source": "agent:helper"
+  }
+}

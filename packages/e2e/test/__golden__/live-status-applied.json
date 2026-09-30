@@ -1,0 +1,20 @@
+{
+  "agendaId": "<agd:1>",
+  "item": {
+    "n": 1,
+    "id": "<itm:1>",
+    "text": "Launch date for invoicing v2",
+    "kind": "decision",
+    "owner": null,
+    "timeboxMin": null,
+    "status": "covered",
+    "outcome": "Tuesday the 14th"
+  },
+  "change": {
+    "itemId": "<itm:1>",
+    "from": "open",
+    "to": "covered",
+    "by": "agent:doer",
+    "at": "<iso>"
+  }
+}

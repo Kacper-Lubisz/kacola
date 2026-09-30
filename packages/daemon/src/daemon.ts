@@ -438,6 +438,9 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
       res.setHeader('www-authenticate', 'Bearer realm="gnomeola"')
       throw err
     }
+    // Agent channel: a request carrying a lease token is a connected agent, and reaches only the routes
+    // an agent may use (its own recording's reads, the agenda verbs, its lease), whatever it asks for.
+    agents.gate(req, name, params)
     // P-3: a raw-body route streams its request to the handler; nothing else may be sent to it
     if (
       def.rawBody !== undefined &&

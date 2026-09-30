@@ -1,0 +1,15 @@
+{
+  "session": {
+    "sessionId": "<ses:1>",
+    "title": "Invoicing v2 launch planning",
+    "status": "recording",
+    "startedAt": "<iso>",
+    "meeting": {
+      "id": "<mtg:1>",
+      "uid": "invoicing@x",
+      "title": "Invoicing v2 launch planning",
+      "start": "<iso>"
+    },
+    "agendaId": "<agd:1>"
+  }
+}
