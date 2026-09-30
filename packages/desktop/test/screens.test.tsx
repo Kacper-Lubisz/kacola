@@ -250,7 +250,6 @@ describe('shell', () => {
     const help = await screen.findByRole('dialog', { name: 'Keyboard Shortcuts' })
     expect(within(help).getByText('Start or stop recording')).toBeTruthy()
     fireEvent.click(within(help).getByRole('button', { name: 'Close' }))
-    act(() => app.services.store.setState({}))
     app.stop()
   })
 

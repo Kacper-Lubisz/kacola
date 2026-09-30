@@ -91,7 +91,7 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
                 // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region must be reachable from the keyboard (axe: scrollable-region-focusable)
                 tabIndex={0}
                 aria-label={_('Third-Party Notices')}
-                className="m-0 max-h-64 list-none overflow-y-auto rounded-md border border-border-subtle bg-bg-surface p-3 font-mono text-[12px] leading-5 text-text-secondary select-text"
+                className="m-0 list-none rounded-md border border-border-subtle bg-bg-surface p-3 font-mono text-[12px] leading-5 text-text-secondary select-text"
               >
                 {parseNotices(notices.data).map((n) => (
                   <li key={`${n.name}@${n.version}`}>{noticeLine(n)}</li>

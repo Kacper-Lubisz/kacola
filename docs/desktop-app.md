@@ -23,16 +23,22 @@ packages/desktop/
     tunnel.ts               fetch tunnel: route check, header allow-list, token, streamed frames
     supervisor.ts           DaemonSupervisor: attach / spawn / restart with backoff
     config.ts theme.ts resources.ts   env + token, portal theme, ui-state / notices / catalogues
+    integration.ts          "Install command-line tool and Claude skill" (runs `gnomeola install-cli --json`)
   src/preload/index.ts      contextBridge.exposeInMainWorld('gnomeola', …) — one function per capability
   src/renderer/             React 19, no Node, no network
     main.tsx                boot: theme + catalogue from main, client, QueryClient, EventBridge, router
-    styles.css              Tailwind v4, restricted to the tokens
-    design/tokens.css       libadwaita-named CSS variables, light / dark / high contrast
-    design/primitives/      Button, HeaderBar, WindowControls, NavigationList, StatusPage, Banner, Spinner
-    design/icon*.ts(x)      Adwaita symbolic icons as path data
-    routes/                 router.tsx (the tree), main-layout.tsx, gallery.tsx
+    styles.css              Tailwind v4: brand/tokens (fonts, --k-* tokens, @theme) + semantic aliases
+    design/tokens.css       semantic (libadwaita-named) variables mapped onto the kacola brand tokens
+    design/primitives/      the brand primitives (index.ts lists them; every state on #/gallery)
+    design/icon.tsx         the Lucide icon registry (ISC): <Icon name="mic" />
+    routes/                 router.tsx (the tree), main-layout.tsx (the shell), gallery.tsx
     data/                   client, queries, keys, event-bridge, ephemeral (Zustand), mutations, streams
-    features/<area>/        screens: features/sessions/ today; transcript/, notes/, ask/, … in phase 2
+    features/shell/         dialogs context, keyboard shortcuts (+ help dialog)
+    features/sessions/      sidebar, record flow (recorder.ts), session page + tabs, Details
+    features/{transcript,ask,notes}/   the session page's panes (PaneProps, features/sessions/pane.ts)
+    features/preferences/   Preferences, settings mutations, CLI / extension install rows
+    features/onboarding/    first run: models, capture, calendar, CLI + skill
+    features/about/         About (Granola credit, licence, notices)
   test/                     unit + jsdom component tests (vitest `unit` project)
 packages/testkit/src/desktop/   Playwright-for-Electron harness + footprint probes
 packages/e2e/test/desktop-*.{int,e2e}.test.ts   tunnel/supervisor against the real daemon; window e2e
@@ -115,18 +121,33 @@ pairing auth on).
 - **Streams** (`data/streams.ts`): `runAsk` / `runEnhance` fold tokens into `streams[localId]`;
   `useStream(store, run)` wraps them for components. The final message arrives via the bridge.
 
-## Theme
+## Theme and brand
 
-Main reads `org.freedesktop.appearance` (`color-scheme`, `contrast`, `accent-color`) from the portal
-with gdbus, follows changes with `gdbus monitor`, falls back to `nativeTheme`, and pushes a `Theme` to
-the renderer, which sets `<html data-scheme data-contrast>` and the accent (darkened just enough for
-white text to reach WCAG AA). `tokens.css` keys off those attributes — **not** `prefers-color-scheme`,
-which Chromium on Linux does not reliably map from `nativeTheme.themeSource`. Tests and screenshots:
-`GNOMEOLA_COLOR_SCHEME=light|dark`, `GNOMEOLA_CONTRAST=high`, `GNOMEOLA_ACCENT=#rrggbb`.
+The look is the **kacola** brand (`brand/README.md`, spec in the lead's brand-spec): oat palette, Bricolage
+Grotesque headings and buttons, Instrument Sans text, Fraunces italic for editorial moments (empty
+states), JetBrains Mono for times and shortcuts, Lucide icons. `styles.css` imports `brand/tokens/`
+(fonts.css — the woff2 files are bundled by Vite, the CSP allows no network fonts —, tokens.css,
+tailwind.css); `design/tokens.css` maps the semantic names (`--window-bg-color`, `--accent-bg-color`,
+`--dim-fg-color` …) onto the `--k-*` brand tokens. Tailwind utilities: brand names (`bg-bg-surface`,
+`text-text-secondary`, `border-border-default`, `font-display`, `type-title2`, `rounded-lg`,
+`shadow-e1`, `record-pulse`) and the semantic aliases (`bg-window`, `text-dim`, `bg-accent`). The
+default Tailwind palette is cleared (`design/theme-reset.css`).
 
-Deliberate deviations from libadwaita's values, both forced by the axe gate: `--dim-opacity` 75%
-(libadwaita 55% fails AA for 9pt text on the sidebar) and the default accent fill `#1c71d8` (blue-4;
-blue-3 `#3584e4` under white text is 3.7:1).
+Main reads `org.freedesktop.appearance` (`color-scheme`, `contrast`) from the portal with gdbus,
+follows changes with `gdbus monitor`, falls back to `nativeTheme`, and pushes a `Theme`; the renderer
+sets `<html data-theme data-scheme data-contrast>` — attributes, not `prefers-color-scheme`, which
+Chromium on Linux does not reliably map from `nativeTheme.themeSource`. **The accent is fixed** (record
+red): the portal's accent colour is ignored. Tests and screenshots: `GNOMEOLA_COLOR_SCHEME=light|dark`,
+`GNOMEOLA_CONTRAST=high`.
+
+Deviations forced by the axe gate (4.5:1 for our 13–15px text): filled record-red surfaces that carry
+white text (the Record button, a confirming destructive button) use `--record-fill-color` (#C93D22
+light / #D0401F dark, 5.0 / 4.7:1) instead of accent.record (4.09 / 3.26:1) — dots, rings and the live
+indicator stay accent.record; status *text* uses the `status.*Text` tokens.
+
+The window icon on Linux is `brand/icons/png/512.png` (packaged: `resources/icon.png`). Linux has no
+application menu (so Electron's default Ctrl+R / Ctrl+Shift+I accelerators are gone); the window's
+shortcuts are `features/shell/shortcuts.tsx` (one table drives the handler and the Ctrl+? help).
 
 ## Conventions for phase 2
 
@@ -149,9 +170,16 @@ optimistic → error as in `test/mutations.test.ts`.
 **Add a primitive.** `design/primitives/<name>.tsx`: behaviour from React Aria, looks from Tailwind
 utilities over tokens only (the palette is cleared: `bg-blue-500` does not exist), every interactive
 element with an accessible name. Export it from `design/primitives/index.ts`, show every state in
-`routes/gallery.tsx` (the e2e runs axe over the gallery in dark), and screens import from the index —
-never `react-aria-components` directly. Icons: copy path data from `/usr/share/icons/Adwaita/symbolic`
-into `design/icon-paths.ts`.
+`routes/gallery.tsx` (hover / pressed / focus as static aria-hidden copies carrying React Aria's
+`data-*` attributes), and screens import from the index — never `react-aria-components` or
+`lucide-react` directly. The visual e2e screenshots the gallery (light / dark, 360 / 800 / 1280 and
+full height) and runs axe over it in light, dark and high contrast. Icons: import the Lucide icon in
+`design/icon.tsx` and give it a name in `ICONS`.
+
+**Add a session pane.** The session page renders `TranscriptPane` / `AskPane` / `NotesPane` from
+`features/<area>/<area>-pane.tsx` with `PaneProps = { session }`; the tab is the route's `?tab=`
+(`navigate({ to: '/sessions/$sessionId', params, search: { tab: 'transcript', segment } })`).
+Dialogs: `useDialogs().open('preferences')`; toasts: `useToast()(text, { tone: 'error' })`.
 
 **Strings.** Every user-visible string through `_()` / `ngettext()` from `@gnomeola/ui-core/i18n`,
 reusing the GTK app's msgids where the meaning is the same. Catalogues are JSON from main
@@ -160,15 +188,21 @@ reusing the GTK app's msgids where the meaning is the same. Catalogues are JSON 
 **Tests.**
 - Pure logic, data layer: `packages/desktop/test/*.test.ts` (unit project, Node).
 - Components: `packages/desktop/test/*.test.tsx` starting with `// @vitest-environment jsdom`; Testing
-  Library role + name queries; build `Services` with `fakeDaemon` (see `test/components.test.tsx`,
-  which drives the whole first screen through the real router).
+  Library role + name queries. `test/app-harness.tsx: renderApp({ sessions, handlers, bridge, path })`
+  renders the whole window (real router, React Query, EventBridge) over `fakeDaemon` (route handlers)
+  and `fakeBridge()` (vi.fn per bridge method); `test/primitives.test.tsx` and `test/screens.test.tsx`
+  are the examples.
 - Real daemon, no window: `packages/e2e/test/desktop-*.int.test.ts` (`int` project) — the tunnel via
   `packages/desktop/test/tunnel-harness.ts`, the supervisor on Electron's runtime.
 - The window: `packages/e2e/test/desktop-*.e2e.test.ts` with `@gnomeola/testkit/desktop`:
   `buildDesktop()` once, `startHeadlessDisplay()`, `launchDesktop({ display, env: { GNOMEOLA_URL } })`,
   then `app.window.getByRole(...)` (Playwright), `app.axe()` → `[]`, `app.problems()` → `[]` (console
   errors, page errors, CSP violations), `app.screenshot(path)`, `waitForDaemon(app, 'attached')`,
-  `app.evaluateMain(({ BrowserWindow }) => …)`, `app.close()` (explicit quit). Test code compiled by
+  `app.evaluateMain(({ BrowserWindow }) => …)`, `app.close()` (explicit quit). Screenshot baselines:
+  `baseline(app, name)` from `packages/e2e/src/desktop.ts` compares with
+  `test/__screenshots__/desktop/<name>.png` (a missing one is recorded; `GNOMEOLA_UPDATE_SCREENSHOTS=1`
+  re-records after a deliberate design change; a mismatch writes `<name>.diff.png` in `__artifacts__`).
+  A first-run window opens onboarding: tests about something else call `markOnboarded(display)`. Test code compiled by
   `packages/e2e` has no DOM lib: pass page-side code to `evaluate` as a string.
 - The client packages may not import testkit (`pnpm boundaries`), which is why window tests live in
   `packages/e2e`.
