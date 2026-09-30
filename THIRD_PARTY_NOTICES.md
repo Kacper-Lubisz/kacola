@@ -27,12 +27,24 @@ tree; do not edit it by hand.
 | @gtkx/runtime | 1.6.0 | MPL-2.0 | https://gtkx.dev |
 | @gtkx/utils | 1.6.0 | MPL-2.0 | https://gtkx.dev |
 | @hono/node-server | 2.1.1 | MIT | https://github.com/honojs/node-server |
+| @internationalized/date | 3.12.4 | Apache-2.0 | https://github.com/adobe/react-spectrum/tree/main#readme |
+| @internationalized/number | 3.6.8 | Apache-2.0 | https://github.com/adobe/react-spectrum#readme |
+| @internationalized/string | 3.2.10 | Apache-2.0 | https://github.com/adobe/react-spectrum#readme |
 | @modelcontextprotocol/sdk | 1.30.1 | MIT | https://modelcontextprotocol.io |
 | @oxc-project/types | 0.151.0 | MIT | https://oxc.rs |
+| @react-types/shared | 3.36.1 | Apache-2.0 | https://github.com/adobe/react-spectrum#readme |
 | @rolldown/binding-linux-x64-gnu | 1.2.11 | MIT | https://rolldown.rs/ |
 | @rolldown/binding-linux-x64-musl | 1.2.11 | MIT | https://rolldown.rs/ |
 | @rolldown/pluginutils | 1.0.1 | MIT | https://github.com/rolldown/plugins/tree/main/packages/pluginutils#readme |
 | @stablelib/base64 | 1.0.1 | MIT | https://github.com/StableLib/stablelib/tree/master/packages/base64 |
+| @swc/helpers | 0.5.23 | Apache-2.0 | https://swc.rs |
+| @tanstack/history | 1.162.4 | MIT | https://tanstack.com/router |
+| @tanstack/query-core | 5.104.0 | MIT | https://tanstack.com/query |
+| @tanstack/react-query | 5.104.0 | MIT | https://tanstack.com/query |
+| @tanstack/react-router | 1.170.40 | MIT | https://tanstack.com/router |
+| @tanstack/react-store | 0.11.2 | MIT | https://tanstack.com/store |
+| @tanstack/router-core | 1.171.33 | MIT | https://tanstack.com/router |
+| @tanstack/store | 0.11.2 | MIT | https://tanstack.com/store |
 | @types/node | 18.19.130, 26.6.3 | MIT | https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node |
 | @types/react | 19.3.0 | MIT | https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react |
 | @vercel/blob | 2.8.0 | Apache-2.0 | https://vercel.com/storage/blob |
@@ -42,6 +54,7 @@ tree; do not edit it by hand.
 | accepts | 2.0.0 | MIT | https://github.com/jshttp/accepts#readme |
 | ajv | 8.20.0 | MIT | https://ajv.js.org |
 | ajv-formats | 3.0.1 | MIT | https://github.com/ajv-validator/ajv-formats#readme |
+| aria-hidden | 1.2.6 | MIT | https://github.com/theKashey/aria-hidden#readme |
 | async-retry | 1.3.3 | MIT | https://github.com/vercel/async-retry#readme |
 | better-sqlite3 | 13.0.3 | MIT | http://github.com/WiseLibs/better-sqlite3 |
 | body-parser | 2.3.0 | MIT | https://github.com/expressjs/body-parser#readme |
@@ -50,10 +63,13 @@ tree; do not edit it by hand.
 | call-bind-apply-helpers | 1.0.2 | MIT | https://github.com/ljharb/call-bind-apply-helpers#readme |
 | call-bound | 1.0.4 | MIT | https://github.com/ljharb/call-bound#readme |
 | chokidar | 5.0.0 | MIT | https://github.com/paulmillr/chokidar |
+| client-only | 0.0.1 | MIT | https://reactjs.org/ |
+| clsx | 2.1.1 | MIT | https://github.com/lukeed/clsx#readme |
 | confbox | 0.2.4, 0.3.1 | MIT | https://github.com/unjs/confbox#readme |
 | content-disposition | 1.1.0 | MIT | https://github.com/jshttp/content-disposition#readme |
 | content-type | 1.0.5, 2.1.0 | MIT | https://github.com/jshttp/content-type#readme |
 | cookie | 0.7.2 | MIT | https://github.com/jshttp/cookie#readme |
+| cookie-es | 3.1.1 | MIT | https://github.com/unjs/cookie-es#readme |
 | cookie-signature | 1.2.2 | MIT | https://github.com/visionmedia/node-cookie-signature#readme |
 | cors | 2.8.6 | MIT | https://github.com/expressjs/cors#readme |
 | cross-spawn | 7.0.6 | MIT | https://github.com/moxystudio/node-cross-spawn |
@@ -105,6 +121,7 @@ tree; do not edit it by hand.
 | is-node-process | 1.2.0 | MIT | https://github.com/mswjs/is-node-process#readme |
 | is-promise | 4.0.0 | MIT | https://github.com/then/is-promise#readme |
 | is-stream | 2.0.1 | MIT | https://github.com/sindresorhus/is-stream#readme |
+| isbot | 5.2.2 | Unlicense | https://isbot.js.org |
 | isexe | 2.0.0 | ISC | https://github.com/isaacs/isexe#readme |
 | jiti | 2.7.0 | MIT | https://github.com/unjs/jiti#readme |
 | jose | 5.10.0, 6.2.12 | MIT | https://github.com/panva/jose |
@@ -162,15 +179,21 @@ tree; do not edit it by hand.
 | raw-body | 3.0.2 | MIT | https://github.com/stream-utils/raw-body#readme |
 | rc9 | 3.1.0 | MIT | https://github.com/unjs/rc9#readme |
 | react | 19.3.0 | MIT | https://react.dev/ |
+| react-aria | 3.52.1 | Apache-2.0 | https://github.com/adobe/react-spectrum#readme |
+| react-aria-components | 1.21.1 | Apache-2.0 | https://github.com/adobe/react-spectrum#readme |
+| react-dom | 19.3.0 | MIT | https://react.dev/ |
 | react-reconciler | 0.33.0 | MIT | https://react.dev/ |
+| react-stately | 3.50.0 | Apache-2.0 | https://github.com/adobe/react-spectrum#readme |
 | readdirp | 5.1.1 | MIT | https://github.com/paulmillr/readdirp |
 | require-from-string | 2.0.2 | MIT | https://github.com/floatdrop/require-from-string#readme |
 | retry | 0.13.1 | MIT | https://github.com/tim-kos/node-retry |
 | rolldown | 1.2.11 | MIT | https://rolldown.rs/ |
 | router | 2.2.0 | MIT | https://github.com/pillarjs/router#readme |
 | safer-buffer | 2.1.2 | MIT | https://github.com/ChALkeR/safer-buffer#readme |
-| scheduler | 0.27.0 | MIT | https://react.dev/ |
+| scheduler | 0.27.0, 0.28.0 | MIT | https://react.dev/ |
 | send | 1.2.1 | MIT | https://github.com/pillarjs/send#readme |
+| seroval | 1.6.8 | MIT | https://github.com/lxsmnsyc/seroval/tree/main/packages/seroval |
+| seroval-plugins | 1.6.8 | MIT | https://github.com/lxsmnsyc/seroval/tree/main/packages/plugins |
 | serve-static | 2.2.1 | MIT | https://github.com/expressjs/serve-static#readme |
 | setprototypeof | 1.2.0 | ISC | https://github.com/wesleytodd/setprototypeof |
 | shebang-command | 2.0.0 | MIT | https://github.com/kevva/shebang-command#readme |
@@ -193,10 +216,12 @@ tree; do not edit it by hand.
 | tinyglobby | 0.2.17 | MIT | https://superchupu.dev/tinyglobby |
 | toidentifier | 1.0.1 | MIT | https://github.com/component/toidentifier#readme |
 | ts-algebra | 2.0.0 | MIT | https://github.com/ThomasAribart/ts-algebra#readme |
+| tslib | 2.8.1 | 0BSD | https://www.typescriptlang.org/ |
 | type-is | 2.1.0 | MIT | https://github.com/jshttp/type-is#readme |
 | undici | 6.29.0 | MIT | https://undici.nodejs.org |
 | undici-types | 5.26.5, 8.9.0 | MIT | https://undici.nodejs.org |
 | unpipe | 1.0.0 | MIT | https://github.com/stream-utils/unpipe#readme |
+| use-sync-external-store | 1.7.0 | MIT | https://github.com/react/react#readme |
 | vary | 1.1.2 | MIT | https://github.com/jshttp/vary#readme |
 | vite | 8.3.1 | MIT | https://vite.dev |
 | which | 2.0.2 | ISC | https://github.com/isaacs/node-which#readme |
@@ -207,6 +232,7 @@ tree; do not edit it by hand.
 | yaml | 2.9.1 | ISC | https://eemeli.org/yaml/ |
 | zod | 4.1.11, 4.6.5 | MIT | https://zod.dev |
 | zod-to-json-schema | 3.25.2 | ISC | https://github.com/StefanTerdell/zod-to-json-schema#readme |
+| zustand | 5.0.15 | MIT | https://github.com/pmndrs/zustand |
 
 ## Models, voices and data
 
@@ -221,6 +247,7 @@ tree; do not edit it by hand.
 | Whisper / Moonshine / Zipformer alternatives | MIT | k2-fsa/sherpa-onnx releases | optional, selectable in Preferences (icefall Zipformers are Apache-2.0) |
 | Piper voices joe, sam / LJSpeech, cori | CC0-1.0 | rhasspy/piper-voices | test fixtures only (sam: Apache-2.0; ljspeech, cori: public domain) |
 | LibriSpeech test-clean excerpts | CC-BY-4.0 | Panayotov et al., openslr.org/12 | test fixture librispeech-3p |
+| Adwaita symbolic icons (adwaita-icon-theme) | LGPL-3.0-only | GNOME Project, adwaita-icon-theme (dual LGPL-3.0 / CC-BY-SA-3.0) | path data of a few symbolic icons in the Electron window (packages/desktop/src/renderer/design) |
 
 ## Inspiration
 

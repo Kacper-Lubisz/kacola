@@ -136,7 +136,7 @@ export function createDemoSource(opts: DemoOptions = {}): DataSource & { dispose
   const maxSessions = opts.maxSessions ?? 40
   const now = opts.now ?? Date.now
   const setIv = opts.setInterval ?? ((fn: () => void, ms: number) => setInterval(fn, ms))
-  const clearIv = opts.clearInterval ?? ((h: unknown) => clearInterval(h as NodeJS.Timeout))
+  const clearIv = opts.clearInterval ?? ((h: unknown) => clearInterval(h as ReturnType<typeof setInterval>))
 
   const sessions = new Map<string, Session>()
   const segments = new Map<string, Segment[]>()

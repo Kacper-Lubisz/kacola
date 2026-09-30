@@ -29,6 +29,8 @@
     "zod": "^4.1.0"
   },
   "devDependencies": {
-    "@gnomeola/stt": "workspace:*"
+    "@axe-core/playwright": "4.13.0",
+    "@gnomeola/stt": "workspace:*",
+    "playwright-core": "1.63.0"
   }
 }

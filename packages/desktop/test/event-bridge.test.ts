@@ -1,0 +1,311 @@
+import type { QaMessage, Settings } from '@gnomeola/protocol'
+import { fromHistory, type QaState } from '@gnomeola/ui-core/qa'
+import type { SessionsState } from '@gnomeola/ui-core/sessions'
+import { fromSummaries, type SpeakersState } from '@gnomeola/ui-core/speakers'
+import { fromSegments, type TranscriptState } from '@gnomeola/ui-core/transcript'
+import { onlineManager, QueryClient } from '@tanstack/react-query'
+import { afterEach, describe, expect, it } from 'vitest'
+import { createEphemeralStore } from '../src/renderer/data/ephemeral.ts'
+import { EventBridge } from '../src/renderer/data/event-bridge.ts'
+import { keys } from '../src/renderer/data/keys.ts'
+import { durable, ephemeral, fakeDaemon, flush, segment, session, until, upserted } from './helpers.ts'
+
+const bridges: EventBridge[] = []
+afterEach(() => {
+  for (const b of bridges.splice(0)) b.stop()
+  onlineManager.setOnline(true)
+})
+
+function setup(
+  init: Parameters<typeof fakeDaemon>[0] = {},
+  opts: ConstructorParameters<typeof EventBridge>[3] = {},
+) {
+  const daemon = fakeDaemon(init)
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const store = createEphemeralStore()
+  const bridge = new EventBridge(daemon.client, qc, store, { retryMs: 10, ...opts })
+  bridges.push(bridge)
+  const titles = () => qc.getQueryData<SessionsState>(keys.sessions())?.ordered.map((s) => s.title)
+  return { daemon, qc, store, bridge, titles }
+}
+
+describe('snapshot then subscribe', () => {
+  it('puts the snapshot in the cache and subscribes from its cursor', async () => {
+    const { daemon, bridge, titles, store } = setup({ sessions: [session('a'), session('b')], lastSeq: 7 })
+    bridge.start()
+    await bridge.ready
+    expect(titles()).toEqual(['b', 'a'])
+    expect(daemon.calls.slice(0, 2)).toEqual(['health', 'listSessions']) // cursor before list
+    expect(daemon.current().since).toBe(7)
+    expect(store.getState().connection).toEqual({ kind: 'live' })
+    expect(onlineManager.isOnline()).toBe(true)
+  })
+
+  it('folds session upserts and deletes into the list and the per-session query', async () => {
+    const { daemon, bridge, titles, qc } = setup({ sessions: [session('a')], lastSeq: 1 })
+    bridge.start()
+    await bridge.ready
+    qc.setQueryData(keys.session('a'), session('a'))
+    daemon.emit(upserted(2, session('a', { title: 'renamed' })))
+    daemon.emit(upserted(3, session('c', { createdAt: '2026-09-29T00:00:00.000Z' })))
+    expect(titles()).toEqual(['c', 'renamed'])
+    expect(qc.getQueryData(keys.session('a'))).toMatchObject({ title: 'renamed' })
+    // a session with no detail query cached gets none created
+    expect(qc.getQueryData(keys.session('c'))).toBeUndefined()
+  })
+
+  it('ignores duplicates and replays at or below its cursor', async () => {
+    const { daemon, bridge, titles } = setup({ sessions: [session('a')], lastSeq: 5 })
+    bridge.start()
+    await bridge.ready
+    daemon.emit(upserted(5, session('a', { title: 'stale replay' })))
+    daemon.emit(upserted(6, session('a', { title: 'new' })))
+    daemon.emit(upserted(6, session('a', { title: 'duplicate' })))
+    expect(titles()).toEqual(['new'])
+    expect(bridge.stats).toMatchObject({ applied: 1, duplicates: 2 })
+    expect(bridge.cursor).toBe(6)
+  })
+
+  it('session.deleted drops every query of that session and nothing else', async () => {
+    const { daemon, bridge, qc, titles } = setup({ sessions: [session('a'), session('b')], lastSeq: 1 })
+    bridge.start()
+    await bridge.ready
+    for (const k of [
+      keys.session('a'),
+      keys.transcript('a'),
+      keys.qa('a'),
+      keys.notes('a'),
+      keys.speakers('a'),
+    ])
+      qc.setQueryData(k, {})
+    qc.setQueryData(keys.transcript('b'), fromSegments([]))
+    qc.setQueryData(keys.settings(), {})
+    daemon.emit(durable(2, { type: 'session.deleted', sessionId: 'a' }, 'a'))
+    expect(titles()).toEqual(['b'])
+    const left = qc
+      .getQueryCache()
+      .getAll()
+      .map((q) => q.queryKey)
+    expect(left).toEqual(
+      expect.arrayContaining([keys.sessions(), keys.health(), keys.transcript('b'), keys.settings()]),
+    )
+    expect(left.some((k) => k[1] === 'a')).toBe(false)
+  })
+})
+
+describe('per-session folds', () => {
+  it('folds segments into a cached transcript, revision-checked', async () => {
+    const { daemon, bridge, qc } = setup({ sessions: [session('a')], lastSeq: 1 })
+    bridge.start()
+    await bridge.ready
+    qc.setQueryData(keys.transcript('a'), fromSegments([]))
+    daemon.emit(
+      durable(
+        2,
+        { type: 'segment.upserted', segment: segment('s1', 'a', { text: 'hello', revision: 2 }) },
+        'a',
+      ),
+    )
+    daemon.emit(
+      durable(
+        3,
+        { type: 'segment.upserted', segment: segment('s1', 'a', { text: 'older', revision: 1 }) },
+        'a',
+      ),
+    )
+    daemon.emit(durable(4, { type: 'segment.upserted', segment: segment('s9', 'b') }, 'b'))
+    const t = qc.getQueryData<TranscriptState>(keys.transcript('a'))!
+    expect(t.ordered.map((s) => s.text)).toEqual(['hello'])
+    // no transcript query for b → nothing was created for it
+    expect(qc.getQueryData(keys.transcript('b'))).toBeUndefined()
+  })
+
+  it('re-folds events a transcript fetch finished too late to include', async () => {
+    const { daemon, bridge, qc } = setup({ sessions: [session('a')], lastSeq: 1 })
+    bridge.start()
+    await bridge.ready
+    let release: (v: TranscriptState) => void = () => {}
+    const fetching = qc.fetchQuery({
+      queryKey: keys.transcript('a'),
+      queryFn: () => new Promise<TranscriptState>((r) => (release = r)),
+      structuralSharing: false,
+    })
+    // arrives while the fetch is in flight: there is no data to fold into yet
+    daemon.emit(
+      durable(2, { type: 'segment.upserted', segment: segment('late', 'a', { startMs: 5000 }) }, 'a'),
+    )
+    release(fromSegments([segment('early', 'a')])) // the server's answer predates `late`
+    await fetching
+    await until(() => (qc.getQueryData<TranscriptState>(keys.transcript('a'))?.ordered.length ?? 0) === 2)
+    expect(qc.getQueryData<TranscriptState>(keys.transcript('a'))!.ordered.map((s) => s.id)).toEqual([
+      'early',
+      'late',
+    ])
+  })
+
+  it('folds qa messages, speaker renames (and invalidates stale talk time), settings and notes', async () => {
+    const { daemon, bridge, qc } = setup({ sessions: [session('a')], lastSeq: 1 })
+    bridge.start()
+    await bridge.ready
+    qc.setQueryData(keys.qa('a'), fromHistory([]))
+    qc.setQueryData(
+      keys.speakers('a'),
+      fromSummaries([
+        {
+          id: 'spk1',
+          label: 'Speaker 1',
+          track: 'system',
+          named: false,
+          colour: 0,
+          voiceprintId: null,
+          segments: 3,
+          talkMs: 9000,
+        },
+      ]),
+    )
+    qc.setQueryData(keys.settings(), {
+      stt: { finalPass: 'off' },
+      llm: { apiKeyConfigured: true },
+    } as unknown as Settings)
+    qc.setQueryData(keys.notes('a'), { note: { version: 1 } })
+    const q: QaMessage = {
+      id: 'qa_1',
+      sessionId: 'a',
+      requestId: 'req_1',
+      role: 'user',
+      text: 'what did we decide?',
+      citations: [],
+      createdAt: '2026-09-28T12:00:00.000Z',
+    } as unknown as QaMessage
+    daemon.emit(durable(2, { type: 'qa.message', message: q }, 'a'))
+    daemon.emit(
+      durable(
+        3,
+        {
+          type: 'speaker.upserted',
+          speaker: {
+            id: 'spk1',
+            sessionId: 'a',
+            label: 'Ana',
+            named: true,
+            colour: 0,
+            voiceprintId: null,
+            mergedInto: null,
+          },
+        } as never,
+        'a',
+      ),
+    )
+    daemon.emit(
+      durable(
+        4,
+        { type: 'segment.upserted', segment: segment('s1', 'a', { track: 'system', speakerId: 'spk1' }) },
+        'a',
+      ),
+    )
+    daemon.emit(
+      durable(5, { type: 'settings.updated', settings: { stt: { finalPass: 'whisper' }, llm: {} } } as never),
+    )
+    daemon.emit(durable(6, { type: 'note.version', version: { sessionId: 'a', version: 2 } } as never, 'a'))
+    expect(qc.getQueryData<QaState>(keys.qa('a'))!.turns.map((t) => t.question)).toEqual([
+      'what did we decide?',
+    ])
+    expect(qc.getQueryData<SpeakersState>(keys.speakers('a'))!.list[0]!.label).toBe('Ana')
+    expect(qc.getQueryState(keys.speakers('a'))!.isInvalidated).toBe(true) // a new segment: talk time is stale
+    expect(qc.getQueryData<Settings>(keys.settings())!.stt.finalPass).toBe('whisper')
+    expect(qc.getQueryState(keys.notes('a'))!.isInvalidated).toBe(true)
+  })
+})
+
+describe('ephemeral events', () => {
+  it('go to the Zustand store, never the query cache', async () => {
+    const { daemon, bridge, qc, store } = setup({
+      sessions: [session('a', { status: 'recording' })],
+      lastSeq: 1,
+    })
+    bridge.start()
+    await bridge.ready
+    const before = qc.getQueryCache().getAll().length
+    daemon.emit(ephemeral({ type: 'audio.level', track: 'mic', rms: 0.3, peak: 0.6, elapsedMs: 1200 }, 'a'))
+    daemon.emit(
+      ephemeral(
+        { type: 'transcript.partial', track: 'mic', speaker: 'me', startMs: 1000, text: 'so the' },
+        'a',
+      ),
+    )
+    expect(store.getState().levels.a?.mic).toMatchObject({ rms: 0.3, peak: 0.6 })
+    expect(store.getState().partials.a?.mic?.text).toBe('so the')
+    expect(qc.getQueryCache().getAll().length).toBe(before)
+    // the final for that line supersedes the partial
+    daemon.emit(durable(2, { type: 'segment.upserted', segment: segment('s1', 'a', { startMs: 1000 }) }, 'a'))
+    expect(store.getState().partials.a?.mic).toBeUndefined()
+    // stopping clears what was live
+    daemon.emit(upserted(3, session('a', { status: 'stopped' })))
+    expect(store.getState().levels.a).toBeUndefined()
+  })
+})
+
+describe('connection, gaps and reconnects', () => {
+  it('reports reconnecting and pauses queries while the stream is down', async () => {
+    const { daemon, bridge, store } = setup({ sessions: [], lastSeq: 1 })
+    bridge.start()
+    await bridge.ready
+    daemon.drop()
+    expect(store.getState().connection).toEqual({ kind: 'reconnecting', error: 'socket hang up' })
+    expect(onlineManager.isOnline()).toBe(false)
+    daemon.connect()
+    await until(() => store.getState().connection.kind === 'live')
+    expect(onlineManager.isOnline()).toBe(true)
+    expect(bridge.stats.resnapshots).toBe(0) // same log: the client resumes from its cursor
+  })
+
+  it('resnapshots and invalidates everything on a reported gap', async () => {
+    const { daemon, bridge, qc, titles } = setup({ sessions: [session('a')], lastSeq: 3 })
+    bridge.start()
+    await bridge.ready
+    qc.setQueryData(keys.transcript('a'), fromSegments([]))
+    daemon.state.sessions = [session('a'), session('b', { createdAt: '2026-09-29T00:00:00.000Z' })]
+    daemon.state.lastSeq = 9
+    daemon.drop(new Error('event gap: expected seq 4, got 6'))
+    await until(() => bridge.stats.snapshots === 2)
+    expect(titles()).toEqual(['b', 'a'])
+    expect(qc.getQueryState(keys.transcript('a'))!.isInvalidated).toBe(true)
+    expect(daemon.subs).toHaveLength(2)
+    expect(daemon.subs[0]!.signal!.aborted).toBe(true) // the old subscription is gone
+    expect(daemon.current().since).toBe(9)
+  })
+
+  it('resnapshots when the daemon comes back with a cursor behind ours (a different log)', async () => {
+    const { daemon, bridge, titles } = setup({ sessions: [session('old')], lastSeq: 50 })
+    bridge.start()
+    await bridge.ready
+    daemon.drop()
+    daemon.state.sessions = [session('fresh')]
+    daemon.state.lastSeq = 2
+    daemon.connect()
+    await until(() => bridge.stats.snapshots === 2)
+    expect(titles()).toEqual(['fresh'])
+    expect(bridge.cursor).toBe(2)
+  })
+
+  it('is unreachable (and offline) until a snapshot succeeds, retrying on its own', async () => {
+    const { daemon, bridge, store, titles } = setup({ sessions: [session('a')], lastSeq: 1 })
+    daemon.state.fail = new Error('connect ECONNREFUSED')
+    bridge.start()
+    await until(() => store.getState().connection.kind === 'unreachable')
+    expect(onlineManager.isOnline()).toBe(false)
+    daemon.state.fail = null
+    await bridge.ready
+    expect(titles()).toEqual(['a'])
+    expect(store.getState().connection.kind).toBe('live')
+  })
+
+  it('stop() ends the subscription', async () => {
+    const { daemon, bridge } = setup()
+    bridge.start()
+    await bridge.ready
+    await flush()
+    bridge.stop()
+    expect(daemon.current().signal!.aborted).toBe(true)
+  })
+})

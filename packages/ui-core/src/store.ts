@@ -58,7 +58,7 @@ export class SessionStore {
     this.source = source
     this.retryMs = opts.retryMs ?? 5000
     this.setT = opts.setTimeout ?? ((fn, ms) => setTimeout(fn, ms))
-    this.clearT = opts.clearTimeout ?? ((h) => clearTimeout(h as NodeJS.Timeout))
+    this.clearT = opts.clearTimeout ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>))
   }
 
   get origin(): string {

@@ -203,7 +203,7 @@ export class SpeakersFeed {
     this.disposed = true
     this.abort.abort()
     if (this.timer !== null)
-      (this.deps.clearTimeout ?? ((h) => clearTimeout(h as NodeJS.Timeout)))(this.timer)
+      (this.deps.clearTimeout ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>)))(this.timer)
     this.timer = null
     this.unsubscribe?.()
     this.unsubscribe = null

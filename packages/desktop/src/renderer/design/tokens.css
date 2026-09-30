@@ -1,0 +1,145 @@
+/*
+ * Design tokens: the contract between design and code. Names follow libadwaita's own CSS variables
+ * (values from libadwaita 1.8's stylesheet — LGPL-2.1+, values copied, not the file), so v1 looks like a
+ * GNOME app and a redesign is a change here plus in design/primitives, nothing else.
+ *
+ * Three axes, all set by main from the desktop portal (see src/main/theme.ts):
+ *   scheme    prefers-color-scheme (main sets nativeTheme.themeSource)
+ *   contrast  <html data-contrast="high">
+ *   accent    --accent-bg-color overridden inline on <html> from the portal's accent-color
+ *
+ * Components use these through Tailwind utilities (styles.css maps them: bg-window, text-dim, …) or
+ * var(--…) directly. Never a literal colour in a component.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* accent (the portal can override --accent-bg-color) */
+  --accent-bg-color: #3584e4;
+  --accent-fg-color: #ffffff;
+  --accent-color: color-mix(in oklab, var(--accent-bg-color) 80%, black);
+
+  --destructive-bg-color: #e01b24;
+  --destructive-fg-color: #ffffff;
+  --destructive-color: #c30000;
+  --success-bg-color: #2ec27e;
+  --success-fg-color: #ffffff;
+  --success-color: #007c3d;
+  --warning-bg-color: #e5a50a;
+  --warning-fg-color: rgb(0 0 0 / 80%);
+  --warning-color: #905300;
+  --error-bg-color: #e01b24;
+  --error-fg-color: #ffffff;
+  --error-color: #c30000;
+
+  --window-bg-color: #fafafb;
+  --window-fg-color: rgb(0 0 6 / 80%);
+  --view-bg-color: #ffffff;
+  --view-fg-color: rgb(0 0 6 / 80%);
+  --headerbar-bg-color: #ffffff;
+  --headerbar-fg-color: rgb(0 0 6 / 80%);
+  --headerbar-border-color: rgb(0 0 6 / 80%);
+  --headerbar-backdrop-color: var(--window-bg-color);
+  --headerbar-shade-color: rgb(0 0 6 / 12%);
+  --sidebar-bg-color: #ebebed;
+  --sidebar-fg-color: rgb(0 0 6 / 80%);
+  --sidebar-backdrop-color: #f2f2f4;
+  --sidebar-shade-color: rgb(0 0 6 / 7%);
+  --sidebar-border-color: rgb(0 0 6 / 7%);
+  --card-bg-color: #ffffff;
+  --card-fg-color: rgb(0 0 6 / 80%);
+  --card-shade-color: rgb(0 0 6 / 7%);
+  --dialog-bg-color: #fafafb;
+  --dialog-fg-color: rgb(0 0 6 / 80%);
+  --popover-bg-color: #ffffff;
+  --popover-fg-color: rgb(0 0 6 / 80%);
+  --thumbnail-bg-color: #ffffff;
+  --shade-color: rgb(0 0 6 / 7%);
+  --scrollbar-outline-color: #ffffff;
+
+  /* derived, as libadwaita derives them */
+  --border-opacity: 15%;
+  --dim-opacity: 55%;
+  --disabled-opacity: 50%;
+  --border-color: color-mix(in srgb, currentColor var(--border-opacity), transparent);
+  --dim-fg-color: color-mix(in srgb, var(--window-fg-color) var(--dim-opacity), transparent);
+  --hover-bg-color: color-mix(in srgb, currentColor 7%, transparent);
+  --active-bg-color: color-mix(in srgb, currentColor 16%, transparent);
+  --selected-bg-color: color-mix(in srgb, currentColor 10%, transparent);
+  --focus-ring-color: color-mix(in srgb, var(--accent-bg-color) 50%, transparent);
+
+  /* shape and type */
+  --window-radius: 15px;
+  --button-radius: 9px;
+  --card-radius: 12px;
+  --popover-radius: 12px;
+  --focus-ring-width: 2px;
+  --font-family: "Adwaita Sans", "Cantarell", system-ui, sans-serif;
+  --monospace-font-family: "Adwaita Mono", "Source Code Pro", monospace;
+  --font-size: 11pt;
+  --headerbar-height: 47px;
+  --sidebar-width: 280px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --accent-color: color-mix(in oklab, var(--accent-bg-color) 60%, white);
+    --destructive-bg-color: #c01c28;
+    --destructive-color: #ff938c;
+    --success-bg-color: #26a269;
+    --success-color: #78e9ab;
+    --warning-bg-color: #cd9309;
+    --warning-color: #ffc252;
+    --error-bg-color: #c01c28;
+    --error-color: #ff938c;
+
+    --window-bg-color: #222226;
+    --window-fg-color: #ffffff;
+    --view-bg-color: #1d1d20;
+    --view-fg-color: #ffffff;
+    --headerbar-bg-color: #2e2e32;
+    --headerbar-fg-color: #ffffff;
+    --headerbar-border-color: #ffffff;
+    --headerbar-shade-color: rgb(0 0 6 / 36%);
+    --sidebar-bg-color: #2e2e32;
+    --sidebar-fg-color: #ffffff;
+    --sidebar-backdrop-color: #28282c;
+    --sidebar-shade-color: rgb(0 0 6 / 25%);
+    --sidebar-border-color: rgb(0 0 6 / 36%);
+    --card-bg-color: rgb(255 255 255 / 8%);
+    --card-fg-color: #ffffff;
+    --card-shade-color: rgb(0 0 6 / 36%);
+    --dialog-bg-color: #36363a;
+    --dialog-fg-color: #ffffff;
+    --popover-bg-color: #36363a;
+    --popover-fg-color: #ffffff;
+    --thumbnail-bg-color: #39393d;
+    --shade-color: rgb(0 0 6 / 25%);
+    --scrollbar-outline-color: rgb(0 0 6 / 50%);
+  }
+}
+
+/* High contrast: libadwaita's approach — stronger borders, no dimming, solid focus rings. */
+:root[data-contrast="high"] {
+  --border-opacity: 50%;
+  --dim-opacity: 90%;
+  --disabled-opacity: 40%;
+  --focus-ring-color: var(--accent-bg-color);
+  --window-fg-color: rgb(0 0 6);
+  --view-fg-color: rgb(0 0 6);
+  --headerbar-fg-color: rgb(0 0 6);
+  --sidebar-fg-color: rgb(0 0 6);
+  --card-fg-color: rgb(0 0 6);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-contrast="high"] {
+    --window-fg-color: #ffffff;
+    --view-fg-color: #ffffff;
+    --headerbar-fg-color: #ffffff;
+    --sidebar-fg-color: #ffffff;
+    --card-fg-color: #ffffff;
+  }
+}

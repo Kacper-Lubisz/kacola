@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2024", "DOM", "DOM.Iterable", "DOM.AsyncIterable"],
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+    "paths": { "node:crypto": ["./src/renderer/shims/node-crypto.ts"] }
+  },
+  "include": ["src/renderer", "src/shared"]
+}

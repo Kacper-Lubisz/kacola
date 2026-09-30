@@ -1,0 +1,85 @@
+@import "tailwindcss";
+@import "./design/tokens.css";
+
+/*
+ * Tailwind sees ONLY our tokens: the default palette, radii and fonts are cleared, so a class like
+ * `bg-blue-500` does not exist and every colour in the app is a design token. Utilities:
+ *   bg-window bg-view bg-headerbar bg-sidebar bg-card bg-accent bg-destructive … (backgrounds)
+ *   text-fg text-dim text-accent text-destructive text-on-accent …                (foregrounds)
+ *   border-line rounded-button rounded-card font-sans font-mono
+ */
+@theme {
+  --color-*: initial;
+  --radius-*: initial;
+  --font-*: initial;
+}
+
+@theme inline {
+  --color-window: var(--window-bg-color);
+  --color-view: var(--view-bg-color);
+  --color-headerbar: var(--headerbar-bg-color);
+  --color-sidebar: var(--sidebar-bg-color);
+  --color-sidebar-backdrop: var(--sidebar-backdrop-color);
+  --color-card: var(--card-bg-color);
+  --color-dialog: var(--dialog-bg-color);
+  --color-popover: var(--popover-bg-color);
+  --color-accent: var(--accent-bg-color);
+  --color-destructive: var(--destructive-bg-color);
+  --color-success: var(--success-bg-color);
+  --color-warning: var(--warning-bg-color);
+  --color-error: var(--error-bg-color);
+  --color-hover: var(--hover-bg-color);
+  --color-active: var(--active-bg-color);
+  --color-selected: var(--selected-bg-color);
+  --color-shade: var(--shade-color);
+  --color-line: var(--border-color);
+
+  --color-fg: var(--window-fg-color);
+  --color-view-fg: var(--view-fg-color);
+  --color-sidebar-fg: var(--sidebar-fg-color);
+  --color-dim: var(--dim-fg-color);
+  --color-accent-fg: var(--accent-color);
+  --color-on-accent: var(--accent-fg-color);
+  --color-destructive-fg: var(--destructive-color);
+  --color-on-destructive: var(--destructive-fg-color);
+  --color-warning-fg: var(--warning-color);
+  --color-on-warning: var(--warning-fg-color);
+
+  --radius-button: var(--button-radius);
+  --radius-card: var(--card-radius);
+  --radius-window: var(--window-radius);
+  --radius-full: 9999px;
+
+  --font-sans: var(--font-family);
+  --font-mono: var(--monospace-font-family);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    font-family: var(--font-family);
+    font-size: var(--font-size);
+    background: var(--window-bg-color);
+    color: var(--window-fg-color);
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    overflow: hidden;
+  }
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: -1px;
+  }
+}
+
+/* Draggable header bars (frameless window). Interactive children opt out. */
+@utility app-drag {
+  -webkit-app-region: drag;
+}
+@utility app-no-drag {
+  -webkit-app-region: no-drag;
+}

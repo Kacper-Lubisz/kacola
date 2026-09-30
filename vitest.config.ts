@@ -13,11 +13,17 @@ export default defineConfig({
   test: {
     projects: [
       {
+        // React component tests (*.test.tsx) opt into a DOM with `// @vitest-environment jsdom`.
+        esbuild: { jsx: 'automatic' },
         test: {
           ...common,
           ...hermetic,
           name: 'unit',
-          include: ['packages/*/src/**/*.test.ts', 'packages/*/test/**/*.test.ts', 'scripts/**/*.test.ts'],
+          include: [
+            'packages/*/src/**/*.test.{ts,tsx}',
+            'packages/*/test/**/*.test.{ts,tsx}',
+            'scripts/**/*.test.ts',
+          ],
           exclude: [...common.exclude, '**/*.int.test.ts', '**/*.e2e.test.ts', '**/*.eval.test.ts'],
           testTimeout: 10_000,
         },
