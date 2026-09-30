@@ -5,7 +5,7 @@ entry points, the steps, the screens and states it touches, and its status. Each
 from where the user starts to the outcome. The **screen atlas** is a real screenshot of every state, in
 light and dark, taken by an e2e suite that drives the real app. We use it to iterate on the designs.
 
-- **Atlas page:** https://claude.ai/code/artifact/ATLAS_URL_PENDING (private; share it from the page)
+- **Atlas page:** https://claude.ai/artifact/BZYWXk9j7BwnFBX9WJooew (private; share it from the page)
 - **Manifest of states:** `packages/testkit/src/atlas/manifest.ts`. Every state has an id,
   `<story>__<step>__<state>`, and a status: `built` (captured) or `planned` (shown as a gap).
 - **Suites:** `packages/e2e/test/atlas.e2e.test.ts` (the window and the CLI / MCP frames),
@@ -30,7 +30,7 @@ pnpm atlas:build           # rebuild the page only, from the shots already there
 Then publish `dist/atlas/site/index.html` with the Artifact tool, with `files` set to every image under
 `dist/atlas/site/img/`. Pass the atlas URL above as `url` so the same link updates (a publish from another
 checkout or worktree has a different file path, so without `url` it would make a new artifact). The
-images come to about 12 MB as WebP, well within one publish.
+images come to about 6 MB as WebP (230 files), well within one publish.
 
 **When a planned screen lands** (the agenda panel, say): set its manifest entry's status to `built`, then
 add one line where the suite reaches that state:
