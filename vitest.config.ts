@@ -23,6 +23,7 @@ export default defineConfig({
             'packages/*/src/**/*.test.{ts,tsx}',
             'packages/*/test/**/*.test.{ts,tsx}',
             'scripts/**/*.test.ts',
+            'brand/**/*.test.ts',
           ],
           exclude: [...common.exclude, '**/*.int.test.ts', '**/*.e2e.test.ts', '**/*.eval.test.ts'],
           testTimeout: 10_000,

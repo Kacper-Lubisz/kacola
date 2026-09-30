@@ -34,6 +34,8 @@ export const ALLOWED = new Set([
   // data only (models, voices, corpora): attribution is given in the table below
   'CC-BY-4.0',
   'Public-Domain',
+  // fonts only: bundled as separate files next to the program (an aggregate, which the OFL and GPL both allow)
+  'OFL-1.1',
 ])
 
 /** Accepts `A OR B` if any alternative is allowed; `A AND B` only if all are. Parentheses are stripped. */
@@ -105,6 +107,30 @@ export const DATA: { name: string; licence: string; source: string; note: string
     licence: 'LGPL-3.0-only',
     source: 'GNOME Project, adwaita-icon-theme (dual LGPL-3.0 / CC-BY-SA-3.0)',
     note: 'path data of a few symbolic icons in the Electron window (packages/desktop/src/renderer/design)',
+  },
+  {
+    name: 'Bricolage Grotesque (variable)',
+    licence: 'OFL-1.1',
+    source: 'google/fonts ofl/bricolagegrotesque (Ateliertriay)',
+    note: 'brand typeface: headings, wordmark, buttons; brand/fonts/ (licence alongside)',
+  },
+  {
+    name: 'Instrument Sans (variable, roman + italic)',
+    licence: 'OFL-1.1',
+    source: 'google/fonts ofl/instrumentsans (Instrument)',
+    note: 'brand typeface: UI text; brand/fonts/',
+  },
+  {
+    name: 'Fraunces Italic (variable)',
+    licence: 'OFL-1.1',
+    source: 'google/fonts ofl/fraunces (Undercase Type)',
+    note: 'brand typeface: the icon k and editorial accents; brand/fonts/',
+  },
+  {
+    name: 'JetBrains Mono (variable)',
+    licence: 'OFL-1.1',
+    source: 'google/fonts ofl/jetbrainsmono (JetBrains)',
+    note: 'brand typeface: timestamps and code; brand/fonts/',
   },
 ]
 

@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kacola design language</title>
+<meta name="description" content="The kacola brand and design language: logo, colour, type, space, motion and core components.">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="tokens/fonts.css">
+<link rel="stylesheet" href="tokens/tokens.css">
+<script>
+  // Theme before first paint: an explicit choice wins, otherwise the OS preference applies (tokens.css).
+  try {
+    const t = localStorage.getItem('kacola-theme')
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+    if (localStorage.getItem('kacola-contrast') === 'high') document.documentElement.dataset.contrast = 'high'
+  } catch {}
+</script>
+<style>
+  /* ---------- page ---------------------------------------------------------------------------------- */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: 72px; }
+  body {
+    margin: 0;
+    background: var(--k-color-bg-window);
+    color: var(--k-color-text-primary);
+    font-family: var(--k-font-family-sans);
+    font-size: var(--k-typography-body-size);
+    line-height: var(--k-typography-body-line-height);
+    -webkit-font-smoothing: antialiased;
+    font-synthesis: none;
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  img { display: block; max-width: 100%; }
+  code, .mono {
+    font-family: var(--k-font-family-mono);
+    font-size: 0.87em;
+    font-variant-numeric: tabular-nums;
+  }
+  a { color: var(--k-color-accent-record-text); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: var(--k-focus-ring-width) solid var(--k-color-accent-focus); outline-offset: var(--k-focus-ring-offset); }
+
+  .t-display { font: var(--k-typography-display-weight) var(--k-typography-display-size)/var(--k-typography-display-line-height) var(--k-typography-display-family); letter-spacing: var(--k-typography-display-tracking); }
+  .t-title1 { font: var(--k-typography-title1-weight) var(--k-typography-title1-size)/var(--k-typography-title1-line-height) var(--k-typography-title1-family); letter-spacing: var(--k-typography-title1-tracking); }
+  .t-title2 { font: var(--k-typography-title2-weight) var(--k-typography-title2-size)/var(--k-typography-title2-line-height) var(--k-typography-title2-family); letter-spacing: var(--k-typography-title2-tracking); }
+  .t-headline { font: var(--k-typography-headline-weight) var(--k-typography-headline-size)/var(--k-typography-headline-line-height) var(--k-typography-headline-family); }
+  .t-body { font: var(--k-typography-body-weight) var(--k-typography-body-size)/var(--k-typography-body-line-height) var(--k-typography-body-family); }
+  .t-body-strong { font: var(--k-typography-body-strong-weight) var(--k-typography-body-strong-size)/var(--k-typography-body-strong-line-height) var(--k-typography-body-strong-family); }
+  .t-callout { font: var(--k-typography-callout-weight) var(--k-typography-callout-size)/var(--k-typography-callout-line-height) var(--k-typography-callout-family); }
+  .t-caption { font: var(--k-typography-caption-weight) var(--k-typography-caption-size)/var(--k-typography-caption-line-height) var(--k-typography-caption-family); }
+  .t-overline { font: var(--k-typography-overline-weight) var(--k-typography-overline-size)/var(--k-typography-overline-line-height) var(--k-typography-overline-family); letter-spacing: var(--k-typography-overline-tracking); text-transform: uppercase; }
+  .t-mono { font: var(--k-typography-mono-weight) var(--k-typography-mono-size)/var(--k-typography-mono-line-height) var(--k-typography-mono-family); font-variant-numeric: tabular-nums; }
+  .t-empty { font: italic var(--k-typography-empty-state-weight) var(--k-typography-empty-state-size)/var(--k-typography-empty-state-line-height) var(--k-typography-empty-state-family); letter-spacing: var(--k-typography-empty-state-tracking); }
+  .secondary { color: var(--k-color-text-secondary); }
+  .tertiary { color: var(--k-color-text-tertiary); }
+
+  .top {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 16px;
+    height: 56px; padding: 0 max(16px, calc((100vw - 1152px) / 2));
+    background: color-mix(in srgb, var(--k-color-bg-window) 88%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--k-color-border-subtle);
+  }
+  .top .mark { height: 22px; width: auto; }
+  .top nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
+  .top nav a {
+    color: var(--k-color-text-secondary); white-space: nowrap;
+    font: 600 14px/20px var(--k-font-family-display); padding: 6px 10px; border-radius: var(--k-radius-sm);
+  }
+  .top nav a:hover { background: var(--k-color-bg-hover); color: var(--k-color-text-primary); text-decoration: none; }
+  .top .controls { display: flex; gap: 6px; flex-shrink: 0; }
+
+  main { max-width: 1184px; margin: 0 auto; padding: 0 16px 96px; }
+  section { padding-top: 72px; }
+  .section-head { margin-bottom: 24px; max-width: 720px; }
+  .section-head .t-overline { color: var(--k-color-accent-record-text); margin: 0 0 8px; }
+  .section-head h2 { margin: 0 0 8px; }
+  .section-head p { margin: 0; color: var(--k-color-text-secondary); }
+  h3 { margin: 40px 0 12px; }
+
+  .hero { padding: 72px 0 8px; display: grid; gap: 32px; }
+  .hero h1 { font: 700 clamp(40px, 7vw, 72px)/1 var(--k-font-family-display); letter-spacing: -0.04em; margin: 0; max-width: 14ch; }
+  .hero h1 em { font-family: var(--k-font-family-editorial); font-weight: 600; letter-spacing: -0.02em; }
+  .hero p { margin: 0; max-width: 60ch; font-size: 17px; line-height: 26px; color: var(--k-color-text-secondary); }
+  .hero .lockup { height: 64px; width: auto; }
+  .hero-facts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fact { display: inline-flex; align-items: center; gap: 8px; min-height: 28px; padding: 4px 12px; border-radius: 999px; background: var(--k-color-bg-sidebar); color: var(--k-color-text-secondary); font: 500 13px/18px var(--k-font-family-sans); }
+  .fact i { width: 8px; height: 8px; border-radius: 50%; background: var(--k-color-accent-record); }
+
+  .grid { display: grid; gap: 16px; }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+  .g4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+  .panel { background: var(--k-color-bg-surface); border: 1px solid var(--k-color-border-subtle); border-radius: var(--k-radius-lg); box-shadow: var(--k-shadow-e1); padding: 24px; min-width: 0; }
+  .panel > .t-overline { color: var(--k-color-text-tertiary); margin: 0 0 16px; }
+  .stage { border-radius: var(--k-radius-lg); padding: 32px; display: grid; place-items: center; min-height: 180px; border: 1px solid var(--k-color-border-subtle); }
+  .stage.oat { background: #F6F1E7; }
+  .stage.night { background: #171411; border-color: #2E2822; }
+  .stage.paper { background: #FFFFFF; }
+  .stage.red { background: #E0482B; border-color: #E0482B; }
+  .cap { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; color: var(--k-color-text-secondary); }
+  .cap code { color: var(--k-color-text-tertiary); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .stack { display: grid; gap: 12px; align-content: start; }
+  .note { color: var(--k-color-text-secondary); margin: 8px 0 0; }
+
+  /* theme-aware logo swaps (images cannot read tokens) */
+  .on-dark { display: none; }
+  [data-theme="dark"] .on-light { display: none; }
+  [data-theme="dark"] .on-dark { display: block; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .on-light { display: none; }
+    :root:not([data-theme="light"]) .on-dark { display: block; }
+  }
+
+  /* ---------- logo --------------------------------------------------------------------------------- */
+  .clear { position: relative; display: inline-block; padding: 26px; background-image: repeating-linear-gradient(45deg, color-mix(in srgb, var(--k-color-accent-record) 14%, transparent) 0 1px, transparent 1px 7px); border-radius: 4px; }
+  .clear::after { content: ""; position: absolute; inset: 26px; outline: 1px dashed var(--k-color-accent-record); }
+  .clear img { height: 64px; width: auto; }
+  .dont { position: relative; }
+  .dont .stage { min-height: 140px; }
+  .dont .x { position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; border-radius: 50%; background: var(--k-color-status-danger); color: #fff; display: grid; place-items: center; }
+  .x > svg { width: 14px; height: 14px; }
+  .fake-wm { font: 700 44px/1 "Bricolage Grotesque", sans-serif; letter-spacing: -0.04em; color: #1F1B16; font-variation-settings: "opsz" 96; }
+  .fake-wm b { display: inline-block; width: 0.2em; height: 0.2em; border-radius: 50%; margin-left: 0.06em; }
+  .busy { background: conic-gradient(from 20deg at 30% 40%, #8FAE5C, #E0A54A, #6FA6D6, #C24A2E, #7A4B8C, #8FAE5C); }
+  .sizes { display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+  .sizes figure { margin: 0; display: grid; justify-items: center; gap: 8px; }
+  .sizes figcaption { font: 500 12px/16px var(--k-font-family-mono); color: var(--k-color-text-tertiary); }
+  .px { image-rendering: pixelated; }
+
+  /* ---------- colour ------------------------------------------------------------------------------- */
+  .palettes { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); }
+  .palette { background: var(--k-color-bg-window); color: var(--k-color-text-primary); border: 1px solid var(--k-color-border-default); border-radius: var(--k-radius-xl); padding: 24px; }
+  .palette h4 { margin: 20px 0 8px; font: 600 12px/16px var(--k-font-family-sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--k-color-text-tertiary); }
+  .palette h4:first-of-type { margin-top: 12px; }
+  .sw { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 12px; padding: 6px 0; }
+  .sw + .sw { border-top: 1px solid var(--k-color-border-subtle); }
+  .chip-sw { width: 40px; height: 28px; border-radius: var(--k-radius-sm); box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.25); background: linear-gradient(var(--c), var(--c)), var(--k-color-bg-surface); }
+  .sw .n { font: 500 13px/18px var(--k-font-family-mono); }
+  .sw .v { font: 500 12px/16px var(--k-font-family-mono); color: var(--k-color-text-tertiary); text-align: right; }
+  .v b { display: block; font-weight: 500; color: var(--k-color-text-secondary); }
+
+  /* ---------- type --------------------------------------------------------------------------------- */
+  .families { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
+  .family .glyphs { font-size: 56px; line-height: 64px; margin: 8px 0 16px; letter-spacing: -0.02em; overflow: hidden; white-space: nowrap; }
+  .scale { background: var(--k-color-bg-surface); border: 1px solid var(--k-color-border-subtle); border-radius: var(--k-radius-lg); overflow: hidden; }
+  .scale .r { display: grid; grid-template-columns: 180px 1fr; gap: 24px; align-items: baseline; padding: 18px 24px; }
+  .scale .r + .r { border-top: 1px solid var(--k-color-border-subtle); }
+  .scale .spec { font: 500 12px/18px var(--k-font-family-mono); color: var(--k-color-text-tertiary); }
+  .spec b { display: block; font: 600 13px/18px var(--k-font-family-sans); color: var(--k-color-text-primary); }
+  .scale .sample { min-width: 0; overflow-wrap: anywhere; }
+  @media (max-width: 640px) { .scale .r { grid-template-columns: 1fr; gap: 6px; } }
+
+  /* ---------- foundations -------------------------------------------------------------------------- */
+  .space-row { display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 12px; }
+  .space-row i { display: block; height: 12px; background: var(--k-color-accent-record); border-radius: 2px; opacity: 0.85; }
+  .radii { display: flex; flex-wrap: wrap; gap: 16px; }
+  .radii figure { margin: 0; display: grid; gap: 8px; justify-items: center; }
+  .radii div { width: 72px; height: 72px; background: var(--k-color-bg-sidebar); border: 1.5px solid var(--k-color-border-strong); }
+  .elev { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 12px 4px; }
+  .elev div { height: 96px; border-radius: var(--k-radius-lg); background: var(--k-color-bg-raised); display: grid; place-items: center; font: 600 14px/20px var(--k-font-family-display); }
+  .motion { display: grid; gap: 14px; }
+  .track { position: relative; height: 32px; border-radius: 999px; background: var(--k-color-bg-sidebar); }
+  .track i { position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: var(--k-color-ink-primary); transition: transform var(--d) var(--e); }
+  .go .track i { transform: translateX(calc(var(--w, 240px) - 32px)); }
+  .motion .lbl { display: flex; justify-content: space-between; font: 500 12px/16px var(--k-font-family-mono); color: var(--k-color-text-tertiary); margin-bottom: 4px; }
+
+  /* ---------- components (the visual spec; behaviour comes from React Aria in the app) ------------- */
+  .btn {
+    --h: 36px; --px: 14px; --fs: 15px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: var(--h); padding: 0 var(--px); border-radius: var(--k-radius-md);
+    font: 600 var(--fs)/1 var(--k-font-family-display); letter-spacing: -0.005em; white-space: nowrap;
+    border: 1px solid transparent; cursor: pointer; user-select: none;
+    transition: background-color var(--k-duration-fast) var(--k-easing-out), border-color var(--k-duration-fast) var(--k-easing-out), transform var(--k-duration-fast) var(--k-easing-out), filter var(--k-duration-fast) var(--k-easing-out);
+  }
+  .btn svg { width: 16px; height: 16px; }
+  .btn.sm { --h: 28px; --px: 10px; --fs: 14px; }
+  .btn.lg { --h: 44px; --px: 18px; --fs: 16px; }
+  .btn:focus-visible, .btn.is-focus { outline: var(--k-focus-ring-width) solid var(--k-color-accent-focus); outline-offset: var(--k-focus-ring-offset); }
+  .btn:active, .btn.is-pressed { transform: translateY(0.5px); }
+  .btn:disabled, .btn.is-disabled { opacity: 0.45; pointer-events: none; }
+  .btn.primary { background: var(--k-color-ink-primary); color: var(--k-color-text-on-ink); }
+  /* ink has no darker step, so hover and press move the fill toward the window colour (either theme) */
+  .btn.primary:hover, .btn.primary.is-hover { background: color-mix(in srgb, var(--k-color-ink-primary) 86%, var(--k-color-bg-window)); }
+  .btn.primary:active, .btn.primary.is-pressed { background: color-mix(in srgb, var(--k-color-ink-primary) 76%, var(--k-color-bg-window)); }
+  .btn.secondary { background: var(--k-color-bg-surface); color: var(--k-color-text-primary); border-color: var(--k-color-border-default); }
+  .btn.secondary:hover, .btn.secondary.is-hover { border-color: var(--k-color-border-strong); background: color-mix(in srgb, var(--k-color-bg-surface), var(--k-color-text-primary) 3%); }
+  .btn.secondary:active, .btn.secondary.is-pressed { background: color-mix(in srgb, var(--k-color-bg-surface), var(--k-color-text-primary) 7%); }
+  .btn.ghost { background: transparent; color: var(--k-color-text-primary); }
+  .btn.ghost:hover, .btn.ghost.is-hover { background: var(--k-color-bg-hover); }
+  .btn.ghost:active, .btn.ghost.is-pressed { background: var(--k-color-bg-selected); }
+  .btn.destructive { background: var(--k-color-bg-surface); color: var(--k-color-status-danger); border-color: var(--k-color-status-danger); }
+  .btn.destructive:hover, .btn.destructive.is-hover { background: color-mix(in srgb, var(--k-color-bg-surface), var(--k-color-status-danger) 7%); }
+  .btn.destructive:active, .btn.destructive.is-pressed { background: color-mix(in srgb, var(--k-color-bg-surface), var(--k-color-status-danger) 13%); }
+  .btn.destructive.confirm { background: var(--k-color-accent-record); color: var(--k-color-text-on-accent); border-color: transparent; }
+  .btn.destructive.confirm:hover, .btn.destructive.confirm.is-hover { background: var(--k-color-accent-record-hover); }
+  .btn.link { background: none; border: 0; padding: 0 2px; height: auto; color: var(--k-color-accent-record-text); }
+  .btn.link:hover, .btn.link.is-hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  .icon-btn { width: 32px; height: 32px; padding: 0; border-radius: var(--k-radius-sm); display: inline-grid; place-items: center; background: transparent; color: var(--k-color-text-secondary); border: 0; cursor: pointer; position: relative; transition: background-color var(--k-duration-fast) var(--k-easing-out), color var(--k-duration-fast) var(--k-easing-out); }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .icon-btn:hover, .icon-btn.is-hover { background: var(--k-color-bg-hover); color: var(--k-color-text-primary); }
+  .icon-btn:active { background: var(--k-color-bg-selected); }
+  .icon-btn:focus-visible, .icon-btn.is-focus { outline: var(--k-focus-ring-width) solid var(--k-color-accent-focus); outline-offset: var(--k-focus-ring-offset); }
+  .tip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); white-space: nowrap; background: var(--k-color-ink-primary); color: var(--k-color-text-on-ink); font: 500 12px/16px var(--k-font-family-sans); padding: 5px 8px; border-radius: var(--k-radius-sm); box-shadow: var(--k-shadow-e2); pointer-events: none; }
+  .tip kbd { font: 500 11px/1 var(--k-font-family-mono); opacity: 0.7; margin-left: 6px; }
+
+  .rec {
+    position: relative; display: inline-flex; align-items: center; gap: 10px;
+    height: 44px; padding: 0 20px 0 18px; border-radius: 999px; border: 0; cursor: pointer;
+    background: var(--k-color-accent-record); color: var(--k-color-text-on-accent);
+    font: 600 16px/1 var(--k-font-family-display); letter-spacing: -0.005em;
+    transition: background-color var(--k-duration-fast) var(--k-easing-out), transform var(--k-duration-fast) var(--k-easing-out);
+  }
+  .rec:hover, .rec.is-hover { background: var(--k-color-accent-record-hover); }
+  .rec:active { transform: translateY(0.5px); }
+  .rec:focus-visible { outline: var(--k-focus-ring-width) solid var(--k-color-accent-focus); outline-offset: var(--k-focus-ring-offset); }
+  .rec .dot { position: relative; width: 10px; height: 10px; border-radius: 50%; background: #fff; }
+  .rec .time { font: 500 14px/1 var(--k-font-family-mono); font-variant-numeric: tabular-nums; opacity: 0.92; }
+  .rec.recording .dot::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: #fff; animation: k-record-pulse var(--k-duration-pulse) var(--k-easing-in-out) infinite; }
+  .rec.stop { background: var(--k-color-ink-primary); color: var(--k-color-text-on-ink); }
+  .rec.stop:hover { background: color-mix(in srgb, var(--k-color-ink-primary) 86%, var(--k-color-bg-window)); }
+  .rec.stop .dot { border-radius: 3px; background: currentColor; }
+  .rec.sm { height: 32px; padding: 0 14px 0 12px; font-size: 14px; gap: 8px; }
+  .rec.sm .dot { width: 8px; height: 8px; }
+  .rec-ring { position: relative; display: inline-grid; }
+  .rec-ring.live::before { content: ""; position: absolute; inset: 0; border-radius: 999px; box-shadow: 0 0 0 2px var(--k-color-accent-record); animation: k-ring 1.6s var(--k-easing-in-out) infinite; }
+  @keyframes k-ring { from { opacity: 0.6; transform: scale(1); } to { opacity: 0; transform: scale(1.18, 1.5); } }
+
+  .field { display: grid; gap: 6px; align-content: start; }
+  .field label { font: 600 13px/18px var(--k-font-family-sans); }
+  .field .hint { font: 500 13px/18px var(--k-font-family-sans); color: var(--k-color-text-tertiary); }
+  .input {
+    height: 36px; width: 100%; padding: 0 12px; border-radius: var(--k-radius-md);
+    background: var(--k-color-bg-surface); color: var(--k-color-text-primary);
+    border: 1px solid var(--k-color-border-default);
+    font: 400 15px/22px var(--k-font-family-sans);
+    transition: border-color var(--k-duration-fast) var(--k-easing-out), box-shadow var(--k-duration-fast) var(--k-easing-out);
+  }
+  textarea.input { height: auto; min-height: 88px; padding: 8px 12px; resize: vertical; display: block; }
+  .input::placeholder { color: var(--k-color-text-tertiary); }
+  .input:hover, .input.is-hover { border-color: var(--k-color-border-strong); }
+  .input:focus, .input.is-focus { outline: none; border-color: var(--k-color-border-strong); box-shadow: 0 0 0 var(--k-focus-ring-width) var(--k-color-accent-focus); }
+  .input.invalid { border-color: var(--k-color-status-danger); }
+  .search { position: relative; }
+  .search svg { position: absolute; left: 10px; top: 8px; width: 20px; height: 20px; color: var(--k-color-text-tertiary); pointer-events: none; }
+  .search .input { padding-left: 38px; }
+  .search kbd { position: absolute; right: 8px; top: 7px; font: 500 12px/20px var(--k-font-family-mono); color: var(--k-color-text-tertiary); border: 1px solid var(--k-color-border-default); border-radius: var(--k-radius-xs); padding: 0 6px; }
+
+  .switch { position: relative; width: 36px; height: 20px; border-radius: 999px; border: 0; padding: 0; cursor: pointer; background: var(--k-color-border-strong); transition: background-color var(--k-duration-base) var(--k-easing-out); flex-shrink: 0; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--k-color-bg-raised); box-shadow: var(--k-shadow-e1), 0 0 0 0.5px rgba(0, 0, 0, 0.06); transition: transform var(--k-duration-base) var(--k-easing-out); }
+  .switch[aria-checked="true"] { background: var(--k-color-ink-primary); }
+  .switch[aria-checked="true"]::after { transform: translateX(16px); }
+  .switch:focus-visible { outline: var(--k-focus-ring-width) solid var(--k-color-accent-focus); outline-offset: var(--k-focus-ring-offset); }
+  .switch:disabled { opacity: 0.45; }
+  .setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; }
+  .setting + .setting { border-top: 1px solid var(--k-color-border-subtle); }
+  .setting p { margin: 0; }
+
+  .seg { justify-self: start; align-self: start; display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--k-color-bg-sidebar); }
+  .seg button { height: 30px; padding: 0 14px; border-radius: 999px; border: 0; background: transparent; cursor: pointer; color: var(--k-color-text-secondary); font: 600 14px/1 var(--k-font-family-display); transition: background-color var(--k-duration-fast) var(--k-easing-out), color var(--k-duration-fast) var(--k-easing-out), box-shadow var(--k-duration-fast) var(--k-easing-out); }
+  .seg button:hover { color: var(--k-color-text-primary); }
+  .seg button[aria-pressed="true"] { background: var(--k-color-bg-surface); color: var(--k-color-text-primary); box-shadow: var(--k-shadow-e1); }
+  .seg button:focus-visible { outline: var(--k-focus-ring-width) solid var(--k-color-accent-focus); outline-offset: 0; }
+
+  .list { display: grid; gap: 2px; }
+  .lrow { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; height: 56px; padding: 0 12px; border-radius: var(--k-radius-md); cursor: default; transition: background-color var(--k-duration-fast) var(--k-easing-out); }
+  .lrow:hover, .lrow.is-hover { background: var(--k-color-bg-hover); }
+  .lrow.selected { background: var(--k-color-bg-selected); }
+  .lrow .title { font: 600 15px/20px var(--k-font-family-sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .lrow .title span { overflow: hidden; text-overflow: ellipsis; }
+  .lrow .meta { font: 500 13px/18px var(--k-font-family-sans); color: var(--k-color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lrow .when { font: 500 12px/16px var(--k-font-family-mono); color: var(--k-color-text-tertiary); font-variant-numeric: tabular-nums; }
+  .live-dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--k-color-accent-record); flex-shrink: 0; }
+  .live-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--k-color-accent-record); animation: k-record-pulse var(--k-duration-pulse) var(--k-easing-in-out) infinite; }
+
+  .spk { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px 0 8px; border-radius: 999px; background: color-mix(in srgb, var(--c) 14%, var(--k-color-bg-surface)); color: var(--k-color-text-primary); font: 600 13px/18px var(--k-font-family-sans); white-space: nowrap; }
+  .spk::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+  .s1 { --c: var(--k-color-speaker-1); } .s2 { --c: var(--k-color-speaker-2); } .s3 { --c: var(--k-color-speaker-3); }
+  .s4 { --c: var(--k-color-speaker-4); } .s5 { --c: var(--k-color-speaker-5); } .s6 { --c: var(--k-color-speaker-6); }
+
+  .transcript { display: grid; gap: 14px; }
+  .tline { display: grid; grid-template-columns: 52px auto 1fr; gap: 12px; align-items: start; }
+  .tline .ts { font: 500 13px/24px var(--k-font-family-mono); color: var(--k-color-text-tertiary); font-variant-numeric: tabular-nums; }
+  .tline .txt { font: 400 15px/24px var(--k-font-family-sans); min-width: 0; }
+  .tline.partial .txt { color: var(--k-color-text-secondary); font-style: italic; }
+  .caret { display: inline-block; width: 2px; height: 1.05em; vertical-align: -0.15em; margin-left: 2px; background: var(--k-color-accent-record); animation: k-blink 1s steps(1) infinite; }
+  @keyframes k-blink { 50% { opacity: 0; } }
+  @media (max-width: 560px) { .tline { grid-template-columns: auto 1fr; } .tline .txt { grid-column: 1 / -1; } }
+
+  .cite { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--k-color-bg-sidebar); color: var(--k-color-text-secondary); font: 500 12px/1 var(--k-font-family-mono); vertical-align: 1px; cursor: pointer; transition: color var(--k-duration-fast) var(--k-easing-out); }
+  .cite:hover, .cite.is-hover { color: var(--k-color-accent-record-text); }
+  .quote { margin: 16px 0 0; padding: 0; font: italic 500 20px/28px var(--k-font-family-editorial); letter-spacing: -0.01em; }
+
+  .card { background: var(--k-color-bg-surface); border: 1px solid var(--k-color-border-subtle); border-radius: var(--k-radius-lg); box-shadow: var(--k-shadow-e1); padding: 20px; }
+  .card h4 { margin: 0 0 4px; font: 700 20px/26px var(--k-font-family-display); letter-spacing: -0.015em; font-weight: 650; }
+  .card .meta { font: 500 13px/18px var(--k-font-family-sans); color: var(--k-color-text-secondary); }
+  .card ul { margin: 14px 0 0; padding-left: 18px; }
+  .card li { margin: 4px 0; }
+  .card li::marker { color: var(--k-color-text-tertiary); }
+
+  .backdrop { position: relative; border-radius: var(--k-radius-lg); padding: 40px 20px; display: grid; place-items: center; background: linear-gradient(rgba(23, 20, 17, 0.3), rgba(23, 20, 17, 0.3)), var(--k-color-bg-sidebar); overflow: hidden; }
+  .dialog { width: min(100%, 420px); background: var(--k-color-bg-raised); border-radius: var(--k-radius-xl); box-shadow: var(--k-shadow-e3); padding: 24px; }
+  .dialog h4 { margin: 0 0 8px; font: 650 20px/26px var(--k-font-family-display); letter-spacing: -0.015em; }
+  .dialog p { margin: 0 0 20px; color: var(--k-color-text-secondary); }
+  .dialog .actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+
+  .toast-stage { position: relative; height: 150px; border-radius: var(--k-radius-lg); background: var(--k-color-bg-window); border: 1px dashed var(--k-color-border-default); }
+  .toast { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 12px; max-width: calc(100% - 32px); padding: 10px 10px 10px 16px; border-radius: var(--k-radius-lg); background: var(--k-color-ink-primary); color: var(--k-color-text-on-ink); box-shadow: var(--k-shadow-e2); font: 500 14px/20px var(--k-font-family-sans); white-space: nowrap; }
+  .toast svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .toast .undo { font: 600 14px/1 var(--k-font-family-display); color: inherit; background: color-mix(in srgb, var(--k-color-text-on-ink) 14%, transparent); border: 0; border-radius: var(--k-radius-sm); height: 28px; padding: 0 10px; cursor: pointer; }
+
+  .banner { display: grid; grid-template-columns: 20px 1fr auto; gap: 12px; align-items: start; padding: 12px 14px; border-radius: var(--k-radius-md); background: var(--k-color-bg-surface); border: 1px solid var(--k-color-border-default); }
+  .banner > svg { width: 20px; height: 20px; margin-top: 1px; color: var(--c); }
+  .banner p { margin: 0; font: 400 14px/20px var(--k-font-family-sans); color: var(--k-color-text-secondary); }
+  .banner p b { font-weight: 600; color: var(--k-color-text-primary); }
+  .banner.info { --c: var(--k-color-status-info); }
+  .banner.success { --c: var(--k-color-status-success); }
+  .banner.warning { --c: var(--k-color-status-warning); }
+  .banner.danger { --c: var(--k-color-status-danger); }
+
+  .empty { display: grid; justify-items: center; text-align: center; gap: 10px; padding: 48px 20px; }
+  .empty .t-empty { margin: 8px 0 0; }
+  .empty p.t-body { margin: 0 0 12px; max-width: 38ch; color: var(--k-color-text-secondary); }
+
+  /* composed window */
+  .win { border-radius: 14px; overflow: hidden; border: 1px solid var(--k-color-border-default); box-shadow: var(--k-shadow-e2); background: var(--k-color-bg-window); display: grid; grid-template-rows: 48px 1fr; min-height: 520px; }
+  .hb { display: flex; align-items: center; gap: 8px; padding: 0 10px 0 14px; border-bottom: 1px solid var(--k-color-border-subtle); background: var(--k-color-bg-window); }
+  .hb .lights { display: flex; gap: 8px; margin-right: 8px; }
+  .hb .lights i { width: 12px; height: 12px; border-radius: 50%; background: var(--k-color-border-strong); }
+  .hb .ttl { font: 600 15px/20px var(--k-font-family-display); flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .win-body { display: grid; grid-template-columns: 280px 1fr; min-height: 0; }
+  .side { background: var(--k-color-bg-sidebar); border-right: 1px solid var(--k-color-border-subtle); padding: 12px 8px; display: grid; align-content: start; gap: 10px; }
+  .side .t-overline { color: var(--k-color-text-tertiary); padding: 8px 12px 0; margin: 0; }
+  .pane { padding: 28px 32px; display: grid; align-content: start; gap: 18px; min-width: 0; }
+  .pane .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .pane h3 { margin: 0; }
+  .pane .who { display: flex; flex-wrap: wrap; gap: 6px; }
+  @media (max-width: 820px) { .win-body { grid-template-columns: 1fr; } .side { display: none; } .pane { padding: 20px 16px; } }
+
+  footer { margin-top: 96px; padding-top: 24px; border-top: 1px solid var(--k-color-border-subtle); color: var(--k-color-text-tertiary); font: 500 13px/20px var(--k-font-family-sans); display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+  @media (prefers-reduced-motion: reduce) {
+    .rec.recording .dot::before, .rec-ring.live::before, .caret, .live-dot::after { animation: none; }
+    .rec-ring.live::before { opacity: 0.5; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- one stroke icon language (Lucide-style geometry, 24 grid, 1.75px at 20px) -->
+  <defs>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M17 7 7 17M7 7l10 10"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16.5v-5M12 7.8v.01"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 4 2.4 17.8A2 2 0 0 0 4.1 20.8h15.8a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0Z"/><path d="M12 9.5v4M12 17v.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.2 2.4 2.4 4.6-4.9"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11.5" rx="3"/><path d="M18.5 11a6.5 6.5 0 0 1-13 0M12 17.5V21"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 13v5.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V13"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.6A8.5 8.5 0 1 1 9.4 4a6.6 6.6 0 0 0 10.6 10.6Z"/></symbol>
+    <symbol id="i-contrast" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor"/></symbol>
+    <symbol id="i-sidebar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M9.5 4.5v15"/></symbol>
+  </defs>
+</svg>
+
+<header class="top">
+  <img class="mark on-light" src="logo/wordmark.svg" alt="kacola">
+  <img class="mark on-dark" src="logo/wordmark-dark.svg" alt="kacola">
+  <nav aria-label="Sections">
+    <a href="#logo">Logo</a><a href="#icon">App icon</a><a href="#colour">Colour</a><a href="#type">Type</a><a href="#foundations">Space &amp; motion</a><a href="#components">Components</a><a href="#context">In context</a>
+  </nav>
+  <div class="controls">
+    <button class="icon-btn" id="theme-btn" type="button" aria-label="Theme: system" title="Theme"><svg aria-hidden="true"><use href="#i-sun"/></svg></button>
+    <button class="icon-btn" id="contrast-btn" type="button" aria-label="High contrast" aria-pressed="false" title="High contrast"><svg aria-hidden="true"><use href="#i-contrast"/></svg></button>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <img class="lockup on-light" src="logo/lockup.svg" alt="kacola">
+    <img class="lockup on-dark" src="logo/lockup-dark.svg" alt="kacola">
+    <h1>Warm paper, <em>one red dot.</em></h1>
+    <p>kacola records and transcribes your meetings on your own machine. Its design language is quiet oat and ink,
+      a confident grotesque, and a single record-red dot that means <em>live</em>. This page is the reference: every
+      value here is rendered from <code>brand/tokens/tokens.css</code> and the bundled fonts.</p>
+    <div class="hero-facts">
+      <span class="fact"><i></i>Bricolage Grotesque · Instrument Sans · Fraunces Italic · JetBrains Mono</span>
+      <span class="fact">Light, dark &amp; high contrast</span>
+      <span class="fact">4px grid</span>
+      <span class="fact">WCAG AA text</span>
+    </div>
+  </div>
+
+  <!-- ================================================================================================ -->
+  <section id="logo">
+    <div class="section-head">
+      <p class="t-overline">01 · Logo</p>
+      <h2 class="t-title1">The grotesque stop</h2>
+      <p>The wordmark is <b>kacola</b> in Bricolage Grotesque Bold at −0.04em, closed by a record-red full stop.
+        The icon is an italic Fraunces <i>k</i> with the same dot, on an oat tile. All logo files are outlined — they
+        need no fonts.</p>
+    </div>
+
+    <div class="grid g2">
+      <div><div class="stage oat"><img src="logo/wordmark.svg" alt="kacola wordmark" style="width:min(100%,300px)"></div><div class="cap t-caption"><span>Wordmark</span><code>wordmark.svg</code></div></div>
+      <div><div class="stage night"><img src="logo/wordmark-dark.svg" alt="kacola wordmark, dark" style="width:min(100%,300px)"></div><div class="cap t-caption"><span>Wordmark on dark</span><code>wordmark-dark.svg</code></div></div>
+      <div><div class="stage paper"><img src="logo/wordmark-mono.svg" alt="kacola wordmark, mono ink" style="width:min(100%,300px)"></div><div class="cap t-caption"><span>Mono ink (print, stamps)</span><code>wordmark-mono.svg</code></div></div>
+      <div><div class="stage red"><img src="logo/wordmark-white.svg" alt="kacola wordmark, white" style="width:min(100%,300px)"></div><div class="cap t-caption"><span>Mono white</span><code>wordmark-white.svg</code></div></div>
+    </div>
+
+    <h3 class="t-title2">Lockups</h3>
+    <div class="grid g2">
+      <div><div class="stage oat"><img src="logo/lockup.svg" alt="kacola lockup" style="width:min(100%,340px)"></div><div class="cap t-caption"><span>Horizontal · icon 76 : wordmark 64 : gap 18</span><code>lockup.svg</code></div></div>
+      <div><div class="stage night"><img src="logo/lockup-dark.svg" alt="kacola lockup, dark" style="width:min(100%,340px)"></div><div class="cap t-caption"><span>Horizontal on dark</span><code>lockup-dark.svg</code></div></div>
+      <div><div class="stage oat"><img src="logo/lockup-stacked.svg" alt="kacola stacked lockup" style="height:150px;width:auto"></div><div class="cap t-caption"><span>Stacked</span><code>lockup-stacked.svg</code></div></div>
+      <div class="panel">
+        <p class="t-overline">Clear space &amp; minimum size</p>
+        <div class="clear"><img class="on-light" src="logo/lockup.svg" alt=""><img class="on-dark" src="logo/lockup-dark.svg" alt=""></div>
+        <p class="note t-callout">Keep two dot-diameters clear on every side. Never set the icon below <b>16px</b> or the wordmark below <b>64px</b> wide.</p>
+      </div>
+    </div>
+
+    <h3 class="t-title2">Don't</h3>
+    <div class="grid g4">
+      <div class="dont"><div class="stage oat"><span class="fake-wm">kacola<b style="background:#2F6FA3"></b></span></div><span class="x"><svg aria-hidden="true"><use href="#i-x"/></svg></span><div class="cap t-caption"><span>Recolour the dot — record red or mono only</span></div></div>
+      <div class="dont"><div class="stage oat"><span class="fake-wm" style="font-family:Fraunces, serif;font-style:italic;letter-spacing:0">kacola<b style="background:#E0482B"></b></span></div><span class="x"><svg aria-hidden="true"><use href="#i-x"/></svg></span><div class="cap t-caption"><span>Set the wordmark in Fraunces</span></div></div>
+      <div class="dont"><div class="stage oat"><img src="logo/wordmark.svg" alt="" style="width:170px;height:40px;transform:scaleX(1.35)"></div><span class="x"><svg aria-hidden="true"><use href="#i-x"/></svg></span><div class="cap t-caption"><span>Stretch, skew or rotate</span></div></div>
+      <div class="dont"><div class="stage oat"><span class="fake-wm" style="color:transparent;-webkit-text-stroke:1.5px #1F1B16;text-shadow:3px 4px 0 rgba(224,72,43,.45)">kacola<b style="background:#E0482B"></b></span></div><span class="x"><svg aria-hidden="true"><use href="#i-x"/></svg></span><div class="cap t-caption"><span>Outline or add effects</span></div></div>
+      <div class="dont"><div class="stage busy"><img src="logo/symbolic.svg" alt="" style="width:72px;height:72px"></div><span class="x"><svg aria-hidden="true"><use href="#i-x"/></svg></span><div class="cap t-caption"><span>Put the bare k on a busy image…</span></div></div>
+      <div><div class="stage busy"><img src="logo/icon.svg" alt="" style="width:88px;height:88px;border-radius:24%;box-shadow:0 6px 20px rgba(0,0,0,.18)"></div><div class="cap t-caption"><span>…keep its tile</span></div></div>
+    </div>
+  </section>
+
+  <!-- ================================================================================================ -->
+  <section id="icon">
+    <div class="section-head">
+      <p class="t-overline">02 · App icon</p>
+      <h2 class="t-title1">The italic k</h2>
+      <p>A rounded tile (radius 24%) with a Fraunces Bold Italic <i>k</i> and the record-red dot. At 32px and
+        below a separately drawn version takes over: a sturdier optical size, a bigger k and a dot snapped to
+        whole pixels.</p>
+    </div>
+    <div class="grid g4">
+      <div><div class="stage oat"><img src="logo/icon.svg" alt="icon" style="width:120px"></div><div class="cap t-caption"><span>Icon</span><code>icon.svg</code></div></div>
+      <div><div class="stage night"><img src="logo/icon-dark.svg" alt="icon, dark" style="width:120px"></div><div class="cap t-caption"><span>Dark</span><code>icon-dark.svg</code></div></div>
+      <div><div class="stage paper"><img src="logo/icon-mono.svg" alt="icon, mono" style="width:120px"></div><div class="cap t-caption"><span>Mono (knockout)</span><code>icon-mono.svg</code></div></div>
+      <div><div class="stage oat"><img src="logo/icon-small.svg" alt="small icon" style="width:120px"></div><div class="cap t-caption"><span>≤ 32px drawing</span><code>icon-small.svg</code></div></div>
+    </div>
+
+    <h3 class="t-title2">Sizes</h3>
+    <div class="panel">
+      <div class="sizes">
+        <figure><img class="px" src="icons/png/16.png" width="16" height="16" alt="16px"><figcaption>16</figcaption></figure>
+        <figure><img class="px" src="icons/png/24.png" width="24" height="24" alt="24px"><figcaption>24</figcaption></figure>
+        <figure><img class="px" src="icons/png/32.png" width="32" height="32" alt="32px"><figcaption>32</figcaption></figure>
+        <figure><img src="icons/png/48.png" width="48" height="48" alt="48px"><figcaption>48</figcaption></figure>
+        <figure><img src="icons/png/64.png" width="64" height="64" alt="64px"><figcaption>64</figcaption></figure>
+        <figure><img src="icons/png/128.png" width="128" height="128" alt="128px"><figcaption>128</figcaption></figure>
+        <figure><img src="icons/png/256.png" width="192" height="192" alt="256px"><figcaption>256 (shown 192)</figcaption></figure>
+      </div>
+      <p class="note t-callout">16 · 24 · 32 are rendered from <code>icon-small.svg</code>; the rest from <code>icon.svg</code>. Magnified 16px and 32px:</p>
+      <div class="sizes" style="margin-top:12px">
+        <figure><img class="px" src="icons/png/16.png" width="128" height="128" alt="16px magnified"><figcaption>16 × 8</figcaption></figure>
+        <figure><img class="px" src="icons/png/32.png" width="128" height="128" alt="32px magnified"><figcaption>32 × 4</figcaption></figure>
+        <figure><div style="width:128px;height:128px;display:grid;place-items:center;border-radius:12px;background:#EFE8DA"><img src="logo/symbolic.svg" alt="" width="64" height="64"></div><figcaption>symbolic.svg (tray)</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================================================ -->
+  <section id="colour">
+    <div class="section-head">
+      <p class="t-overline">03 · Colour</p>
+      <h2 class="t-title1">Oat, ink and record red</h2>
+      <p>Semantic tokens, never raw hex, in the app. Red is reserved for recording, live state and the brand dot —
+        red <em>text</em> uses <code>accent.recordText</code>, which clears 4.5:1. Both themes are shown side by side;
+        values below are read live from <code>tokens.css</code> (toggle high contrast in the top bar).</p>
+    </div>
+    <div class="palettes">
+      <div class="palette" data-theme="light" data-palette><div class="t-title2">Light</div></div>
+      <div class="palette" data-theme="dark" data-palette><div class="t-title2">Dark</div></div>
+    </div>
+  </section>
+
+  <!-- ================================================================================================ -->
+  <section id="type">
+    <div class="section-head">
+      <p class="t-overline">04 · Typography</p>
+      <h2 class="t-title1">Four families, one voice</h2>
+      <p>All SIL Open Font License, bundled with the app — no web fonts at runtime. Tabular numbers wherever a time
+        appears.</p>
+    </div>
+    <div class="families">
+      <div class="panel family"><p class="t-overline">Headings · buttons · wordmark</p><div class="glyphs" style="font-family:var(--k-font-family-display);font-weight:700">Aa Gg</div><div class="t-headline">Bricolage Grotesque</div><div class="t-caption secondary">Variable · opsz 12–96 · wght 200–800</div></div>
+      <div class="panel family"><p class="t-overline">UI text · labels · inputs</p><div class="glyphs" style="font-family:var(--k-font-family-sans);font-weight:500">Aa <i>Gg</i></div><div class="t-headline">Instrument Sans</div><div class="t-caption secondary">Variable · wght 400–700 · roman + italic</div></div>
+      <div class="panel family"><p class="t-overline">Icon k · editorial moments</p><div class="glyphs" style="font-family:var(--k-font-family-editorial);font-style:italic;font-weight:600">Aa Gg</div><div class="t-headline">Fraunces Italic</div><div class="t-caption secondary">Variable · sparingly</div></div>
+      <div class="panel family"><p class="t-overline">Timestamps · code · shortcuts</p><div class="glyphs" style="font-family:var(--k-font-family-mono);font-weight:500;letter-spacing:0">01:42</div><div class="t-headline">JetBrains Mono</div><div class="t-caption secondary">Variable · tabular figures</div></div>
+    </div>
+
+    <h3 class="t-title2">Scale</h3>
+    <div class="scale">
+      <div class="r"><div class="spec"><b>display</b>32/38 · Bricolage 700 · −0.03em</div><div class="sample t-display">Weekly product sync</div></div>
+      <div class="r"><div class="spec"><b>title1</b>24/30 · Bricolage 700 · −0.02em</div><div class="sample t-title1">Decisions and next steps</div></div>
+      <div class="r"><div class="spec"><b>title2</b>20/26 · Bricolage 650 · −0.015em</div><div class="sample t-title2">Action items</div></div>
+      <div class="r"><div class="spec"><b>headline</b>16/22 · Instrument Sans 600</div><div class="sample t-headline">Design review with Ana and Tomás</div></div>
+      <div class="r"><div class="spec"><b>body</b>15/22 · Instrument Sans 400</div><div class="sample t-body">We agreed to ship the calendar integration behind a flag and revisit the onboarding copy next week.</div></div>
+      <div class="r"><div class="spec"><b>body-strong</b>15/22 · Instrument Sans 600</div><div class="sample t-body-strong">Owner: Ana · due Friday</div></div>
+      <div class="r"><div class="spec"><b>callout</b>14/20 · Instrument Sans 400</div><div class="sample t-callout">Transcripts stay on this computer unless you share them.</div></div>
+      <div class="r"><div class="spec"><b>caption</b>13/18 · Instrument Sans 500</div><div class="sample t-caption secondary">Today, 14:30 · 42 min · 4 speakers</div></div>
+      <div class="r"><div class="spec"><b>overline</b>12/16 · Instrument Sans 600 · +0.06em</div><div class="sample t-overline secondary">Upcoming</div></div>
+      <div class="r"><div class="spec"><b>mono</b>13/20 · JetBrains Mono 500</div><div class="sample t-mono">00:14:07 · kacola search "pricing" --since 7d</div></div>
+      <div class="r"><div class="spec"><b>empty-state</b>28/34 · Fraunces Italic 600</div><div class="sample t-empty">Nothing recorded yet.</div></div>
+    </div>
+  </section>
+
+  <!-- ================================================================================================ -->
+  <section id="foundations">
+    <div class="section-head">
+      <p class="t-overline">05 · Space, shape, depth, motion</p>
+      <h2 class="t-title1">Soft corners, low shadows, quick easing</h2>
+    </div>
+    <div class="grid g2">
+      <div class="panel">
+        <p class="t-overline">Space · 4px grid</p>
+        <div class="stack" id="space"></div>
+      </div>
+      <div class="stack" style="gap:16px">
+        <div class="panel">
+          <p class="t-overline">Radius</p>
+          <div class="radii">
+            <figure><div style="border-radius:var(--k-radius-xs)"></div><figcaption class="t-caption secondary">xs 4</figcaption></figure>
+            <figure><div style="border-radius:var(--k-radius-sm)"></div><figcaption class="t-caption secondary">sm 6</figcaption></figure>
+            <figure><div style="border-radius:var(--k-radius-md)"></div><figcaption class="t-caption secondary">md 10</figcaption></figure>
+            <figure><div style="border-radius:var(--k-radius-lg)"></div><figcaption class="t-caption secondary">lg 14</figcaption></figure>
+            <figure><div style="border-radius:var(--k-radius-xl)"></div><figcaption class="t-caption secondary">xl 20</figcaption></figure>
+            <figure><div style="border-radius:var(--k-radius-tile)"></div><figcaption class="t-caption secondary">tile 24%</figcaption></figure>
+            <figure><div style="border-radius:var(--k-radius-pill);width:96px"></div><figcaption class="t-caption secondary">pill</figcaption></figure>
+          </div>
+        </div>
+        <div class="panel">
+          <p class="t-overline">Elevation</p>
+          <div class="elev">
+            <div style="box-shadow:var(--k-shadow-e1)">e1</div>
+            <div style="box-shadow:var(--k-shadow-e2)">e2</div>
+            <div style="box-shadow:var(--k-shadow-e3)">e3</div>
+          </div>
+          <p class="note t-caption">e1 cards · e2 popovers, toasts · e3 dialogs. Dark uses black at 2.5×.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <p class="t-overline">Motion</p>
+        <div class="motion" id="motion">
+          <div style="--d:var(--k-duration-fast);--e:var(--k-easing-out)"><div class="lbl"><span>fast · ease-out</span><span>120ms</span></div><div class="track"><i></i></div></div>
+          <div style="--d:var(--k-duration-base);--e:var(--k-easing-out)"><div class="lbl"><span>base · ease-out</span><span>180ms</span></div><div class="track"><i></i></div></div>
+          <div style="--d:var(--k-duration-slow);--e:var(--k-easing-in-out)"><div class="lbl"><span>slow · ease-in-out</span><span>280ms</span></div><div class="track"><i></i></div></div>
+        </div>
+        <div class="row" style="margin-top:16px;justify-content:space-between">
+          <button class="btn secondary sm" type="button" id="motion-btn">Play</button>
+          <span class="t-caption tertiary">cubic-bezier(.2,.8,.2,1) · (.4,0,.2,1) · reduced motion = instant</span>
+        </div>
+      </div>
+      <div class="panel">
+        <p class="t-overline">Record pulse · 1.6s</p>
+        <div class="row" style="gap:28px;min-height:88px;justify-content:center">
+          <span class="rec-ring live"><button class="rec recording" type="button" tabindex="-1"><span class="dot"></span>Recording<span class="time">12:48</span></button></span>
+          <span class="row" style="gap:8px"><span class="live-dot"></span><span class="t-caption">Live</span></span>
+        </div>
+        <p class="note t-caption">A ring scaling 1 → 1.9 while fading. Off under <code>prefers-reduced-motion</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================================================ -->
+  <section id="components">
+    <div class="section-head">
+      <p class="t-overline">06 · Components</p>
+      <h2 class="t-title1">Core components</h2>
+      <p>Visual specs for the app's building blocks. Behaviour and accessibility come from React Aria; states shown
+        here with forced classes are the same styles as the live pseudo-classes (hover and tab through them).</p>
+    </div>
+
+    <h3 class="t-title2">Buttons</h3>
+    <div class="panel" style="overflow-x:auto">
+      <table style="border-collapse:collapse;min-width:720px;width:100%">
+        <thead><tr class="t-overline tertiary" style="text-align:left"><th style="padding:0 12px 14px 0;font-weight:600">Variant</th><th style="padding:0 12px 14px;font-weight:600">Default</th><th style="padding:0 12px 14px;font-weight:600">Hover</th><th style="padding:0 12px 14px;font-weight:600">Pressed</th><th style="padding:0 12px 14px;font-weight:600">Focus</th><th style="padding:0 12px 14px;font-weight:600">Disabled</th></tr></thead>
+        <tbody id="btn-matrix"></tbody>
+      </table>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="panel">
+        <p class="t-overline">Sizes · sm 28 · md 36 · lg 44</p>
+        <div class="row">
+          <button class="btn primary sm" type="button">Small</button>
+          <button class="btn primary" type="button">Medium</button>
+          <button class="btn primary lg" type="button">Large</button>
+          <button class="btn secondary sm" type="button"><svg aria-hidden="true"><use href="#i-plus"/></svg>New note</button>
+          <button class="btn secondary" type="button"><svg aria-hidden="true"><use href="#i-share"/></svg>Share</button>
+          <button class="btn secondary lg" type="button"><svg aria-hidden="true"><use href="#i-calendar"/></svg>Connect calendar</button>
+        </div>
+      </div>
+      <div class="panel">
+        <p class="t-overline">Icon buttons · 32 · ghost · tooltip required</p>
+        <div class="row" style="padding-top:36px">
+          <button class="icon-btn" type="button" aria-label="Search"><svg aria-hidden="true"><use href="#i-search"/></svg></button>
+          <button class="icon-btn is-hover" type="button" aria-label="Toggle sidebar"><svg aria-hidden="true"><use href="#i-sidebar"/></svg><span class="tip" role="tooltip">Toggle sidebar<kbd>Ctrl \</kbd></span></button>
+          <button class="icon-btn" type="button" aria-label="Share"><svg aria-hidden="true"><use href="#i-share"/></svg></button>
+          <button class="icon-btn is-focus" type="button" aria-label="More"><svg aria-hidden="true"><use href="#i-more"/></svg></button>
+          <button class="icon-btn" type="button" aria-label="Microphone"><svg aria-hidden="true"><use href="#i-mic"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="t-title2">Record button</h3>
+    <div class="grid g3">
+      <div class="panel"><p class="t-overline">Idle</p><div class="row" style="min-height:64px"><button class="rec" type="button"><span class="dot"></span>Record</button><button class="rec sm" type="button"><span class="dot"></span>Record</button></div></div>
+      <div class="panel"><p class="t-overline">Recording · click to try</p><div class="row" style="min-height:64px"><span class="rec-ring live" id="rec-live"><button class="rec recording" type="button" id="rec-demo" aria-pressed="true"><span class="dot"></span><span id="rec-label">Recording</span><span class="time" id="rec-time">00:00</span></button></span></div></div>
+      <div class="panel"><p class="t-overline">Stop</p><div class="row" style="min-height:64px"><button class="rec stop" type="button"><span class="dot"></span>Stop<span class="time">42:17</span></button></div></div>
+    </div>
+
+    <h3 class="t-title2">Inputs</h3>
+    <div class="grid g3">
+      <div class="panel stack">
+        <div class="field"><label for="f1">Meeting title</label><input id="f1" class="input" placeholder="Untitled meeting"></div>
+        <div class="field"><label for="f2">Hover</label><input id="f2" class="input is-hover" value="Weekly product sync"></div>
+        <div class="field"><label for="f3">Focus</label><input id="f3" class="input is-focus" value="Design review"></div>
+      </div>
+      <div class="panel stack">
+        <div class="field"><label for="f4">Search</label><div class="search"><svg aria-hidden="true"><use href="#i-search"/></svg><input id="f4" class="input" placeholder="Search meetings and notes"><kbd>/</kbd></div></div>
+        <div class="field"><label for="f5">Invalid</label><input id="f5" class="input invalid" value="not-an-email"><span class="hint" style="color:var(--k-color-status-danger)">Enter a valid email address.</span></div>
+        <div class="field"><label for="f6">Disabled</label><input id="f6" class="input" value="Read-only" disabled style="opacity:.45"></div>
+      </div>
+      <div class="panel stack">
+        <div class="field"><label for="f7">Notes</label><textarea id="f7" class="input" placeholder="Jot down anything — kacola merges it with the transcript."></textarea><span class="hint">Markdown supported.</span></div>
+      </div>
+    </div>
+
+    <h3 class="t-title2">Selection</h3>
+    <div class="grid g3">
+      <div class="panel">
+        <p class="t-overline">Switch · 36 × 20</p>
+        <div class="setting"><div><p class="t-body-strong">Start with calendar events</p><p class="t-caption secondary">Offer to record when a meeting begins</p></div><button class="switch" role="switch" aria-checked="true" aria-label="Start with calendar events" type="button"></button></div>
+        <div class="setting"><div><p class="t-body-strong">Private by default</p><p class="t-caption secondary">Hide new sessions from the CLI</p></div><button class="switch" role="switch" aria-checked="false" aria-label="Private by default" type="button"></button></div>
+        <div class="setting"><div><p class="t-body-strong">Cloud summaries</p><p class="t-caption secondary">Needs an API key</p></div><button class="switch" role="switch" aria-checked="false" aria-label="Cloud summaries" type="button" disabled></button></div>
+      </div>
+      <div class="panel stack">
+        <p class="t-overline" style="margin:0">Segmented control</p>
+        <div class="seg"><button aria-pressed="true" type="button">Notes</button><button aria-pressed="false" type="button">Transcript</button><button aria-pressed="false" type="button">Summary</button></div>
+        <div class="seg"><button aria-pressed="false" type="button">Day</button><button aria-pressed="true" type="button">Week</button><button aria-pressed="false" type="button">Month</button></div>
+      </div>
+      <div class="panel">
+        <p class="t-overline">List rows · 56</p>
+        <div class="list">
+          <div class="lrow"><div style="min-width:0"><div class="title"><span class="live-dot"></span><span>Weekly product sync</span></div><div class="meta">Recording · 4 speakers</div></div><span class="when">14:30</span></div>
+          <div class="lrow selected"><div style="min-width:0"><div class="title"><span>Design review</span></div><div class="meta">42 min · Ana, Tomás</div></div><span class="when">11:00</span></div>
+          <div class="lrow is-hover"><div style="min-width:0"><div class="title"><span>1:1 with Priya</span></div><div class="meta">28 min · hover</div></div><span class="when">Mon</span></div>
+          <div class="lrow"><div style="min-width:0"><div class="title"><span>Customer call — Northwind</span></div><div class="meta">55 min · 3 speakers</div></div><span class="when">Fri</span></div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="t-title2">Transcript</h3>
+    <div class="grid g2">
+      <div class="panel">
+        <p class="t-overline">Speaker chips · 24</p>
+        <div class="row" style="gap:8px">
+          <span class="spk s1">Ana</span><span class="spk s2">Tomás</span><span class="spk s3">Priya</span><span class="spk s4">Jun</span><span class="spk s5">Maya</span><span class="spk s6">Speaker 6</span>
+        </div>
+        <p class="note t-caption">14% tint of speaker.N, an 8px dot in the full colour, name in text.primary.</p>
+      </div>
+      <div class="panel">
+        <p class="t-overline">Citation chip · 20</p>
+        <p class="t-body" style="margin:0">Pricing moves to per-seat in Q1 <span class="cite">[3]</span>, with the free tier capped at five recordings a month <span class="cite is-hover">[7]</span>.</p>
+        <blockquote class="quote">“If it isn't private by default, nobody will turn it on.” <span class="cite" style="font-style:normal">[12]</span></blockquote>
+      </div>
+      <div class="panel" style="grid-column:1/-1">
+        <p class="t-overline">Transcript lines</p>
+        <div class="transcript">
+          <div class="tline"><span class="ts">14:02</span><span class="spk s1">Ana</span><span class="txt">Let's start with the calendar integration — where did we land on permissions?</span></div>
+          <div class="tline"><span class="ts">14:02</span><span class="spk s2">Tomás</span><span class="txt">Read-only by default. We only ask for write access if you turn on auto-created notes.</span></div>
+          <div class="tline"><span class="ts">14:03</span><span class="spk s3">Priya</span><span class="txt">That matches what people said in the interviews. Nobody wanted another app touching their calendar.</span></div>
+          <div class="tline partial"><span class="ts">14:03</span><span class="spk s1">Ana</span><span class="txt">Okay, so we ship it behind a flag and revisit<span class="caret"></span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="t-title2">Surfaces &amp; feedback</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>Design review</h4>
+        <div class="meta">Today, 11:00 · 42 min · Ana, Tomás, Priya</div>
+        <ul>
+          <li>Ship calendar integration behind a flag <span class="cite">[2]</span></li>
+          <li>Onboarding copy — Priya drafts by Friday <span class="cite">[5]</span></li>
+          <li>Revisit the empty state illustration</li>
+        </ul>
+      </div>
+      <div class="backdrop">
+        <div class="dialog" role="dialog" aria-labelledby="dlg-t">
+          <h4 id="dlg-t">Delete this meeting?</h4>
+          <p>The recording, transcript and notes for “Design review” will be removed from this computer. This can't be undone.</p>
+          <div class="actions"><button class="btn secondary" type="button">Cancel</button><button class="btn destructive confirm" type="button">Delete meeting</button></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="banner info" role="status"><svg aria-hidden="true"><use href="#i-info"/></svg><p><b>Calendar connected.</b> Upcoming meetings appear in the sidebar.</p><button class="icon-btn" type="button" aria-label="Dismiss" style="width:24px;height:24px;margin:-2px -4px 0 0"><svg aria-hidden="true" style="width:16px;height:16px"><use href="#i-x"/></svg></button></div>
+        <div class="banner success" role="status"><svg aria-hidden="true"><use href="#i-check"/></svg><p><b>Transcript ready.</b> 42 minutes, 4 speakers.</p><span></span></div>
+        <div class="banner warning" role="status"><svg aria-hidden="true"><use href="#i-alert"/></svg><p><b>Microphone is muted.</b> kacola is only hearing the call audio.</p><button class="btn ghost sm" type="button">Fix</button></div>
+        <div class="banner danger" role="alert"><svg aria-hidden="true"><use href="#i-alert"/></svg><p><b>Recording stopped.</b> The disk is almost full.</p><button class="btn link" type="button">Free space</button></div>
+      </div>
+      <div class="toast-stage">
+        <div class="toast" role="status"><svg aria-hidden="true"><use href="#i-check"/></svg>Meeting moved to trash<button class="undo" type="button">Undo</button></div>
+      </div>
+      <div class="panel" style="grid-column:1/-1">
+        <div class="empty">
+          <img class="on-light" src="logo/icon.svg" alt="" width="56" height="56">
+          <img class="on-dark" src="logo/icon-dark.svg" alt="" width="56" height="56">
+          <p class="t-empty">Nothing recorded yet.</p>
+          <p class="t-body">Start a recording when your next meeting begins — kacola transcribes it on this computer and writes the notes for you.</p>
+          <button class="btn primary" type="button">Record your first meeting</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================================================ -->
+  <section id="context">
+    <div class="section-head">
+      <p class="t-overline">07 · In context</p>
+      <h2 class="t-title1">The main window</h2>
+      <p>Header bar 48px on bg.window, sessions in the sidebar, the transcript in the main pane. Selection is a quiet
+        fill — no left-border accents.</p>
+    </div>
+    <div class="win">
+      <div class="hb">
+        <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+        <button class="icon-btn" type="button" aria-label="Toggle sidebar"><svg aria-hidden="true"><use href="#i-sidebar"/></svg></button>
+        <span class="ttl">Weekly product sync</span>
+        <button class="icon-btn" type="button" aria-label="Search"><svg aria-hidden="true"><use href="#i-search"/></svg></button>
+        <button class="rec stop sm" type="button"><span class="dot"></span>Stop<span class="time">12:48</span></button>
+      </div>
+      <div class="win-body">
+        <aside class="side">
+          <div class="search"><svg aria-hidden="true"><use href="#i-search"/></svg><input class="input" placeholder="Search" aria-label="Search"></div>
+          <p class="t-overline">Today</p>
+          <div class="list">
+            <div class="lrow selected"><div style="min-width:0"><div class="title"><span class="live-dot"></span><span>Weekly product sync</span></div><div class="meta">Recording · 4 speakers</div></div><span class="when">14:30</span></div>
+            <div class="lrow"><div style="min-width:0"><div class="title"><span>Design review</span></div><div class="meta">42 min · Ana, Tomás</div></div><span class="when">11:00</span></div>
+          </div>
+          <p class="t-overline">This week</p>
+          <div class="list">
+            <div class="lrow"><div style="min-width:0"><div class="title"><span>1:1 with Priya</span></div><div class="meta">28 min</div></div><span class="when">Mon</span></div>
+            <div class="lrow"><div style="min-width:0"><div class="title"><span>Customer call — Northwind</span></div><div class="meta">55 min · 3 speakers</div></div><span class="when">Fri</span></div>
+          </div>
+        </aside>
+        <div class="pane">
+          <div class="head">
+            <div><h3 class="t-display">Weekly product sync</h3><div class="t-caption secondary" style="margin-top:4px">Today, 14:30 · Recording</div></div>
+            <div class="seg"><button aria-pressed="false" type="button">Notes</button><button aria-pressed="true" type="button">Transcript</button></div>
+          </div>
+          <div class="who"><span class="spk s1">Ana</span><span class="spk s2">Tomás</span><span class="spk s3">Priya</span><span class="spk s4">Jun</span></div>
+          <div class="transcript">
+            <div class="tline"><span class="ts">14:41</span><span class="spk s4">Jun</span><span class="txt">The export bug is fixed on main; it was the timezone offset on all-day events.</span></div>
+            <div class="tline"><span class="ts">14:42</span><span class="spk s1">Ana</span><span class="txt">Great. Can we get that into Thursday's build?</span></div>
+            <div class="tline"><span class="ts">14:42</span><span class="spk s2">Tomás</span><span class="txt">Yes — I'll cut the release candidate after this call.</span></div>
+            <div class="tline partial"><span class="ts">14:43</span><span class="spk s3">Priya</span><span class="txt">One more thing on onboarding, the second screen<span class="caret"></span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>kacola design language · generated assets in <code>brand/</code> · tokens v1</span>
+    <span>Fonts: SIL OFL 1.1 · Icons: stroke style after Lucide (ISC)</span>
+  </footer>
+</main>
+
+<script>
+  // ---- theme / contrast controls ------------------------------------------------------------------
+  const root = document.documentElement
+  const store = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v) } catch {} }
+  const themeBtn = document.getElementById('theme-btn')
+  const order = ['system', 'light', 'dark']
+  const showTheme = () => {
+    const t = root.dataset.theme ?? 'system'
+    themeBtn.setAttribute('aria-label', `Theme: ${t}`)
+    themeBtn.title = `Theme: ${t} (click to change)`
+    const dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+    themeBtn.querySelector('use').setAttribute('href', dark ? '#i-moon' : '#i-sun')
+  }
+  themeBtn.addEventListener('click', () => {
+    const next = order[(order.indexOf(root.dataset.theme ?? 'system') + 1) % order.length]
+    if (next === 'system') delete root.dataset.theme
+    else root.dataset.theme = next
+    store('kacola-theme', next === 'system' ? null : next)
+    showTheme()
+  })
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', showTheme)
+  const contrastBtn = document.getElementById('contrast-btn')
+  const showContrast = () => contrastBtn.setAttribute('aria-pressed', String(root.dataset.contrast === 'high'))
+  contrastBtn.addEventListener('click', () => {
+    if (root.dataset.contrast === 'high') delete root.dataset.contrast
+    else root.dataset.contrast = 'high'
+    store('kacola-contrast', root.dataset.contrast ?? null)
+    showContrast()
+    paintPalettes()
+  })
+  showTheme()
+  showContrast()
+
+  // ---- palettes: values are read from the live custom properties, so the page cannot drift -----------
+  const GROUPS = {
+    Background: ['bg.window', 'bg.sidebar', 'bg.surface', 'bg.raised', 'bg.hover', 'bg.selected'],
+    Border: ['border.subtle', 'border.default', 'border.strong'],
+    Text: ['text.primary', 'text.secondary', 'text.tertiary', 'text.onAccent', 'text.onInk'],
+    Accent: ['accent.record', 'accent.recordHover', 'accent.recordText', 'accent.focus', 'ink.primary'],
+    Status: ['status.success', 'status.warning', 'status.danger', 'status.info'],
+    Speakers: ['speaker.1', 'speaker.2', 'speaker.3', 'speaker.4', 'speaker.5', 'speaker.6'],
+  }
+  const cssVar = (t) => `--k-color-${t.replace('.', '-').replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`
+  const hexRgb = (h) => h.startsWith('#') ? [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255) : null
+  const lum = (c) => { const [r, g, b] = c.map((v) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * r + 0.7152 * g + 0.0722 * b }
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05) }
+  function paintPalettes() {
+    for (const p of document.querySelectorAll('[data-palette]')) {
+      p.querySelectorAll('h4, .sw').forEach((n) => { n.remove() })
+      const cs = getComputedStyle(p)
+      const surface = hexRgb(cs.getPropertyValue('--k-color-bg-surface').trim())
+      for (const [group, names] of Object.entries(GROUPS)) {
+        const h = document.createElement('h4')
+        h.textContent = group
+        p.append(h)
+        for (const n of names) {
+          const v = cs.getPropertyValue(cssVar(n)).trim()
+          const row = document.createElement('div')
+          row.className = 'sw'
+          const rgb = hexRgb(v)
+          const onSurface = rgb && surface && (group === 'Text' || n === 'accent.recordText' || group === 'Status') && !n.startsWith('text.on')
+          row.innerHTML = `<span class="chip-sw" style="--c:${v}"></span><span class="n">${n}</span><span class="v">${onSurface ? `<b>${ratio(rgb, surface).toFixed(2)}:1 on surface</b>` : ''}${v}</span>`
+          p.append(row)
+        }
+      }
+    }
+  }
+  paintPalettes()
+
+  // ---- space scale -----------------------------------------------------------------------------------
+  const space = document.getElementById('space')
+  for (const s of [2, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64]) {
+    const r = document.createElement('div')
+    r.className = 'space-row'
+    r.innerHTML = `<span class="t-mono tertiary">${s}</span><i style="width:${s * 4}px;max-width:100%"></i>`
+    space.append(r)
+  }
+
+  // ---- motion demo -----------------------------------------------------------------------------------
+  const motion = document.getElementById('motion')
+  document.getElementById('motion-btn').addEventListener('click', (e) => {
+    motion.style.setProperty('--w', `${motion.clientWidth}px`)
+    motion.classList.toggle('go')
+    e.currentTarget.textContent = motion.classList.contains('go') ? 'Back' : 'Play'
+  })
+
+  // ---- button matrix ---------------------------------------------------------------------------------
+  const variants = [['primary', 'Save notes'], ['secondary', 'Share'], ['ghost', 'Cancel'], ['destructive', 'Delete'], ['link', 'Open transcript']]
+  const states = ['', 'is-hover', 'is-pressed', 'is-focus', 'is-disabled']
+  const tbody = document.getElementById('btn-matrix')
+  for (const [v, label] of variants) {
+    const tr = document.createElement('tr')
+    tr.innerHTML = `<td class="t-mono secondary" style="padding:10px 12px 10px 0">${v}</td>` +
+      states.map((s) => `<td style="padding:10px 12px"><button type="button" class="btn ${v} ${s}"${s === 'is-disabled' ? ' disabled' : ''}>${label}</button></td>`).join('')
+    tbody.append(tr)
+  }
+  const confirmRow = document.createElement('tr')
+  confirmRow.innerHTML = `<td class="t-mono secondary" style="padding:10px 12px 10px 0">destructive<br>confirming</td>` +
+    states.map((s) => `<td style="padding:10px 12px"><button type="button" class="btn destructive confirm ${s}"${s === 'is-disabled' ? ' disabled' : ''}>Delete</button></td>`).join('')
+  tbody.append(confirmRow)
+
+  // ---- interactive bits ------------------------------------------------------------------------------
+  document.querySelectorAll('.switch').forEach((s) => { s.addEventListener('click', () => s.setAttribute('aria-checked', String(s.getAttribute('aria-checked') !== 'true'))) })
+  for (const g of document.querySelectorAll('.seg'))
+    g.addEventListener('click', (e) => {
+      const b = e.target.closest('button')
+      if (!b) return
+      for (const x of g.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b))
+    })
+  const rec = document.getElementById('rec-demo')
+  const recRing = document.getElementById('rec-live')
+  const recTime = document.getElementById('rec-time')
+  const recLabel = document.getElementById('rec-label')
+  let started = Date.now()
+  let recording = true
+  const tick = () => {
+    if (!recording) return
+    const s = Math.floor((Date.now() - started) / 1000)
+    recTime.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+  }
+  setInterval(tick, 250)
+  rec.addEventListener('click', () => {
+    recording = !recording
+    rec.classList.toggle('recording', recording)
+    recRing.classList.toggle('live', recording)
+    rec.setAttribute('aria-pressed', String(recording))
+    recLabel.textContent = recording ? 'Recording' : 'Record'
+    recTime.hidden = !recording
+    if (recording) { started = Date.now(); tick() }
+  })
+</script>
+</body>
+</html>

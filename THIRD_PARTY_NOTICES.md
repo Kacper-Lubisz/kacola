@@ -248,6 +248,10 @@ tree; do not edit it by hand.
 | Piper voices joe, sam / LJSpeech, cori | CC0-1.0 | rhasspy/piper-voices | test fixtures only (sam: Apache-2.0; ljspeech, cori: public domain) |
 | LibriSpeech test-clean excerpts | CC-BY-4.0 | Panayotov et al., openslr.org/12 | test fixture librispeech-3p |
 | Adwaita symbolic icons (adwaita-icon-theme) | LGPL-3.0-only | GNOME Project, adwaita-icon-theme (dual LGPL-3.0 / CC-BY-SA-3.0) | path data of a few symbolic icons in the Electron window (packages/desktop/src/renderer/design) |
+| Bricolage Grotesque (variable) | OFL-1.1 | google/fonts ofl/bricolagegrotesque (Ateliertriay) | brand typeface: headings, wordmark, buttons; brand/fonts/ (licence alongside) |
+| Instrument Sans (variable, roman + italic) | OFL-1.1 | google/fonts ofl/instrumentsans (Instrument) | brand typeface: UI text; brand/fonts/ |
+| Fraunces Italic (variable) | OFL-1.1 | google/fonts ofl/fraunces (Undercase Type) | brand typeface: the icon k and editorial accents; brand/fonts/ |
+| JetBrains Mono (variable) | OFL-1.1 | google/fonts ofl/jetbrainsmono (JetBrains) | brand typeface: timestamps and code; brand/fonts/ |
 
 ## Inspiration
 
