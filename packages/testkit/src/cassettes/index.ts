@@ -58,8 +58,10 @@ const KEEP_RESPONSE_HEADER = /^(content-type|retry-after|retry-after-ms|x-should
  */
 export function cassetteMode(env: NodeJS.ProcessEnv = process.env): CassetteMode {
   if (env.GNOMEOLA_CASSETTES !== 'record') return 'replay'
-  if (!env.ANTHROPIC_API_KEY) {
-    throw new Error('GNOMEOLA_CASSETTES=record needs ANTHROPIC_API_KEY to be set; refusing to guess')
+  if (!env.ANTHROPIC_API_KEY && !env.OPENAI_API_KEY) {
+    throw new Error(
+      'GNOMEOLA_CASSETTES=record needs ANTHROPIC_API_KEY or OPENAI_API_KEY to be set; refusing to guess',
+    )
   }
   return 'record'
 }

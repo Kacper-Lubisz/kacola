@@ -67,6 +67,8 @@ export async function startDaemon(opts: StartDaemonOptions = {}): Promise<Daemon
       ...process.env,
       GNOMEOLA_DATA_DIR: undefined,
       ANTHROPIC_API_KEY: undefined,
+      OPENAI_API_KEY: undefined,
+      OPENAI_BASE_URL: undefined,
       GNOMEOLA_KEYRING: 'memory',
       GNOMEOLA_FAKES: opts.fake === false ? undefined : '1',
       // M4 desktop integrations (EDS, the session bus, the PipeWire graph) stay off unless a test opts in:

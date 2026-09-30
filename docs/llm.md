@@ -167,6 +167,42 @@ Usage mapping: protocol `Usage` = the API's top-level `usage` (`input_tokens`, `
 message. After a fallback, `usage.iterations` holds the per-attempt breakdown; we do not fold it into
 `Usage` yet.
 
+## Providers: switching between Anthropic, OpenAI and Ollama
+
+Everything above the provider is provider-neutral: `assemblePrompt` produces an `AssembledPrompt`
+(frozen system text + ordered blocks, question last), `ask`/`enhance` handle citations and refusals, and
+each provider only implements `LlmProvider.stream(prompt, { effort, signal })` → `delta* done`.
+`providerFromSettings` picks one from `settings.llm.provider`:
+
+| provider | transport | key | caching | effort |
+| --- | --- | --- | --- | --- |
+| `anthropic` | `@anthropic-ai/sdk`, Messages API | `ANTHROPIC_API_KEY`, else keyring `key=anthropic` | explicit breakpoints (above) | `output_config.effort` |
+| `openai` | fetch, Responses API (`POST /v1/responses`, SSE) | `OPENAI_API_KEY`, else keyring `key=openai` | automatic prefix caching ≥1024 tokens + `prompt_cache_key` per meeting | `reasoning.effort` (reasoning models only) |
+| `ollama` | fetch, `/api/chat` NDJSON | none | Ollama's own KV cache | not mapped |
+
+Switching: Preferences → Questions and Answers → Provider, or `PATCH /settings {"llm":{"provider":"openai"}}`.
+Switching without naming a model picks that provider's default (`claude-opus-5`, `gpt-5.5`,
+`llama3.1`); the Model row overrides it. Each hosted provider has its own key — env var first, then
+the keyring (Preferences shows the current provider's key row; `PUT /settings/api-key` takes an
+optional `provider`). A daemon that has never stored settings defaults to the first provider whose key
+is in its environment (Anthropic, then OpenAI). `OPENAI_BASE_URL` points the OpenAI provider at any
+Responses-compatible endpoint.
+
+OpenAI specifics: blocks go as separate `input_text` parts of one user message and the system prompt as
+`instructions`, so the byte-stable prefix is the same as Anthropic's. `input_tokens` includes cached
+tokens; they are split out into `cacheReadTokens` to keep `Usage` comparable. Refusals come back as
+`refusal` content and map to stopReason `refusal` with an empty answer; `response.incomplete` maps
+`max_output_tokens` → `max_tokens`. An exhausted account (`credit_balance_exhausted` /
+`insufficient_quota`, arriving as a nested `error` event before `response.failed` in a 200 stream —
+observed live on 2026-09-30) is the non-retryable LlmError code `quota`, which the daemon reports as
+`unavailable: … no credits left`. Tests: `packages/llm/test/openai.int.test.ts` (fake Responses API,
+split/CRLF frames, retries, errors), `packages/e2e/test/openai-chain.int.test.ts` (CLI → real daemon →
+provider), and the live eval runs per provider whose key is set.
+
+**Test isolation:** the unit, int and e2e tiers delete `OPENAI_API_KEY` from their environment at
+startup (`scripts/test-env.ts`), so a key in your shell never reaches a test daemon; only the eval tier
+can make paid calls.
+
 ## Ollama (offline)
 
 `OllamaProvider` posts the same assembled prompt, flattened to a system message + one user message, to

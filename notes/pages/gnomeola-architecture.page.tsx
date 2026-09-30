@@ -8,7 +8,7 @@ export const meta = {
   title: 'gnomeola — architecture & delivery plan',
   owner: 'kacper',
   created: '2026-09-28',
-  status: 'critical path built — release gate green; T5 manual + live LLM eval pending',
+  status: 'all milestones M0–M9 built — release gate green; T5 manual, live LLM eval and a real Vercel deploy pending',
   icon: '🎙️',
 }
 

@@ -64,7 +64,9 @@ environment:
   GNOMEOLA_KEYRING_SERVICE libsecret service attribute (default gnomeola)
   GNOMEOLA_HEARTBEAT_MS    SSE heartbeat period (default 15000)
   GNOMEOLA_REPLAY_PAGE_SIZE events per replay page on /events (default 500)
-  ANTHROPIC_API_KEY        takes precedence over the keyring
+  ANTHROPIC_API_KEY        takes precedence over the keyring (Anthropic provider)
+  OPENAI_API_KEY           takes precedence over the keyring (OpenAI provider)
+  OPENAI_BASE_URL          OpenAI-compatible endpoint (default https://api.openai.com/v1)
   GNOMEOLA_CALENDAR        eds | off | file:PATH  (default eds; off with --fake)
   GNOMEOLA_DBUS            session | off           (default session; off with --fake)
   GNOMEOLA_MIC_ACTIVITY    pipewire[:SOURCE] | off (default pipewire; off with --fake)

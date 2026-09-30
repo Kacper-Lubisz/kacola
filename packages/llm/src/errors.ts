@@ -5,6 +5,8 @@ export type LlmErrorCode =
   | 'not_found'
   | 'bad_request'
   | 'rate_limited'
+  /** The account is out of credits / over its billing limit: waiting will not help, paying will. */
+  | 'quota'
   | 'overloaded'
   | 'server'
   | 'timeout'

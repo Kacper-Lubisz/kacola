@@ -1,6 +1,7 @@
 import type {
   AudioDevice,
   Citation,
+  KeyedProvider,
   ModelInfo,
   QaMessage,
   Segment,
@@ -112,7 +113,7 @@ export type QaRequest = {
   /** Earlier Q&A in this session (oldest first), excluding the question being asked. */
   history: QaMessage[]
   settings: StoredSettings['llm']
-  /** From ANTHROPIC_API_KEY or the keyring. Never log it. */
+  /** The current provider's key, from its env var (ANTHROPIC_API_KEY / OPENAI_API_KEY) or the keyring. Never log it. */
   apiKey: string | null
   signal: AbortSignal
 }
@@ -138,10 +139,13 @@ export interface QaEngine {
 // ---------------------------------------------------------------- secrets
 
 /** Where the Anthropic API key lives. The daemon never writes it anywhere else. */
+/** Which provider a stored key belongs to. */
+export type KeyAccount = KeyedProvider
+
 export interface Keyring {
-  get(): Promise<string | null>
-  set(key: string): Promise<void>
-  clear(): Promise<void>
+  get(account?: KeyAccount): Promise<string | null>
+  set(key: string, account?: KeyAccount): Promise<void>
+  clear(account?: KeyAccount): Promise<void>
 }
 
 // -------------------------------------------------------- devices + models

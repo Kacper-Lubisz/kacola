@@ -81,7 +81,8 @@ describe('Follow (autoscroll intent)', () => {
 
 describe('settings model', () => {
   it('maps combo indexes and values both ways', () => {
-    expect(indexOf(providers(), 'ollama')).toBe(1)
+    expect(indexOf(providers(), 'openai')).toBe(1)
+    expect(indexOf(providers(), 'ollama')).toBe(2)
     expect(valueAt(finalPasses(), 2)).toBe('off')
     expect(valueAt(finalPasses(), 9)).toBeUndefined()
   })

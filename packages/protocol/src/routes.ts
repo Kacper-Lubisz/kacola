@@ -185,7 +185,11 @@ export const routes = {
   setApiKey: {
     method: 'PUT',
     path: '/settings/api-key',
-    body: z.object({ key: z.string().min(1).nullable() }),
+    /** Stores (or clears, with null) a provider's key; `provider` defaults to the current one. */
+    body: z.object({
+      key: z.string().min(1).nullable(),
+      provider: z.enum(['anthropic', 'openai']).optional(),
+    }),
     response: z.object({ configured: z.boolean() }),
   },
   diagnostics: {

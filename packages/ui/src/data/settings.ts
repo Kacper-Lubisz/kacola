@@ -8,6 +8,7 @@ export type Choice<T extends string> = { value: T; label: string }
 
 export const providers = (): Choice<Settings['llm']['provider']>[] => [
   { value: 'anthropic', label: _('Anthropic (Claude)') },
+  { value: 'openai', label: _('OpenAI (GPT)') },
   { value: 'ollama', label: _('Ollama (on this computer)') },
   { value: 'none', label: _('None (questions off)') },
 ]

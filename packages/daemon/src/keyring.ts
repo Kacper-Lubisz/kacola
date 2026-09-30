@@ -1,6 +1,8 @@
 import { spawn } from 'node:child_process'
 import { DaemonError } from './errors.ts'
-import type { Keyring } from './interfaces.ts'
+import type { KeyAccount, Keyring } from './interfaces.ts'
+
+const LABELS: Record<KeyAccount, string> = { anthropic: 'Anthropic', openai: 'OpenAI' }
 
 // libsecret via `secret-tool`. The key goes over stdin — never argv, which any local user can read
 // from /proc — and comes back on stdout. A timeout guards against an unlock prompt nobody answers.
@@ -25,8 +27,9 @@ export class SecretToolKeyring implements Keyring {
     this.bin = opts.bin ?? 'secret-tool'
   }
 
-  private attrs(): string[] {
-    return ['service', this.service, 'key', 'anthropic']
+  /** One entry per provider; `key anthropic` is also where keys from before OpenAI support live. */
+  private attrs(account: KeyAccount): string[] {
+    return ['service', this.service, 'key', account]
   }
 
   private run(args: string[], stdin?: string): Promise<Run> {
@@ -52,14 +55,17 @@ export class SecretToolKeyring implements Keyring {
         clearTimeout(timer)
         resolve({ code, stdout, stderr })
       })
+      // secret-tool can exit before reading stdin (e.g. `lookup`); EPIPE then is not a failure of ours —
+      // the exit code says what happened.
+      child.stdin.on('error', () => {})
       child.stdin.end(stdin ?? '')
     })
   }
 
-  async get(): Promise<string | null> {
+  async get(account: KeyAccount = 'anthropic'): Promise<string | null> {
     const r = await this.retry(
       (r) => r.code === 0 || (r.code === 1 && !r.stderr.trim()),
-      ['lookup', ...this.attrs()],
+      ['lookup', ...this.attrs(account)],
     )
     if (r.code === 0) return r.stdout.replace(/\n$/, '') || null
     // `lookup` exits 1 with no output when nothing matches
@@ -67,19 +73,19 @@ export class SecretToolKeyring implements Keyring {
     throw failure('lookup', r)
   }
 
-  async set(key: string): Promise<void> {
+  async set(key: string, account: KeyAccount = 'anthropic'): Promise<void> {
     const r = await this.retry(
       (r) => r.code === 0,
-      ['store', '--label=gnomeola: Anthropic API key', ...this.attrs()],
+      ['store', `--label=gnomeola: ${LABELS[account]} API key`, ...this.attrs(account)],
       key,
     )
     if (r.code !== 0) throw failure('store', r)
   }
 
-  async clear(): Promise<void> {
+  async clear(account: KeyAccount = 'anthropic'): Promise<void> {
     // clear exits non-zero when there was nothing to clear; that is success for us
     const ok = (r: Run) => r.code === 0 || !r.stderr.trim()
-    const r = await this.retry(ok, ['clear', ...this.attrs()])
+    const r = await this.retry(ok, ['clear', ...this.attrs(account)])
     if (!ok(r)) throw failure('clear', r)
   }
 
@@ -102,18 +108,20 @@ const failure = (op: string, r: Run) =>
 
 /** Process-lifetime keyring for tests and keyring-less environments. Nothing touches disk. */
 export class MemoryKeyring implements Keyring {
-  private key: string | null
-  constructor(initial: string | null = null) {
-    this.key = initial
+  private readonly keys = new Map<KeyAccount, string>()
+  /** `initial` is the Anthropic key (the one account that existed first). */
+  constructor(initial: string | null = null, more: Partial<Record<KeyAccount, string>> = {}) {
+    if (initial) this.keys.set('anthropic', initial)
+    for (const [k, v] of Object.entries(more)) if (v) this.keys.set(k as KeyAccount, v)
   }
-  async get(): Promise<string | null> {
-    return this.key
+  async get(account: KeyAccount = 'anthropic'): Promise<string | null> {
+    return this.keys.get(account) ?? null
   }
-  async set(key: string): Promise<void> {
-    this.key = key
+  async set(key: string, account: KeyAccount = 'anthropic'): Promise<void> {
+    this.keys.set(account, key)
   }
-  async clear(): Promise<void> {
-    this.key = null
+  async clear(account: KeyAccount = 'anthropic'): Promise<void> {
+    this.keys.delete(account)
   }
 }
 

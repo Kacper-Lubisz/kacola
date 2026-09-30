@@ -20,6 +20,13 @@ export {
 } from './enhance.ts'
 export { LlmError, type LlmErrorCode } from './errors.ts'
 export { DEFAULT_OLLAMA_URL, OllamaProvider, type OllamaProviderOptions } from './ollama.ts'
+export {
+  DEFAULT_OPENAI_MODEL,
+  DEFAULT_OPENAI_URL,
+  OpenAIProvider,
+  type OpenAIProviderOptions,
+  supportsReasoning,
+} from './openai.ts'
 export { assemblePrompt, CHUNK_GRACE_MS, CHUNK_MS, SYSTEM_PROMPT } from './prompt.ts'
-export { type ProviderDeps, providerFromSettings } from './settings.ts'
+export { DEFAULT_MODELS, type ProviderDeps, providerFromSettings } from './settings.ts'
 export type * from './types.ts'

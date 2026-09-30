@@ -156,12 +156,24 @@ export type ModelInfo = z.infer<typeof ModelInfo>
 export const SpeakerSettings = z.object({ diarize: z.boolean(), voiceprints: z.boolean() })
 export const DEFAULT_SPEAKER_SETTINGS: z.infer<typeof SpeakerSettings> = { diarize: true, voiceprints: false }
 
+export const LlmProvider = z.enum(['anthropic', 'openai', 'ollama', 'none'])
+export type LlmProvider = z.infer<typeof LlmProvider>
+/** Hosted providers that need an API key (each has its own, from the environment or the keyring). */
+export const KEYED_PROVIDERS = ['anthropic', 'openai'] as const
+export type KeyedProvider = (typeof KEYED_PROVIDERS)[number]
+export const isKeyedProvider = (p: string): p is KeyedProvider =>
+  (KEYED_PROVIDERS as readonly string[]).includes(p)
+
 export const Settings = z.object({
   llm: z.object({
-    provider: z.enum(['anthropic', 'ollama', 'none']),
+    provider: LlmProvider,
+    /** Empty = the provider's default model. */
     model: z.string(),
     ollamaUrl: z.string(),
-    /** Read-only: whether a key is present in the keyring / env. The key itself never crosses the wire. */
+    /**
+     * Read-only: whether the CURRENT provider's key is present in the keyring / env. Keys themselves never
+     * cross the wire.
+     */
     apiKeyConfigured: z.boolean(),
   }),
   stt: z.object({

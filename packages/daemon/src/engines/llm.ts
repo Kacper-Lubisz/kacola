@@ -1,4 +1,5 @@
 import { ask, LlmError, providerFromSettings } from '@gnomeola/llm'
+import { isKeyedProvider } from '@gnomeola/protocol'
 import { DaemonError } from '../errors.ts'
 import type { QaChunk, QaEngine, QaRequest } from '../interfaces.ts'
 
@@ -19,7 +20,7 @@ export class LlmQaEngine implements QaEngine {
 
   ready(ctx: { settings: QaRequest['settings']; apiKeyConfigured: boolean }): boolean {
     if (ctx.settings.provider === 'none') return false
-    if (ctx.settings.provider === 'anthropic') return ctx.apiKeyConfigured
+    if (isKeyedProvider(ctx.settings.provider)) return ctx.apiKeyConfigured
     return true // ollama: reachability is only knowable by asking
   }
 
@@ -64,6 +65,11 @@ export function toWireError(err: unknown): unknown {
     case 'auth':
     case 'permission':
       return new DaemonError('unauthorized', 'the LLM provider rejected the API key')
+    case 'quota':
+      return new DaemonError(
+        'unavailable',
+        'the LLM provider account has no credits left (add credits or switch provider in Preferences)',
+      )
     case 'rate_limited': {
       const after = err.retryAfterMs ? ` (retry in ${Math.ceil(err.retryAfterMs / 1000)}s)` : ''
       return new DaemonError('unavailable', `the LLM provider is rate-limiting requests${after}`)

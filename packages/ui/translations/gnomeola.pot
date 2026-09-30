@@ -522,10 +522,6 @@ msgstr ""
 msgid "Could not store the API key: {reason}"
 msgstr ""
 
-#: src/components/preferences.tsx:112
-msgid "Anthropic API key"
-msgstr ""
-
 #: src/components/preferences.tsx:113
 msgid "Configured (kept in the keyring, never shown)"
 msgstr ""
@@ -554,7 +550,7 @@ msgstr ""
 msgid "Could not save the setting: {reason}"
 msgstr ""
 
-#: src/components/preferences.tsx:159 src/components/preferences.tsx:351
+#: src/components/preferences.tsx:159 src/components/preferences.tsx:358
 msgid "General"
 msgstr ""
 
@@ -578,135 +574,143 @@ msgstr ""
 msgid "Ollama URL"
 msgstr ""
 
-#: src/components/preferences.tsx:197 src/components/preferences.tsx:198
-msgid "Transcription"
+#: src/components/preferences.tsx:199
+msgid "Anthropic API key"
 msgstr ""
 
 #: src/components/preferences.tsx:199
+msgid "OpenAI API key"
+msgstr ""
+
+#: src/components/preferences.tsx:204 src/components/preferences.tsx:205
+msgid "Transcription"
+msgstr ""
+
+#: src/components/preferences.tsx:206
 msgid "A second, more accurate pass replaces the live transcript line by line."
 msgstr ""
 
-#: src/components/preferences.tsx:202
+#: src/components/preferences.tsx:209
 msgid "Accurate pass"
 msgstr ""
 
-#: src/components/preferences.tsx:209 src/components/preferences.tsx:210
+#: src/components/preferences.tsx:216 src/components/preferences.tsx:217
 #: src/components/session-detail.tsx:188 src/components/session-detail.tsx:189
 #: src/components/speakers.tsx:207 src/components/speakers.tsx:229
 msgid "Speakers"
 msgstr ""
 
-#: src/components/preferences.tsx:211
+#: src/components/preferences.tsx:218
 msgid ""
 "Your microphone is always you. These decide what happens to the other side."
 msgstr ""
 
-#: src/components/preferences.tsx:214
+#: src/components/preferences.tsx:221
 msgid "Tell far-end speakers apart"
 msgstr ""
 
-#: src/components/preferences.tsx:215
+#: src/components/preferences.tsx:222
 msgid "Label each voice on the other side as its own speaker"
 msgstr ""
 
-#: src/components/preferences.tsx:222
+#: src/components/preferences.tsx:229
 msgid "Recognise people across meetings"
 msgstr ""
 
-#: src/components/preferences.tsx:224
+#: src/components/preferences.tsx:231
 msgid ""
 "Remember the voices of people you name, so they are named in later meetings. "
 "Voices are stored only on this computer; turning this off forgets them all."
 msgstr ""
 
-#: src/components/preferences.tsx:233 src/components/preferences.tsx:234
+#: src/components/preferences.tsx:240 src/components/preferences.tsx:241
 msgid "Capture"
 msgstr ""
 
-#: src/components/preferences.tsx:235
+#: src/components/preferences.tsx:242
 msgid "Used for recordings started from now on."
 msgstr ""
 
-#: src/components/preferences.tsx:238 src/components/session-detail.tsx:42
+#: src/components/preferences.tsx:245 src/components/session-detail.tsx:42
 msgid "Microphone"
 msgstr ""
 
-#: src/components/preferences.tsx:244 src/components/session-detail.tsx:43
+#: src/components/preferences.tsx:251 src/components/session-detail.tsx:43
 msgid "System audio"
 msgstr ""
 
-#: src/components/preferences.tsx:245
+#: src/components/preferences.tsx:252
 msgid "What the other people in the call sound like"
 msgstr ""
 
-#: src/components/preferences.tsx:252 src/components/preferences.tsx:253
+#: src/components/preferences.tsx:259 src/components/preferences.tsx:260
 msgid "Auto-record"
 msgstr ""
 
-#: src/components/preferences.tsx:255
+#: src/components/preferences.tsx:262
 msgid ""
 "Start recording on its own. A recording that is already running is never "
 "interrupted."
 msgstr ""
 
-#: src/components/preferences.tsx:259
+#: src/components/preferences.tsx:266
 msgid "When a Calendar Meeting Starts"
 msgstr ""
 
-#: src/components/preferences.tsx:260
+#: src/components/preferences.tsx:267
 msgid "Meetings you declined, and all-day events, are skipped"
 msgstr ""
 
-#: src/components/preferences.tsx:267
+#: src/components/preferences.tsx:274
 msgid "When Another App Uses the Microphone"
 msgstr ""
 
-#: src/components/preferences.tsx:268
+#: src/components/preferences.tsx:275
 msgid "Stops again once the call has ended"
 msgstr ""
 
-#: src/components/preferences.tsx:276
+#: src/components/preferences.tsx:283
 msgid "Storage"
 msgstr ""
 
-#: src/components/preferences.tsx:278 src/components/preferences.tsx:279
+#: src/components/preferences.tsx:285 src/components/preferences.tsx:286
 msgid "Recorded Audio"
 msgstr ""
 
-#: src/components/preferences.tsx:280
+#: src/components/preferences.tsx:287
 msgid ""
 "Transcripts are always kept. This only decides what happens to the audio."
 msgstr ""
 
-#: src/components/preferences.tsx:283
+#: src/components/preferences.tsx:290
 msgid "Audio"
 msgstr ""
 
-#: src/components/preferences.tsx:292 src/components/preferences.tsx:300
+#: src/components/preferences.tsx:299 src/components/preferences.tsx:307
 msgid "Days to keep audio"
 msgstr ""
 
-#: src/components/preferences.tsx:310
+#: src/components/preferences.tsx:317
 msgid "Archive audio"
 msgstr ""
 
-#: src/components/preferences.tsx:311
+#: src/components/preferences.tsx:318
 msgid "Keep a compressed copy (Opus) of each recording"
 msgstr ""
 
-#: src/components/preferences.tsx:334
+#: src/components/preferences.tsx:341
 msgid "The daemon did not return its settings."
 msgstr ""
 
-#: src/components/preferences.tsx:347 src/components/sidebar.tsx:60
+#: src/components/preferences.tsx:354 src/components/sidebar.tsx:60
 msgid "Preferences"
 msgstr ""
 
-#: src/components/preferences.tsx:352
+#: src/components/preferences.tsx:359
 msgid "Settings"
 msgstr ""
 
-#: src/components/preferences.tsx:356
+#: src/components/preferences.tsx:363
 msgid "Settings Unavailable"
 msgstr ""
 
@@ -1084,65 +1088,69 @@ msgid "Anthropic (Claude)"
 msgstr ""
 
 #: src/data/settings.ts:11
-msgid "Ollama (on this computer)"
+msgid "OpenAI (GPT)"
 msgstr ""
 
 #: src/data/settings.ts:12
+msgid "Ollama (on this computer)"
+msgstr ""
+
+#: src/data/settings.ts:13
 msgid "None (questions off)"
 msgstr ""
 
-#: src/data/settings.ts:16
+#: src/data/settings.ts:17
 msgid "During the recording"
 msgstr ""
 
-#: src/data/settings.ts:17
+#: src/data/settings.ts:18
 msgid "After the recording"
 msgstr ""
 
-#: src/data/settings.ts:18
+#: src/data/settings.ts:19
 msgid "Off (live transcript only)"
 msgstr ""
 
-#: src/data/settings.ts:22
+#: src/data/settings.ts:23
 msgid "Keep"
 msgstr ""
 
-#: src/data/settings.ts:23
+#: src/data/settings.ts:24
 msgid "Delete once transcribed"
 msgstr ""
 
-#: src/data/settings.ts:24
+#: src/data/settings.ts:25
 msgid "Delete after some days"
 msgstr ""
 
-#: src/data/settings.ts:46
+#: src/data/settings.ts:47
 msgid "Default"
 msgstr ""
 
-#: src/data/settings.ts:51
+#: src/data/settings.ts:52
 msgid "{device} (default)"
 msgstr ""
 
-#: src/data/settings.ts:55
+#: src/data/settings.ts:56
 msgid "{device} (not connected)"
 msgstr ""
 
-#: src/data/settings.ts:90
+#: src/data/settings.ts:91
 msgid "Live transcription"
 msgstr ""
 
-#: src/data/settings.ts:91
+#: src/data/settings.ts:92
 msgid "Accurate transcription"
 msgstr ""
 
-#: src/data/settings.ts:92
+#: src/data/settings.ts:93
 msgid "Voice detection"
 msgstr ""
 
-#: src/data/settings.ts:93
+#: src/data/settings.ts:94
 msgid "Speaker turns"
 msgstr ""
 
-#: src/data/settings.ts:94
+#: src/data/settings.ts:95
 msgid "Speaker recognition"
 msgstr ""

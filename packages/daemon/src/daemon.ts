@@ -306,7 +306,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
 
     getSettings: () => settings.view(),
     updateSettings: ({ body }) => settings.patch(body),
-    setApiKey: ({ body }) => settings.setApiKey(body.key),
+    setApiKey: ({ body }) => settings.setApiKey(body.key, body.provider),
     diagnostics: async () => ({
       version: VERSION,
       generatedAt: new Date().toISOString(),

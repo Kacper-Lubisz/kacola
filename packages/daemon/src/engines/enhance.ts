@@ -1,4 +1,5 @@
 import { enhance, providerFromSettings } from '@gnomeola/llm'
+import { isKeyedProvider } from '@gnomeola/protocol'
 import { DaemonError } from '../errors.ts'
 import type { EnhanceChunk, EnhanceRequest, NotesEngine } from '../notes/engine.ts'
 import { toWireError } from './llm.ts'
@@ -20,7 +21,7 @@ export class LlmNotesEngine implements NotesEngine {
 
   ready(ctx: { settings: EnhanceRequest['settings']; apiKeyConfigured: boolean }): boolean {
     if (ctx.settings.provider === 'none') return false
-    if (ctx.settings.provider === 'anthropic') return ctx.apiKeyConfigured
+    if (isKeyedProvider(ctx.settings.provider)) return ctx.apiKeyConfigured
     return true
   }
 

@@ -6,6 +6,8 @@ import { defineConfig } from 'vitest/config'
 //   e2e   — T3: real PipeWire rig, real models, real UI via AT-SPI. Slow.
 //   eval  — T4: accuracy baselines and live-LLM evals. Opt-in, tracked against baselines.
 const common = { exclude: ['**/node_modules/**', '**/dist/**'] }
+/** Strips live-provider keys from the hermetic tiers (not eval). */
+const hermetic = { setupFiles: ['scripts/test-env.ts'] }
 
 export default defineConfig({
   test: {
@@ -13,6 +15,7 @@ export default defineConfig({
       {
         test: {
           ...common,
+          ...hermetic,
           name: 'unit',
           include: ['packages/*/src/**/*.test.ts', 'packages/*/test/**/*.test.ts', 'scripts/**/*.test.ts'],
           exclude: [...common.exclude, '**/*.int.test.ts', '**/*.e2e.test.ts', '**/*.eval.test.ts'],
@@ -22,6 +25,7 @@ export default defineConfig({
       {
         test: {
           ...common,
+          ...hermetic,
           name: 'int',
           include: ['packages/*/**/*.int.test.ts'],
           testTimeout: 60_000,
@@ -31,6 +35,7 @@ export default defineConfig({
       {
         test: {
           ...common,
+          ...hermetic,
           name: 'e2e',
           include: ['packages/*/**/*.e2e.test.ts'],
           testTimeout: 300_000,

@@ -90,7 +90,7 @@ function Combo<T extends string>({
   )
 }
 
-function ApiKeyRows({ configured }: { configured: boolean }) {
+function ApiKeyRows({ configured, title }: { configured: boolean; title: string }) {
   const store = useStore()
   const toast = useToast()
   const [busy, setBusy] = useState(false)
@@ -109,7 +109,7 @@ function ApiKeyRows({ configured }: { configured: boolean }) {
   return (
     <>
       <AdwActionRow
-        title={_('Anthropic API key')}
+        title={title}
         subtitle={configured ? _('Configured (kept in the keyring, never shown)') : _('Not configured')}
         useMarkup={false}
         suffix={
@@ -191,7 +191,14 @@ function Loaded({ settings, devices }: { settings: Settings; devices: AudioDevic
               }}
             />
           ) : null}
-          {llm.provider === 'anthropic' ? <ApiKeyRows configured={llm.apiKeyConfigured} /> : null}
+          {llm.provider === 'anthropic' || llm.provider === 'openai' ? (
+            <ApiKeyRows
+              // keyed by provider: each has its own key, so switching must not carry an entry's text over
+              key={llm.provider}
+              configured={llm.apiKeyConfigured}
+              title={llm.provider === 'anthropic' ? _('Anthropic API key') : _('OpenAI API key')}
+            />
+          ) : null}
         </AdwPreferencesGroup>
         <AdwPreferencesGroup
           ref={nameGroupList(_('Transcription'))}

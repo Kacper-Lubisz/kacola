@@ -113,4 +113,21 @@ describe('secrets never leak', () => {
       ...filesUnder(d.dataDir).map((f) => [f, readFileSync(f, 'latin1')] as [string, string]),
     ])
   })
+
+  it('a key from OPENAI_API_KEY appears nowhere, even with logs echoed to stderr', async () => {
+    const key = `sk-proj-${randomBytes(24).toString('base64url')}`
+    d = await startDaemon({ env: { GNOMEOLA_FAKE_QA: '1', OPENAI_API_KEY: key, GNOMEOLA_ECHO_LOGS: '1' } })
+    expect((await d.client.call('getSettings')).llm).toMatchObject({
+      provider: 'openai',
+      apiKeyConfigured: true,
+    })
+    const id = await exercise(d)
+    const bodies = await hitEverything(d, id, 'who owns the rollout?')
+    await d.kill('SIGTERM')
+    assertAbsent(key, [
+      ...bodies.map((b, i) => [`response #${i}`, b] as [string, string]),
+      ['stdout/stderr', d.output()],
+      ...filesUnder(d.dataDir).map((f) => [f, readFileSync(f, 'latin1')] as [string, string]),
+    ])
+  })
 })

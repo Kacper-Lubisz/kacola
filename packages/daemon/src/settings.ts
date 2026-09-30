@@ -1,6 +1,9 @@
 import {
   DEFAULT_AUTO_RECORD,
   DEFAULT_SPEAKER_SETTINGS,
+  isKeyedProvider,
+  type KeyedProvider,
+  type LlmProvider,
   type Settings,
   type SettingsPatch,
   StoredSettings,
@@ -24,13 +27,54 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   speakers: DEFAULT_SPEAKER_SETTINGS,
 }
 
-/** Section-wise merge; unknown keys dropped by the schema, missing ones filled from `base`. */
+/** Each provider's default model (mirrors @gnomeola/llm's DEFAULT_MODELS; the daemon stays SDK-free here). */
+export const DEFAULT_LLM_MODELS: Record<LlmProvider, string> = {
+  anthropic: 'claude-opus-5',
+  openai: 'gpt-5.5',
+  ollama: 'llama3.1',
+  none: '',
+}
+
+/** Where each hosted provider's key can come from in the environment. */
+export const KEY_ENV: Record<KeyedProvider, string> = {
+  anthropic: 'ANTHROPIC_API_KEY',
+  openai: 'OPENAI_API_KEY',
+}
+
+/**
+ * Defaults for a daemon that has never stored settings: the first hosted provider whose key is in the
+ * environment (Anthropic, then OpenAI), else Anthropic — so `OPENAI_API_KEY=… gnomeolad` just works.
+ */
+export function defaultSettings(env: NodeJS.ProcessEnv = {}): StoredSettings {
+  const provider: LlmProvider = env.ANTHROPIC_API_KEY?.trim()
+    ? 'anthropic'
+    : env.OPENAI_API_KEY?.trim()
+      ? 'openai'
+      : 'anthropic'
+  return {
+    ...DEFAULT_SETTINGS,
+    llm: { ...DEFAULT_SETTINGS.llm, provider, model: DEFAULT_LLM_MODELS[provider] },
+  }
+}
+
+/**
+ * Section-wise merge; unknown keys dropped by the schema, missing ones filled from `base`. Switching the
+ * LLM provider without naming a model picks the new provider's default model — a Claude model name is
+ * meaningless to OpenAI and vice versa.
+ */
 export function mergeSettings(
   base: StoredSettings,
   patch: SettingsPatch | Partial<StoredSettings>,
 ): StoredSettings {
+  const llm = { ...base.llm, ...patch.llm }
+  if (
+    patch.llm?.provider !== undefined &&
+    patch.llm.provider !== base.llm.provider &&
+    patch.llm.model === undefined
+  )
+    llm.model = DEFAULT_LLM_MODELS[llm.provider]
   return StoredSettings.parse({
-    llm: { ...base.llm, ...patch.llm },
+    llm,
     stt: { ...base.stt, ...patch.stt },
     capture: { ...base.capture, ...patch.capture },
     retention: { ...base.retention, ...patch.retention },
@@ -46,21 +90,26 @@ export function mergeSettings(
 export class SettingsService {
   private readonly store: Store
   private readonly keyring: Keyring
-  private readonly envKey: string | null
+  private readonly envKeys: Record<KeyedProvider, string | null>
+  private readonly defaults: StoredSettings
   private readonly logger: Logger
-  private cachedKeyringKey: string | null | undefined
+  private readonly cachedKeyringKeys = new Map<KeyedProvider, string | null>()
 
   constructor(deps: { store: Store; keyring: Keyring; env: NodeJS.ProcessEnv; logger: Logger }) {
     this.store = deps.store
     this.keyring = deps.keyring
     this.logger = deps.logger
-    this.envKey = deps.env.ANTHROPIC_API_KEY?.trim() || null
-    this.logger.addSecret(this.envKey)
+    this.envKeys = {
+      anthropic: deps.env[KEY_ENV.anthropic]?.trim() || null,
+      openai: deps.env[KEY_ENV.openai]?.trim() || null,
+    }
+    for (const k of Object.values(this.envKeys)) this.logger.addSecret(k)
+    this.defaults = defaultSettings(deps.env)
   }
 
   get(): StoredSettings {
     const stored = this.store.getSettings()
-    return stored ? mergeSettings(DEFAULT_SETTINGS, stored) : DEFAULT_SETTINGS
+    return stored ? mergeSettings(this.defaults, stored) : this.defaults
   }
 
   async view(): Promise<Settings> {
@@ -75,34 +124,48 @@ export class SettingsService {
     return this.view()
   }
 
-  /** The key the LLM should use: the environment wins, then the keyring. */
-  async apiKey(): Promise<string | null> {
-    if (this.envKey) return this.envKey
-    if (this.cachedKeyringKey === undefined) {
+  /**
+   * The key a provider should use (default: the current provider's): its environment variable wins, then
+   * the keyring. Null for providers that take no key.
+   */
+  async apiKey(provider: LlmProvider = this.get().llm.provider): Promise<string | null> {
+    if (!isKeyedProvider(provider)) return null
+    const env = this.envKeys[provider]
+    if (env) return env
+    if (!this.cachedKeyringKeys.has(provider)) {
+      let k: string | null
       try {
-        this.cachedKeyringKey = await this.keyring.get()
+        k = await this.keyring.get(provider)
       } catch (err) {
-        this.logger.warn('keyring lookup failed', { err: err instanceof Error ? err.message : String(err) })
+        this.logger.warn('keyring lookup failed', {
+          provider,
+          err: err instanceof Error ? err.message : String(err),
+        })
         return null
       }
-      this.logger.addSecret(this.cachedKeyringKey)
+      this.logger.addSecret(k)
+      this.cachedKeyringKeys.set(provider, k)
     }
-    return this.cachedKeyringKey
+    return this.cachedKeyringKeys.get(provider) ?? null
   }
 
-  async setApiKey(key: string | null): Promise<{ configured: boolean }> {
+  async setApiKey(key: string | null, provider?: KeyedProvider): Promise<{ configured: boolean }> {
+    const current = this.get().llm.provider
+    const target = provider ?? (isKeyedProvider(current) ? current : null)
+    if (!target)
+      throw new DaemonError('bad_request', `the ${current} provider takes no API key; name a provider`)
     const k = key?.trim() ?? null
     if (key !== null && !k) throw new DaemonError('bad_request', 'key must not be blank')
     this.logger.addSecret(k)
     try {
-      if (k) await this.keyring.set(k)
-      else await this.keyring.clear()
+      if (k) await this.keyring.set(k, target)
+      else await this.keyring.clear(target)
     } catch (err) {
       this.logger.error('keyring write failed', { err: err instanceof Error ? err.message : String(err) })
       throw new DaemonError('unavailable', 'the keyring is not available')
     }
-    this.cachedKeyringKey = k
-    this.logger.info(k ? 'api key stored in keyring' : 'api key cleared from keyring')
-    return { configured: (await this.apiKey()) !== null }
+    this.cachedKeyringKeys.set(target, k)
+    this.logger.info(k ? 'api key stored in keyring' : 'api key cleared from keyring', { provider: target })
+    return { configured: (await this.apiKey(target)) !== null }
   }
 }
