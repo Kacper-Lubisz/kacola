@@ -22,6 +22,11 @@ export const IPC = {
   i18n: 'gnomeola:i18n',
   windowControl: 'gnomeola:window-control',
   openExternal: 'gnomeola:open-external',
+  cliStatus: 'gnomeola:cli-status',
+  cliInstall: 'gnomeola:cli-install',
+  cliUninstall: 'gnomeola:cli-uninstall',
+  extensionStatus: 'gnomeola:extension-status',
+  extensionInstall: 'gnomeola:extension-install',
 } as const
 
 // ---- fetch tunnel -----------------------------------------------------------------------------------
@@ -85,6 +90,29 @@ export type Catalogue = {
   messages: Record<string, string | string[]>
 }
 
+/** The `gnomeola` command (+ Claude skill) that install-cli puts on PATH (Preferences, onboarding). */
+export type CliInstallState =
+  | {
+      state: 'installed' | 'not-installed' | 'outdated'
+      /** Where the shim is (or would go). */
+      path: string
+      skillPath: string | null
+      /** Is its directory on PATH? */
+      onPath: boolean
+      /** Another `gnomeola` that PATH finds first. */
+      shadowedBy: string | null
+      /** macOS: /usr/local/bin needed admin rights, so it went to ~/.local/bin. */
+      needsAdmin: string | null
+    }
+  /** A `gnomeola` we did not write is in the way; installing again needs an explicit replace. */
+  | { state: 'foreign'; path: string | null; detail: string }
+  | { state: 'error' | 'unavailable'; detail: string }
+
+/** The GNOME Shell top-bar extension. */
+export type ExtensionState =
+  | { state: 'installed' | 'not-installed' | 'unsupported' }
+  | { state: 'error' | 'unavailable'; detail: string }
+
 export type WindowControl = 'minimize' | 'maximize' | 'close'
 
 export type Unsubscribe = () => void
@@ -105,4 +133,10 @@ export interface GnomeolaBridge {
   windowControl(c: WindowControl): void
   /** http(s) only; anything else is refused in main. */
   openExternal(url: string): Promise<boolean>
+  cliStatus(): Promise<CliInstallState>
+  /** `force` replaces a `gnomeola` we did not write (only after the user said so). */
+  installCli(force: boolean): Promise<CliInstallState>
+  uninstallCli(): Promise<CliInstallState>
+  extensionStatus(): Promise<ExtensionState>
+  installExtension(): Promise<ExtensionState>
 }

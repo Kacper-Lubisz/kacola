@@ -1,0 +1,8 @@
+/* Tailwind's own palette, radii and fonts are cleared before the brand's @theme is added, so a class
+   like `bg-blue-500` does not exist in this app and every colour is a design token. */
+@theme {
+  --color-*: initial;
+  --radius-*: initial;
+  --font-*: initial;
+  --shadow-*: initial;
+}

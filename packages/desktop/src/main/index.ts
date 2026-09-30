@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { join, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import {
@@ -7,6 +8,7 @@ import {
   type IpcMainEvent,
   type IpcMainInvokeEvent,
   ipcMain,
+  Menu,
   type MessagePortMain,
   nativeTheme,
   net,
@@ -15,6 +17,7 @@ import {
   shell,
   type WebContents,
 } from 'electron'
+import pkg from '../../package.json' with { type: 'json' }
 import {
   type AppInfo,
   type DaemonStatus,
@@ -25,6 +28,7 @@ import {
   type WindowControl,
 } from '../shared/bridge.ts'
 import { readDesktopConfig } from './config.ts'
+import { cliEntry, Integration, runCli } from './integration.ts'
 import { loadCatalogue, preferredLanguages, readNotices, readUiState, writeUiState } from './resources.ts'
 import {
   APP_ORIGIN,
@@ -71,6 +75,12 @@ const config = readDesktopConfig(process.env, process.argv, {
   resourcesPath: app.isPackaged ? process.resourcesPath : undefined,
   appDir: HERE,
 })
+
+const cli = cliEntry(process.env, {
+  resourcesPath: app.isPackaged ? process.resourcesPath : undefined,
+  appDir: HERE,
+})
+const integration = new Integration(cli ? runCli(process.execPath, cli, process.env) : null)
 
 const broadcast = (channel: string, value: unknown) => {
   for (const w of BrowserWindow.getAllWindows()) w.webContents.send(channel, value)
@@ -186,7 +196,8 @@ function wireIpc(): void {
   handle(
     IPC.appInfo,
     (): AppInfo => ({
-      version: app.getVersion(),
+      // the app's own version (app.getVersion() is Electron's when run unpackaged from out/main)
+      version: pkg.version,
       electron: process.versions.electron,
       platform: process.platform,
       daemonUrl: config.baseUrl,
@@ -205,7 +216,9 @@ function wireIpc(): void {
   )
   handle(IPC.i18n, () =>
     loadCatalogue(
-      app.isPackaged ? join(process.resourcesPath, 'locale') : join(HERE, '..', 'locale'),
+      // GNOMEOLA_LOCALE_DIR: a directory of <lang>.json catalogues (tests; the GTK app honours it too)
+      process.env.GNOMEOLA_LOCALE_DIR ||
+        (app.isPackaged ? join(process.resourcesPath, 'locale') : join(HERE, '..', 'locale')),
       preferredLanguages(process.env, app.getPreferredSystemLanguages()),
     ),
   )
@@ -214,6 +227,11 @@ function wireIpc(): void {
     await shell.openExternal(url)
     return true
   })
+  handle(IPC.cliStatus, () => integration.cliStatus())
+  handle(IPC.cliInstall, (_e, force) => integration.installCli(force === true))
+  handle(IPC.cliUninstall, () => integration.uninstallCli())
+  handle(IPC.extensionStatus, () => integration.extensionStatus())
+  handle(IPC.extensionInstall, () => integration.installExtension())
   ipcMain.on(IPC.windowControl, (e, c: WindowControl) => {
     if (!trusted(e)) return
     const w = BrowserWindow.fromWebContents(e.sender)
@@ -254,7 +272,12 @@ function readButtonLayout(): void {
 
 function createWindow(): BrowserWindow {
   const w = new BrowserWindow(
-    windowOptions({ preload: PRELOAD, platform: process.platform, dark: theme.scheme === 'dark' }),
+    windowOptions({
+      preload: PRELOAD,
+      platform: process.platform,
+      dark: theme.scheme === 'dark',
+      icon: appIcon(),
+    }),
   )
   w.once('ready-to-show', () => {
     process.stdout.write(`${JSON.stringify({ event: 'window-ready' })}\n`)
@@ -271,6 +294,15 @@ function createWindow(): BrowserWindow {
   })
   void w.loadURL(DEV_SERVER ?? `${APP_ORIGIN}/index.html`)
   return w
+}
+
+/** The brand app icon: shipped in resources/ when packaged, brand/icons in a checkout. */
+function appIcon(): string | undefined {
+  const candidates = [
+    ...(app.isPackaged ? [join(process.resourcesPath, 'icon.png')] : []),
+    join(REPO_ROOT, 'brand', 'icons', 'png', '512.png'),
+  ]
+  return candidates.find((p) => existsSync(p))
 }
 
 function showWindow(): void {
@@ -296,6 +328,10 @@ app.on('before-quit', (e) => {
 for (const sig of ['SIGTERM', 'SIGINT'] as const) process.on(sig, () => app.quit())
 
 void app.whenReady().then(async () => {
+  // Linux: no application menu, so Electron's default accelerators (Ctrl+R reload, Ctrl+Shift+I
+  // devtools) are gone; the window's own shortcuts live in the renderer (features/shell/shortcuts.tsx).
+  // macOS keeps the default menu (Cmd+Q, the Edit menu's copy / paste).
+  if (process.platform !== 'darwin') Menu.setApplicationMenu(null)
   wireSession()
   wireIpc()
   readButtonLayout()

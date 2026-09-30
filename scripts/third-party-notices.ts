@@ -103,12 +103,6 @@ export const DATA: { name: string; licence: string; source: string; note: string
     note: 'test fixture librispeech-3p',
   },
   {
-    name: 'Adwaita symbolic icons (adwaita-icon-theme)',
-    licence: 'LGPL-3.0-only',
-    source: 'GNOME Project, adwaita-icon-theme (dual LGPL-3.0 / CC-BY-SA-3.0)',
-    note: 'path data of a few symbolic icons in the Electron window (packages/desktop/src/renderer/design)',
-  },
-  {
     name: 'Bricolage Grotesque (variable)',
     licence: 'OFL-1.1',
     source: 'google/fonts ofl/bricolagegrotesque (Ateliertriay)',
