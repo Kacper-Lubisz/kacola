@@ -11,7 +11,12 @@ import type { CliInstallState, ExtensionState } from '../shared/bridge.ts'
 // with --dry-run: "unchanged" means our shim is there and current. A `gnomeola` we did not write makes
 // the CLI refuse (exit 5); that is reported as `foreign`, and only an explicit "Replace" passes --force.
 //
-// The top-bar extension install is a stub until the packaging work implements it.
+// Packaged Linux (outside Flatpak) passes `--launch '<this binary>' --background`, so the shim starts
+// this app when the daemon is down; the Flatpak and macOS modes have their own launch commands. On macOS
+// /usr/local/bin needs an administrator: one osascript prompt copies the shim there (declined: the
+// ~/.local/bin fallback stays).
+//
+// The top-bar extension install is extension.ts (a copy into the user's extensions dir, never enabled).
 
 /** Which CLI entry to run: GNOMEOLA_CLI_ENTRY, the packaged runtime, the built runtime, the dev source. */
 export function cliEntry(
@@ -99,38 +104,108 @@ export function cliStateFrom(
   }
 }
 
+/** Single-quote a word for sh (as install.ts writes shims). */
+export const shq = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`
+
+/** An AppleScript string literal. */
+export const appleString = (s: string) => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+
+/**
+ * macOS: the one administrator prompt that puts the shim in /usr/local/bin (install-cli could only
+ * write the ~/.local/bin fallback without admin rights). The shim's content does not depend on where
+ * it lives, so the fallback copy is installed as is.
+ */
+export function adminInstallCommand(shim: string, dir: string): string[] {
+  const sh = `/bin/mkdir -p ${shq(dir)} && /usr/bin/install -m 0755 ${shq(shim)} ${shq(`${dir}/gnomeola`)}`
+  return ['/usr/bin/osascript', '-e', `do shell script ${appleString(sh)} with administrator privileges`]
+}
+
+/** macOS: remove our shims from directories that need admin rights (uninstall-cli reports them). */
+export function adminRemoveCommand(paths: string[]): string[] {
+  const sh = `/bin/rm -f ${paths.map(shq).join(' ')}`
+  return ['/usr/bin/osascript', '-e', `do shell script ${appleString(sh)} with administrator privileges`]
+}
+
+export type Exec = (argv: string[]) => Promise<{ code: number; stdout: string; stderr: string }>
+
+export type IntegrationOptions = {
+  platform?: NodeJS.Platform
+  /** install-cli --launch: how the shim starts the app when the daemon is down (null: the mode's default). */
+  launch?: string | null
+  /** Runs osascript (the macOS admin prompt); tests replace it. */
+  exec?: Exec
+  extensionStatus?: () => ExtensionState
+  installExtension?: () => ExtensionState
+}
+
+const execDefault: Exec = (argv) =>
+  new Promise((resolve) =>
+    execFile(argv[0]!, argv.slice(1), { timeout: 120_000 }, (err, stdout, stderr) =>
+      resolve({
+        code: err ? (typeof err.code === 'number' ? err.code : 1) : 0,
+        stdout: String(stdout),
+        stderr: String(stderr),
+      }),
+    ),
+  )
+
+const NO_EXTENSION: ExtensionState = {
+  state: 'unavailable',
+  detail: 'This build does not include the top-bar extension.',
+}
+
 export class Integration {
   private readonly run: Run | null
-  constructor(run: Run | null) {
+  private readonly o: IntegrationOptions
+  constructor(run: Run | null, o: IntegrationOptions = {}) {
     this.run = run
+    this.o = o
+  }
+
+  private get platform(): NodeJS.Platform {
+    return this.o.platform ?? process.platform
+  }
+
+  private installArgs(extra: string[]): string[] {
+    return ['install-cli', '--json', ...(this.o.launch ? ['--launch', this.o.launch] : []), ...extra]
   }
 
   async cliStatus(): Promise<CliInstallState> {
     if (!this.run) return { state: 'unavailable', detail: 'this build has no command-line tool' }
-    return cliStateFrom(await this.run(['install-cli', '--json', '--dry-run']), true)
+    return cliStateFrom(await this.run(this.installArgs(['--dry-run'])), true)
   }
 
   async installCli(force: boolean): Promise<CliInstallState> {
     if (!this.run) return { state: 'unavailable', detail: 'this build has no command-line tool' }
-    return cliStateFrom(await this.run(['install-cli', '--json', ...(force ? ['--force'] : [])]), false)
+    const st = cliStateFrom(await this.run(this.installArgs(force ? ['--force'] : [])), false)
+    if (st.state === 'installed' && st.needsAdmin && this.platform === 'darwin') {
+      const r = await (this.o.exec ?? execDefault)(adminInstallCommand(st.path, st.needsAdmin))
+      if (r.code !== 0) return st // declined: the fallback stays, and the row says why
+      const fallbackDir = st.path.slice(0, st.path.lastIndexOf('/'))
+      await this.run(['uninstall-cli', '--json', '--keep-skill', '--bin-dir', fallbackDir])
+      return this.cliStatus()
+    }
+    return st
   }
 
   async uninstallCli(): Promise<CliInstallState> {
     if (!this.run) return { state: 'unavailable', detail: 'this build has no command-line tool' }
     const r = await this.run(['uninstall-cli', '--json'])
     if (r.code !== 0) return { state: 'error', detail: errorText(r.stderr) }
+    let needsAdmin: string[] = []
+    try {
+      needsAdmin = (JSON.parse(r.stdout) as { needsAdmin?: string[] }).needsAdmin ?? []
+    } catch {}
+    if (needsAdmin.length && this.platform === 'darwin')
+      await (this.o.exec ?? execDefault)(adminRemoveCommand(needsAdmin))
     return this.cliStatus()
   }
 
-  /** Stub: the packaging work implements the extension install (xdg-data/gnome-shell/extensions). */
   async extensionStatus(): Promise<ExtensionState> {
-    return { state: process.platform === 'linux' ? 'not-installed' : 'unsupported' }
+    return this.o.extensionStatus?.() ?? NO_EXTENSION
   }
 
   async installExtension(): Promise<ExtensionState> {
-    return {
-      state: 'unavailable',
-      detail: 'Installing the top-bar extension from the app is not available yet.',
-    }
+    return this.o.installExtension?.() ?? NO_EXTENSION
   }
 }

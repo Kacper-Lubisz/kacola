@@ -3,26 +3,32 @@ import { existsSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { join, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { createClient, ingestPcm, MAX_FRAME_BYTES, type Session } from '@gnomeola/protocol'
 import {
+  webContents as allWebContents,
   app,
   BrowserWindow,
   clipboard,
+  desktopCapturer,
   dialog,
   type IpcMainEvent,
   type IpcMainInvokeEvent,
   ipcMain,
   Menu,
   type MessagePortMain,
+  nativeImage,
   nativeTheme,
   net,
   protocol,
   session,
   shell,
+  Tray,
   type WebContents,
 } from 'electron'
 import pkg from '../../package.json' with { type: 'json' }
 import {
   type AppInfo,
+  type AutostartState,
   type DaemonStatus,
   IPC,
   type Theme,
@@ -30,14 +36,19 @@ import {
   type TunnelRequest,
   type WindowControl,
 } from '../shared/bridge.ts'
+import { CAPTURE_IPC, type CaptureState, type CaptureTrack } from '../shared/capture.ts'
+import { autostartStatus, requestBackground, setAutostart } from './autostart.ts'
+import { CaptureController, type CaptureWindowLike, captureTracks } from './capture.ts'
 import { readDesktopConfig } from './config.ts'
+import { extensionSource, extensionStatus, installExtension } from './extension.ts'
 import { checkClipboardText, checkSaveRequest, type SaveDialogOptions, saveText } from './files.ts'
-import { cliEntry, Integration, runCli } from './integration.ts'
+import { cliEntry, Integration, runCli, shq } from './integration.ts'
 import { loadCatalogue, preferredLanguages, readNotices, readUiState, writeUiState } from './resources.ts'
 import {
   APP_ORIGIN,
   APP_SCHEME,
   CSP,
+  captureWindowOptions,
   devCsp,
   isAllowedNavigation,
   isExternalUrl,
@@ -47,16 +58,32 @@ import {
 } from './security.ts'
 import { DaemonSupervisor } from './supervisor.ts'
 import { readPortal, themeFrom, watchPortal } from './theme.ts'
+import { type TrayAction, trayMenuModel, trayTooltip } from './tray.ts'
 import { serveTunnel, type TunnelPort } from './tunnel.ts'
 
 // The Electron main process: one instance, daemon supervision, the app:// origin, the fetch tunnel and
-// the window. See docs/desktop-app.md for the process model and the security baseline.
+// the window; in-app capture, background mode (Background portal / login item, macOS Tray) and the
+// desktop integration installs. See docs/desktop-app.md for the process model and the security baseline.
 
 const DEV_SERVER = !app.isPackaged ? process.env.ELECTRON_RENDERER_URL : undefined
 const HERE = import.meta.dirname
 const RENDERER_DIR = join(HERE, '..', 'renderer')
 const PRELOAD = join(HERE, '..', 'preload', 'index.cjs')
+const CAPTURE_PRELOAD = join(HERE, '..', 'preload', 'capture.cjs')
 const REPO_ROOT = join(HERE, '..', '..', '..', '..')
+const FLATPAK = Boolean(process.env.FLATPAK_ID)
+
+// A packaged build refuses Chromium's remote debugging (DevTools protocol on a port or pipe: full
+// control of the window) unless a test asks for it explicitly. The flatpak e2e drives the sandboxed
+// window through it (GNOMEOLA_ALLOW_REMOTE_DEBUGGING=1 + --remote-debugging-port).
+if (
+  app.isPackaged &&
+  process.argv.some((a) => /^--remote-debugging-(port|pipe)/.test(a)) &&
+  process.env.GNOMEOLA_ALLOW_REMOTE_DEBUGGING !== '1'
+) {
+  process.stderr.write('gnomeola: remote debugging is disabled in this build\n')
+  app.exit(1)
+}
 
 protocol.registerSchemesAsPrivileged([
   { scheme: APP_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
@@ -84,7 +111,38 @@ const cli = cliEntry(process.env, {
   resourcesPath: app.isPackaged ? process.resourcesPath : undefined,
   appDir: HERE,
 })
-const integration = new Integration(cli ? runCli(process.execPath, cli, process.env) : null)
+const extensionDeps = {
+  platform: process.platform,
+  env: process.env,
+  source: extensionSource({
+    resourcesPath: app.isPackaged ? process.resourcesPath : undefined,
+    appDir: HERE,
+  }),
+}
+const integration = new Integration(cli ? runCli(process.execPath, cli, process.env) : null, {
+  // packaged Linux outside Flatpak: the shim starts this very binary in the background when the daemon
+  // is down (the Flatpak and macOS modes have their own launch commands)
+  launch:
+    app.isPackaged && process.platform === 'linux' && !FLATPAK
+      ? `${shq(process.execPath)} --background`
+      : null,
+  extensionStatus: () => extensionStatus(extensionDeps),
+  installExtension: () => installExtension(extensionDeps),
+})
+
+/** What a login starts (Linux outside Flatpak): this binary (+ the main script when unpackaged). */
+const autostartDeps = {
+  env: process.env,
+  exec: app.isPackaged
+    ? [process.execPath, '--background']
+    : [process.execPath, process.argv[1] ?? join(HERE, 'index.js'), '--background'],
+}
+
+const client = createClient({
+  baseUrl: config.baseUrl,
+  ...(config.token ? { token: config.token } : {}),
+  timeoutMs: 10_000,
+})
 
 const broadcast = (channel: string, value: unknown) => {
   for (const w of BrowserWindow.getAllWindows()) w.webContents.send(channel, value)
@@ -100,8 +158,136 @@ const supervisor = new DaemonSupervisor({
   onStatus: (s: DaemonStatus) => {
     process.stdout.write(`${JSON.stringify({ event: 'daemon', ...s })}\n`)
     broadcast(IPC.daemonStatusChanged, s)
+    if (s.kind === 'attached' || s.kind === 'spawned') void daemonUp()
+    refreshTray()
   },
 })
+
+// ---- the daemon, watched from main: in-app capture + the Tray -----------------------------------------
+
+const logLine = (o: Record<string, unknown>) => process.stdout.write(`${JSON.stringify(o)}\n`)
+let capture: CaptureController | null = null
+let captureWin: BrowserWindow | null = null
+let captureReady: Promise<void> | null = null
+let watching = false
+let active: Session | null = null
+
+/** The hidden capture window (created on first use; audio permission for it alone). */
+function captureWindow(): CaptureWindowLike {
+  if (!captureWin || captureWin.isDestroyed()) {
+    const w = new BrowserWindow(captureWindowOptions({ preload: CAPTURE_PRELOAD }))
+    captureWin = w
+    captureWindows.add(w.webContents.id)
+    const id = w.webContents.id
+    w.on('closed', () => {
+      captureWindows.delete(id)
+      if (captureWin === w) captureWin = null
+    })
+    captureReady = w.loadURL(DEV_SERVER ? `${DEV_SERVER}/capture.html` : `${APP_ORIGIN}/capture.html`)
+  }
+  const w = captureWin
+  const ready = captureReady
+  return {
+    send: (c) =>
+      void ready?.then(() => {
+        if (!w.isDestroyed()) w.webContents.send(CAPTURE_IPC.command, c)
+      }),
+  }
+}
+
+/** The daemon answered: if it records with the external backend, this app supplies the audio. */
+async function daemonUp(): Promise<void> {
+  const h = await client.call('health').catch(() => null)
+  if (h?.capture.backend === 'external' && !capture) {
+    capture = new CaptureController({
+      status: () => client.call('externalCaptureStatus'),
+      ingest: (o) =>
+        ingestPcm({ ...o, baseUrl: config.baseUrl, ...(config.token ? { token: config.token } : {}) }),
+      window: captureWindow,
+      tracks: captureTracks(process.platform, process.env),
+      log: logLine,
+    })
+    logLine({ event: 'capture', kind: 'enabled', tracks: captureTracks(process.platform, process.env) })
+  }
+  void capture?.reconcile()
+  refreshActive()
+  if (watching) return
+  watching = true
+  // a session event is when a recording may have started or stopped; the tick catches anything missed
+  void client.subscribe({
+    ephemeral: false,
+    onEvent: (e) => {
+      if (e.data.type === 'session.upserted' || e.data.type === 'session.deleted') {
+        void capture?.reconcile()
+        refreshActive()
+      }
+    },
+  })
+  setInterval(() => {
+    void capture?.reconcile()
+    refreshActive()
+  }, 2000).unref()
+}
+
+function refreshActive(): void {
+  if (!tray) return
+  void client
+    .call('listSessions', { query: { limit: 5, includePrivate: true } })
+    .then(({ sessions }) => {
+      active = sessions.find((s) => s.status === 'recording' || s.status === 'paused') ?? null
+      refreshTray()
+    })
+    .catch(() => {})
+}
+
+// macOS: the menu-bar Tray (background mode there). Linux has none (the top-bar extension is that surface).
+let tray: Tray | null = null
+
+function refreshTray(): void {
+  if (!tray) return
+  const input = { daemon: supervisor.status, active }
+  tray.setToolTip(trayTooltip(input))
+  tray.setContextMenu(
+    Menu.buildFromTemplate(
+      trayMenuModel(input).map((i) =>
+        i.type === 'separator'
+          ? { type: 'separator' as const }
+          : i.type === 'status'
+            ? { label: i.label, enabled: false }
+            : { label: i.label, enabled: i.enabled, click: () => void trayAction(i.id) },
+      ),
+    ),
+  )
+}
+
+async function trayAction(a: TrayAction): Promise<void> {
+  try {
+    if (a === 'open') return showWindow()
+    if (a === 'quit') return app.quit()
+    if (a === 'record') {
+      const s = await client.call('createSession', { body: {} })
+      await client.call('startSession', { params: { id: s.id } })
+    } else if (active) {
+      const params = { id: active.id }
+      if (a === 'stop') await client.call('stopSession', { params })
+      else if (a === 'pause') await client.call('pauseSession', { params })
+      else if (a === 'resume') await client.call('resumeSession', { params })
+    }
+  } catch (err) {
+    logLine({ event: 'tray', kind: 'error', action: a, error: String(err) })
+  }
+  refreshActive()
+}
+
+function createTray(): void {
+  const icon = [
+    join(process.resourcesPath ?? '', 'tray.png'),
+    join(REPO_ROOT, 'brand', 'icons', 'png', '16.png'),
+  ].find((p) => existsSync(p))
+  tray = new Tray(icon ? nativeImage.createFromPath(icon) : nativeImage.createEmpty())
+  refreshTray()
+  refreshActive()
+}
 
 app.on('second-instance', (_e, argv) => {
   if (!argv.includes('--background')) showWindow()
@@ -137,6 +323,16 @@ function wireSession(): void {
   ses.setPermissionCheckHandler(
     (wc, permission) => wc !== null && captureWindows.has(wc.id) && permission === 'media',
   )
+  // getDisplayMedia from the capture window: system audio as loopback (macOS 13+); the screen source is
+  // required by the API and its video track is stopped by the page at once. Anyone else: refused.
+  ses.setDisplayMediaRequestHandler((req, cb) => {
+    const wc = req.frame ? allWebContents.fromFrame(req.frame) : undefined
+    if (process.platform !== 'darwin' || !wc || !captureWindows.has(wc.id)) return cb({})
+    void desktopCapturer
+      .getSources({ types: ['screen'] })
+      .then((sources) => (sources[0] ? cb({ video: sources[0], audio: 'loopback' }) : cb({})))
+      .catch(() => cb({}))
+  })
   if (DEV_SERVER) {
     const csp = devCsp(DEV_SERVER)
     ses.webRequest.onHeadersReceived({ urls: [`${new URL(DEV_SERVER).origin}/*`] }, (d, cb) =>
@@ -257,6 +453,39 @@ function wireIpc(): void {
   handle(IPC.cliUninstall, () => integration.uninstallCli())
   handle(IPC.extensionStatus, () => integration.extensionStatus())
   handle(IPC.extensionInstall, () => integration.installExtension())
+  handle(IPC.autostartGet, (): AutostartState => {
+    if (process.platform === 'darwin') return { enabled: app.getLoginItemSettings().openAtLogin }
+    return autostartStatus(autostartDeps)
+  })
+  handle(IPC.autostartSet, async (_e, enabled): Promise<AutostartState> => {
+    const on = enabled === true
+    if (process.platform === 'darwin') {
+      app.setLoginItemSettings({ openAtLogin: on, args: ['--background'] })
+      return { enabled: app.getLoginItemSettings().openAtLogin }
+    }
+    try {
+      return await setAutostart(autostartDeps, on)
+    } catch (err) {
+      return { ...autostartStatus(autostartDeps), detail: String((err as Error).message ?? err) }
+    }
+  })
+  // ---- in-app capture: frames and state from the capture window only
+  const isTrack = (t: unknown): t is CaptureTrack => t === 'mic' || t === 'system'
+  ipcMain.on(CAPTURE_IPC.frame, (e, track: unknown, data: unknown) => {
+    if (!captureWindows.has(e.sender.id) || !isTrack(track)) return
+    const bytes =
+      data instanceof ArrayBuffer
+        ? new Uint8Array(data)
+        : ArrayBuffer.isView(data)
+          ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
+          : null
+    if (!bytes || bytes.byteLength % 2 || bytes.byteLength > MAX_FRAME_BYTES) return
+    capture?.onFrame(track, new Int16Array(bytes.slice().buffer))
+  })
+  ipcMain.on(CAPTURE_IPC.state, (e, s: CaptureState) => {
+    if (!captureWindows.has(e.sender.id) || !isTrack(s?.track)) return
+    capture?.onState(s)
+  })
   ipcMain.on(IPC.windowControl, (e, c: WindowControl) => {
     if (!trusted(e)) return
     const w = BrowserWindow.fromWebContents(e.sender)
@@ -310,6 +539,7 @@ function createWindow(): BrowserWindow {
   })
   w.on('closed', () => {
     if (mainWindow === w) mainWindow = null
+    mainWindowClosed()
   })
   w.webContents.on('before-input-event', (ev, input) => {
     if (input.type === 'keyDown' && (input.control || input.meta) && input.key.toLowerCase() === 'q') {
@@ -338,8 +568,20 @@ function showWindow(): void {
   mainWindow.focus()
 }
 
-// Closing the window keeps main (and the daemon) running; only an explicit quit stops them.
+// Closing the window keeps main (and the daemon) running; only an explicit quit stops them. In the
+// Flatpak, the first close asks the Background portal (GNOME then lists us under Background Apps rather
+// than treating a windowless app as stuck); the autostart choice is re-sent with it.
+let askedBackground = false
 app.on('window-all-closed', () => {})
+function mainWindowClosed(): void {
+  if (!FLATPAK || askedBackground || quitting) return
+  askedBackground = true
+  void requestBackground(autostartDeps, autostartStatus(autostartDeps).enabled).catch((err: unknown) =>
+    logLine({ event: 'background-portal', kind: 'error', error: String(err) }),
+  )
+}
+// macOS: clicking the Dock icon with no window open brings the window back
+app.on('activate', () => showWindow())
 
 let quitting = false
 let stopWatchingPortal: () => void = () => {}
@@ -348,7 +590,10 @@ app.on('before-quit', (e) => {
   e.preventDefault()
   quitting = true
   stopWatchingPortal()
-  void supervisor.stop().finally(() => app.exit(0))
+  void Promise.resolve(capture?.stop())
+    .catch(() => {})
+    .then(() => supervisor.stop())
+    .finally(() => app.exit(0))
 })
 for (const sig of ['SIGTERM', 'SIGINT'] as const) process.on(sig, () => app.quit())
 
@@ -365,6 +610,7 @@ void app.whenReady().then(async () => {
   nativeTheme.on('updated', () => {
     if (process.platform === 'darwin') void refreshTheme()
   })
+  if (process.platform === 'darwin') createTray()
   void supervisor.start()
   if (!config.background) showWindow()
 })

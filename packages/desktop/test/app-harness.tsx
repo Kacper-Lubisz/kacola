@@ -10,7 +10,13 @@ import { createQueries } from '../src/renderer/data/queries.ts'
 import { type Services, ServicesProvider } from '../src/renderer/data/services.tsx'
 import { ToastProvider } from '../src/renderer/design/primitives/index.ts'
 import { createAppRouter } from '../src/renderer/routes/router.tsx'
-import type { AppInfo, CliInstallState, GnomeolaBridge, UiState } from '../src/shared/bridge.ts'
+import type {
+  AppInfo,
+  AutostartState,
+  CliInstallState,
+  GnomeolaBridge,
+  UiState,
+} from '../src/shared/bridge.ts'
 import { fakeDaemon, type Handler } from './helpers.ts'
 
 // The whole window under jsdom: the real router, React Query, EventBridge and screens, over a fake
@@ -55,6 +61,7 @@ export function fakeBridge(over: Partial<GnomeolaBridge> = {}) {
     shadowedBy: null,
     needsAdmin: null,
   }
+  let autostart: AutostartState = { enabled: false }
   const b = {
     fetchStream: vi.fn(),
     appInfo: vi.fn(async () => appInfo),
@@ -88,6 +95,11 @@ export function fakeBridge(over: Partial<GnomeolaBridge> = {}) {
     uninstallCli: vi.fn(async () => cli),
     extensionStatus: vi.fn(async () => ({ state: 'not-installed' as const })),
     installExtension: vi.fn(async () => ({ state: 'unavailable' as const, detail: 'not yet' })),
+    getAutostart: vi.fn(async () => autostart),
+    setAutostart: vi.fn(async (enabled: boolean) => {
+      autostart = { enabled }
+      return autostart
+    }),
   }
   Object.assign(b, over)
   return {

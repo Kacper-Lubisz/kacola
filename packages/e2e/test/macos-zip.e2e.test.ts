@@ -23,7 +23,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildMacos, type MacArch } from '../../../scripts/build-macos.ts'
 import { electronBinary, REPO, testRuntime } from '../src/runtime.ts'
 
-// P-6: the macOS zips, inspected from Linux (nothing here can run a Mach-O). For each architecture:
+// P-6/P-7: the macOS zips of the real desktop app, inspected from Linux (nothing here can run a Mach-O). For each architecture:
 // every native binary in the bundle is a Mach-O for that architecture (no Linux ELF slipped in), the
 // Info.plist carries the privacy usage strings, the fuses are what the security baseline says, the
 // runtime and the in-app CLI shim are there, and the framework symlinks survived zipping. The in-app
@@ -73,13 +73,24 @@ function plist(path: string): Record<string, string> {
   return out
 }
 
-/** File names in an asar archive's header. */
+type AsarEntry = { files?: Record<string, AsarEntry>; offset?: string; size?: number }
+function asarHeader(b: Buffer): AsarEntry {
+  return JSON.parse(b.subarray(16, 16 + b.readUInt32LE(12)).toString('utf8')) as AsarEntry
+}
+
+/** File names at the top of an asar archive. */
 function asarFiles(path: string): string[] {
+  return Object.keys(asarHeader(readFileSync(path)).files ?? {})
+}
+
+/** One file's bytes out of an asar archive (data starts after the header pickle). */
+function asarRead(path: string, file: string): Buffer {
   const b = readFileSync(path)
-  const header = JSON.parse(b.subarray(16, 16 + b.readUInt32LE(12)).toString('utf8')) as {
-    files: Record<string, unknown>
-  }
-  return Object.keys(header.files)
+  let e: AsarEntry | undefined = asarHeader(b)
+  for (const part of file.split('/')) e = e?.files?.[part]
+  if (e?.offset === undefined || e.size === undefined) throw new Error(`${file} is not in ${path}`)
+  const base = 8 + b.readUInt32LE(4)
+  return b.subarray(base + Number(e.offset), base + Number(e.offset) + e.size)
 }
 
 beforeAll(async () => {
@@ -157,8 +168,14 @@ describe.each(ARCHS)('gnomeola.app (%s)', (arch) => {
     expect(readFileSync(join(app(), 'Contents', 'Info.plist'), 'utf8')).toContain('ElectronAsarIntegrity')
   })
 
-  it('app.asar holds the main process; the runtime, the CLI shim and the licences sit beside it', () => {
-    expect(asarFiles(join(res(), 'app.asar')).sort()).toEqual(['main.cjs', 'package.json'])
+  it('app.asar holds the desktop app (bundled: no node_modules); the runtime, CLI shim and licences sit beside it', () => {
+    expect(asarFiles(join(res(), 'app.asar')).sort()).toEqual(['out', 'package.json'])
+    const asar = join(res(), 'app.asar')
+    for (const f of ['out/main/index.js', 'out/preload/index.cjs', 'out/renderer/index.html'])
+      expect(asarRead(asar, f).length, f).toBeGreaterThan(0)
+    const pkg = JSON.parse(asarRead(asar, 'package.json').toString('utf8'))
+    expect(pkg).toMatchObject({ name: 'gnomeola', main: 'out/main/index.js', type: 'module' })
+    expect(pkg.dependencies).toBeUndefined()
     for (const f of [
       'daemon.mjs',
       'cli.mjs',

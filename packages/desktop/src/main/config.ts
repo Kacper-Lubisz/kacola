@@ -47,7 +47,7 @@ export function uiStatePath(env: Record<string, string | undefined>): string {
 
 /**
  * Which daemon to spawn: GNOMEOLA_DAEMON_ENTRY, else a bundled daemon.mjs next to the app (packaged
- * builds put it in resources/daemon/), else the repo's packages/daemon/src/main.ts (dev), else none.
+ * builds put the runtime in resources/runtime/: scripts/build-desktop.ts), else the repo's packages/daemon/src/main.ts (dev), else none.
  */
 export function daemonEntry(
   env: Record<string, string | undefined>,
@@ -55,7 +55,7 @@ export function daemonEntry(
 ): string | null {
   if (env.GNOMEOLA_DAEMON_ENTRY) return env.GNOMEOLA_DAEMON_ENTRY
   const candidates = [
-    ...(o.resourcesPath ? [join(o.resourcesPath, 'daemon', 'daemon.mjs')] : []),
+    ...(o.resourcesPath ? [join(o.resourcesPath, 'runtime', 'daemon.mjs')] : []),
     // out/main → packages/desktop → packages/daemon
     join(o.appDir, '..', '..', '..', 'daemon', 'dist', 'daemon.mjs'),
     join(o.appDir, '..', '..', '..', 'daemon', 'src', 'main.ts'),

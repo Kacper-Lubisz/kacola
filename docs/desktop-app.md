@@ -56,7 +56,7 @@ Scripts: `pnpm --filter @gnomeola/desktop dev` (HMR; the renderer is served by V
   --port …`) and waits for `/health`; a crash restarts it with backoff (1 s doubling to 30 s, reset
   after 60 s up); if something else takes the port meanwhile it attaches instead. A remote URL that does
   not answer is reported unreachable and polled, never replaced by a local daemon.
-- **Entry**: `GNOMEOLA_DAEMON_ENTRY`, else `resources/daemon/daemon.mjs` (packaged), else
+- **Entry**: `GNOMEOLA_DAEMON_ENTRY`, else `resources/runtime/daemon.mjs` (packaged), else
   `packages/daemon/dist/daemon.mjs`, else `packages/daemon/src/main.ts` (dev; Electron 44's Node 24.21
   strips types). `GNOMEOLA_DAEMON_ARGS` (JSON array) adds arguments (tests pass `--data-dir`).
 - **Window close keeps running** (main + daemon). Quit is explicit (Ctrl+Q, `app.quit()`, SIGTERM) and

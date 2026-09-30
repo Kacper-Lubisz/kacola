@@ -4,7 +4,8 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'electron-vite'
 
 // Three builds (docs/desktop-app.md, "Layout"):
-//   main      Node ESM. Workspace packages are TypeScript sources, so they are bundled, not externalized.
+//   main      Node ESM, self-contained apart from electron and node:*: workspace packages are TypeScript
+//             sources, and the packaged app ships no node_modules (scripts/build-desktop.ts), so zod is in too.
 //   preload   CommonJS, one self-contained file: a sandboxed preload can only require('electron').
 //   renderer  the React SPA, served from app:// in production and from the Vite dev server (HMR) in dev.
 const workspace = ['@gnomeola/protocol', '@gnomeola/ui-core']
@@ -12,7 +13,7 @@ const workspace = ['@gnomeola/protocol', '@gnomeola/ui-core']
 export default defineConfig({
   main: {
     build: {
-      externalizeDeps: { exclude: workspace },
+      externalizeDeps: { exclude: [...workspace, 'zod'] },
       rollupOptions: { input: { index: resolve(import.meta.dirname, 'src/main/index.ts') } },
     },
   },
@@ -20,7 +21,11 @@ export default defineConfig({
     build: {
       externalizeDeps: false,
       rollupOptions: {
-        input: { index: resolve(import.meta.dirname, 'src/preload/index.ts') },
+        input: {
+          index: resolve(import.meta.dirname, 'src/preload/index.ts'),
+          // the hidden capture window's preload (in-app capture): frames out, start/stop in
+          capture: resolve(import.meta.dirname, 'src/preload/capture.ts'),
+        },
         output: { format: 'cjs', entryFileNames: '[name].cjs' },
       },
     },
@@ -36,7 +41,12 @@ export default defineConfig({
       },
     },
     build: {
-      rollupOptions: { input: { index: resolve(import.meta.dirname, 'src/renderer/index.html') } },
+      rollupOptions: {
+        input: {
+          index: resolve(import.meta.dirname, 'src/renderer/index.html'),
+          capture: resolve(import.meta.dirname, 'src/renderer/capture.html'),
+        },
+      },
     },
   },
 })

@@ -107,6 +107,7 @@ export function uninstallCliCommand(ctx: Ctx, f: InstallCliFlags & { keepSkill?:
   }
   for (const p of r.removed) ctx.io.stdout(`removed: ${p}\n`)
   for (const p of r.keptForeign) ctx.io.stdout(`left alone (not ours): ${p}\n`)
+  for (const p of r.needsAdmin) ctx.io.stdout(`needs administrator rights to remove: ${p}\n`)
   if (r.skill) ctx.io.stdout(`skill ${r.skill.action}: ${r.skill.path}\n`)
   if (!r.removed.length) ctx.io.stdout('no gnomeola command written by install-cli was found\n')
 }

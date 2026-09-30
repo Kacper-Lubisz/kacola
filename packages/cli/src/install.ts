@@ -232,6 +232,11 @@ export function installCli(o: InstallOptions, fs: Fs = nodeFs): InstallReport {
       if (!userDir) continue // never create system directories
       if (!o.dryRun) mkdirSync(dir, { recursive: true })
     } else if (!fs.writable(dir)) {
+      // our current shim already there (the macOS app put it in with an administrator prompt): nothing to do
+      if (fs.exists(target) && fs.read(target) === content) {
+        chosen = { path: target, action: 'unchanged' }
+        break
+      }
       if (!userDir) needsAdmin = dir
       warnings.push(`${dir} is not writable${userDir ? '' : ' without administrator rights'}`)
       continue
@@ -284,6 +289,8 @@ export type UninstallReport = {
   removed: string[]
   /** `gnomeola`s in the candidate directories that this tool did not write (untouched). */
   keptForeign: string[]
+  /** Our shims in directories we cannot write to (macOS /usr/local/bin): removing them needs an admin. */
+  needsAdmin: string[]
   skill: { path: string; action: 'removed' | 'kept-edited' | 'absent' } | null
 }
 
@@ -293,13 +300,16 @@ export function uninstallCli(
 ): UninstallReport {
   const removed: string[] = []
   const keptForeign: string[] = []
+  const needsAdmin: string[] = []
   for (const dir of o.binDir ? [o.binDir] : binCandidates(o.mode, o.home)) {
     const target = join(dir, 'gnomeola')
     if (!fs.exists(target)) continue
-    if (isOurs(fs.read(target))) {
+    if (!isOurs(fs.read(target))) keptForeign.push(target)
+    else if (!fs.writable(dir)) needsAdmin.push(target)
+    else {
       rmSync(target, { force: true })
       removed.push(target)
-    } else keptForeign.push(target)
+    }
   }
   let skill: UninstallReport['skill'] = null
   if (!o.keepSkill) {
@@ -312,7 +322,7 @@ export function uninstallCli(
       skill = { path: md, action: 'removed' }
     } else skill = { path: md, action: 'kept-edited' }
   }
-  return { removed, keptForeign, skill }
+  return { removed, keptForeign, needsAdmin, skill }
 }
 
 // ------------------------------------------------------------------------------------- skill

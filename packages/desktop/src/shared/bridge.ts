@@ -29,6 +29,8 @@ export const IPC = {
   cliUninstall: 'gnomeola:cli-uninstall',
   extensionStatus: 'gnomeola:extension-status',
   extensionInstall: 'gnomeola:extension-install',
+  autostartGet: 'gnomeola:autostart-get',
+  autostartSet: 'gnomeola:autostart-set',
 } as const
 
 // ---- fetch tunnel -----------------------------------------------------------------------------------
@@ -125,6 +127,9 @@ export type ExtensionState =
   | { state: 'installed' | 'not-installed' | 'unsupported' }
   | { state: 'error' | 'unavailable'; detail: string }
 
+/** Background mode: start (without a window) at login. */
+export type AutostartState = { enabled: boolean; detail?: string }
+
 export type WindowControl = 'minimize' | 'maximize' | 'close'
 
 export type Unsubscribe = () => void
@@ -155,4 +160,7 @@ export interface GnomeolaBridge {
   uninstallCli(): Promise<CliInstallState>
   extensionStatus(): Promise<ExtensionState>
   installExtension(): Promise<ExtensionState>
+  /** Start in the background at login (Linux: autostart entry / Background portal; macOS: login item). */
+  getAutostart(): Promise<AutostartState>
+  setAutostart(enabled: boolean): Promise<AutostartState>
 }

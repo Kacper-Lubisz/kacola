@@ -1,20 +1,24 @@
 #!/usr/bin/env node
 // P-6: build gnomeola.app for macOS as unsigned zips (arm64 + x64) with electron-builder, from Linux.
 //
-//   node scripts/build-macos.ts [--app-dir DIR] [--out DIR] [--arch arm64,x64]
+//   node scripts/build-macos.ts [--out DIR] [--arch arm64,x64] [--skip-vite]
 //
-//   --app-dir DIR   the app's main process: a directory with package.json + its main (packages/desktop's
-//                   build output once it lands). Default: packaging/placeholder, which runs the daemon.
 //   --out DIR       default dist/macos: stage/ (the electron-builder project) and out/ (the zips)
+//   --skip-vite     reuse packages/desktop/out instead of building the desktop app first
+//
+// The app is packages/desktop, staged exactly as for Linux (scripts/build-desktop.ts: package.json +
+// out/, no node_modules). Fuses: packages/desktop/fuses.config.ts, flipped in afterPack.
 //
 // Per architecture, scripts/build-runtime.ts produces the runtime with that architecture's natives
 // (better-sqlite3's darwin N-API prebuild, sherpa-onnx-darwin-<arch> from the registry); electron-builder
 // (packaging/macos/electron-builder.yml) puts it at Contents/Resources/runtime. Signing and a dmg need a
 // Mac: the zips are ad-hoc unsigned, so Gatekeeper asks users to right-click → Open the first time.
 import { execFileSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
+import { applyFuses } from '../packages/desktop/fuses.config.ts'
+import { BRAND_ICONS, electronVersion, stageDesktopApp } from './build-desktop.ts'
 import { buildRuntime, REPO, type Target } from './build-runtime.ts'
 
 export type MacArch = 'arm64' | 'x64'
@@ -22,8 +26,8 @@ export type MacBuild = { zips: { arch: MacArch; path: string; bytes: number }[] 
 
 export async function buildMacos(o: {
   outDir: string
-  appDir?: string
   archs?: MacArch[]
+  skipVite?: boolean
 }): Promise<MacBuild> {
   const out = resolve(o.outDir)
   const archs = o.archs ?? ['arm64', 'x64']
@@ -32,14 +36,13 @@ export async function buildMacos(o: {
   rmSync(join(out, 'out'), { recursive: true, force: true })
   mkdirSync(stage, { recursive: true })
 
-  const app = o.appDir ?? join(REPO, 'packaging', 'placeholder')
-  for (const f of readdirSync(app)) cpSync(join(app, f), join(stage, f), { recursive: true })
+  const version = stageDesktopApp(stage, { skipVite: o.skipVite })
   for (const arch of archs)
     await buildRuntime({ outDir: join(stage, `runtime-${arch}`), targets: [`darwin-${arch}` as Target] })
   mkdirSync(join(stage, 'bin'))
   cpSync(join(REPO, 'packaging', 'macos', 'gnomeola-cli.sh'), join(stage, 'bin', 'gnomeola'))
-  cpSync(join(REPO, 'THIRD_PARTY_NOTICES.md'), join(stage, 'THIRD_PARTY_NOTICES.md'))
-  cpSync(join(REPO, 'packaging', 'icons', 'org.gnome.Gnomeola-1024.png'), join(stage, 'icon.png'))
+  // the kacola brand icon (the window icon, resources/icon.png, is only used on Linux)
+  cpSync(join(BRAND_ICONS, 'kacola.icns'), join(stage, 'icon.icns'))
   // Chromium's licences ship with every Electron build; the Linux dist has the same file
   cpSync(
     join(REPO, 'node_modules', 'electron', 'dist', 'LICENSES.chromium.html'),
@@ -47,11 +50,7 @@ export async function buildMacos(o: {
   )
 
   const config = join(REPO, 'packaging', 'macos', 'electron-builder.yml')
-  const electron = (
-    JSON.parse(readFileSync(join(REPO, 'node_modules', 'electron', 'package.json'), 'utf8')) as {
-      version: string
-    }
-  ).version
+  const electron = electronVersion()
   if (!readFileSync(config, 'utf8').includes(`electronVersion: ${electron}`))
     throw new Error(
       `packaging/macos/electron-builder.yml must pin electronVersion: ${electron} (the installed Electron)`,
@@ -68,6 +67,8 @@ export async function buildMacos(o: {
         const arch = Arch[ctx.arch] as MacArch
         const dest = join(ctx.appOutDir, 'gnomeola.app', 'Contents', 'Resources', 'runtime', 'node_modules')
         cpSync(join(stage, `runtime-${arch}`, 'node_modules'), dest, { recursive: true, dereference: true })
+        // no ad-hoc re-signing from Linux (codesign is macOS-only): see docs/desktop-app.md, "Packaging"
+        await applyFuses(join(ctx.appOutDir, 'gnomeola.app'))
       },
     },
     publish: 'never',
@@ -75,8 +76,6 @@ export async function buildMacos(o: {
   })
   // Zip each .app keeping symlinks (-y): the Electron framework's Versions/Current links must survive
   const outDir = join(out, 'out')
-  const version = (JSON.parse(readFileSync(join(stage, 'package.json'), 'utf8')) as { version: string })
-    .version
   const zips = archs.map((arch) => {
     const appParent = join(outDir, arch === 'x64' ? 'mac' : `mac-${arch}`)
     if (!existsSync(join(appParent, 'gnomeola.app'))) throw new Error(`no ${arch} app in ${appParent}`)
@@ -89,11 +88,11 @@ export async function buildMacos(o: {
 
 if (import.meta.main) {
   const { values } = parseArgs({
-    options: { 'app-dir': { type: 'string' }, out: { type: 'string' }, arch: { type: 'string' } },
+    options: { out: { type: 'string' }, arch: { type: 'string' }, 'skip-vite': { type: 'boolean' } },
   })
   const r = await buildMacos({
     outDir: values.out ?? join(REPO, 'dist', 'macos'),
-    appDir: values['app-dir'],
+    skipVite: values['skip-vite'],
     archs: values.arch ? (values.arch.split(',') as MacArch[]) : undefined,
   })
   for (const z of r.zips) console.log(`${z.arch}: ${z.path} (${(z.bytes / 1024 / 1024).toFixed(1)} MiB)`)

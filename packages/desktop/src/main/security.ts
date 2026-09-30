@@ -88,6 +88,29 @@ export function windowOptions(o: {
   }
 }
 
+/**
+ * The hidden capture window (in-app capture): the same sandbox as the main window, a different preload
+ * (preload/capture.ts: frames out, start/stop in — nothing else), never shown, never throttled (a hidden
+ * window's timers are), and allowed to start its AudioContext without a user gesture.
+ */
+export function captureWindowOptions(o: { preload: string }): BrowserWindowConstructorOptions {
+  const main = windowOptions({ preload: o.preload, platform: 'linux', dark: false })
+  return {
+    show: false,
+    width: 200,
+    height: 100,
+    title: 'gnomeola capture',
+    skipTaskbar: true,
+    focusable: false,
+    paintWhenInitiallyHidden: false,
+    webPreferences: {
+      ...main.webPreferences,
+      backgroundThrottling: false,
+      autoplayPolicy: 'no-user-gesture-required',
+    },
+  }
+}
+
 /** Only http(s) URLs leave the app, and only to the system browser. */
 export function isExternalUrl(raw: string): boolean {
   try {
@@ -112,7 +135,9 @@ export function isAllowedNavigation(raw: string, devServer?: string): boolean {
 
 /**
  * Permission requests: everything is denied, except microphone / loopback capture for a window that
- * was registered as the capture window (macOS in-app capture, later). The main window never qualifies.
+ * was registered as the capture window (in-app capture). The main window never qualifies. Audio only:
+ * getUserMedia for the mic, and getDisplayMedia (display-capture) whose video the capture page drops —
+ * main's display-media handler answers with loopback audio for that window alone.
  */
 export function permissionAllowed(
   permission: string,
@@ -120,6 +145,7 @@ export function permissionAllowed(
   isCaptureWindow: boolean,
 ): boolean {
   if (!isCaptureWindow) return false
+  if (permission === 'display-capture') return true
   if (permission !== 'media') return false
   const types = details.mediaTypes ?? []
   return types.length > 0 && types.every((t) => t === 'audio')
