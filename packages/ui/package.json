@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@gnomeola/protocol": "workspace:*",
+    "@gnomeola/ui-core": "workspace:*",
     "@gtkx/cairo": "1.6.0",
     "@gtkx/css": "1.6.0",
     "@gtkx/native": "1.6.0",

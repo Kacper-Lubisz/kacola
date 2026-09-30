@@ -1,14 +1,14 @@
 import type { AnyEvent, DurableEventData, Segment, Speaker, SpeakerSummary } from '@gnomeola/protocol'
 import { describe, expect, it } from 'vitest'
-import { createDemoSource } from '../src/data/demo-source.ts'
+import { createDemoSource } from '../src/demo-source.ts'
 import {
   applySpeakerEvent,
   emptySpeakers,
   fromSummaries,
   SpeakersFeed,
   speakerClass,
-} from '../src/data/speakers.ts'
-import { applyTranscriptEvent, fromSegments, transcriptRows } from '../src/data/transcript.ts'
+} from '../src/speakers.ts'
+import { applyTranscriptEvent, fromSegments, transcriptRows } from '../src/transcript.ts'
 
 // A-5: the UI folds attribution events exactly like the daemon's store does — the transcript relabels
 // in place, merged speakers vanish, colours never move.

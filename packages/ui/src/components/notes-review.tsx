@@ -1,11 +1,11 @@
 import type { Hunk, MergeChoice } from '@gnomeola/protocol'
+import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
+import { type Review, reviewChanges, setAll, setChoice, sideText, startReview } from '@gnomeola/ui-core/notes'
 import * as Gtk from '@gtkx/gi/gtk'
 import * as Pango from '@gtkx/gi/pango'
 import { AdwClamp } from '@gtkx/jsx/adw'
 import { GtkBox, GtkButton, GtkLabel, GtkScrolledWindow, GtkSwitch } from '@gtkx/jsx/gtk'
 import { useState } from 'react'
-import { type Review, reviewChanges, setAll, setChoice, sideText, startReview } from '../data/notes.ts'
-import { _, fmt, ngettext } from '../i18n/index.ts'
 
 // N-4 — the review of an enhanced version: the user's notes beside the enhanced text, one change at a
 // time, each with a switch "use the enhanced text". Unchanged blocks are shown dimmed for context.

@@ -1,4 +1,4 @@
-// Regenerate translations/gnomeola.pot from every `_()` / `ngettext()` call in src/ with GNU xgettext (0.23+
+// Regenerate translations/gnomeola.pot from every `_()` / `ngettext()` call in src/ (and ../ui-core/src) with GNU xgettext (0.23+
 // understands TypeScript and TSX). `pnpm --filter @gnomeola/ui i18n:pot`.
 //
 // Output is deterministic (sorted inputs, no creation date) so the template only changes when a
@@ -9,6 +9,8 @@ import { join, relative } from 'node:path'
 
 const PKG = join(import.meta.dirname, '..')
 const SRC = join(PKG, 'src')
+/** The shared data layer (packages/ui-core): its strings belong to this catalogue too. */
+const CORE_SRC = join(PKG, '..', 'ui-core', 'src')
 export const POT = join(PKG, 'translations', 'gnomeola.pot')
 
 function sources(dir: string, acc: string[] = []): string[] {
@@ -21,7 +23,7 @@ function sources(dir: string, acc: string[] = []): string[] {
 }
 
 export function buildPot(): string {
-  const files = sources(SRC).map((f) => relative(PKG, f))
+  const files = [...sources(SRC), ...sources(CORE_SRC)].map((f) => relative(PKG, f))
   const common = ['--keyword=_', '--keyword=ngettext:1,2', '--from-code=UTF-8', '--add-comments=TRANSLATORS:']
   const version = (JSON.parse(readFileSync(join(PKG, 'package.json'), 'utf8')) as { version: string }).version
   const header = ['--package-name=gnomeola', `--package-version=${version}`]

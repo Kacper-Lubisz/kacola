@@ -1,8 +1,8 @@
+import { escapeMarkup } from '@gnomeola/ui-core/format'
+import { _, fmt } from '@gnomeola/ui-core/i18n'
 import * as Gtk from '@gtkx/gi/gtk'
 import { AdwHeaderBar, AdwSpinner, AdwStatusPage, AdwToolbarView } from '@gtkx/jsx/adw'
 import { GtkBox, GtkButton, GtkLabel } from '@gtkx/jsx/gtk'
-import { escapeMarkup } from '../data/format.ts'
-import { _, fmt } from '../i18n/index.ts'
 
 // Whole-window states shown instead of the split view.
 

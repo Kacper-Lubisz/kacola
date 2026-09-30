@@ -296,6 +296,9 @@ importers:
       '@gnomeola/protocol':
         specifier: workspace:*
         version: link:../protocol
+      '@gnomeola/ui-core':
+        specifier: workspace:*
+        version: link:../ui-core
       '@gtkx/cairo':
         specifier: 1.6.0
         version: 1.6.0
@@ -327,6 +330,19 @@ importers:
       vite:
         specifier: 8.3.1
         version: 8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+
+  packages/ui-core:
+    dependencies:
+      '@gnomeola/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+    devDependencies:
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
 
   packages/vercel:
     dependencies:

@@ -1,5 +1,5 @@
 import type { Session, SessionStatus } from '@gnomeola/protocol'
-import { _, fmt } from '../i18n/index.ts'
+import { _, fmt } from './i18n.ts'
 
 // Pure display formatting. No GTK here, so it is unit-tested under plain vitest. Words go through
 // `_()` (translated once the app installs gettext); weekday and month names are still English —

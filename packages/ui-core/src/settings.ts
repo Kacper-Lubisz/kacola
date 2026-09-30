@@ -1,5 +1,5 @@
 import type { AudioDevice, ModelInfo, Settings, StoredSettings } from '@gnomeola/protocol'
-import { _, fmt } from '../i18n/index.ts'
+import { _, fmt } from './i18n.ts'
 
 // The Preferences dialog's model: option lists for the combo rows, and index ↔ value mapping. Pure.
 // Lists are functions so their labels are translated when used, not when this module loads.

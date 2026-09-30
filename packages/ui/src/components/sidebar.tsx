@@ -1,4 +1,8 @@
 import type { ModelInfo, Session } from '@gnomeola/protocol'
+import { displayTitle, sessionSubtitle } from '@gnomeola/ui-core/format'
+import { useConnection, useNow, useSessions } from '@gnomeola/ui-core/hooks'
+import { _, ngettext } from '@gnomeola/ui-core/i18n'
+import { filterSessions } from '@gnomeola/ui-core/sessions'
 import * as Gtk from '@gtkx/gi/gtk'
 import {
   AdwActionRow,
@@ -21,10 +25,6 @@ import {
   GtkSeparator,
 } from '@gtkx/jsx/gtk'
 import { useEffect, useRef, useState } from 'react'
-import { displayTitle, sessionSubtitle } from '../data/format.ts'
-import { useConnection, useNow, useSessions } from '../data/hooks.ts'
-import { filterSessions } from '../data/sessions.ts'
-import { _, ngettext } from '../i18n/index.ts'
 import { useDialogs } from './dialogs.tsx'
 import { RecordButton } from './record-button.tsx'
 

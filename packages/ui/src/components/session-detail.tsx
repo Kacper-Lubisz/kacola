@@ -1,4 +1,21 @@
 import type { Citation, Session, TrackKind } from '@gnomeola/protocol'
+import {
+  displayTitle,
+  elapsedMs,
+  formatClockTime,
+  formatDuration,
+  statusLabel,
+  statusSummary,
+} from '@gnomeola/ui-core/format'
+import {
+  useEvents,
+  useNotesFeed,
+  useNow,
+  useQaFeed,
+  useSpeakersFeed,
+  useTranscriptFeed,
+} from '@gnomeola/ui-core/hooks'
+import { _, fmt } from '@gnomeola/ui-core/i18n'
 import * as Adw from '@gtkx/gi/adw'
 import * as Gtk from '@gtkx/gi/gtk'
 import {
@@ -14,23 +31,6 @@ import {
 } from '@gtkx/jsx/adw'
 import { GtkBox, GtkButton, GtkLabel, GtkLevelBar, GtkListBox, GtkScrolledWindow } from '@gtkx/jsx/gtk'
 import { type ReactNode, useState } from 'react'
-import {
-  displayTitle,
-  elapsedMs,
-  formatClockTime,
-  formatDuration,
-  statusLabel,
-  statusSummary,
-} from '../data/format.ts'
-import {
-  useEvents,
-  useNotesFeed,
-  useNow,
-  useQaFeed,
-  useSpeakersFeed,
-  useTranscriptFeed,
-} from '../data/hooks.ts'
-import { _, fmt } from '../i18n/index.ts'
 import { AskPane } from './ask-pane.tsx'
 import { useDialogs } from './dialogs.tsx'
 import { NotesPane } from './notes-pane.tsx'

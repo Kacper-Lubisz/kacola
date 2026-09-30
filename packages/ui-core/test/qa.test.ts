@@ -9,7 +9,7 @@ import {
   QaFeed,
   splitCitations,
   viewTurn,
-} from '../src/data/qa.ts'
+} from '../src/qa.ts'
 
 const SES = 'ses_1'
 const cite = (segmentId: string): Citation => ({

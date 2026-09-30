@@ -1,4 +1,9 @@
 import { formatOffset } from '@gnomeola/protocol'
+import { Follow } from '@gnomeola/ui-core/follow'
+import { escapeMarkup } from '@gnomeola/ui-core/format'
+import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { type SpeakersState, speakerClass } from '@gnomeola/ui-core/speakers'
+import { type TranscriptFeedState, type TranscriptRow, transcriptRows } from '@gnomeola/ui-core/transcript'
 import * as Gtk from '@gtkx/gi/gtk'
 import { AdwButtonContent, AdwClampScrollable, AdwSpinner, AdwStatusPage } from '@gtkx/jsx/adw'
 import {
@@ -22,12 +27,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { Follow } from '../data/follow.ts'
-import { escapeMarkup } from '../data/format.ts'
 import { perf } from '../data/perf.ts'
-import { type SpeakersState, speakerClass } from '../data/speakers.ts'
-import { type TranscriptFeedState, type TranscriptRow, transcriptRows } from '../data/transcript.ts'
-import { _, fmt } from '../i18n/index.ts'
 import { VirtualList } from './virtual-list.tsx'
 
 // T-6: the transcript. A GtkListView (./virtual-list.tsx), so only the rows on screen

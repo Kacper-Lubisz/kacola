@@ -11,7 +11,7 @@ import {
   setChoice,
   sideText,
   startReview,
-} from '../src/data/notes.ts'
+} from '../src/notes.ts'
 
 // The notes feed against a scripted daemon: autosave with optimistic concurrency, nothing typed is ever
 // dropped, enhancement streaming, and the review helpers the diff view is built on.

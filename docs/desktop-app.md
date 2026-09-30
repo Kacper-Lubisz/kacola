@@ -20,6 +20,11 @@ paint. Memory is summed over the app's whole process tree from `/proc/<pid>/smap
   ICU are mapped into all of them). PSS divides shared pages among their sharers, so it is the fair
   "sum of all processes" figure; USS is what quitting the app would free.
 
-**Gate: the brief's threshold is "idle RSS > 350 MB → stop". Summed RSS is 852 MB (the GTK app alone
-is 361 MB RSS); summed PSS is 348 MB. Stopped at E-1 for the lead's decision on which figure the gate
-means.**
+**Gate: idle PSS ≤ 350 MB (decided 2026-09-30). Passed: 345–348 MB on the headless Shell** — about
++150 MB PSS / +23 MB USS over the GTK app, with faster first pixels (745 ms vs 1010 ms). Summed RSS is
+not the gate: it double-counts Chromium's shared mappings (the GTK app alone is 361 MB RSS).
+
+Reproduce: `node packages/testkit/src/desktop/e1-spike/measure.ts` (`RUNS=n`, `ONLY=1` for Electron only,
+`EXTRA="--flags"`). The real app is tracked by the non-blocking perf e2e
+(`packages/testkit/src/desktop/perf.e2e.test.ts`), which records PSS / USS / first pixels and warns above
+350 MB PSS.

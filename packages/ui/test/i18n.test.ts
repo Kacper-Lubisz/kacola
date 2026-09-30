@@ -8,6 +8,8 @@ import { describe, expect, it } from 'vitest'
 
 const PKG = join(import.meta.dirname, '..')
 const SRC = join(PKG, 'src')
+/** The shared data layer's strings (format, settings…) ship in this app's catalogue too. */
+const CORE_SRC = join(PKG, '..', 'ui-core', 'src')
 
 function files(dir: string, acc: string[] = []): string[] {
   for (const e of readdirSync(dir)) {
@@ -25,7 +27,7 @@ const unquote = (q: string, body: string) =>
 function sourceMessages(): { messages: Set<string>; nonLiteral: string[] } {
   const messages = new Set<string>()
   const nonLiteral: string[] = []
-  for (const f of files(SRC)) {
+  for (const f of [...files(SRC), ...files(CORE_SRC)]) {
     if (f.includes(`${join('src', 'i18n')}`)) continue
     const text = readFileSync(f, 'utf8')
     for (const m of text.matchAll(/(?<![\w.$])_\(\s*(['"])((?:\\.|(?!\1)[^\\])*)\1\s*[,)]/g)) {

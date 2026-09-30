@@ -1,9 +1,9 @@
+import { useSessions, useStore } from '@gnomeola/ui-core/hooks'
+import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { activeSession } from '@gnomeola/ui-core/sessions'
 import { AdwButtonContent } from '@gtkx/jsx/adw'
 import { GtkButton } from '@gtkx/jsx/gtk'
 import { useState } from 'react'
-import { useSessions, useStore } from '../data/hooks.ts'
-import { activeSession } from '../data/sessions.ts'
-import { _, fmt } from '../i18n/index.ts'
 import { useToast } from './toasts.tsx'
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e))

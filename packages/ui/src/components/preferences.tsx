@@ -1,4 +1,16 @@
 import type { AudioDevice, Settings, SettingsPatch } from '@gnomeola/protocol'
+import { escapeMarkup } from '@gnomeola/ui-core/format'
+import { useSettings, useStore } from '@gnomeola/ui-core/hooks'
+import { _, fmt } from '@gnomeola/ui-core/i18n'
+import {
+  type Choice,
+  deviceChoices,
+  finalPasses,
+  indexOf,
+  providers,
+  retentions,
+  valueAt,
+} from '@gnomeola/ui-core/settings'
 import type * as Adw from '@gtkx/gi/adw'
 import * as Gtk from '@gtkx/gi/gtk'
 import {
@@ -15,18 +27,6 @@ import {
 } from '@gtkx/jsx/adw'
 import { GtkButton, GtkSpinButton, GtkStringList } from '@gtkx/jsx/gtk'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { escapeMarkup } from '../data/format.ts'
-import { useSettings, useStore } from '../data/hooks.ts'
-import {
-  type Choice,
-  deviceChoices,
-  finalPasses,
-  indexOf,
-  providers,
-  retentions,
-  valueAt,
-} from '../data/settings.ts'
-import { _, fmt } from '../i18n/index.ts'
 import { nameGroupList } from './a11y.ts'
 import { useToast } from './toasts.tsx'
 

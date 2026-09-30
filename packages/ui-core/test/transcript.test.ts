@@ -8,7 +8,7 @@ import {
   TranscriptFeed,
   transcriptRows,
   upsertSegment,
-} from '../src/data/transcript.ts'
+} from '../src/transcript.ts'
 
 const SES = 'ses_1'
 let n = 0

@@ -7,7 +7,7 @@ import {
   emptySessions,
   filterSessions,
   fromSnapshot,
-} from '../src/data/sessions.ts'
+} from '../src/sessions.ts'
 
 const mk = (id: string, createdAt: string, over: Partial<Session> = {}): Session =>
   Session.parse({

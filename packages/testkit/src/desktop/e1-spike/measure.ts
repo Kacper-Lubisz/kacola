@@ -2,10 +2,10 @@
 // inside the headless GNOME Shell (Wayland).
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { startDaemon } from '../../../testkit/src/daemon/index.ts'
-import { type AppHandle, type HeadlessDisplay, startHeadlessDisplay } from '../../../testkit/src/ui/index.ts'
+import { startDaemon } from '../../daemon/index.ts'
+import { type AppHandle, type HeadlessDisplay, startHeadlessDisplay } from '../../ui/index.ts'
 
-const ROOT = join(import.meta.dirname, '../../../..')
+const ROOT = join(import.meta.dirname, '../../../../..')
 const ELECTRON = join(ROOT, 'packages/desktop/node_modules/electron/dist/electron')
 const OUT = process.env.OUT ?? join(import.meta.dirname, '__artifacts__')
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))

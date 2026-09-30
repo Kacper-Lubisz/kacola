@@ -1,4 +1,7 @@
 import type { CalendarStatus, Health, ModelInfo } from '@gnomeola/protocol'
+import { useEvents, useSettings, useStore } from '@gnomeola/ui-core/hooks'
+import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { formatBytes, missingModels, requiredModels, roleLabel } from '@gnomeola/ui-core/settings'
 import * as Gtk from '@gtkx/gi/gtk'
 import { AdwActionRow, AdwClamp, AdwDialog, AdwHeaderBar, AdwSpinner, AdwToolbarView } from '@gtkx/jsx/adw'
 import {
@@ -11,9 +14,6 @@ import {
   GtkScrolledWindow,
 } from '@gtkx/jsx/gtk'
 import { useEffect, useRef, useState } from 'react'
-import { useEvents, useSettings, useStore } from '../data/hooks.ts'
-import { formatBytes, missingModels, requiredModels, roleLabel } from '../data/settings.ts'
-import { _, fmt } from '../i18n/index.ts'
 import { NamedButton } from './named-button.tsx'
 
 // S-1 (UI side): first run. Lists the models the configured pipeline needs, with sizes, downloads

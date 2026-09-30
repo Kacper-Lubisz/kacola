@@ -9,7 +9,7 @@ import {
   sessionSubtitle,
   statusLabel,
   statusSummary,
-} from '../src/data/format.ts'
+} from '../src/format.ts'
 
 // Local-time constructors on purpose: the calendar words are local-time concepts.
 const at = (y: number, mo: number, d: number, h = 12, mi = 0, s = 0) => new Date(y, mo - 1, d, h, mi, s)
