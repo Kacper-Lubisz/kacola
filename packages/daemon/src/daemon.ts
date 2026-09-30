@@ -20,6 +20,7 @@ import type { AuthConfig } from '@gnomeola/server/auth'
 import { Store } from '@gnomeola/store'
 import type { z } from 'zod'
 import pkg from '../package.json' with { type: 'json' }
+import { agendaDraftHandlers } from './agendas/draft.ts'
 import { agendaHandlers } from './agendas/handlers.ts'
 import { AgendaService } from './agendas/service.ts'
 import { resolveScope, runAsk } from './ask.ts'
@@ -363,6 +364,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     ...externalCaptureHandlers(o.externalCapture ?? null),
     // ---- agendas, deep links, the invite block (the live channel's handlers are a later wave's)
     ...agendaHandlers(agendas),
+    ...agendaDraftHandlers({ store, agendas: agendas.agendas, settings, logger }),
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))

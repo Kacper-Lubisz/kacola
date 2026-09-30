@@ -7,6 +7,7 @@ import {
   createClient,
   defaultChoices,
   diffNoteBlocks,
+  draftEvents,
   type EnhanceStreamEvent,
   enhanceEvents,
   GnomeolaApiError,
@@ -382,12 +383,34 @@ describe('contract: every route, real server, typed client', () => {
         expect(r).toMatchObject({ written: true, appLink: `kacola://agenda/${ag.id}`, webLink: null })
         return r
       },
+      draftAgenda: async () => {
+        // proposals only. The LLM is switched off for this call (a key was set above, and a contract test
+        // must not reach a real provider), so the stream opens and reports it
+        const before = (await c.call('getAgenda', { params: { id: ag.id } })).agenda.version
+        const { provider, model } = (await c.call('getSettings')).llm
+        await c.call('updateSettings', { body: { llm: { provider: 'none' } } })
+        const events = []
+        for await (const e of draftEvents(c.stream('draftAgenda', { params: { id: ag.id }, body: {} })))
+          events.push(e)
+        expect(events.map((e) => e.type)).toEqual(['started', 'error'])
+        expect(events[1]).toMatchObject({ error: { code: 'unavailable' } })
+        expect((await c.call('getAgenda', { params: { id: ag.id } })).agenda.version).toBe(before)
+        await c.call('updateSettings', { body: { llm: { provider, model } } })
+        return events
+      },
       deleteAgenda: () => c.call('deleteAgenda', { params: { id: ag.id } }),
       // the live channel: contract only until the agent-channel wave
       createAgentLease: () => notHere(c.call('createAgentLease', { params, body: { name: 'claude' } })),
-      heartbeatAgentLease: () => notHere(c.call('heartbeatAgentLease', { params: { leaseId: 'lse_x' } })),
+      heartbeatAgentLease: () =>
+        notHere(c.call('heartbeatAgentLease', { params: { leaseId: 'lse_x' }, body: {} })),
       releaseAgentLease: () => notHere(c.call('releaseAgentLease', { params: { leaseId: 'lse_x' } })),
       liveAttach: () => notHere(c.stream('liveAttach', { params }).next()),
+      listAgentLeases: () => notHere(c.call('listAgentLeases', { params })),
+      updateAgentLease: () =>
+        notHere(c.call('updateAgentLease', { params: { leaseId: 'lse_x' }, body: { mode: 'act' } })),
+      listLiveSessions: () => notHere(c.call('listLiveSessions')),
+      getAgentAccess: () => notHere(c.call('getAgentAccess', { params })),
+      setAgentAccess: () => notHere(c.call('setAgentAccess', { params, body: { allowAgents: true } })),
     }
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {
       await expect(call(), name).resolves.toBeDefined()

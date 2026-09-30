@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { DraftAgendaBody } from './agenda-draft.ts'
 import { agendaRoutes } from './agendas.ts'
 import { CalendarStatus, JoinMeetingBody, ListMeetingsQuery, MeetingList, NextMeeting } from './calendar.ts'
 import { externalCaptureRoutes } from './capture.ts'
@@ -289,6 +290,8 @@ export const routes = {
   ...externalCaptureRoutes,
   // ---- kacola phases 1–2: agendas, deep links, the invite block, the live channel (./agendas.ts)
   ...agendaRoutes,
+  // ---- kacola wave 2: agenda drafting ("Plan with Claude"; AgendaDraftEvent messages, ./agenda-draft.ts)
+  draftAgenda: { method: 'POST', path: '/agendas/:id/draft', body: DraftAgendaBody, response: 'sse' },
 } as const satisfies Record<string, RouteDef>
 
 export type Routes = typeof routes

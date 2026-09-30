@@ -119,6 +119,25 @@ blocks carry only the `kacola://` link.
 `by` is taken from the body today (loopback trust, like every other route); binding `agent:<name>` to a
 lease token is the agent-channel wave's job.
 
+### Drafting (Plan with Claude)
+
+| route | |
+| --- | --- |
+| `POST /agendas/:id/draft` `draftAgenda` | `{goals?, instructions?, maxItems? (1–30, default 12), includePrivate?}` → SSE of `AgendaDraftEvent`: `started {basedOn}`, `item {text, kind, owner, timeboxMin}`*, then `done {items, model, usage}` or `error` |
+
+The daemon (`packages/daemon/src/agendas/draft.ts`) asks the configured LLM provider (Anthropic, OpenAI or
+Ollama, the same settings and key as Q&A; effort `low`) for items, and streams each line that parses as
+`- [kind] text (10m, @owner)` (unknown kind → `topic`; other lines skipped; capped at `maxItems`; repeats
+of items already on the agenda dropped). The model sees the meeting, the goals (default: the agenda's), the
+items already there, the context cards (private ones may inform it but must not be copied — the system
+prompt says so), the user's instructions, and past meetings with the same people: the previous occurrences
+of the same calendar event (newest first, up to 3) with their items, statuses and outcomes, and the head of
+their recording's notes (≤1 500 chars). The system prompt is byte-identical to the agenda-drafting eval's
+(`DRAFT_SYSTEM_PROMPT`). **The route never writes**: no durable events; the window adds the items the user
+accepts with `addAgendaItems`. A private agenda is 404 without `includePrivate`; no provider (or no key) is an
+`error` event `unavailable` after `started`; closing the stream aborts the request. The hosted server
+answers 501. Decode with `draftEvents(client.stream('draftAgenda', …))`.
+
 ## Deep links and the invitation block (`agendas-links.ts`)
 
 - `kacola://agenda/<id>`, `kacola://meeting/<uid>?start=<iso>` (one occurrence), `kacola://meeting/<uid>`
@@ -187,6 +206,8 @@ meeting" workflow; the copilot section states live attach is not available yet.
 | an independent reading of the log (`checkAgendaLog` in `@gnomeola/testkit/invariants`): change continuity, forward-only for everyone but the user, override flags, manual wins, versions step by one — on every random history and the daemon's own log (and it flags forged logs) | `packages/store/test/agendas.test.ts`, `packages/daemon/test/agendas.int.test.ts` |
 | the same log gives the same snapshot on SQLite and Postgres, both ways | `packages/store/test/contract/agendas-dialect.int.test.ts` |
 | every route schema-valid through the typed client | `packages/daemon/test/contract.test.ts` |
+| drafting: the line parser (kinds, suffixes, junk, repeats, cap, any split) and the prompt bytes | `packages/daemon/test/agenda-draft.test.ts` |
+| drafting against a real daemon with fake Anthropic and OpenAI servers: the previous occurrence's outcome and notes in the request, the eval's system prompt, items parsed, nothing written, `unavailable` without a provider, private → 404 | `packages/e2e/test/agenda-draft.int.test.ts` |
 | attach on record, roll over + recap on stop, deep links, private recordings, invite block written / refused | `packages/daemon/test/agendas.int.test.ts` |
 | cal-agent write path on a real isolated EDS (prefix preserved, idempotent, series master, not-organiser, read-only) | `packages/daemon/test/cal-agent-write.e2e.test.ts`, `eds-provider-write.test.ts` |
 | the real daemon writes the block through EDS | `packages/e2e/test/agenda-invite-eds.e2e.test.ts` |

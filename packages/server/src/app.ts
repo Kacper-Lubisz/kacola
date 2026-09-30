@@ -326,6 +326,7 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     listLiveSessions: 'unsupported',
     getAgentAccess: 'unsupported',
     setAgentAccess: 'unsupported',
+    draftAgenda: 'unsupported',
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))

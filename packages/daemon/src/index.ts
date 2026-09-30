@@ -1,5 +1,6 @@
 // @gnomeola/daemon — gnomeolad. The entry point is ./main.ts; this module is for composing a daemon in
 // process (tests, or an alternative entry point) and for implementing the injectable interfaces.
+export { DRAFT_SYSTEM_PROMPT } from './agendas/draft.ts'
 export { MAX_CROSS_SESSION } from './ask.ts'
 export { type BusListener, EventBus } from './bus.ts'
 // ---- M4: calendar, D-Bus, auto-record
