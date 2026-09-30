@@ -105,14 +105,6 @@ function SpeakerRow({
 }) {
   const { api, queryClient } = useServices()
   const [editing, setEditing] = useState(false)
-  // an edit that ends (saved or cancelled) gives the keyboard back to this row's Rename button
-  const row = useRef<HTMLLIElement | null>(null)
-  const wasEditing = useRef(false)
-  useEffect(() => {
-    if (wasEditing.current && !editing)
-      requestAnimationFrame(() => row.current?.querySelector<HTMLButtonElement>('button')?.focus())
-    wasEditing.current = editing
-  }, [editing])
   const merge = useMutation(mergeSpeakerMutation(api, queryClient))
   const talk = s.segments
     ? fmt(ngettext('{n} line · {time}', '{n} lines · {time}', s.segments), {
@@ -123,7 +115,6 @@ function SpeakerRow({
   const role = s.id === ME ? _('You (microphone)') : s.id === THEM ? _('Far end, not yet told apart') : null
   return (
     <li
-      ref={row}
       aria-label={speakerName(s.label)}
       className="flex min-h-14 items-center gap-3 border-b border-border-subtle py-2 last:border-b-0"
     >

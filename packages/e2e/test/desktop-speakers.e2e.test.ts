@@ -61,12 +61,30 @@ describe('desktop speakers against the real daemon', () => {
     await w().getByRole('button', { name: 'Speakers', exact: true }).click()
     await dialog().getByRole('list', { name: 'Speakers' }).waitFor({ timeout: 5000 })
   }
+  /** Escape closes the dialog (a first Escape may only dismiss a tooltip on the focused button). */
+  const closeDialog = () =>
+    poll(
+      async () => {
+        if ((await dialog().count()) === 0) return true
+        await w().keyboard.press('Escape')
+        await new Promise((r) => setTimeout(r, 150))
+        return (await dialog().count()) === 0
+      },
+      5000,
+      'the dialog closed',
+    )
   const micIsMe = async () => {
     const segs = await segments()
     assertNoViolations(checkAttribution(segs))
     for (const s of segs.filter((x) => x.track === 'mic'))
       expect([s.speaker, s.speakerId]).toEqual(['me', undefined])
-    for (const n of await rowNames(w())) if (/^Me at /.test(n)) expect(n).not.toMatch(/Speaker|Ana/)
+    // every microphone line is labelled Me in the window (by speaker, not by text: the fake's words
+    // include "Ana")
+    const names = await rowNames(w())
+    for (const s of segs.filter((x) => x.track === 'mic')) {
+      const row = names.find((n) => n.endsWith(`: ${s.text}`) && n.includes(' at '))
+      if (row) expect(row.startsWith('Me at '), row).toBe(true)
+    }
   }
 
   beforeAll(async () => {
@@ -175,8 +193,7 @@ describe('desktop speakers against the real daemon', () => {
     expect(await app.axe()).toEqual([])
     await expectScreenshot(app, 'speakers-dialog-dark', { region: dialog() })
     await setScheme(w(), 'light')
-    await w().keyboard.press('Escape')
-    await poll(async () => (await dialog().count()) === 0, 5000, 'the dialog closed')
+    await closeDialog()
     await poll(async () => (await rowNames(w())).some((n) => n.startsWith('Ana at ')), 5000, 'Ana lines')
     expect((await rowNames(w())).some((n) => n.startsWith('Speaker 1 at '))).toBe(false)
     for (const c of await chips('Ana')) expect(c.description).toBe(`colour ${before.colour! + 1}`)
@@ -225,8 +242,7 @@ describe('desktop speakers against the real daemon', () => {
       5000,
       'the row to go',
     )
-    await w().keyboard.press('Escape')
-    await poll(async () => (await dialog().count()) === 0, 5000, 'the dialog closed')
+    await closeDialog()
     await poll(
       async () => !(await rowNames(w())).some((n) => n.startsWith('Speaker 3 at ')),
       5000,
