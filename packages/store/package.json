@@ -2,23 +2,30 @@
   "name": "@gnomeola/store",
   "version": "0.1.0",
   "private": true,
-  "description": "Persistence: kysely schema, migrations, SQLite (+FTS5) dialect.",
+  "description": "Persistence: kysely schema, migrations, SQLite (+FTS5) and Postgres dialects, BlobStore.",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./core": "./src/core.ts",
+    "./pg": "./src/pg/index.ts",
+    "./blob": "./src/blob/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@gnomeola/protocol": "workspace:*",
+    "@vercel/blob": "^2.8.0",
     "better-sqlite3": "^13.0.3",
     "kysely": "^0.29.6",
+    "pg": "^8.23.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@gnomeola/testkit": "workspace:*",
-    "@types/better-sqlite3": "^9.6.0"
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/pg": "^8.23.1"
   }
 }

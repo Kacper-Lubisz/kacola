@@ -9,6 +9,7 @@ import {
   diffNoteBlocks,
   type EnhanceStreamEvent,
   enhanceEvents,
+  GnomeolaApiError,
   type GnomeolaClient,
   type RouteName,
   routes,
@@ -32,6 +33,19 @@ import { at, occ } from './calendar-helpers.ts'
 // @ts-expect-error — `health` alone is not a complete handler table
 const _incomplete: Handlers = { health: () => ({}) as never }
 void _incomplete
+
+/** A route this daemon deliberately does not serve: a typed ApiError with 501, not a crash or a 404. */
+const notHere = (p: Promise<unknown>) =>
+  p.then(
+    () => {
+      throw new Error('expected 501')
+    },
+    (e: GnomeolaApiError) => {
+      expect(e).toBeInstanceOf(GnomeolaApiError)
+      expect([e.status, e.code]).toEqual([501, 'unavailable'])
+      return e
+    },
+  )
 
 describe('contract: every route, real server, typed client', () => {
   let dir: string
@@ -229,6 +243,25 @@ describe('contract: every route, real server, typed client', () => {
         return true
       },
       deleteSession: () => c.call('deleteSession', { params: { id: priv.id } }),
+
+      // ---- M8: a local daemon is a sync source, not a target; pairing needs auth configured (this
+      // daemon has none — see auth.int.test.ts for the paired daemon). All answer a typed 501.
+      syncPush: () => notHere(c.call('syncPush', { body: { items: [] } })),
+      syncCursor: () => notHere(c.call('syncCursor', { query: {} })),
+      pairStart: () => notHere(c.call('pairStart', { body: { name: 'x' } })),
+      pairApprove: () => notHere(c.call('pairApprove', { body: { userCode: 'BCDF-GHJK' } })),
+      pairToken: () => notHere(c.call('pairToken', { body: { deviceCode: 'x' } })),
+      pairRevoke: () => notHere(c.call('pairRevoke', { body: { deviceId: 'dev_x' } })),
+      putAudioChunk: () =>
+        notHere(
+          c.call('putAudioChunk', {
+            params: { id: s.id, chunkSeq: '0' },
+            body: { track: 'mic', sampleRate: 16000, format: 's16le', data: '', sha256: '0'.repeat(64) },
+          }),
+        ),
+      getAudioStatus: () => notHere(c.call('getAudioStatus', { params })),
+      finalizeAudio: () =>
+        notHere(c.call('finalizeAudio', { params, body: { chunks: { mic: 0, system: 0 }, durationMs: 0 } })),
     }
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {
       await expect(call(), name).resolves.toBeDefined()

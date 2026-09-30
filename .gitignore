@@ -8,6 +8,8 @@ coverage/
 .cache/
 # test artefacts
 test-results/
+# Vercel build output (packages/vercel/scripts/build.ts) and `vercel link` state
+.vercel/
 **/__artifacts__/
 # models are downloaded, never committed
 /models/

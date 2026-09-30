@@ -1,0 +1,27 @@
+{
+  "name": "@gnomeola/vercel",
+  "version": "0.1.0",
+  "private": true,
+  "description": "H-5: the hosted server + web viewer as a Vercel deployment (Build Output API v3, deployed with `vercel deploy --prebuilt`).",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "node scripts/build.ts"
+  },
+  "dependencies": {
+    "@gnomeola/protocol": "workspace:*",
+    "@gnomeola/server": "workspace:*",
+    "@gnomeola/store": "workspace:*",
+    "@gnomeola/stt": "workspace:*"
+  },
+  "devDependencies": {
+    "@gnomeola/testkit": "workspace:*",
+    "@gnomeola/web": "workspace:*",
+    "@types/pg": "^8.23.1",
+    "better-sqlite3": "^13.0.3",
+    "esbuild": "^0.28.2",
+    "pg": "^8.23.0",
+    "playwright-core": "^1.63.0"
+  }
+}

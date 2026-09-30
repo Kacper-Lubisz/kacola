@@ -10,7 +10,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
-export const CLIENT_PACKAGES = ['ui', 'cli'] as const
+export const CLIENT_PACKAGES = ['ui', 'cli', 'web'] as const
 export const ALLOWED_INTERNAL = new Set(['@gnomeola/protocol'])
 
 export type Violation = { pkg: string; where: string; specifier: string }
@@ -68,13 +68,75 @@ export function checkBoundaries(root: string): Violation[] {
   return violations
 }
 
+// M8 — layer rules for the relocatable halves. Their production code (src/ and declared dependencies;
+// tests may use anything) may reach only the workspace entry points listed here:
+//   capture-agent  the local half: protocol + capture. Never the store or the daemon — it talks to any
+//                  backend over the protocol, which is what makes the backend relocatable.
+//   server         the hosted half: protocol, the store (its driver-free core, pg, blob; the SQLite
+//                  entry only for self-hosting) and the native-free cloud STT. Never capture, local STT
+//                  (sherpa), the daemon, the LLM package, or a client.
+//   vercel         the deployment: the server, the store's pg/blob/core entries, cloud STT, protocol (and
+//                  the SQLite entry, reached only for a `sqlite:` DATABASE_URL in the local harness).
+export const LAYER_RULES: Record<string, readonly string[]> = {
+  'capture-agent': ['@gnomeola/protocol', '@gnomeola/capture'],
+  server: [
+    '@gnomeola/protocol',
+    '@gnomeola/store',
+    '@gnomeola/store/core',
+    '@gnomeola/store/pg',
+    '@gnomeola/store/blob',
+    '@gnomeola/stt/cloud',
+  ],
+  vercel: [
+    '@gnomeola/protocol',
+    '@gnomeola/server',
+    '@gnomeola/store',
+    '@gnomeola/store/core',
+    '@gnomeola/store/pg',
+    '@gnomeola/store/blob',
+    '@gnomeola/stt/cloud',
+  ],
+}
+
+/** A manifest may name a package whose sub-entry is allowed (`@gnomeola/stt` for `@gnomeola/stt/cloud`). */
+const packageOf = (spec: string) => spec.split('/').slice(0, 2).join('/')
+
+export function checkLayers(root: string, rules = LAYER_RULES): Violation[] {
+  const out: Violation[] = []
+  for (const [pkg, allowed] of Object.entries(rules)) {
+    const dir = join(root, 'packages', pkg)
+    const manifest = join(dir, 'package.json')
+    if (!existsSync(manifest)) continue
+    const json = JSON.parse(readFileSync(manifest, 'utf8')) as { dependencies?: Record<string, string> }
+    const allowedPkgs = new Set(allowed.map(packageOf))
+    for (const dep of Object.keys(json.dependencies ?? {}))
+      if (dep.startsWith('@gnomeola/') && !allowedPkgs.has(dep))
+        out.push({ pkg, where: 'package.json#dependencies', specifier: dep })
+    for (const file of walk(join(dir, 'src'))) {
+      for (const spec of importsIn(readFileSync(file, 'utf8'))) {
+        const internal = spec.startsWith('@gnomeola/')
+        const escapes = /(^|\/)\.\.\/(\.\.\/)+[a-z-]+\/src\//.test(spec)
+        if ((internal && !allowed.includes(spec)) || escapes)
+          out.push({ pkg, where: relative(root, file), specifier: spec })
+      }
+    }
+  }
+  return out
+}
+
 if (import.meta.main) {
   const root = join(import.meta.dirname, '..')
   const v = checkBoundaries(root)
+  const l = checkLayers(root)
   if (v.length) {
     console.error('✗ boundary violations — clients may only import @gnomeola/protocol:')
     for (const x of v) console.error(`  ${x.pkg}: ${x.where} imports ${x.specifier}`)
-    process.exit(1)
   }
+  if (l.length) {
+    console.error('✗ layer violations (see LAYER_RULES in scripts/check-boundaries.ts):')
+    for (const x of l) console.error(`  ${x.pkg}: ${x.where} imports ${x.specifier}`)
+  }
+  if (v.length || l.length) process.exit(1)
   console.log(`✓ boundaries clean (${CLIENT_PACKAGES.join(', ')} depend only on @gnomeola/protocol)`)
+  console.log(`✓ layers clean (${Object.keys(LAYER_RULES).join(', ')})`)
 }

@@ -1,6 +1,7 @@
 export * from './calendar.ts'
 export * from './client.ts'
 export * from './events.ts'
+export * from './hosted.ts'
 export * from './ids.ts'
 export * from './notes.ts'
 export * from './routes.ts'

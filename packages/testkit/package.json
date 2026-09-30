@@ -14,6 +14,8 @@
     "./cassettes": "./src/cassettes/index.ts",
     "./daemon": "./src/daemon/index.ts",
     "./ui": "./src/ui/index.ts",
+    "./postgres": "./src/postgres/index.ts",
+    "./cloud-stt": "./src/cloud-stt/index.ts",
     "./shell": "./src/shell/index.ts",
     "./dbus": "./src/dbus/index.ts",
     "./eds": "./src/eds/index.ts"

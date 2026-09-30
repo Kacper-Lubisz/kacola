@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { checkBoundaries, importsIn, isForbidden } from './check-boundaries.ts'
+import { checkBoundaries, checkLayers, importsIn, isForbidden } from './check-boundaries.ts'
 
 function fixtureRepo(files: Record<string, string>): string {
   const root = mkdtempSync(join(tmpdir(), 'gnomeola-boundaries-'))
@@ -57,5 +57,31 @@ describe('boundary rule', () => {
       'packages/cli/src/main.ts': `import { routes } from '@gnomeola/protocol'`,
     })
     expect(checkBoundaries(root)).toEqual([])
+  })
+})
+
+describe('layer rules (M8)', () => {
+  it('keeps the capture-agent on protocol + capture, and the server off local-only packages', () => {
+    const root = fixtureRepo({
+      'packages/capture-agent/package.json': JSON.stringify({
+        dependencies: { '@gnomeola/protocol': 'workspace:*', '@gnomeola/store': 'workspace:*' },
+        devDependencies: { '@gnomeola/server': 'workspace:*' },
+      }),
+      'packages/capture-agent/src/a.ts': `import { x } from '@gnomeola/capture'\nimport { d } from '@gnomeola/daemon'`,
+      'packages/capture-agent/test/a.test.ts': `import { s } from '@gnomeola/server'`,
+      'packages/server/package.json': JSON.stringify({ dependencies: { '@gnomeola/stt': 'workspace:*' } }),
+      'packages/server/src/ok.ts': `import { c } from '@gnomeola/stt/cloud'\nimport { p } from '@gnomeola/store/pg'`,
+      'packages/server/src/bad.ts': `import { s } from '@gnomeola/stt'\nimport { r } from '../../capture/src/index.ts'`,
+    })
+    expect(checkLayers(root).map((v) => `${v.pkg} ${v.where} ${v.specifier}`)).toEqual([
+      'capture-agent package.json#dependencies @gnomeola/store',
+      'capture-agent packages/capture-agent/src/a.ts @gnomeola/daemon',
+      'server packages/server/src/bad.ts @gnomeola/stt',
+      'server packages/server/src/bad.ts ../../capture/src/index.ts',
+    ])
+  })
+
+  it('the real repository is clean', () => {
+    expect(checkLayers(join(import.meta.dirname, '..'))).toEqual([])
   })
 })

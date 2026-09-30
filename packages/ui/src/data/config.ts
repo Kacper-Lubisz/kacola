@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { DEFAULT_BASE_URL } from '@gnomeola/protocol'
 import { uiStatePath } from './ui-state.ts'
 
@@ -13,9 +16,25 @@ type Common = {
 
 export type UiConfig =
   | ({ mode: 'demo'; intervalMs: number; maxSessions: number } & Common)
-  | ({ mode: 'daemon'; baseUrl: string; timeoutMs: number } & Common)
+  | ({ mode: 'daemon'; baseUrl: string; timeoutMs: number; token?: string } & Common)
 
 const TRUE = new Set(['1', 'true', 'yes', 'on'])
+
+/**
+ * M8: a remote gnomeola needs a device token — GNOMEOLA_TOKEN, else the one `gnomeola pair` saved for
+ * this URL in ${XDG_CONFIG_HOME:-~/.config}/gnomeola/hosts.json. A loopback daemon needs none.
+ */
+function tokenFor(env: Record<string, string | undefined>, baseUrl: string): string | undefined {
+  if (env.GNOMEOLA_TOKEN) return env.GNOMEOLA_TOKEN
+  const file = join(env.XDG_CONFIG_HOME || join(env.HOME || homedir(), '.config'), 'gnomeola', 'hosts.json')
+  if (!existsSync(file)) return undefined
+  try {
+    const hosts = JSON.parse(readFileSync(file, 'utf8')) as Record<string, { token?: string }>
+    return hosts[baseUrl.replace(/\/+$/, '')]?.token
+  } catch {
+    return undefined
+  }
+}
 
 function positiveInt(raw: string | undefined, fallback: number, name: string): number {
   if (raw === undefined || raw === '') return fallback
@@ -54,10 +73,12 @@ export function readConfig(env: Record<string, string | undefined>): UiConfig {
   } catch {
     throw new Error(`GNOMEOLA_URL is not a URL: ${JSON.stringify(baseUrl)}`)
   }
+  const token = tokenFor(env, baseUrl)
   return {
     ...common,
     mode: 'daemon',
     baseUrl,
     timeoutMs: positiveInt(env.GNOMEOLA_UI_TIMEOUT_MS, 5000, 'GNOMEOLA_UI_TIMEOUT_MS'),
+    ...(token ? { token } : {}),
   }
 }

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>gnomeola</title>
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="#/">gnomeola</a>
+      <search><form id="search">
+        <input name="q" type="search" placeholder="Search every meeting" aria-label="Search" />
+      </form></search>
+      <span id="status" class="meta" aria-live="polite"></span>
+      <button id="signout" type="button" hidden>Sign out</button>
+    </header>
+    <main id="app" aria-live="polite"><noscript>The gnomeola viewer needs JavaScript.</noscript></main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

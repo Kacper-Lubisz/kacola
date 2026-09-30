@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "@gnomeola/capture": "workspace:*",
+    "@gnomeola/capture-agent": "workspace:*",
     "@gnomeola/llm": "workspace:*",
     "@gnomeola/protocol": "workspace:*",
+    "@gnomeola/server": "workspace:*",
     "@gnomeola/store": "workspace:*",
     "@gnomeola/stt": "workspace:*",
     "zod": "^4.6.5"

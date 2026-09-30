@@ -29,6 +29,8 @@ export class DaemonError extends Error {
 export function toDaemonError(err: unknown): DaemonError {
   if (err instanceof DaemonError) return err
   if (err instanceof StoreError) return new DaemonError(err.code, err.message)
+  // errors from shared layers (the hosted server's pairing auth) that already carry a wire code
+  if (isCoded(err)) return new DaemonError(err.code, err.message, err.status)
   if (err instanceof ZodError) {
     const detail = err.issues
       .slice(0, 5)
@@ -37,6 +39,18 @@ export function toDaemonError(err: unknown): DaemonError {
     return new DaemonError('bad_request', `invalid request: ${detail}`)
   }
   return new DaemonError('internal', 'internal error')
+}
+
+function isCoded(err: unknown): err is { code: ApiErrorCode; status: number; message: string } {
+  const e = err as { code?: unknown; status?: unknown } | null
+  return (
+    err instanceof Error &&
+    typeof e?.code === 'string' &&
+    e.code in STATUS &&
+    typeof e.status === 'number' &&
+    e.status >= 400 &&
+    e.status < 600
+  )
 }
 
 export const apiErrorBody = (e: DaemonError): ApiError => ({ error: { code: e.code, message: e.message } })

@@ -37,9 +37,23 @@ export type MainConfig = {
   micActivity: { kind: 'pipewire'; target?: string } | { kind: 'off' }
   micIdleStopMs: number
   gjs: string
+  /**
+   * H-6: accept remote devices (pairing auth on). The HMAC secret comes from GNOMEOLA_AUTH_SECRET, else
+   * from `<dataDir>/auth-secret` (created on first use, mode 0600). Required for a non-loopback --host.
+   */
+  remote: boolean
+  authSecret: string | null
+  adminToken: string | null
+  /** H-7: push durable events to this hosted server (hybrid sync), with GNOMEOLA_SYNC_TOKEN. */
+  syncUrl: string | null
+  syncToken: string | null
 }
 
-const USAGE = `usage: gnomeolad [--port N] [--host 127.0.0.1|::1|localhost] [--data-dir DIR] [--fake]
+const USAGE = `usage: gnomeolad [--port N] [--host HOST] [--remote] [--data-dir DIR] [--fake]
+
+  --host HOST   default 127.0.0.1. Anything but loopback requires --remote (pairing auth).
+  --remote      accept paired remote devices: loopback stays anonymous, everything else needs a
+                token from \`gnomeola pair\`
 
 environment:
   GNOMEOLA_DATA_DIR        data directory (default \${XDG_DATA_HOME:-~/.local/share}/gnomeola)
@@ -56,6 +70,10 @@ environment:
   GNOMEOLA_MIC_ACTIVITY    pipewire[:SOURCE] | off (default pipewire; off with --fake)
   GNOMEOLA_MIC_IDLE_STOP_MS stop a mic-triggered recording after this long idle (default 30000)
   GNOMEOLA_GJS             gjs binary for cal-agent and the D-Bus bridge (default gjs)
+  GNOMEOLA_AUTH_SECRET     HMAC key for device tokens (implies --remote; else <data-dir>/auth-secret)
+  GNOMEOLA_ADMIN_TOKEN     optional owner token that can approve pairings remotely
+  GNOMEOLA_SYNC_URL        hybrid sync: push transcripts and notes to this hosted server
+  GNOMEOLA_SYNC_TOKEN      the device token for GNOMEOLA_SYNC_URL (from \`gnomeola pair\`)
 `
 
 export class UsageError extends Error {
@@ -80,6 +98,7 @@ export function parseConfig(argv: string[], env: NodeJS.ProcessEnv = process.env
         host: { type: 'string' },
         'data-dir': { type: 'string' },
         fake: { type: 'boolean' },
+        remote: { type: 'boolean' },
         'heartbeat-ms': { type: 'string' },
         help: { type: 'boolean', short: 'h' },
       },
@@ -139,5 +158,10 @@ export function parseConfig(argv: string[], env: NodeJS.ProcessEnv = process.env
     micActivity,
     micIdleStopMs: int(env.GNOMEOLA_MIC_IDLE_STOP_MS, 'GNOMEOLA_MIC_IDLE_STOP_MS', 30_000, 0),
     gjs: env.GNOMEOLA_GJS || 'gjs',
+    remote: values.remote === true || Boolean(env.GNOMEOLA_AUTH_SECRET),
+    authSecret: env.GNOMEOLA_AUTH_SECRET || null,
+    adminToken: env.GNOMEOLA_ADMIN_TOKEN || null,
+    syncUrl: env.GNOMEOLA_SYNC_URL || null,
+    syncToken: env.GNOMEOLA_SYNC_TOKEN || null,
   }
 }

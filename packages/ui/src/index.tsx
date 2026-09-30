@@ -27,7 +27,7 @@ if (process.env.GNOMEOLA_UI_GALLERY === '1') {
   const source =
     config.mode === 'demo'
       ? createDemoSource({ intervalMs: config.intervalMs, maxSessions: config.maxSessions })
-      : createDaemonSource({ baseUrl: config.baseUrl, timeoutMs: config.timeoutMs })
+      : createDaemonSource({ baseUrl: config.baseUrl, timeoutMs: config.timeoutMs, token: config.token })
   const store = new SessionStore(source)
   store.start()
   createRoot().render(

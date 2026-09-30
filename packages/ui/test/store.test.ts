@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import {
   type AnyEvent,
   DaemonUnreachableError,
@@ -356,6 +359,20 @@ describe('daemon source (protocol client over a fake fetch)', () => {
     expect(urls[1]).toBe('http://daemon.test:1/sessions?includePrivate=true&limit=500')
   })
 
+  it('sends the device token to a remote host on every call and stream (M8)', async () => {
+    const auth: (string | null)[] = []
+    const fetchFn = (async (_url: string, init?: RequestInit) => {
+      auth.push(new Headers(init?.headers).get('authorization'))
+      return new Response(JSON.stringify({ sessions: [] }), {
+        headers: { 'content-type': 'application/json' },
+      })
+    }) as unknown as typeof fetch
+    const src = createDaemonSource({ baseUrl: 'https://me.example', token: 'gnm1.p.s', fetch: fetchFn })
+    await src.transcript('ses_x', new AbortController().signal).catch(() => {})
+    await src.listDevices(new AbortController().signal).catch(() => {})
+    expect(auth).toEqual(['Bearer gnm1.p.s', 'Bearer gnm1.p.s'])
+  })
+
   it('surfaces a refused connection as DaemonUnreachableError', async () => {
     const fetchFn = (async () => {
       throw new TypeError('fetch failed', { cause: new Error('connect ECONNREFUSED 127.0.0.1:1') })
@@ -419,6 +436,24 @@ describe('readConfig', () => {
       intervalMs: 250,
     })
     expect(readConfig({ GNOMEOLA_UI_DEMO: '0' }).mode).toBe('daemon')
+  })
+  it('uses a device token for a remote host: GNOMEOLA_TOKEN, else the one `gnomeola pair` saved', () => {
+    expect(readConfig({ HOME: '/nonexistent', GNOMEOLA_TOKEN: 'gnm1.a.b' })).toMatchObject({
+      token: 'gnm1.a.b',
+    })
+    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-ui-hosts-'))
+    mkdirSync(join(dir, 'gnomeola'))
+    writeFileSync(
+      join(dir, 'gnomeola', 'hosts.json'),
+      JSON.stringify({ 'https://me.example': { token: 'gnm1.saved.x' } }),
+    )
+    expect(readConfig({ XDG_CONFIG_HOME: dir, GNOMEOLA_URL: 'https://me.example/' })).toMatchObject({
+      token: 'gnm1.saved.x',
+    })
+    expect(readConfig({ XDG_CONFIG_HOME: dir, GNOMEOLA_URL: 'https://other.example' })).not.toHaveProperty(
+      'token',
+    )
+    rmSync(dir, { recursive: true, force: true })
   })
   it('rejects bad values loudly', () => {
     expect(() => readConfig({ GNOMEOLA_URL: 'not a url' })).toThrow(/GNOMEOLA_URL/)

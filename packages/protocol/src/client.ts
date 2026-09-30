@@ -54,6 +54,8 @@ export type ClientOptions = {
   headers?: Record<string, string>
   /** Per-request timeout for JSON calls. Streams are never timed out. */
   timeoutMs?: number
+  /** Bearer token from pairing. Loopback daemons need none; every remote host does. */
+  token?: string
 }
 
 export function toQueryString(query: Record<string, unknown> | undefined): string {
@@ -90,6 +92,7 @@ export function createClient(opts: ClientOptions = {}) {
       buildPath(def.path, (o.params ?? {}) as Record<string, string>) +
       toQueryString(o.query as unknown as Record<string, unknown> | undefined)
     const headers: Record<string, string> = { ...opts.headers }
+    if (opts.token) headers.authorization = `Bearer ${opts.token}`
     if (stream) headers.accept = 'text/event-stream'
     let body: string | undefined
     if (o.body !== undefined) {
@@ -166,7 +169,13 @@ export function createClient(opts: ClientOptions = {}) {
             connected = true
             s.onConnect?.()
           }
-          if (!msg.data) continue
+          if (!msg.data) {
+            // A data-less `id:` line announces where a "new events only" stream started (M8). Adopting it
+            // gives this subscription a cursor, so a reconnect — constant on a hosted server, whose
+            // function cap ends every stream — resumes exactly instead of skipping what happened between.
+            if (cursor === undefined && msg.id !== undefined && /^\d+$/.test(msg.id)) cursor = Number(msg.id)
+            continue
+          }
           const ev = AnyEvent.parse(JSON.parse(msg.data))
           if (isDurable(ev)) {
             if (cursor !== undefined && ev.seq <= cursor) continue
@@ -186,9 +195,8 @@ export function createClient(opts: ClientOptions = {}) {
       }
       if (s.signal?.aborted) return
       await new Promise((r) => setTimeout(r, delay))
-      // First connection with no cursor: after a reconnect we must replay from where we got to, and if we
-      // never saw a durable event we resume from 0 is wrong (it would replay history the caller didn't
-      // ask for). Leave cursor undefined in that case: only-new is the correct semantic.
+      // No cursor yet (asked for new events only, and the server never announced where it started — an
+      // older server): only-new is then the best available semantic; replaying from 0 would be wrong.
     }
   }
 

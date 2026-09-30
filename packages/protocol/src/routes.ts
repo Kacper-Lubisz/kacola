@@ -1,5 +1,22 @@
 import { z } from 'zod'
 import { CalendarStatus, JoinMeetingBody, ListMeetingsQuery, MeetingList, NextMeeting } from './calendar.ts'
+import {
+  AudioChunkBody,
+  AudioChunkResult,
+  AudioStatus,
+  FinalizeAudioBody,
+  PairApprove,
+  PairApproveBody,
+  PairRevoke,
+  PairRevokeBody,
+  PairStart,
+  PairStartBody,
+  PairToken,
+  PairTokenBody,
+  SyncCursor,
+  SyncPushBody,
+  SyncPushResult,
+} from './hosted.ts'
 import { notesRoutes } from './notes.ts'
 import {
   ApiError,
@@ -233,6 +250,32 @@ export const routes = {
     method: 'DELETE',
     path: '/voiceprints/:id',
     response: z.object({ deleted: z.literal(true) }),
+  },
+
+  // ---- M8: hosted — hybrid sync, pairing, chunked audio upload (schemas in ./hosted.ts)
+  syncPush: { method: 'POST', path: '/sync/push', body: SyncPushBody, response: SyncPushResult },
+  syncCursor: {
+    method: 'GET',
+    path: '/sync/cursor',
+    query: z.object({ deviceId: z.string().min(1).max(100).optional() }),
+    response: SyncCursor,
+  },
+  pairStart: { method: 'POST', path: '/pair/start', body: PairStartBody, response: PairStart },
+  pairApprove: { method: 'POST', path: '/pair/approve', body: PairApproveBody, response: PairApprove },
+  pairToken: { method: 'POST', path: '/pair/token', body: PairTokenBody, response: PairToken },
+  pairRevoke: { method: 'POST', path: '/pair/revoke', body: PairRevokeBody, response: PairRevoke },
+  putAudioChunk: {
+    method: 'PUT',
+    path: '/sessions/:id/audio/chunks/:chunkSeq',
+    body: AudioChunkBody,
+    response: AudioChunkResult,
+  },
+  getAudioStatus: { method: 'GET', path: '/sessions/:id/audio', response: AudioStatus },
+  finalizeAudio: {
+    method: 'POST',
+    path: '/sessions/:id/audio/finalize',
+    body: FinalizeAudioBody,
+    response: Session,
   },
 } as const satisfies Record<string, RouteDef>
 
