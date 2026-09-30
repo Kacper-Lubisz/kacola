@@ -339,10 +339,11 @@ export function StatusMenu({
 }
 
 const STATUS_CLASS: Record<string, string> = {
-  neutral: 'text-text-secondary',
-  info: 'text-status-info-text',
-  success: 'text-status-success-text',
-  warning: 'text-status-warning-text',
+  // `!`: over the icon button's own text colour
+  neutral: 'text-text-secondary!',
+  info: 'text-status-info-text!',
+  success: 'text-status-success-text!',
+  warning: 'text-status-warning-text!',
 }
 
 /** An item's status history: who moved it where, when, and why. */

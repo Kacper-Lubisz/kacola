@@ -1,6 +1,6 @@
 import type { AgentAction, AgentPresenceState, LeaseInfo, Session } from '@gnomeola/protocol'
 import { formatClockTime } from '@gnomeola/ui-core/format'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
 import { useQuery } from '@tanstack/react-query'
 import { useStore } from 'zustand'
 import { useServices } from '../../data/services.tsx'
@@ -78,7 +78,7 @@ function LeaseDetails({ session, lease }: { session: Session; lease: LeaseInfo }
     <section aria-label={agentTitle(lease.name)} className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <Icon name="agent" size={18} className="text-text-secondary" />
-        <h3 className="m-0 flex-1 type-headline text-text-primary">{agentTitle(lease.name)}</h3>
+        <h2 className="m-0 flex-1 type-headline text-text-primary">{agentTitle(lease.name)}</h2>
         <Chip tone={lease.state === 'reading' ? 'info' : 'neutral'}>{presenceLabel(lease.state)}</Chip>
       </div>
       <SegmentedControl
@@ -89,11 +89,17 @@ function LeaseDetails({ session, lease }: { session: Session; lease: LeaseInfo }
       />
       <p className="m-0 type-caption text-text-secondary">{modeDescription(lease.mode)}</p>
       <p className="m-0 type-caption text-text-secondary">
-        {fmt(_('{changes} checked off · {suggestions} suggestions · {cards} context cards'), {
-          changes: lease.counts.statusChanges,
-          suggestions: lease.counts.suggestions,
-          cards: lease.counts.context,
-        })}
+        {[
+          fmt(ngettext('{n} checked off', '{n} checked off', lease.counts.statusChanges), {
+            n: lease.counts.statusChanges,
+          }),
+          fmt(ngettext('{n} suggestion', '{n} suggestions', lease.counts.suggestions), {
+            n: lease.counts.suggestions,
+          }),
+          fmt(ngettext('{n} context card', '{n} context cards', lease.counts.context), {
+            n: lease.counts.context,
+          }),
+        ].join(' · ')}
       </p>
       <ActionList actions={lease.actions} max={20} />
       <div>

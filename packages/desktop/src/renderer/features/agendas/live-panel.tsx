@@ -137,7 +137,7 @@ function NextPointCard({ view, now }: { view: AgendaView; now: number }) {
     <Card as="section" aria-label={_('Next talking point')} className="flex flex-col gap-2 p-3">
       <div className="flex items-center gap-2">
         <Icon name="suggestion" size={18} className="text-accent-record-text" />
-        <h3 className="m-0 flex-1 type-overline text-text-secondary">{_('Next talking point')}</h3>
+        <h2 className="m-0 flex-1 type-overline text-text-secondary">{_('Next talking point')}</h2>
         {source ? (
           <Chip icon={source.startsWith('agent:') ? 'agent' : 'enhance'} tone="info">
             {fmt(_('from {who}'), { who: whoLabel(source) })}
@@ -185,7 +185,7 @@ function NotCoveredCard({ view, now }: { view: AgendaView; now: number }) {
     >
       <div className="flex items-center gap-2">
         <Icon name="clock" size={18} className="text-status-warning-text" />
-        <h3 className="m-0 flex-1 type-headline text-text-primary">{_('Not covered yet')}</h3>
+        <h2 className="m-0 flex-1 type-headline text-text-primary">{_('Not covered yet')}</h2>
         <span className="font-mono text-[13px] text-text-secondary tabular-nums">
           {mins > 0 ? fmt(ngettext('{n} min left', '{n} min left', mins), { n: mins }) : _('time’s up')}
         </span>
@@ -292,9 +292,9 @@ function InterviewView({ view }: { view: AgendaView }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <section aria-labelledby="told" className="flex flex-col gap-2">
-        <h3 id="told" className="m-0 type-overline text-text-secondary">
+        <h2 id="told" className="m-0 type-overline text-text-secondary">
           {fmt(_('Told ({n})'), { n: told.length })}
-        </h3>
+        </h2>
         {told.length === 0 ? (
           <p className="m-0 type-callout text-text-secondary">{_('Nothing yet.')}</p>
         ) : (
@@ -318,9 +318,9 @@ function InterviewView({ view }: { view: AgendaView }) {
         )}
       </section>
       <section aria-labelledby="not-told" className="flex flex-col gap-2">
-        <h3 id="not-told" className="m-0 type-overline text-text-secondary">
+        <h2 id="not-told" className="m-0 type-overline text-text-secondary">
           {fmt(_('Not told yet ({n})'), { n: notYet.length })}
-        </h3>
+        </h2>
         {notYet.length === 0 ? (
           <p className="m-0 type-callout text-text-secondary">
             {_('Everything asked for has been answered.')}
@@ -391,9 +391,9 @@ export function LivePanel({ view, session }: { view: AgendaView; session: Sessio
       {live ? <NextPointCard view={view} now={now} /> : null}
       {suggestions.length && live ? (
         <section aria-labelledby="suggestions" className="flex flex-col gap-2">
-          <h3 id="suggestions" className="m-0 type-overline text-text-secondary">
+          <h2 id="suggestions" className="m-0 type-overline text-text-secondary">
             {_('Suggestions')}
-          </h3>
+          </h2>
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
             {(compact ? suggestions.slice(0, 1) : suggestions).map((s) => (
               <SuggestionCard key={s.id} view={view} s={s} />
@@ -406,9 +406,9 @@ export function LivePanel({ view, session }: { view: AgendaView; session: Sessio
       ) : (
         <section aria-labelledby="live-items" className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <h3 id="live-items" className="m-0 flex-1 type-overline text-text-secondary">
+            <h2 id="live-items" className="m-0 flex-1 type-overline text-text-secondary">
               {compact && !showAll ? _('Now') : _('Items')}
-            </h3>
+            </h2>
             {compact ? (
               <Button size="sm" variant="link" onPress={() => setShowAll(!showAll)}>
                 {showAll ? _('Show less') : fmt(_('Show all {n}'), { n: items.length })}

@@ -40,11 +40,15 @@ export function ContextCardView({
   agendaId,
   card,
   compact = false,
+  headingLevel = 2,
 }: {
   agendaId: string
   card: ContextCard
   compact?: boolean
+  /** The card title's heading level (2 in the Context tab, 3 under the live panel's Context). */
+  headingLevel?: 2 | 3
 }) {
+  const H = headingLevel === 2 ? 'h2' : 'h3'
   const update = useAgendaMutation(updateContextMutation, _('Could not change the card'))
   const remove = useAgendaMutation(deleteContextMutation, _('Could not remove the card'))
   const shared = card.visibility === 'shared'
@@ -52,7 +56,7 @@ export function ContextCardView({
     <Card as="article" aria-label={card.title} className="flex flex-col gap-2 p-3">
       <div className="flex items-start gap-2">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <h3 className="m-0 type-headline break-words text-text-primary">{card.title}</h3>
+          <H className="m-0 type-headline break-words text-text-primary">{card.title}</H>
           <div className="flex flex-wrap gap-1">
             <Chip icon={shared ? 'speakers' : 'lock'} tone={shared ? 'info' : 'neutral'}>
               {shared ? _('Shared') : _('Private')}

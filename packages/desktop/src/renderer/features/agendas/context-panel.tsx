@@ -85,13 +85,13 @@ export function AgendaContextPanel({ view }: { view: AgendaView }) {
   const hits = (search.data?.hits ?? []).filter((h) => h.sessionId !== view.agenda.sessionId).slice(0, 5)
   return (
     <section aria-labelledby="live-context" className="flex flex-col gap-2">
-      <h3 id="live-context" className="m-0 type-overline text-text-secondary">
+      <h2 id="live-context" className="m-0 type-overline text-text-secondary">
         {_('Context')}
-      </h3>
+      </h2>
       {cards.length ? (
         <div className="flex flex-col gap-2">
           {cards.map((c) => (
-            <ContextCardView key={c.id} agendaId={view.agenda.id} card={c} compact />
+            <ContextCardView key={c.id} agendaId={view.agenda.id} card={c} compact headingLevel={3} />
           ))}
         </div>
       ) : (

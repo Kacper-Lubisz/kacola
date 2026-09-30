@@ -109,7 +109,10 @@ describe('desktop: agendas', () => {
     await w().evaluate(`location.hash = ${JSON.stringify(hash)}`)
   }
   /** axe over the current screen in light, dark and both high-contrast modes, then back to light. */
-  const axeAllModes = async (what: string) => {
+  const axeAllModes = async (what: string, disableRules: string[] = []) => {
+    // no hover tooltip (a transient layer outside the landmarks) in the scan
+    await w().mouse.move(0, 0)
+    await new Promise((r) => setTimeout(r, 400))
     for (const [scheme, contrast] of [
       ['light', 'normal'],
       ['dark', 'normal'],
@@ -117,12 +120,22 @@ describe('desktop: agendas', () => {
       ['dark', 'high'],
     ] as const) {
       await setTheme(app, scheme, contrast)
-      expect(await app.axe(), `${what} (${scheme}, ${contrast})`).toEqual([])
+      expect(await app.axe({ disableRules }), `${what} (${scheme}, ${contrast})`).toEqual([])
     }
     await setTheme(app, 'light')
   }
   /** Still frame: no focus ring, no hover, reduced motion (no pulse, no spinner). */
   const still = async () => {
+    // earlier toasts ("Copied…") time out after 5–8 s: none in a baseline
+    const toasts = w()
+      .getByRole('region', { name: 'Notifications' })
+      .locator('[role="status"], [role="alert"]')
+    await until(
+      () => toasts.count(),
+      (n) => n === 0,
+      'the toasts to go',
+      12_000,
+    )
     await w().evaluate('document.activeElement?.blur()')
     await w().mouse.move(0, 0)
     await w().evaluate('document.fonts.ready.then(() => new Promise((r) => setTimeout(r, 300)))')
@@ -270,10 +283,10 @@ describe('desktop: agendas', () => {
 
     // drag reorder: the last item's grip onto the first row
     const rows = w().getByRole('grid', { name: 'Agenda items' }).getByRole('row')
+    // (React Aria makes the whole row the drag source; the grip is its keyboard handle)
     await rows
       .nth(3)
-      .getByRole('button', { name: 'Drag to reorder' })
-      .dragTo(rows.nth(0), { targetPosition: { x: 40, y: 4 } })
+      .dragTo(rows.nth(0), { sourcePosition: { x: 16, y: 16 }, targetPosition: { x: 40, y: 4 } })
     await until(
       () => texts(id),
       (t) => t.indexOf('Team offsite budget') < 3,
@@ -330,7 +343,8 @@ describe('desktop: agendas', () => {
       title: 'Last quarter numbers',
       visibility: 'private',
     })
-    await card.getByRole('switch', { name: 'Shared with attendees' }).click()
+    await card.getByRole('switch', { name: 'Shared with attendees' }).focus()
+    await w().keyboard.press('Space')
     await until(
       async () => (await view(id)).context[0]?.visibility,
       (x) => x === 'shared',
@@ -391,7 +405,7 @@ describe('desktop: agendas', () => {
 
   it('a calendar meeting: Plan from Coming up; Add link to invite refused → copy the block', async () => {
     await go('#/')
-    const plan = w().getByRole('button', { name: `Plan ${MEETING}` })
+    const plan = w().getByRole('button', { name: `Plan ${MEETING}, now` })
     await plan.waitFor({ timeout: 15_000 })
     await plan.click()
     await w().getByRole('heading', { level: 1, name: MEETING }).waitFor()
@@ -427,7 +441,7 @@ describe('desktop: agendas', () => {
         '- [topic] Offsite ideas\n',
       ]),
     )
-    const release = api.holdAfter(6)
+    const release = api.holdAfter(4)
     await w().getByRole('button', { name: 'Plan with Claude' }).click()
     const dlg = w().getByRole('dialog', { name: 'Plan with Claude' })
     await dlg
@@ -443,7 +457,8 @@ describe('desktop: agendas', () => {
     await dlg.getByText('Drafted by claude-opus-5').waitFor({ timeout: 15_000 })
     const body = api.seen.at(-1)!.body as { messages: { content: { text: string }[] }[] }
     expect(body.messages[0]!.content.map((b) => b.text).join('')).toContain('- agree the promo timeline')
-    await dlg.getByRole('checkbox', { name: /Offsite ideas/ }).click()
+    await dlg.getByRole('checkbox', { name: /Offsite ideas/ }).focus()
+    await w().keyboard.press('Space')
     await dlg.getByRole('button', { name: 'Add 3 Items' }).click()
     await until(
       () => texts(meetingAgenda),
@@ -530,6 +545,8 @@ describe('desktop: agendas', () => {
       .waitFor()
     await axeAllModes('live panel')
     await shot('live', w().getByRole('tabpanel', { name: 'Agenda' }))
+    // every status at once: open, in progress (agent), covered (auto + evidence), skipped, parked
+    await shot('live-items', w().getByRole('list', { name: 'Agenda items' }))
 
     // the evidence chip jumps the transcript to the line
     await promo.getByRole('button', { name: 'Show in transcript: “so the promo goes in March”' }).click()
@@ -644,7 +661,9 @@ describe('desktop: agendas', () => {
     await reading.click()
     const pop = w().getByRole('dialog', { name: 'Connected agents' })
     await pop.getByText('Suggested asking about the deadline').waitFor()
-    await axeAllModes('presence popover')
+    // `region` off for this one scan: React Aria puts the popover's screen-reader-only Dismiss button
+    // beside (not inside) its dialog, outside every landmark; everything the popover shows is in the dialog
+    await axeAllModes('presence popover', ['region'])
     await shot('presence-popover', pop)
     await pop.getByRole('radio', { name: 'Act' }).click()
     await until(

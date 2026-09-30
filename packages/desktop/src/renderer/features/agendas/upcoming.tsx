@@ -82,7 +82,10 @@ export function ComingUp() {
                 icon="agenda"
                 isDisabled={busy === m.id}
                 onPress={() => void open(m)}
-                aria-label={fmt(a ? _('Agenda for {title}') : _('Plan {title}'), { title: m.title })}
+                aria-label={fmt(a ? _('Agenda for {title}, {when}') : _('Plan {title}, {when}'), {
+                  title: m.title,
+                  when: live ? _('now') : formatClockTime(m.start),
+                })}
               >
                 {a ? _('Agenda') : _('Plan')}
               </Button>
