@@ -21,6 +21,11 @@ export type StartDaemonOptions = {
   startTimeoutMs?: number
   /** Override the entry point (default: the daemon's main.ts in this repo). */
   entry?: string
+  /**
+   * The runtime that runs `entry` (default: this Node). The packaging tests pass Electron's binary with
+   * ELECTRON_RUN_AS_NODE=1 in `env` to run the bundled daemon exactly as the desktop app does.
+   */
+  execPath?: string
 }
 
 export type DaemonHandle = {
@@ -80,7 +85,7 @@ export async function startDaemon(opts: StartDaemonOptions = {}): Promise<Daemon
     }
     for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k]
     const c = spawn(
-      process.execPath,
+      opts.execPath ?? process.execPath,
       [
         opts.entry ?? DEFAULT_ENTRY,
         '--port',
