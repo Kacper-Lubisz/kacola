@@ -12,19 +12,22 @@ import { spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { ExternalCaptureHub } from '@gnomeola/capture'
 import { SyncAgent } from '@gnomeola/capture-agent/sync'
 import { createClient } from '@gnomeola/protocol'
 import { ModelManager } from '@gnomeola/stt'
+import { IcsCalendarProvider } from './calendar/ics.ts'
 import { EdsCalendarProvider, FileCalendarProvider, NoCalendar } from './calendar/providers.ts'
 import { parseConfig, UsageError } from './config.ts'
 import { createDaemon, type DaemonOptions } from './daemon.ts'
 import { LlmNotesEngine } from './engines/enhance.ts'
 import { LlmQaEngine } from './engines/llm.ts'
-import { PipeWireDevices, RecordingPipeline, SttModels } from './engines/recording.ts'
+import { ExternalDevices, PipeWireDevices, RecordingPipeline, SttModels } from './engines/recording.ts'
 import { FakeNotesEngine } from './fakes/notes.ts'
 import { FakePipeline } from './fakes/pipeline.ts'
 import { FakeDevices, FakeModels, FakeQaEngine } from './fakes/providers.ts'
 import type { Keyring } from './interfaces.ts'
+import { KeychainKeyring, keychainAvailable } from './keychain.ts'
 import { MemoryKeyring, NoKeyring, SecretToolKeyring } from './keyring.ts'
 import { Logger } from './logger.ts'
 import { PwDumpMicActivity } from './mic-activity.ts'
@@ -42,6 +45,13 @@ function loadOrCreateSecret(dataDir: string): string {
 function keyringFor(kind: string, service: string): Keyring {
   if (kind === 'memory') return new MemoryKeyring()
   if (kind === 'none') return new NoKeyring()
+  // macOS: the login keychain through /usr/bin/security (GNOMEOLA_SECURITY_BIN: tests' fake)
+  if (kind === 'keychain') {
+    const bin = process.env.GNOMEOLA_SECURITY_BIN
+    return keychainAvailable(bin)
+      ? new KeychainKeyring({ service, ...(bin ? { bin } : {}) })
+      : new NoKeyring()
+  }
   const probe = spawnSync('secret-tool', ['--version'], { stdio: 'ignore' })
   return probe.error ? new NoKeyring() : new SecretToolKeyring({ service })
 }
@@ -81,7 +91,9 @@ async function main(): Promise<void> {
       ? new EdsCalendarProvider({ logger: opts.logger, gjs: cfg.gjs })
       : cfg.calendar.kind === 'file'
         ? new FileCalendarProvider(cfg.calendar.path)
-        : new NoCalendar()
+        : cfg.calendar.kind === 'ics'
+          ? new IcsCalendarProvider({ source: cfg.calendar.source, me: cfg.calendar.me, logger: opts.logger })
+          : new NoCalendar()
   opts.dbus = cfg.dbus ? { gjs: cfg.gjs } : null
   if (cfg.micActivity.kind === 'pipewire')
     opts.micActivity = new PwDumpMicActivity({ onlyTarget: cfg.micActivity.target })
@@ -90,6 +102,18 @@ async function main(): Promise<void> {
     opts.pipeline = new FakePipeline(cfg.fakePipeline)
     opts.devices = new FakeDevices()
     opts.models = new FakeModels()
+  } else if (cfg.capture === 'external') {
+    // P-3 (macOS): the app captures and streams each track to the ingest route
+    const hub = new ExternalCaptureHub()
+    const models = new ModelManager()
+    opts.externalCapture = hub
+    opts.pipeline = new RecordingPipeline({
+      models,
+      backend: 'external',
+      captureFactory: (o) => hub.create(o.sessionId),
+    })
+    opts.devices = new ExternalDevices()
+    opts.models = new SttModels(models)
   } else {
     const models = new ModelManager()
     opts.pipeline = new RecordingPipeline({ models })

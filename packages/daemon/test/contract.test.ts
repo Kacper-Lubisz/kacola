@@ -262,6 +262,19 @@ describe('contract: every route, real server, typed client', () => {
       getAudioStatus: () => notHere(c.call('getAudioStatus', { params })),
       finalizeAudio: () =>
         notHere(c.call('finalizeAudio', { params, body: { chunks: { mic: 0, system: 0 }, durationMs: 0 } })),
+
+      // ---- P: external capture (this daemon records with the default pipeline: nothing waits for audio)
+      externalCaptureStatus: async () => {
+        expect(await c.call('externalCaptureStatus')).toEqual({ captures: [] })
+        return true
+      },
+      ingestExternalCapture: async () => {
+        // the typed client sends no PCM frame stream, so the route refuses the content type
+        await expect(
+          c.call('ingestExternalCapture', { params: { sessionId: s.id, track: 'mic' } }),
+        ).rejects.toMatchObject({ status: 415 })
+        return true
+      },
     }
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {
       await expect(call(), name).resolves.toBeDefined()

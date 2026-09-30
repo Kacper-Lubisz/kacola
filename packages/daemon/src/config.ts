@@ -1,17 +1,20 @@
 import { homedir } from 'node:os'
-import { join } from 'node:path'
 import { parseArgs } from 'node:util'
-import { DEFAULT_PORT } from '@gnomeola/protocol'
+import { DEFAULT_PORT, platformPaths } from '@gnomeola/protocol'
 import type { FakePipelineOptions } from './fakes/pipeline.ts'
 
-/** `$GNOMEOLA_DATA_DIR`, else `${XDG_DATA_HOME:-~/.local/share}/gnomeola`. */
-export function defaultDataDir(env: NodeJS.ProcessEnv = process.env): string {
-  if (env.GNOMEOLA_DATA_DIR) return env.GNOMEOLA_DATA_DIR
-  const xdg = env.XDG_DATA_HOME || join(homedir(), '.local', 'share')
-  return join(xdg, 'gnomeola')
+/**
+ * `$GNOMEOLA_DATA_DIR`, else the platform's (see @gnomeola/protocol platformPaths): Linux and Flatpak
+ * `${XDG_DATA_HOME:-~/.local/share}/gnomeola`, macOS `~/Library/Application Support/gnomeola`.
+ */
+export function defaultDataDir(
+  env: NodeJS.ProcessEnv = process.env,
+  platform: string = process.platform,
+): string {
+  return platformPaths({ platform, env, home: homedir() }).dataDir
 }
 
-export type KeyringKind = 'secret-tool' | 'memory' | 'none'
+export type KeyringKind = 'secret-tool' | 'keychain' | 'memory' | 'none'
 
 export type MainConfig = {
   port: number
@@ -29,8 +32,12 @@ export type MainConfig = {
   keyringService: string
   echoLogs: boolean
   // ---- M4
-  /** Where meetings come from: Evolution Data Server, a JSON file, or nowhere. */
-  calendar: { kind: 'eds' } | { kind: 'file'; path: string } | { kind: 'off' }
+  /** Where meetings come from: Evolution Data Server, a JSON file, an iCalendar file/URL, or nowhere. */
+  calendar:
+    | { kind: 'eds' }
+    | { kind: 'file'; path: string }
+    | { kind: 'ics'; source: string; me: string[] }
+    | { kind: 'off' }
   /** Own org.gnome.Gnomeola on the session bus. */
   dbus: boolean
   /** Source for the microphone auto-record rule; `target` restricts it to streams on one source node. */
@@ -47,6 +54,14 @@ export type MainConfig = {
   /** H-7: push durable events to this hosted server (hybrid sync), with GNOMEOLA_SYNC_TOKEN. */
   syncUrl: string | null
   syncToken: string | null
+  // ---- P: platform
+  /** process.platform the config was resolved for. */
+  platform: string
+  /**
+   * 'pipewire': the daemon records with pw-record (Linux, Flatpak). 'external': a client (the macOS app)
+   * streams audio to the ingest route; the daemon never looks for PipeWire, gjs, D-Bus or EDS.
+   */
+  capture: 'pipewire' | 'external'
 }
 
 const USAGE = `usage: gnomeolad [--port N] [--host HOST] [--remote] [--data-dir DIR] [--fake]
@@ -60,14 +75,16 @@ environment:
   GNOMEOLA_FAKES=1         fake capture/STT, devices and models (same as --fake)
   GNOMEOLA_FAKE_PIPELINE   JSON FakePipelineOptions
   GNOMEOLA_FAKE_QA=1       fake question-answering engine
-  GNOMEOLA_KEYRING         secret-tool | memory | none
+  GNOMEOLA_KEYRING         secret-tool | keychain | memory | none (default keychain on macOS)
   GNOMEOLA_KEYRING_SERVICE libsecret service attribute (default gnomeola)
   GNOMEOLA_HEARTBEAT_MS    SSE heartbeat period (default 15000)
   GNOMEOLA_REPLAY_PAGE_SIZE events per replay page on /events (default 500)
   ANTHROPIC_API_KEY        takes precedence over the keyring (Anthropic provider)
   OPENAI_API_KEY           takes precedence over the keyring (OpenAI provider)
   OPENAI_BASE_URL          OpenAI-compatible endpoint (default https://api.openai.com/v1)
-  GNOMEOLA_CALENDAR        eds | off | file:PATH  (default eds; off with --fake)
+  GNOMEOLA_CALENDAR        eds | off | file:PATH | ics:PATH-OR-URL  (default eds; off with --fake / macOS)
+  GNOMEOLA_CALENDAR_ME     your addresses (comma-separated), to read your RSVP from an ICS calendar
+  GNOMEOLA_CAPTURE         pipewire | external     (default pipewire; external on macOS)
   GNOMEOLA_DBUS            session | off           (default session; off with --fake)
   GNOMEOLA_MIC_ACTIVITY    pipewire[:SOURCE] | off (default pipewire; off with --fake)
   GNOMEOLA_MIC_IDLE_STOP_MS stop a mic-triggered recording after this long idle (default 30000)
@@ -90,7 +107,11 @@ const int = (v: string | undefined, name: string, def: number, min = 0): number 
   return n
 }
 
-export function parseConfig(argv: string[], env: NodeJS.ProcessEnv = process.env): MainConfig {
+export function parseConfig(
+  argv: string[],
+  env: NodeJS.ProcessEnv = process.env,
+  platform: string = process.platform,
+): MainConfig {
   let values: Record<string, string | boolean | undefined>
   try {
     values = parseArgs({
@@ -119,29 +140,55 @@ export function parseConfig(argv: string[], env: NodeJS.ProcessEnv = process.env
     }
   }
   const fakes = values.fake === true || env.GNOMEOLA_FAKES === '1'
+  // P: macOS has no PipeWire, gjs, session bus or EDS. Everything that needs them defaults off there and
+  // is refused if asked for; capture comes from the app instead.
+  const mac = platform === 'darwin'
+  const capture = (env.GNOMEOLA_CAPTURE ?? (mac ? 'external' : 'pipewire')) as MainConfig['capture']
+  if (capture !== 'pipewire' && capture !== 'external')
+    throw new UsageError(`GNOMEOLA_CAPTURE must be pipewire or external (got ${capture})`)
+  if (mac && capture === 'pipewire')
+    throw new UsageError('GNOMEOLA_CAPTURE=pipewire is not available on macOS')
+  const linuxOnly = (name: string, value: string, off: string) => {
+    if (mac && value !== off) throw new UsageError(`${name}=${value} is not available on macOS`)
+    return value
+  }
   // M4 integrations touch the desktop session (EDS, the session bus, PipeWire's graph), so the fakes —
   // which every test harness uses — leave them off unless a test asks for one explicitly.
-  const cal = env.GNOMEOLA_CALENDAR ?? (fakes ? 'off' : 'eds')
+  const cal = env.GNOMEOLA_CALENDAR ?? (fakes || mac ? 'off' : 'eds')
   let calendar: MainConfig['calendar']
-  if (cal === 'eds' || cal === 'off') calendar = { kind: cal }
+  if (cal === 'eds' || cal === 'off')
+    calendar = { kind: linuxOnly('GNOMEOLA_CALENDAR', cal, 'off') as 'eds' | 'off' }
   else if (cal.startsWith('file:') && cal.length > 5) calendar = { kind: 'file', path: cal.slice(5) }
-  else throw new UsageError(`GNOMEOLA_CALENDAR must be eds, off or file:PATH (got ${cal})`)
-  const dbusEnv = env.GNOMEOLA_DBUS ?? (fakes ? 'off' : 'session')
+  else if (cal.startsWith('ics:') && cal.length > 4)
+    calendar = {
+      kind: 'ics',
+      source: cal.slice(4),
+      me: (env.GNOMEOLA_CALENDAR_ME ?? '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    }
+  else throw new UsageError(`GNOMEOLA_CALENDAR must be eds, off, file:PATH or ics:PATH-OR-URL (got ${cal})`)
+  const dbusEnv = linuxOnly('GNOMEOLA_DBUS', env.GNOMEOLA_DBUS ?? (fakes || mac ? 'off' : 'session'), 'off')
   if (dbusEnv !== 'session' && dbusEnv !== 'off') throw new UsageError('GNOMEOLA_DBUS must be session or off')
-  const mic = env.GNOMEOLA_MIC_ACTIVITY ?? (fakes ? 'off' : 'pipewire')
+  const mic = linuxOnly(
+    'GNOMEOLA_MIC_ACTIVITY',
+    env.GNOMEOLA_MIC_ACTIVITY ?? (fakes || mac || capture === 'external' ? 'off' : 'pipewire'),
+    'off',
+  )
   let micActivity: MainConfig['micActivity']
   if (mic === 'off') micActivity = { kind: 'off' }
   else if (mic === 'pipewire') micActivity = { kind: 'pipewire' }
   else if (mic.startsWith('pipewire:') && mic.length > 9)
     micActivity = { kind: 'pipewire', target: mic.slice(9) }
   else throw new UsageError('GNOMEOLA_MIC_ACTIVITY must be pipewire, pipewire:SOURCE or off')
-  const keyring = (env.GNOMEOLA_KEYRING ?? 'secret-tool') as KeyringKind
-  if (!['secret-tool', 'memory', 'none'].includes(keyring))
+  const keyring = (env.GNOMEOLA_KEYRING ?? (mac ? 'keychain' : 'secret-tool')) as KeyringKind
+  if (!['secret-tool', 'keychain', 'memory', 'none'].includes(keyring))
     throw new UsageError(`unknown GNOMEOLA_KEYRING ${keyring}`)
   return {
     port: int(values.port as string | undefined, '--port', DEFAULT_PORT),
     host: (values.host as string | undefined) ?? '127.0.0.1',
-    dataDir: (values['data-dir'] as string | undefined) ?? defaultDataDir(env),
+    dataDir: (values['data-dir'] as string | undefined) ?? defaultDataDir(env, platform),
     heartbeatMs: int(
       (values['heartbeat-ms'] as string | undefined) ?? env.GNOMEOLA_HEARTBEAT_MS,
       'heartbeat',
@@ -165,5 +212,7 @@ export function parseConfig(argv: string[], env: NodeJS.ProcessEnv = process.env
     adminToken: env.GNOMEOLA_ADMIN_TOKEN || null,
     syncUrl: env.GNOMEOLA_SYNC_URL || null,
     syncToken: env.GNOMEOLA_SYNC_TOKEN || null,
+    platform,
+    capture,
   }
 }

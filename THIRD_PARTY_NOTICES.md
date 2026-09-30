@@ -97,6 +97,7 @@ tree; do not edit it by hand.
 | hono | 4.13.10 | MIT | https://hono.dev |
 | http-errors | 2.0.1 | MIT | https://github.com/jshttp/http-errors#readme |
 | human-signals | 2.1.0 | Apache-2.0 | https://git.io/JeluP |
+| ical.js | 2.2.1 | MPL-2.0 | https://github.com/kewisch/ical.js#readme |
 | iconv-lite | 0.7.3 | MIT | https://github.com/pillarjs/iconv-lite |
 | inherits | 2.0.4 | ISC | https://github.com/isaacs/inherits#readme |
 | ip-address | 10.7.2 | MIT | https://github.com/beaugunderson/ip-address#readme |

@@ -276,6 +276,9 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     listTemplates: 'unsupported',
     putTemplate: 'unsupported',
     deleteTemplate: 'unsupported',
+    // ---- P: external capture is a local app → local daemon path
+    externalCaptureStatus: 'unsupported',
+    ingestExternalCapture: 'unsupported',
 
     // ---- M8
     syncPush: async ({ body, principal }) =>

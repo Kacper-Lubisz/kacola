@@ -57,6 +57,8 @@ export type GapReason =
   | 'stall' // attached but no audio arrived for too long
   | 'latency' // start/resume/stop latency (or clock drift) larger than the jitter threshold
   | 'injected' // FileCaptureSource fault injection
+  | 'disconnected' // ExternalCaptureSource: the app's stream went away (or never came)
+  | 'client-drop' // ExternalCaptureSource: the app skipped samples (its sample index jumped ahead)
 
 export type GapEvent = { track: TrackKind; atMs: number; durationMs: number; reason: GapReason }
 
@@ -89,7 +91,7 @@ export type CaptureResult = {
 }
 
 export interface CaptureSource {
-  readonly backend: 'pipewire' | 'file'
+  readonly backend: 'pipewire' | 'file' | 'external'
   readonly state: CaptureState
   /** Starts every track and writes `<sessionDir>/<kind>.wav`. Rejects if a track cannot start at all. */
   start(sessionDir: string, tracks: readonly TrackSpec[]): Promise<void>

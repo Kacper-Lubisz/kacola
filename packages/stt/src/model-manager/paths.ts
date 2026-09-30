@@ -1,9 +1,13 @@
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { platformPaths } from '@gnomeola/protocol'
 
-/** `$GNOMEOLA_MODELS_DIR`, else `${XDG_DATA_HOME:-~/.local/share}/gnomeola/models`. */
-export function defaultModelsDir(env: NodeJS.ProcessEnv = process.env): string {
-  if (env.GNOMEOLA_MODELS_DIR) return env.GNOMEOLA_MODELS_DIR
-  const data = env.XDG_DATA_HOME || join(homedir(), '.local', 'share')
-  return join(data, 'gnomeola', 'models')
+/**
+ * `$GNOMEOLA_MODELS_DIR`, else `<platform data root>/models`: `${XDG_DATA_HOME:-~/.local/share}/gnomeola/models`
+ * on Linux and in the Flatpak, `~/Library/Application Support/gnomeola/models` on macOS.
+ */
+export function defaultModelsDir(
+  env: NodeJS.ProcessEnv = process.env,
+  platform: string = process.platform,
+): string {
+  return platformPaths({ platform, env, home: homedir() }).modelsDir
 }
