@@ -13,6 +13,16 @@
   --radius-*: initial;
   --font-*: initial;
 }
+/*
+ * kacola brand (brand/README.md): fonts, --k-* tokens, and their Tailwind mapping (bg-bg-surface,
+ * text-text-secondary, font-display, type-title2 …). After the reset above, or it would clear them;
+ * Tailwind inlines these imports in place, so their position is deliberate.
+ */
+/* biome-ignore-start lint/correctness/noInvalidPositionAtImportRule: Tailwind inlines imports in order; the brand theme must follow the reset */
+@import "../../../../brand/tokens/fonts.css";
+@import "../../../../brand/tokens/tokens.css";
+@import "../../../../brand/tokens/tailwind.css";
+/* biome-ignore-end lint/correctness/noInvalidPositionAtImportRule: see above */
 
 @theme inline {
   --color-window: var(--window-bg-color);

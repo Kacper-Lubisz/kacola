@@ -34,6 +34,8 @@ export async function startFakeAnthropic(opts: FakeAnthropicOptions = {}) {
   const seen: SeenRequest[] = []
   let queue: CannedResponse[] = []
   let fallback: CannedResponse | null = null
+  /** Pause the next streamed body after this many SSE events, until released (a UI caught mid-stream). */
+  let hold: { after: number; gate: Promise<void> } | null = null
   const server = createServer(async (req, res) => {
     const chunks: Buffer[] = []
     for await (const c of req) chunks.push(c as Buffer)
@@ -54,9 +56,13 @@ export async function startFakeAnthropic(opts: FakeAnthropicOptions = {}) {
     res.writeHead(next.status, next.headers)
     const streamed = String(next.headers['content-type'] ?? '').includes('text/event-stream')
     if (!eventDelayMs || !streamed) return res.end(next.body)
+    const h = hold
+    hold = null
+    let n = 0
     for (const event of next.body.split(/(?<=\n\n)/)) {
       if (res.destroyed) return
       res.write(event)
+      if (h && ++n === h.after) await h.gate
       await new Promise((r) => setTimeout(r, eventDelayMs))
     }
     res.end()
@@ -75,6 +81,15 @@ export async function startFakeAnthropic(opts: FakeAnthropicOptions = {}) {
     /** Change the per-event delay for responses served from now on. */
     setEventDelay: (ms: number) => {
       eventDelayMs = ms
+    },
+    /**
+     * Stop the next streamed response after `events` SSE events (needs an event delay); returns the
+     * release function. Deterministic mid-stream states for screenshots.
+     */
+    holdAfter: (events: number): (() => void) => {
+      let release!: () => void
+      hold = { after: events, gate: new Promise<void>((r) => (release = r)) }
+      return () => release()
     },
     reset: () => {
       queue = []

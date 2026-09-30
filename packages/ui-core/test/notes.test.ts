@@ -1,6 +1,9 @@
 import type { AnyEvent, EnhanceStreamEvent, Note, NotesState, NoteVersion } from '@gnomeola/protocol'
 import { describe, expect, it } from 'vitest'
 import {
+  applyNotesEvent,
+  applyVersionEvent,
+  enhanceProblem,
   exportFileName,
   exportMarkdown,
   NotesFeed,
@@ -80,6 +83,19 @@ function fakeDaemon() {
         restoredFrom: null,
       })
       pending = null
+      return head()
+    },
+    restore: async (_id, version, body) => {
+      if (body.baseVersion !== head().version) throw Object.assign(new Error('stale'), { code: 'conflict' })
+      const old = versions.find((v) => v.version === version)!
+      append({
+        kind: 'restore',
+        markdown: old.markdown,
+        baseVersion: body.baseVersion,
+        enhancement: null,
+        merge: null,
+        restoredFrom: version,
+      })
       return head()
     },
     templates: async () => ({
@@ -346,5 +362,163 @@ describe('export', () => {
     expect(exportMarkdown({ title: 'Empty', startedAt: null, createdAt: at }, '')).toBe(
       '# Empty\n\n2026-09-29\n',
     )
+  })
+})
+
+describe('NotesFeed: restore', () => {
+  it('saves pending typing first, then restores on top of it: every version survives', async () => {
+    const { feed, daemon } = await started()
+    feed.edit('first draft\n')
+    await feed.flush()
+    feed.edit('second draft\n')
+    const rev = feed.getSnapshot().revision
+    await feed.restore(1)
+    const s = feed.getSnapshot()
+    expect(s.draft).toBe('first draft\n')
+    expect(s.note).toMatchObject({ version: 3, markdown: 'first draft\n' })
+    expect(s.revision).toBe(rev + 1)
+    expect(daemon.versions.map((v) => [v.kind, v.markdown])).toEqual([
+      ['user', 'first draft\n'],
+      ['user', 'second draft\n'],
+      ['restore', 'first draft\n'],
+    ])
+  })
+
+  it('a restore that conflicts reloads the head and reports the error', async () => {
+    const { feed, daemon } = await started()
+    feed.edit('mine\n')
+    await feed.flush()
+    const restore = daemon.deps.restore!
+    daemon.deps.restore = async (...a) => {
+      // someone else saved between our flush and the restore
+      daemon.append({
+        kind: 'user',
+        markdown: 'theirs\n',
+        baseVersion: 1,
+        enhancement: null,
+        merge: null,
+        restoredFrom: null,
+      })
+      return restore(...a)
+    }
+    const feed2 = new NotesFeed(SES, daemon.deps).start()
+    await settle()
+    await expect(feed2.restore(1)).rejects.toMatchObject({ code: 'conflict' })
+    await settle()
+    expect(feed2.getSnapshot().note.markdown).toBe('theirs\n')
+    feed.dispose()
+    feed2.dispose()
+  })
+
+  it('refuses without a restore dependency (the GTK window has none)', async () => {
+    const d = fakeDaemon()
+    const { restore: _r, ...deps } = d.deps
+    const feed = new NotesFeed(SES, deps).start()
+    await expect(feed.restore(1)).rejects.toThrow(/cannot restore/)
+    feed.dispose()
+  })
+})
+
+describe('query-cache folds', () => {
+  const v = (
+    version: number,
+    kind: NoteVersion['kind'],
+    markdown: string,
+    extra: Partial<NoteVersion> = {},
+  ) =>
+    ({
+      sessionId: SES,
+      version,
+      kind,
+      markdown,
+      baseVersion: version - 1,
+      createdAt: at,
+      enhancement: null,
+      merge: null,
+      restoredFrom: null,
+      ...extra,
+    }) satisfies NoteVersion
+  const ev = (version: NoteVersion, seq = version.version, sessionId = SES): AnyEvent => ({
+    seq,
+    at,
+    sessionId,
+    data: { type: 'note.version', version },
+  })
+  const empty: NotesState = {
+    note: { sessionId: SES, version: 0, markdown: '', updatedAt: null, pendingEnhancement: null },
+    enhanced: null,
+  }
+
+  it('moves the head, holds an enhancement for review, and a merge clears it', () => {
+    let s = applyNotesEvent(empty, SES, ev(v(1, 'user', 'a\n')))
+    expect(s.note).toMatchObject({ version: 1, markdown: 'a\n', pendingEnhancement: null })
+    const e = v(2, 'enhanced', 'A\n')
+    s = applyNotesEvent(s, SES, ev(e))
+    expect(s).toMatchObject({ note: { version: 1, pendingEnhancement: 2 }, enhanced: e })
+    // a user save keeps the review pending
+    s = applyNotesEvent(s, SES, ev(v(3, 'user', 'ab\n')))
+    expect(s).toMatchObject({ note: { version: 3, pendingEnhancement: 2 }, enhanced: e })
+    s = applyNotesEvent(
+      s,
+      SES,
+      ev(v(4, 'merge', 'A\n', { merge: { enhancedVersion: 2, choices: ['enhanced'] } })),
+    )
+    expect(s).toMatchObject({
+      note: { version: 4, markdown: 'A\n', pendingEnhancement: null },
+      enhanced: null,
+    })
+    s = applyNotesEvent(s, SES, ev(v(5, 'restore', 'a\n', { restoredFrom: 1 })))
+    expect(s.note).toMatchObject({ version: 5, markdown: 'a\n' })
+  })
+
+  it('is idempotent, ignores other sessions and other events', () => {
+    const s1 = applyNotesEvent(empty, SES, ev(v(1, 'user', 'a\n')))
+    expect(applyNotesEvent(s1, SES, ev(v(1, 'user', 'a\n')))).toBe(s1)
+    expect(applyNotesEvent(s1, SES, ev(v(2, 'user', 'x\n'), 2, 'ses_other'))).toBe(s1)
+    const e = v(2, 'enhanced', 'A\n')
+    const s2 = applyNotesEvent(s1, SES, ev(e))
+    expect(applyNotesEvent(s2, SES, ev(e))).toBe(s2)
+    const other: AnyEvent = { seq: 9, at, sessionId: SES, data: { type: 'session.deleted', sessionId: SES } }
+    expect(applyNotesEvent(s2, SES, other)).toBe(s2)
+    // a merge of an older review does not clear a newer one
+    const e3 = v(3, 'enhanced', 'B\n')
+    const s3 = applyNotesEvent(s2, SES, ev(e3))
+    const s4 = applyNotesEvent(
+      s3,
+      SES,
+      ev(v(4, 'merge', 'A\n', { merge: { enhancedVersion: 2, choices: ['enhanced'] } })),
+    )
+    expect(s4).toMatchObject({ note: { version: 4, pendingEnhancement: 3 }, enhanced: e3 })
+  })
+
+  it('appends versions to a history in order, once', () => {
+    const a = v(1, 'user', 'a\n')
+    const b = v(2, 'enhanced', 'A\n')
+    let h = applyVersionEvent([], SES, ev(b))
+    h = applyVersionEvent(h, SES, ev(a))
+    expect(h.map((x) => x.version)).toEqual([1, 2])
+    expect(applyVersionEvent(h, SES, ev(a))).toBe(h)
+    expect(applyVersionEvent(h, SES, ev(v(3, 'user', 'z'), 3, 'ses_other'))).toBe(h)
+  })
+})
+
+describe('enhanceProblem', () => {
+  it('tells a refusal, a quota problem and a missing provider apart', () => {
+    expect(
+      enhanceProblem({
+        code: 'unavailable',
+        message: 'the model declined to enhance these notes; your notes are unchanged',
+      }),
+    ).toBe('refused')
+    expect(
+      enhanceProblem({ code: 'unavailable', message: 'the provider is rate-limiting requests (429)' }),
+    ).toBe('quota')
+    expect(
+      enhanceProblem({
+        code: 'unavailable',
+        message: 'the anthropic provider is not ready (is an API key configured?)',
+      }),
+    ).toBe('unavailable')
+    expect(enhanceProblem({ code: 'internal', message: 'the model returned no notes' })).toBe('other')
   })
 })

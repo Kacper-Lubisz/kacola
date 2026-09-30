@@ -3,6 +3,7 @@ import {
   type DaemonStatus,
   type GnomeolaBridge,
   IPC,
+  type SaveTextRequest,
   type Theme,
   type TunnelRequest,
   type UiState,
@@ -41,6 +42,8 @@ const bridge: GnomeolaBridge = {
   catalogue: () => ipcRenderer.invoke(IPC.i18n),
   windowControl: (c: WindowControl) => ipcRenderer.send(IPC.windowControl, c),
   openExternal: (url: string) => ipcRenderer.invoke(IPC.openExternal, url),
+  copyText: (text: string) => ipcRenderer.invoke(IPC.clipboardWrite, text),
+  saveTextFile: (req: SaveTextRequest) => ipcRenderer.invoke(IPC.saveText, req),
 }
 
 contextBridge.exposeInMainWorld('gnomeola', bridge)

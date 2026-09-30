@@ -10,6 +10,7 @@ export const keys = {
   session: (id: string) => ['session', id] as const,
   transcript: (id: string) => ['transcript', id] as const,
   notes: (id: string) => ['notes', id] as const,
+  noteVersions: (id: string) => ['noteVersions', id] as const,
   speakers: (id: string) => ['speakers', id] as const,
   qa: (id: string) => ['qa', id] as const,
   templates: (id: string) => ['templates', id] as const,
@@ -22,7 +23,15 @@ export const keys = {
 }
 
 /** Resources that hang off one session: all of them go when it is deleted. */
-export const SESSION_SCOPED = ['session', 'transcript', 'notes', 'speakers', 'qa', 'templates'] as const
+export const SESSION_SCOPED = [
+  'session',
+  'transcript',
+  'notes',
+  'noteVersions',
+  'speakers',
+  'qa',
+  'templates',
+] as const
 
 export function isSessionScoped(key: readonly unknown[], id: string): boolean {
   return (SESSION_SCOPED as readonly unknown[]).includes(key[0]) && key[1] === id

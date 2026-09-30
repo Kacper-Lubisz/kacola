@@ -1,5 +1,14 @@
-import type { AnyEvent, DurableEvent, GnomeolaClient, Session, Settings } from '@gnomeola/protocol'
+import type {
+  AnyEvent,
+  DurableEvent,
+  GnomeolaClient,
+  NotesState,
+  NoteVersion,
+  Session,
+  Settings,
+} from '@gnomeola/protocol'
 import { isDurable } from '@gnomeola/protocol'
+import { applyNotesEvent, applyVersionEvent } from '@gnomeola/ui-core/notes'
 import { applyQaEvent, type QaState } from '@gnomeola/ui-core/qa'
 import { applyEvent, fromSnapshot, type SessionsState } from '@gnomeola/ui-core/sessions'
 import { withStored } from '@gnomeola/ui-core/settings'
@@ -52,6 +61,7 @@ export class EventBridge {
   private seq = 0
   private recent: DurableEvent[] = []
   private unwatch: (() => void) | null = null
+  private readonly listeners = new Set<(e: AnyEvent) => void>()
   private retryTimer: ReturnType<typeof setTimeout> | null = null
   /** Resolves when the first snapshot is in the cache. */
   readonly ready: Promise<void>
@@ -177,6 +187,17 @@ export class EventBridge {
     })
   }
 
+  /**
+   * Hear every event after the cache has folded it (duplicates dropped). For controllers that keep
+   * state of their own beside the cache — the notes editor's draft (ui-core's NotesFeed).
+   */
+  listen(l: (e: AnyEvent) => void): () => void {
+    this.listeners.add(l)
+    return () => {
+      this.listeners.delete(l)
+    }
+  }
+
   /** Fold one event. Public so tests (and a future in-process demo) can inject. */
   ingest(e: AnyEvent): void {
     if (isDurable(e)) {
@@ -191,6 +212,7 @@ export class EventBridge {
       this.stats.applied++
     }
     applyEphemeral(this.store, e)
+    for (const l of [...this.listeners]) l(e)
   }
 
   private foldDurable(e: DurableEvent): void {
@@ -224,16 +246,19 @@ export class EventBridge {
       if (r.state !== sp) this.qc.setQueryData(keys.speakers(id), r.state)
       if (r.stale) void this.qc.invalidateQueries({ queryKey: keys.speakers(id), exact: true })
     }
-    if (e.data.type === 'note.version' && this.qc.getQueryData(keys.notes(id))) {
-      void this.qc.invalidateQueries({ queryKey: keys.notes(id), exact: true })
-    }
+    this.qc.setQueryData<NotesState>(keys.notes(id), (n) => (n ? applyNotesEvent(n, id, e) : n))
+    this.qc.setQueryData<NoteVersion[]>(keys.noteVersions(id), (v) => (v ? applyVersionEvent(v, id, e) : v))
   }
 
   /** A per-session query just fetched: re-fold the recent events it may have missed. */
   private onCacheEvent(ev: QueryCacheNotifyEvent): void {
     if (ev.type !== 'updated' || ev.action.type !== 'success' || ev.action.manual) return
     const [kind, id] = ev.query.queryKey
-    if (typeof id !== 'string' || !['transcript', 'qa', 'speakers'].includes(kind as string)) return
+    if (
+      typeof id !== 'string' ||
+      !['transcript', 'qa', 'speakers', 'notes', 'noteVersions'].includes(kind as string)
+    )
+      return
     const missed = this.recent.filter((e) => sessionIdsOf(e).includes(id))
     if (!missed.length) return
     queueMicrotask(() => {

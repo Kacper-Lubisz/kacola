@@ -6,6 +6,8 @@ import type { Theme } from '../../shared/bridge.ts'
  */
 export function applyTheme(t: Theme, root: HTMLElement = document.documentElement): void {
   root.dataset.scheme = t.scheme
+  // the kacola brand tokens (brand/tokens/tokens.css) key off data-theme
+  root.dataset.theme = t.scheme
   root.dataset.contrast = t.contrast
   if (t.accent) {
     root.style.setProperty('--accent-bg-color', readableAccent(t.accent))

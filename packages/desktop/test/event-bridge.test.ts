@@ -167,7 +167,11 @@ describe('per-session folds', () => {
       stt: { finalPass: 'off' },
       llm: { apiKeyConfigured: true },
     } as unknown as Settings)
-    qc.setQueryData(keys.notes('a'), { note: { version: 1 } })
+    qc.setQueryData(keys.notes('a'), {
+      note: { sessionId: 'a', version: 1, markdown: 'a', updatedAt: null, pendingEnhancement: null },
+      enhanced: null,
+    })
+    qc.setQueryData(keys.noteVersions('a'), [])
     const q: QaMessage = {
       id: 'qa_1',
       sessionId: 'a',
@@ -206,14 +210,36 @@ describe('per-session folds', () => {
     daemon.emit(
       durable(5, { type: 'settings.updated', settings: { stt: { finalPass: 'whisper' }, llm: {} } } as never),
     )
-    daemon.emit(durable(6, { type: 'note.version', version: { sessionId: 'a', version: 2 } } as never, 'a'))
+    const v2 = {
+      sessionId: 'a',
+      version: 2,
+      kind: 'user',
+      markdown: 'ab',
+      baseVersion: 1,
+      createdAt: '2026-09-28T12:00:00.000Z',
+      enhancement: null,
+      merge: null,
+      restoredFrom: null,
+    } as const
+    const heard: number[] = []
+    const off = bridge.listen((e) => heard.push(e.seq ?? -1))
+    daemon.emit(durable(6, { type: 'note.version', version: v2 }, 'a'))
+    daemon.emit(durable(6, { type: 'note.version', version: v2 }, 'a')) // duplicate: not heard again
+    off()
+    daemon.emit(durable(7, { type: 'note.version', version: { ...v2, version: 3, markdown: 'abc' } }, 'a'))
     expect(qc.getQueryData<QaState>(keys.qa('a'))!.turns.map((t) => t.question)).toEqual([
       'what did we decide?',
     ])
     expect(qc.getQueryData<SpeakersState>(keys.speakers('a'))!.list[0]!.label).toBe('Ana')
     expect(qc.getQueryState(keys.speakers('a'))!.isInvalidated).toBe(true) // a new segment: talk time is stale
     expect(qc.getQueryData<Settings>(keys.settings())!.stt.finalPass).toBe('whisper')
-    expect(qc.getQueryState(keys.notes('a'))!.isInvalidated).toBe(true)
+    // notes are folded, not refetched: the head moved, the history grew, once per version
+    expect(qc.getQueryData(keys.notes('a'))).toMatchObject({ note: { version: 3, markdown: 'abc' } })
+    expect(qc.getQueryState(keys.notes('a'))!.isInvalidated).toBe(false)
+    expect(qc.getQueryData<{ version: number }[]>(keys.noteVersions('a'))!.map((v) => v.version)).toEqual([
+      2, 3,
+    ])
+    expect(heard).toEqual([6])
   })
 })
 
