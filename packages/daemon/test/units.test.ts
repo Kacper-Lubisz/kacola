@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { type Segment, SessionStatus } from '@gnomeola/protocol'
@@ -192,6 +192,79 @@ describe('fake pipeline', () => {
       expect(partials).toBeGreaterThan(10)
     } finally {
       rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('deterministic + hold: the same output every run at the hold point, frozen until the release file', async () => {
+    const run = async (dir: string) => {
+      const out: string[] = []
+      const sink: PipelineSink = {
+        level: (l) => out.push(`level ${l.track} ${l.elapsedMs}`),
+        partial: (p) => out.push(`partial ${p.track} ${p.startMs} ${p.text}`),
+        segment: (s) => out.push(`segment ${s.track} ${s.startMs}-${s.endMs} ${s.quality} ${s.text}`),
+        gap: () => {},
+        error: () => {},
+        speaker: () => null,
+        attribute: () => {},
+        voices: () => {},
+      }
+      const release = join(dir, 'release')
+      const p = new FakePipeline({
+        deterministic: true,
+        speed: 4,
+        tickMs: 2,
+        segmentEveryMs: 250,
+        partialEveryMs: 40,
+        finalizeAfterMs: 100,
+        levelEveryMs: 100,
+        hold: { atMs: 2000, releaseFile: release },
+      })
+      const rec = await p.start(
+        {
+          sessionId: 'ses_x',
+          sessionDir: dir,
+          tracks: [
+            { kind: 'mic', device: 'default' },
+            { kind: 'system', device: 'default' },
+          ],
+          settings: DEFAULT_SETTINGS,
+        },
+        sink,
+      )
+      // 2000 audio ms = 250 ticks of 2 ms; give a loaded machine plenty of wall time to get there
+      const until = Date.now() + 10_000
+      while (!out.includes('level mic 2000') && Date.now() < until)
+        await new Promise((r) => setTimeout(r, 20))
+      await new Promise((r) => setTimeout(r, 100))
+      // held: only the open lines and the level are repeated, nothing new is said
+      const atHold = out.filter((l) => !l.startsWith('level') && !l.startsWith('partial'))
+      const newest = new Set(out.filter((l) => l.startsWith('partial')).slice(-2))
+      await new Promise((r) => setTimeout(r, 100))
+      const repeated = out.slice(out.length - 20)
+      expect(
+        repeated.every(
+          (l) => l.startsWith('level mic 2000') || l.startsWith('level system 2000') || newest.has(l),
+        ),
+      ).toBe(true)
+      writeFileSync(release, '')
+      const n = out.length
+      await new Promise((r) => setTimeout(r, 100))
+      expect(out.slice(n).some((l) => l.startsWith('segment'))).toBe(true)
+      await rec.stop()
+      return atHold
+    }
+    const dirs = [
+      mkdtempSync(join(tmpdir(), 'gnomeola-fake-')),
+      mkdtempSync(join(tmpdir(), 'gnomeola-fake-')),
+    ]
+    try {
+      const [a, b] = [await run(dirs[0]!), await run(dirs[1]!)]
+      // provisional and final lines at the hold point, identical across runs
+      expect(a.some((l) => l.includes(' live '))).toBe(true)
+      expect(a.some((l) => l.includes(' final '))).toBe(true)
+      expect(b).toEqual(a)
+    } finally {
+      for (const d of dirs) rmSync(d, { recursive: true, force: true })
     }
   })
 })

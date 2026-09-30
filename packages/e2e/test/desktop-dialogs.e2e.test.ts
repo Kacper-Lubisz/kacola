@@ -7,13 +7,14 @@ import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/
 import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { DESKTOP_ARTIFACTS, markOnboarded, pageText, uiStatePath } from '../src/desktop.ts'
-import { type FakeAnthropic, startFakeAnthropic } from '../src/fake-anthropic.ts'
-import { seedMeetings } from '../src/seed.ts'
+import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
+import { SEED, seedMeetings } from '../src/seed.ts'
 
 // The Electron window's dialogs against the real daemon — the port of the GTK suite's
 // ui-dialogs.e2e.test.ts (Preferences, API key, About, onboarding), same behaviours, role + name
-// locators. (The Ask pane's no-key path moves with the Ask pane, phase 2B.)
+// locators, plus the Ask and Notes panes' no-provider notices (ui-dialogs' key-less Ask path).
 
+const CASSETTES = join(import.meta.dirname, '..', '..', 'llm', 'test', 'fixtures', 'cassettes')
 const KEY = 'sk-ant-typed-into-prefs-5Z7Q2W9X4K'
 
 function ocr(png: string): string {
@@ -78,6 +79,60 @@ describe('Preferences and About against the real daemon', () => {
     await prefs().waitFor({ state: 'detached' })
   }
 
+  const openSession = async (title: string) => {
+    await app.window
+      .getByRole('listbox', { name: 'Sessions' })
+      .getByRole('option', { name: new RegExp(title) })
+      .click()
+    await app.window.getByRole('heading', { level: 1, name: title }).waitFor({ timeout: 10_000 })
+  }
+  const openTab = async (name: 'Transcript' | 'Ask' | 'Notes') => {
+    const tab = app.window.getByRole('tab', { name })
+    await tab.click()
+    await expect.poll(() => tab.getAttribute('aria-selected')).toBe('true')
+  }
+  const askPane = () => app.window.getByRole('region', { name: 'Ask' })
+  const unavailable = () => askPane().getByText('Questions aren’t available right now', { exact: true })
+
+  it('explains that questions and enhancing need a provider, and Open Preferences opens Preferences', async () => {
+    await openSession('Platform standup')
+    await openTab('Ask')
+    const field = app.window.getByRole('textbox', { name: 'Question' })
+    await field.click()
+    await app.window.keyboard.type('Who owns the dashboard?')
+    await app.window.keyboard.press('Enter')
+    await unavailable().waitFor({ timeout: 10_000 })
+    await askPane()
+      .getByText(/API key.*Preferences/)
+      .waitFor()
+    // nothing was sent anywhere: no key, no request
+    expect(api.seen).toHaveLength(0)
+    expect(await app.axe()).toEqual([])
+    await app.screenshot(join(DESKTOP_ARTIFACTS, 'ask-unavailable.png'))
+    await askPane().getByRole('button', { name: 'Open Preferences' }).click()
+    await prefs().getByRole('region', { name: 'Questions and Answers' }).waitFor({ timeout: 5000 })
+    await prefs().getByText('Not configured').waitFor()
+    await closePrefs()
+
+    // Notes: Enhance says the same, with its own way to Preferences; the notes are untouched
+    await openTab('Notes')
+    const before = await daemon.client.call('listNoteVersions', { params: { id: SEED.standup } })
+    await app.window.getByRole('button', { name: 'Enhance Notes' }).click()
+    const banner = app.window.getByRole('status', { name: /Your notes were not enhanced/ })
+    await banner.waitFor({ timeout: 10_000 })
+    expect(await banner.textContent()).toContain('Enhancing needs a language model provider')
+    expect(api.seen).toHaveLength(0)
+    expect(await daemon.client.call('listNoteVersions', { params: { id: SEED.standup } })).toEqual(before)
+    expect(await app.axe()).toEqual([])
+    await app.screenshot(join(DESKTOP_ARTIFACTS, 'notes-unavailable.png'))
+    await banner.getByRole('button', { name: 'Open Preferences' }).click()
+    await prefs().getByRole('region', { name: 'Questions and Answers' }).waitFor({ timeout: 5000 })
+    await closePrefs()
+    await banner.getByRole('button', { name: 'Dismiss' }).click()
+    await banner.waitFor({ state: 'detached' })
+    await openTab('Ask')
+  })
+
   it('opening Preferences shows the daemon’s values and writes nothing back', async () => {
     // non-default settings, set elsewhere (the CLI, say) before Preferences first opens
     await daemon.client.call('updateSettings', {
@@ -126,6 +181,22 @@ describe('Preferences and About against the real daemon', () => {
     expect(daemon.output()).not.toContain(KEY)
     expect(app.log()).not.toContain(KEY)
     await closePrefs()
+  })
+
+  it('asks with the Ask button once a key is stored: exactly that key reaches the provider', async () => {
+    api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
+    await app.window.getByRole('textbox', { name: 'Question' }).fill('Who owns the dashboard?')
+    await askPane().getByRole('button', { name: 'Ask', exact: true }).click()
+    await askPane()
+      .getByRole('button', { name: /^Citation 1: / })
+      .first()
+      .waitFor({ timeout: 20_000 })
+    expect(api.seen).toHaveLength(1)
+    expect(api.seen[0]!.headers['x-api-key']).toBe(KEY)
+    // the earlier turn is still explained, once, next to the answer
+    expect(await unavailable().count()).toBe(1)
+    expect(daemon.output()).not.toContain(KEY)
+    expect(await pageText(app)).not.toContain(KEY)
   })
 
   it('persists settings changed in Preferences (keyboard), and reflects changes made elsewhere live', async () => {

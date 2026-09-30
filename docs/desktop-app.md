@@ -245,10 +245,13 @@ Chromium on Linux does not reliably map from `nativeTheme.themeSource`. **The ac
 red): the portal's accent colour is ignored. Tests and screenshots: `GNOMEOLA_COLOR_SCHEME=light|dark`,
 `GNOMEOLA_CONTRAST=high`.
 
-Deviations forced by the axe gate (4.5:1 for our 13–15px text): filled record-red surfaces that carry
-white text (the Record button, a confirming destructive button) use `--record-fill-color` (#C93D22
-light / #D0401F dark, 5.0 / 4.7:1) instead of accent.record (4.09 / 3.26:1) — dots, rings and the live
-indicator stay accent.record; status *text* uses the `status.*Text` tokens.
+Deviations forced by the axe gate (4.5:1 for our 13–15px text), all brand tokens now (brand/README.md,
+held by `brand/scripts/tokens.test.ts`): filled record-red surfaces that carry white text (the Record
+button, a confirming destructive button) use `accent.recordFill` / `recordFillHover` (#C93D22 / #B3341B
+light, #D0401F / #C93D22 dark: white text 5.0 / 4.7:1), which `--record-fill-color` maps onto, instead of
+accent.record (4.09 / 3.26:1) — dots, rings and the live indicator stay accent.record; status *text* uses
+the `status.*Text` tokens; `text.tertiary` is the corrected #70675A / #978C7B (4.5:1 on every
+background). No colour in the renderer is a literal: everything is a `--k-*` token or a semantic alias.
 
 The window icon on Linux is `brand/icons/png/512.png` (packaged: `resources/icon.png`). Linux has no
 application menu (so Electron's default Ctrl+R / Ctrl+Shift+I accelerators are gone); the window's
@@ -313,6 +316,15 @@ reusing the GTK app's msgids where the meaning is the same. Catalogues are JSON 
   shows live times) through `matchBaseline(png, baselinePng)` from `@gnomeola/testkit/desktop`. Blur
   focus and park the pointer first, and `emulateMedia({ reducedMotion: 'reduce' })` for still spinners — Playwright's
   `animations: 'disabled'` injects a `<style>` the CSP refuses.
+- **Baselines are deterministic, and every threshold is ≤ 1%** (`expectScreenshot` default `maxDiff`
+  0.01, `baseline()` 0.005). A live screen is frozen, not tolerated: the fake pipeline's
+  `deterministic: true` advances audio a fixed step per tick (finals due in audio time), and
+  `hold: { atMs, releaseFile }` freezes every recording at `atMs` — still recording, re-sending its open
+  partial lines and a steady level — until the test writes `releaseFile`
+  (`desktop-transcript.e2e.test.ts`); a provider stream is held with `api.holdAfter(n)` from
+  `packages/e2e/src/fake-anthropic.ts` (`desktop-ask`, `desktop-notes`). Then reduced motion (no caret
+  blink, pulse or spinner), blur the focus and park the pointer before the shot. A baseline that needs
+  more than 1% has something live in it: freeze that instead of raising the threshold.
 - Third-party widgets that inject `<style>` (CodeMirror's style-mod) must be mounted in a shadow root,
   where they fall back to constructable stylesheets.
 - The client packages may not import testkit (`pnpm boundaries`), which is why window tests live in
@@ -340,8 +352,9 @@ reusing the GTK app's msgids where the meaning is the same. Catalogues are JSON 
   painted frame); `desktop-transcript.e2e.test.ts` reads it and times End / ten Page Downs on the
   1,350-line fixture (`__artifacts__/desktop-transcript-perf.json`). 2026-09-30: first paint 11–12 ms,
   End 9–18 ms, ten Page Downs 15–44 ms (GTK: commit ~7 ms, End ~320 ms, ten Page Downs ~350 ms).
-- Timestamps use text.secondary, not the spec's text.tertiary: tertiary on the surfaces is 3.9:1 and
-  the axe gate needs 4.5:1 at 13px.
+- Timestamps use text.tertiary, as the spec says (the corrected tertiary is 4.5:1 on every background).
+  The selected line is the exception: on its bg.selected tint tertiary is 4.2:1 (light) / 4.3:1 (dark),
+  so that one line's time uses text.secondary.
 
 ## Footprint (E-1 gate, 2026-09-30)
 
@@ -357,6 +370,10 @@ paint. Memory is summed over the app's whole process tree from `/proc/<pid>/smap
 | **the real app** (phase 1 first screen, 3 sessions) | 891 ms | 700–890 ms | 861 MB | **377 MB** | 226 MB | 9 |
 | real app, `--in-process-gpu` | | 702 ms | 712 MB | 347 MB | 239 MB | 7 |
 | real app, `--disable-gpu` | | 360 ms | 712 MB | 287 MB | 165 MB | 9 |
+| **phase 3 re-measure, 2026-09-30** (same machine, 3 runs each): | | | | | | |
+| GTK app, as above | 999–1011 ms | 1021–1033 ms | 362 MB | 191–194 MB | 171–173 MB | 1 |
+| Electron minimal window, as above | 566–585 ms | 747–750 ms | 822–823 MB | 332–333 MB | 188 MB | 11 |
+| **the real app, phases 2A–2C in** (brand fonts, every pane; `desktop-perf.e2e`, 3 sessions) | 779–913 ms | 779–913 ms | 886–891 MB | **404–406 MB** | 252–253 MB | 9 |
 
 - *ready*: GTK = "No Session Selected" label on the AT-SPI bus; Electron = `ready-to-show`.
 - *first pixels*: first Shell screenshot that differs from the empty desktop (both apps, same probe).
@@ -366,12 +383,97 @@ paint. Memory is summed over the app's whole process tree from `/proc/<pid>/smap
   ICU are mapped into all of them). PSS divides shared pages among their sharers, so it is the fair
   "sum of all processes" figure; USS is what quitting the app would free.
 
+Phase 3 per-process PSS (real app): main 127, GPU 118, renderer 85 (was 66: the four bundled variable
+brand faces and the screens), network 28, broker 19, zygotes 12+11+4 MB. *Ready* for the real app is
+main's `window-ready` line, which it prints after the first paint, so it equals first pixels.
+
 **Gate: idle PSS ≤ 350 MB (decided 2026-09-30).** The minimal window passed (345–348 MB: about +150 MB
 PSS / +23 MB USS over GTK, faster first pixels). **The real app's first screen is at 377 MB** on the
 headless Shell, where the GPU process runs SwiftShader; `--in-process-gpu` (347) or `--disable-gpu`
 (287, software compositing) bring it under — an open decision (see the phase-1 report), not applied.
+**Phase 3: the finished screens are at 404–406 MB, 55 MB over the gate** (the GPU flags above are
+still not applied; the renderer grew 19 MB and main 9 MB since phase 1). Cold start still beats GTK:
+first pixels 779–913 ms against 1021–1033 ms.
 
 Reproduce: `node packages/testkit/src/desktop/e1-spike/measure.ts` (`RUNS=n`, `ONLY=1` for Electron only,
 `EXTRA="--flags"`). The real app is tracked by the non-blocking perf e2e
 (`packages/e2e/test/desktop-perf.e2e.test.ts`): it writes `__artifacts__/desktop-perf.json` and warns
 above 350 MB PSS without failing.
+
+## Verification (phase 3)
+
+Everything below is in `pnpm test:e2e` (the vitest `e2e` project globs `packages/*/**/*.e2e.test.ts`, so
+every `packages/e2e/test/desktop-*.e2e.test.ts` is in it) and so in `scripts/release-gate.sh` (step T3).
+CI's `e2e` job (`.github/workflows/ci.yml`) runs it headless in the Fedora 44 container: each window opens
+in a private headless GNOME Shell, Chromium's shared libraries and tesseract are installed, and the suites
+run as an unprivileged user (Chromium's sandbox refuses root).
+
+| suite | what it holds |
+| --- | --- |
+| `desktop-a11y` | **The accessibility gate**: axe over every screen and state — main window, main menu, search with no matches, Keyboard Shortcuts, About + notices, each Preferences page and an open select, transcript (+ its search), Details, a private session, Ask empty / answered / refused, Notes editor, template menu, templates dialog + form, Version History, enhancing mid-stream, review, the enhance-refused banner, Speakers dialog + rename field + merge menu, a far-end line's actions, recording (live transcript, timer, meters), Ask while recording, paused, stopped, first-run onboarding, the empty window + missing-model banner, the daemon-unreachable screen — each in light, dark, light + high contrast and dark + high contrast. A planted 1.24:1 probe proves the gate fails when it should. `A11Y_INCOMPLETE=1` also lists what axe could not decide (today: one-character "·" separators, and the Version History preview, which overlaps its scroller). |
+| `desktop-keyboard` | A keyboard-only walkthrough (only `keyboard.press` / `type`): Ctrl+R record and stop; Ctrl+F, type, Tab to the meeting, Enter; Ctrl+2 / Ctrl+1 and the arrows on the tab list; Tab to the Question field, ask; Shift+Tab back to a citation chip, Enter (the cited line selected); Ctrl+3, Tab into the editor, type; Shift+Tab to Enhance Notes, Enter; Tab to a change's switch, Space; Shift+Tab to Apply, Enter. The focus is asserted by role and name at every stop; each step is checked against the daemon. |
+| `desktop-atspi` | What Orca sees: with accessibility support on, Chromium's AT-SPI tree on the headless session's private a11y bus (read with the testkit driver the GTK suites used) has the named frame, the Record and Main menu buttons, the Search entry, the Sessions list box with named items, the selected session's `selected` state, the page tabs, the transcript lines — and no unnamed visible control. Not covered: the platform `focused` state (neither CDP nor RemoteDesktop keys give the window a platform focus that Chromium reports in the headless Shell). |
+| `desktop-voiceprints` | The Preferences speaker switches round-trip (and follow changes made elsewhere; Escape closes, it reopens); Record / Pause / Resume / Stop with the window's buttons (paused means the pipeline says nothing); a far-end speaker named in the Speakers dialog becomes a voiceprint; the next meeting recorded from the window names them by voice (the fake pipeline's `diarize`, as in the daemon's speakers.int test); voiceprints off forgets them. |
+| `desktop-calendar` | A file calendar fixture (`GNOMEOLA_CALENDAR=file:`): the auto-record rule switched on in Preferences records a meeting when it begins, linked and titled; the session's Notes suggest the Interview template "suggested by the calendar event" even after a rename that matches nothing, and Enhance defaults to it. |
+| `desktop-dialogs` (added) | The Ask "Questions aren't available right now" and Notes "Enhancing needs a language model provider" notices, each with Open Preferences, nothing sent to the provider; then a key typed into Preferences reaches the provider from the Ask button while the earlier notice stays. |
+
+**Screenshot thresholds** (the share of differing pixels tolerated): before phase 3, `transcript-live-*`
+0.35 and `ask-streaming-*` 0.30; now every baseline is at the 1% default (`expectScreenshot`) or 0.5%
+(`baseline()`), the live ones frozen as described under *Tests* above.
+
+### GTK → desktop checklist
+
+Every behavioural assertion of the GTK window's suites and where the Electron window asserts it, so
+nothing is dropped when `packages/ui` goes (E-12). ✓ = asserted by a desktop e2e against the real daemon
+(or the protocol stub where the GTK test used one); n/a = GTK plumbing with no Electron meaning.
+
+| GTK test (file › test) | desktop equivalent | status |
+| --- | --- | --- |
+| ui-ask › streams an answer; citation chips jump to and highlight the line | desktop-ask › streams an answer… | ✓ |
+| ui-ask › a refusal replaces the partial text | desktop-ask › shows a refusal as a notice… | ✓ |
+| ui-ask › questions from another client live; history reloads | desktop-ask › shows questions asked by another client live… | ✓ |
+| ui-ask › answers during a live recording (UI Record … Stop) | desktop-ask › answers during a live recording… (window Record and Stop) | ✓ |
+| ui-dialogs › no key: the notice, nothing sent, Open Preferences, values shown, nothing written back | desktop-dialogs › explains that questions and enhancing need a provider… + opening Preferences shows the daemon's values… | ✓ |
+| ui-dialogs › a key typed into Preferences: masked, saved, never shown, reaches the provider from the Ask button, the earlier notice kept | desktop-dialogs › stores an API key… + asks with the Ask button once a key is stored… | ✓ |
+| ui-dialogs › settings persist from Preferences (keyboard); remote changes show live; Storage page | desktop-dialogs › persists settings changed in Preferences… | ✓ |
+| ui-dialogs › About from the main menu: version, Granola credit, legal + notices, Escape | desktop-dialogs › About (from the main menu)… | ✓ (AdwAboutDialog sub-page navigation: n/a) |
+| ui-dialogs › every screen keyboard reachable (Record, Main menu, Search, Ask tab, Question) | desktop-shell › is keyboard reachable… + desktop-keyboard (Question field, chips, Enhance, Apply) | ✓ |
+| ui-dialogs › removing the key says Not configured | desktop-dialogs › removing the key… | ✓ |
+| ui-dialogs › first-run onboarding: models, calendar, live download progress, remembered | desktop-dialogs › opens on first run… | ✓ |
+| ui-dialogs › onboarding skipped: remembered, the banner reopens it | desktop-dialogs › remembers the skip… | ✓ |
+| ui-i18n › strings from a catalogue; untranslated ones fall back | desktop-shell › translations › shows strings from a catalogue… | ✓ (gettext `.mo` loading: n/a, JSON catalogues) |
+| ui-notes › types notes, autosaves a version | desktop-notes › types notes into the markdown editor… | ✓ |
+| ui-notes › enhances through the real LLM chain without touching the notes | desktop-notes › enhances through the real LLM chain… | ✓ |
+| ui-notes › accepts some blocks, reverts others, applies the exact merge | desktop-notes › accepts some blocks… | ✓ |
+| ui-notes › never lost a word | desktop-notes › never lost a word… | ✓ |
+| ui-notes › action items with owners | desktop-notes › lists the action items… (+ live update, copy) | ✓ |
+| ui-notes › copies as markdown | desktop-notes › copies the notes to the clipboard… | ✓ |
+| ui-notes › exports through the file dialog | desktop-notes › exports the notes… (the save dialog stubbed in main) | ✓ (the native chooser's own UI: n/a) |
+| ui-notes › a refusal leaves the notes as they were | desktop-notes › a refusal leaves the notes… | ✓ |
+| ui-notes › saves when the session is left before the autosave | desktop-notes › saves what was typed even when the session is left… | ✓ |
+| ui-speakers › every line with its speaker chip and colour | desktop-speakers › shows every line with its speaker chip… | ✓ |
+| ui-speakers › rename inline; the colour stays; the mic is me | desktop-speakers › renames a speaker inline… | ✓ |
+| ui-speakers › refusals shown (reserved, duplicate) | desktop-speakers › shows the daemon's refusal… | ✓ |
+| ui-speakers › merge from the dialog | desktop-speakers › merges two speakers… | ✓ |
+| ui-speakers › split one line off; a mic line cannot be | desktop-speakers › splits one line off… | ✓ |
+| ui-speakers › the Preferences speaker switches reach the daemon | desktop-voiceprints › Preferences: the speaker switches… | ✓ |
+| ui-speakers › nothing unexpected in the log | every desktop suite ends with `app.problems()` → `[]` | ✓ |
+| ui-transcript › a seeded transcript as labelled, timestamped lines | desktop-transcript › renders a seeded transcript… | ✓ |
+| ui-transcript › the 1,350-line meeting fast; End / Page Down | desktop-transcript › renders the 1,350-line meeting quickly… | ✓ |
+| ui-transcript › live recording: partials, provisional → final in place | desktop-transcript › shows a live recording… (started over HTTP so the pipeline can be held; the window's Record button starts recordings in desktop-voiceprints, -keyboard, -ask and -shell) | ✓ |
+| ui-transcript › follows live output; Jump to Live | desktop-transcript › follows live output… | ✓ |
+| ui-transcript › stops (UI Stop): every line final, matching the daemon | desktop-transcript › stops… (window Stop) | ✓ |
+| gnomeola-ui › split view, named rows, search, Record, nothing selected | desktop-shell › shows a split view… + desktop-smoke | ✓ |
+| gnomeola-ui › the list grows live | desktop-smoke / desktop-shell › shows a session started over HTTP live… | ✓ |
+| gnomeola-ui › selecting replaces the detail; the selection survives the list growing | desktop-shell › selecting a row shows that session… (sessions created above it) | ✓ |
+| gnomeola-ui › filters from real keyboard input | desktop-shell › filters the list… | ✓ |
+| gnomeola-ui › records and stops from the header button; meters move | desktop-shell › records… | ✓ |
+| gnomeola-ui › a screenshot of the running window | desktop-smoke › captures a screenshot… | ✓ |
+| gnomeola-ui › unreachable daemon, Try Again | desktop-shell › explains an unreachable daemon… | ✓ |
+| gnomeola-ui › the event stream resumes from its cursor, drives recording | desktop-shell › follows the event stream… | ✓ |
+| gnomeola-ui › narrow screen: collapse and navigate back | desktop-shell › the main window on a narrow screen | ✓ |
+| gnomeola-ui › Preferences / About close with Escape and reopen | desktop-voiceprints (Preferences), desktop-dialogs (About) | ✓ |
+| gnomeola-ui › widget gallery (switch, entry, combo, toasts, alert dialog) | `packages/desktop/test/primitives.test.tsx` (jsdom) + the desktop-visual gallery | ✓ (component level) |
+| gnomeola-ui › the `gtkx dev` dev server with HMR | — | n/a (GTKX tooling; `electron-vite dev` has no e2e) |
+| gnomeola-ui › demo mode (`GNOMEOLA_UI_DEMO`) | — | n/a (no demo mode: the real daemon or the stub instead) |
+| harness.e2e (private session, AT-SPI queries, real keystrokes, screenshots, cleanup) | tests of `startHeadlessDisplay` itself, which the desktop suites still use; desktop-atspi uses its AT-SPI driver | keep with the harness (needs PyGObject) |

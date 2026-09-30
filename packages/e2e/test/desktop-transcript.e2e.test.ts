@@ -27,8 +27,12 @@ import { markOnboarded } from '../src/ui.ts'
 // app's names, so the assertions are the same ones.
 
 // Audio at 4x wall clock: a segment closes every 2.5 s of audio per track (≈0.6 s wall), partials every
-// 250 ms of audio, and a live segment is re-emitted as final 1.5 s (wall) after it closes.
+// 250 ms of audio, and a live segment is re-emitted as final 1.5 s (wall; 6 s of audio) after it closes.
+// Deterministic: audio advances exactly 80 ms per tick, so what the pipeline has said at a given audio
+// time is the same every run — and the live recording holds at 30 s of audio (provisional and final
+// lines, two open partials) until the test writes the release file, for a pixel-exact baseline.
 const PIPELINE = { speed: 4, segmentEveryMs: 2500, partialEveryMs: 250, finalizeAfterMs: 1500, tickMs: 20 }
+const HOLD_AT_MS = 30_000
 const PERF_OUT = join(import.meta.dirname, '__artifacts__', 'desktop-transcript-perf.json')
 
 describe('desktop transcript pane against the real daemon', () => {
@@ -36,6 +40,7 @@ describe('desktop transcript pane against the real daemon', () => {
   let daemon: DaemonHandle
   let app: DesktopApp
   let dataDir: string
+  let releaseFile = ''
   let markerId = ''
   let liveId = ''
   const perf: Record<string, number> = {}
@@ -70,7 +75,17 @@ describe('desktop transcript pane against the real daemon', () => {
       ),
     }))
     store.close()
-    daemon = await startDaemon({ dataDir, env: { GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE) } })
+    releaseFile = join(dataDir, 'release-live-hold')
+    daemon = await startDaemon({
+      dataDir,
+      env: {
+        GNOMEOLA_FAKE_PIPELINE: JSON.stringify({
+          ...PIPELINE,
+          deterministic: true,
+          hold: { atMs: HOLD_AT_MS, releaseFile },
+        }),
+      },
+    })
     display = await startHeadlessDisplay({ size: '1280x800' })
     markerId = display.env.GNOMEOLA_HEADLESS_ID!
     markOnboarded(
@@ -269,6 +284,55 @@ describe('desktop transcript pane against the real daemon', () => {
     await openSession('Live transcript')
     await openTab('Transcript')
 
+    // caught at the hold: the daemon's transcript stops changing (finals are held too), and the pane
+    // shows exactly those segments plus the two open partial lines
+    const held = await poll(
+      async () => {
+        const a = await daemon.client.call('getTranscript', { params: { id: s.id } })
+        await new Promise((r) => setTimeout(r, 700))
+        const b = await daemon.client.call('getTranscript', { params: { id: s.id } })
+        return a.segments.length > 10 && JSON.stringify(a) === JSON.stringify(b) ? b.segments : null
+      },
+      30_000,
+      'the recording to reach its hold point',
+    )
+    expect(held.some((x) => x.quality === 'live')).toBe(true)
+    expect(held.some((x) => x.quality === 'final')).toBe(true)
+    let lastSeen = ''
+    const heldName = (x: (typeof held)[number]) => rowName(x) + (x.quality === 'live' ? ' (provisional)' : '')
+    const heldNames = new Set(held.map(heldName))
+    const newest = heldName(held.reduce((a, b) => (b.startMs > a.startMs ? b : a)))
+    await poll(
+      async () => {
+        // the virtualiser renders only the rows around the viewport
+        const names = await rowNames(w())
+        const lines = names.filter((n) => !n.endsWith('(in progress)'))
+        lastSeen = JSON.stringify({ names, heldNames: [...heldNames] }, null, 1)
+        return (
+          names.length - lines.length === 2 &&
+          lines.every((n) => heldNames.has(n)) &&
+          lines.includes(newest) &&
+          (await visibleRowNames(w())).at(-1)?.endsWith('(in progress)')
+        )
+      },
+      10_000,
+      'the held transcript in the pane, followed to its live end',
+    ).catch((e) => {
+      throw new Error(`${e.message}\n${lastSeen}`)
+    })
+    expect(await app.axe()).toEqual([])
+    // no caret blink, no hover, no focus ring: the baseline is the state
+    await w().emulateMedia({ reducedMotion: 'reduce' })
+    await w().evaluate('document.activeElement?.blur()')
+    await w().mouse.move(0, 0)
+    await expectScreenshot(app, 'transcript-live-light', { region: pane() })
+    await setScheme(w(), 'dark')
+    expect(await app.axe()).toEqual([])
+    await expectScreenshot(app, 'transcript-live-dark', { region: pane() })
+    await setScheme(w(), 'light')
+    await w().emulateMedia({ reducedMotion: null })
+    writeFileSync(releaseFile, '')
+
     // the in-progress line, fed by transcript.partial, grows while its speaker talks
     const partialNames = new Set<string>()
     await poll(
@@ -312,11 +376,6 @@ describe('desktop transcript pane against the real daemon', () => {
     expect(seg, `${finalName} must be a segment the daemon holds`).toBeDefined()
     expect(seg!.quality).toBe('final')
     expect(seg!.revision).toBeGreaterThanOrEqual(2)
-    expect(await app.axe()).toEqual([])
-    await expectScreenshot(app, 'transcript-live-light', { maxDiff: 0.35, region: pane() })
-    await setScheme(w(), 'dark')
-    await expectScreenshot(app, 'transcript-live-dark', { maxDiff: 0.35, region: pane() })
-    await setScheme(w(), 'light')
   })
 
   it('follows live output, stops following when scrolled up, and Jump to Live brings it back', async () => {
@@ -343,7 +402,12 @@ describe('desktop transcript pane against the real daemon', () => {
     await w().keyboard.press('Home')
     await jump.waitFor({ timeout: 5000 })
     // not following: new lines arrive but the view stays at the top
-    const top = (await visibleRowNames(w()))[0]
+    // (Home scrolls; the virtualiser may be between frames for a moment — take the settled top line)
+    const top = await poll(
+      async () => (await visibleRowNames(w()))[0]?.includes(' at 0:00: ') && (await visibleRowNames(w()))[0],
+      5000,
+      'the view at the top',
+    )
     await new Promise((r) => setTimeout(r, 1500))
     expect((await visibleRowNames(w()))[0]).toBe(top)
 
@@ -364,7 +428,13 @@ describe('desktop transcript pane against the real daemon', () => {
   })
 
   it('stops: the partial line goes, every line becomes final, and it matches the daemon', async () => {
-    await daemon.client.call('stopSession', { params: { id: liveId } })
+    // following the live end (whatever the previous test left)
+    const jump = w().getByRole('button', { name: 'Jump to Live' })
+    if (await jump.count()) await jump.click()
+    // with the window's own Stop button, as the GTK suite did
+    await w().getByRole('button', { name: 'Stop', exact: true }).click()
+    await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 10_000 })
+    expect((await daemon.client.call('getSession', { params: { id: liveId } })).status).toBe('stopped')
     const { segments } = await poll(
       async () => {
         const t = await daemon.client.call('getTranscript', { params: { id: liveId } })

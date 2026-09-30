@@ -169,6 +169,9 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
     await openTab('Ask')
     await pane().getByRole('heading', { name: 'Ask About This Meeting' }).waitFor()
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
+    // the provider stream stops after its 8th event — "…three attempts, then dead-letter [s" — until
+    // released: a fixed mid-stream state (a marker cut in half) for the assertions and the baseline
+    const release = api.holdAfter(8)
     await ask('What did we decide about the retry budget?')
 
     // the question appears at once, and the answer streams in under a spinner
@@ -187,11 +190,28 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
       15_000,
       'streamed text under the Answering spinner',
     )
+    // held: everything before the cut has arrived, the half marker is not shown
+    await pane()
+      .getByText(/then dead-letter/)
+      .first()
+      .waitFor({ timeout: 10_000 })
+    expect(
+      await pane()
+        .getByText(/then dead-letter/)
+        .first()
+        .textContent(),
+    ).not.toMatch(/\[s/)
     expect(partial).not.toMatch(/\[s\d/) // aliases never leak: markers are rewritten as they stream
-    await expectScreenshot(app, 'ask-streaming-light', { region: pane(), maxDiff: 0.3 })
+    // still spinner, no caret or hover: the baseline is the state
+    await w().emulateMedia({ reducedMotion: 'reduce' })
+    await w().evaluate('document.activeElement?.blur()')
+    await w().mouse.move(0, 0)
+    await expectScreenshot(app, 'ask-streaming-light', { region: pane() })
     await setScheme(w(), 'dark')
-    await expectScreenshot(app, 'ask-streaming-dark', { region: pane(), maxDiff: 0.3 })
+    await expectScreenshot(app, 'ask-streaming-dark', { region: pane() })
     await setScheme(w(), 'light')
+    await w().emulateMedia({ reducedMotion: null })
+    release()
 
     // the answer: text with [n] markers (the chips), and one chip per citation
     const answer = await poll(() => lastAnswer(SEED.long), 15_000, 'the persisted answer')
@@ -369,9 +389,17 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
   })
 
   it('answers during a live recording, with citations into the growing transcript', async () => {
-    const s = await daemon.client.call('createSession', { body: { title: 'Live questions' } })
-    await daemon.client.call('startSession', { params: { id: s.id } })
-    await openSession('Live questions')
+    // started with the window's own Record button (as the GTK suite did); it opens the new session
+    await w().getByRole('button', { name: 'Record', exact: true }).click()
+    const s = await poll(
+      async () =>
+        (await daemon.client.call('listSessions', { query: {} })).sessions.find(
+          (x) => x.status === 'recording',
+        ),
+      10_000,
+      'the recording started from the window',
+    )
+    await w().getByRole('heading', { level: 1, name: s.title }).waitFor({ timeout: 10_000 })
     // the cassette cites the 3rd and 5th lines: wait until there are enough
     await poll(
       async () => (await daemon.client.call('getTranscript', { params: { id: s.id } })).segments.length >= 6,
@@ -403,6 +431,9 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
     )
     // it went through the real API with the key from the environment
     expect(api.seen.at(-1)!.headers['x-api-key']).toBe(KEY)
-    await daemon.client.call('stopSession', { params: { id: s.id } })
+    // …and stopped with the window's Stop button: the header offers Record again
+    await w().getByRole('button', { name: 'Stop', exact: true }).click()
+    await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 10_000 })
+    expect((await daemon.client.call('getSession', { params: { id: s.id } })).status).toBe('stopped')
   })
 })

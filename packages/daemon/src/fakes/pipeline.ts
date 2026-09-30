@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { newId, type Track, type TrackKind } from '@gnomeola/protocol'
 import type {
@@ -40,6 +40,19 @@ export type FakePipelineOptions = {
    * each voice a fixed embedding, recognised against the recording's known voices like the real thing.
    */
   diarize?: boolean
+  /**
+   * Deterministic output for screenshot baselines: audio time advances exactly tickMs × speed per tick
+   * (not by the wall clock, whose jitter changes where partials and segments fall), and a live segment
+   * is finalised after finalizeAfterMs × speed of AUDIO time — so what has been emitted at a given audio
+   * time is always the same, and holding the audio clock (`hold`) holds the finals too.
+   */
+  deterministic?: boolean
+  /**
+   * Freeze every recording's audio clock at `atMs` (still recording: the partial lines and a steady level
+   * keep being re-sent, like a quiet room) until the file `releaseFile` exists. With `deterministic`,
+   * a recording caught at the hold is the same every run.
+   */
+  hold?: { atMs: number; releaseFile: string }
 }
 
 /** The fake far end's voices: one-hot embeddings of the `fake-embedding` model. */
@@ -58,9 +71,10 @@ const WORDS = (
   'let us revisit the incident review next week because the alert fired twice'
 ).split(' ')
 
+type OptionalOpts = 'failAfterMs' | 'gapAtMs' | 'failStart' | 'diarize' | 'deterministic' | 'hold'
+
 export class FakePipeline implements TranscriptionPipeline {
-  readonly opts: Required<Omit<FakePipelineOptions, 'failAfterMs' | 'gapAtMs' | 'failStart' | 'diarize'>> &
-    Pick<FakePipelineOptions, 'failAfterMs' | 'gapAtMs' | 'failStart' | 'diarize'>
+  readonly opts: Required<Omit<FakePipelineOptions, OptionalOpts>> & Pick<FakePipelineOptions, OptionalOpts>
   /** Every recording this pipeline started, for assertions. */
   readonly recordings: FakeRecording[] = []
 
@@ -99,6 +113,10 @@ export class FakeRecording implements RecordingHandle {
   private timer: NodeJS.Timeout | null = null
   private readonly finalizers = new Set<NodeJS.Timeout>()
   private readonly pendingFinal = new Map<string, SegmentUpsert>()
+  /** deterministic: live segment id → the audio time its final revision is due. */
+  private readonly finalDue = new Map<string, number>()
+  private released = false
+  private heldTicks = 0
   private activeWallMs = 0
   private lastTick = 0
   private lastLevelAt = 0
@@ -154,10 +172,21 @@ export class FakeRecording implements RecordingHandle {
 
   private tick(): void {
     const now = Date.now()
-    if (!this.paused) this.activeWallMs += now - this.lastTick
+    const held = this.held()
+    if (!this.paused && !held) this.activeWallMs += this.o.deterministic ? this.o.tickMs : now - this.lastTick
     this.lastTick = now
     if (this.paused || this.stopped) return
+    if (held) {
+      this.idle()
+      return
+    }
     const t = this.audioMs()
+    if (this.o.deterministic)
+      for (const [id, due] of this.finalDue)
+        if (t >= due) {
+          this.finalDue.delete(id)
+          this.finalise(id)
+        }
 
     if (this.o.failAfterMs !== undefined && t >= this.o.failAfterMs && !this.failed) {
       this.failed = true
@@ -196,6 +225,35 @@ export class FakeRecording implements RecordingHandle {
     }
   }
 
+  /** At the hold point, until the release file appears. */
+  private held(): boolean {
+    const h = this.o.hold
+    if (!h || this.released || this.audioMs() < h.atMs) return false
+    if (existsSync(h.releaseFile)) this.released = true
+    return !this.released
+  }
+
+  /** Held: nothing new is said, but the open lines and a steady level keep arriving (late subscribers see them). */
+  private idle(): void {
+    if (
+      this.heldTicks++ % Math.max(1, Math.round(this.o.partialEveryMs / this.o.speed / this.o.tickMs)) !==
+      0
+    )
+      return
+    const t = this.audioMs()
+    for (const tr of this.tracks) {
+      this.sink.level({ track: tr.kind, rms: 0.2, peak: 0.36, elapsedMs: t })
+      const seg = this.open.get(tr.kind)!
+      if (seg.words.length)
+        this.sink.partial({
+          track: tr.kind,
+          speaker: speaker(tr.kind),
+          startMs: seg.startMs,
+          text: seg.words.join(' '),
+        })
+    }
+  }
+
   /** Close the open segment on a track at audio time `t` and schedule its final revision. */
   private close(track: TrackKind, t: number): void {
     const seg = this.open.get(track)!
@@ -216,11 +274,14 @@ export class FakeRecording implements RecordingHandle {
       if (track === 'system' && this.diarize) this.attribute(live.id)
       const fin: SegmentUpsert = { ...live, text: capitalise(live.text), quality: 'final', confidence: 0.92 }
       this.pendingFinal.set(live.id, fin)
-      const timer = setTimeout(() => {
-        this.finalizers.delete(timer)
-        this.finalise(live.id)
-      }, this.o.finalizeAfterMs)
-      this.finalizers.add(timer)
+      if (this.o.deterministic) this.finalDue.set(live.id, t + this.o.finalizeAfterMs * this.o.speed)
+      else {
+        const timer = setTimeout(() => {
+          this.finalizers.delete(timer)
+          this.finalise(live.id)
+        }, this.o.finalizeAfterMs)
+        this.finalizers.add(timer)
+      }
     }
     this.open.set(track, { startMs: t, words: [], nextCloseAt: t + this.o.segmentEveryMs, lastPartialAt: t })
   }
@@ -278,6 +339,7 @@ export class FakeRecording implements RecordingHandle {
     for (const tr of this.tracks) this.close(tr.kind, t)
     for (const timer of this.finalizers) clearTimeout(timer)
     this.finalizers.clear()
+    this.finalDue.clear()
     for (const id of [...this.pendingFinal.keys()]) this.finalise(id)
     const v = this.voices()
     if (v) this.sink.voices(v)

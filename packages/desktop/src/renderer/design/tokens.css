@@ -36,11 +36,11 @@
   --popover-fg-color: var(--k-color-text-primary);
 
   /* the accent: record red. Fills that carry white text (the Record button, a confirming destructive
-     button) use --record-fill-color: the brand's #E0482B / #F0603F under white text is 4.09 / 3.26:1,
-     under WCAG AA for our 15px labels (the axe gate), so the fill is darkened just enough (5.0 / 4.7:1).
-     Dots, rings and the live indicator stay pure accent.record. */
-  --record-fill-color: #c93d22;
-  --record-fill-hover-color: #b3341b;
+     button) use the brand's accent.recordFill: accent.record (#E0482B / #F0603F) under white text is
+     4.09 / 3.26:1, under WCAG AA for our 15px labels (the axe gate), so the fill is darkened just enough
+     (5.0 / 4.7:1). Dots, rings and the live indicator stay pure accent.record. */
+  --record-fill-color: var(--k-color-accent-record-fill);
+  --record-fill-hover-color: var(--k-color-accent-record-fill-hover);
   --accent-bg-color: var(--record-fill-color);
   --accent-bg-hover-color: var(--record-fill-hover-color);
   --accent-fg-color: var(--k-color-text-on-accent);
@@ -80,9 +80,4 @@
   --monospace-font-family: var(--k-font-family-mono);
   --headerbar-height: var(--k-size-header-bar);
   --sidebar-width: 300px;
-}
-
-:root[data-theme="dark"] {
-  --record-fill-color: #d0401f;
-  --record-fill-hover-color: #c93d22;
 }

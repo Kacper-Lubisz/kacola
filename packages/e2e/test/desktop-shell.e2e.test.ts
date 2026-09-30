@@ -114,6 +114,23 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
       .getByRole('heading', { level: 1, name: 'Platform standup' })
       .waitFor({ state: 'detached' })
     await app.window.getByText('Finished · 20:00').first().waitFor()
+
+    // the selection survives the list growing above it (sessions created elsewhere land on top)
+    const url = app.window.url()
+    for (const title of ['Created elsewhere 1', 'Created elsewhere 2'])
+      await daemon.client.call('createSession', { body: { title } })
+    await rows(app).filter({ hasText: 'Created elsewhere 2' }).waitFor({ timeout: 10_000 })
+    expect((await rowNames(app))[0]).toBe('Created elsewhere 2')
+    expect(await rows(app).filter({ hasText: 'Sprint retro' }).getAttribute('aria-selected')).toBe('true')
+    expect(await rows(app).filter({ hasText: 'Created elsewhere 2' }).getAttribute('aria-selected')).toBe(
+      'false',
+    )
+    await app.window.getByRole('heading', { level: 1, name: 'Sprint retro' }).waitFor()
+    expect(app.window.url()).toBe(url)
+    for (const s of (await daemon.client.call('listSessions', { query: {} })).sessions)
+      if (s.title.startsWith('Created elsewhere'))
+        await daemon.client.call('deleteSession', { params: { id: s.id } })
+    await rows(app).filter({ hasText: 'Created elsewhere' }).first().waitFor({ state: 'detached' })
   })
 
   it('renames a session and makes it private from Details: the daemon and the list follow', async () => {

@@ -56,6 +56,12 @@ const PAIRS: [string, string, number][] = [
   // large/bold button labels on red (WCAG AA large text / UI components)
   ['text.onAccent', 'accent.record', 3],
   ['text.onAccent', 'accent.recordHover', 3],
+  // filled red surfaces that carry regular-size white text (the Record button's 15px label, a
+  // confirming destructive button): WCAG AA body text, what the app's axe gate enforces
+  ['text.onAccent', 'accent.recordFill', 4.5],
+  ['text.onAccent', 'accent.recordFillHover', 4.5],
+  // …and the fill still reads as record red against the window: 3:1 like the other marks
+  ['accent.recordFill', 'bg.window', 3],
   // fills, icons and marks: 3:1 against the window and surfaces they sit on
   ...FILL_TOKENS.flatMap((t) => ['bg.window', 'bg.surface'].map((g): [string, string, number] => [t, g, 3])),
 ]
