@@ -1,3 +1,4 @@
+import { contentWords } from '@gnomeola/decisions'
 import type { SearchHit } from '@gnomeola/protocol'
 import type { Store } from '@gnomeola/store'
 
@@ -17,6 +18,10 @@ const NOT_NAMES = new Set(
     .map((w) => w.toLowerCase()),
 )
 
+/** Common sentence openers that contentWords keeps (not stopwords there). */
+const COMMON =
+  /^(anyway|basically|honestly|next|last|first|finally|also|another|everything|nothing|something|someone|everyone|because|since|although|though|still|even|only|maybe|perhaps|definitely|absolutely|exactly|really|awesome|perfect|lovely|fine|done|sounds|looks|seems|makes|feels|let's|lets|going|thinking|looking|talking|speaking|moving|coming)$/i
+
 /** Candidate names/projects in the recent lines: speaker names, then capitalised words mid-sentence. */
 export function contextTerms(lines: readonly { speaker: string; text: string }[], max = 5): string[] {
   const count = new Map<string, number>()
@@ -26,9 +31,15 @@ export function contextTerms(lines: readonly { speaker: string; text: string }[]
     for (const sentence of l.text.split(/(?<=[.!?])\s+/)) {
       const words = sentence.split(/\s+/)
       words.forEach((raw, i) => {
-        if (i === 0) return
         const w = raw.replace(/^[^\p{L}]+|[^\p{L}\p{N}]+$/gu, '').replace(/'s$/, '')
-        if (w.length >= 3 && /^\p{Lu}/u.test(w) && !NOT_NAMES.has(w.toLowerCase())) add(w)
+        if (w.length < 3 || !/^\p{Lu}/u.test(w) || NOT_NAMES.has(w.toLowerCase())) return
+        // a capital at the start of a sentence says little ("Priya owns…" vs "Budget is…"): half weight,
+        // and never a common word
+        if (i === 0) {
+          if (w.length >= 4 && contentWords(w).size > 0 && !COMMON.test(w)) add(w, 0.5)
+          return
+        }
+        add(w)
       })
     }
   }
