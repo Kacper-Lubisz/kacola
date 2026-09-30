@@ -1096,16 +1096,16 @@ for the retrieval surface:
         ]} />
 
         <Tasks phase="M8" title="Hosted / Vercel — 9 d · floats, can be cut from 1.0" items={[
-          { text: <><strong>H-1</strong> Postgres dialect with migration parity + <code>BlobStore</code> abstraction over local FS and Vercel Blob. <em>blocked by: G-5</em></> },
-          { text: <><strong>H-2</strong> Extract <code>capture-agent</code>: the local-only half that records and uploads, making the daemon relocatable. <em>blocked by: R-2, R-4</em></> },
-          { text: <><strong>H-3</strong> Chunked idempotent audio upload keyed by <code>(sessionId, chunkSeq)</code>, resumable. <em>blocked by: H-2, H-1</em></> },
-          { text: <><strong>H-4</strong> Cursor-resumable SSE proven against the function duration cap — a test that kills the connection at 300 s and verifies zero lost events. <em>blocked by: G-4, H-1</em></> },
-          { text: <><strong>H-5</strong> Vercel deployment: protocol routes, per-function <code>maxDuration</code>, Neon, Blob. <em>blocked by: H-1, H-3, H-4</em></> },
-          { text: <><strong>H-6</strong> Pairing auth: device code to signed token; loopback stays anonymous, remote always requires a token. <em>blocked by: H-5</em></> },
-          { text: <><strong>H-7</strong> Hybrid sync mode — transcribe locally, sync text and notes only. <em>The recommended default. blocked by: H-4, T-5</em></> },
-          { text: <><strong>H-8</strong> Cloud STT provider with diarization for full-offload mode. <em>blocked by: T-2, A-1</em></> },
-          { text: <><strong>H-9</strong> Read-only web viewer reusing the protocol types. <em>blocked by: H-5</em></> },
-          { text: <><strong>V-8</strong> Extends H-4: fuzzed cursor-resumption (connections killed at many random offsets, asserting zero gaps and zero duplicates) against a deliberately short <code>maxDuration</code> so the cap is reachable in CI seconds rather than 300 s; plus a preview-deployment smoke test and dialect-parity tests running the same store suite on SQLite and Postgres. <em>blocked by: H-5, V-2a. Exit: the same suite passes on both dialects.</em></> },
+          { done: true, text: <><strong>H-1</strong> Postgres dialect with migration parity + <code>BlobStore</code> abstraction over local FS and Vercel Blob. <em>blocked by: G-5</em></> },
+          { done: true, text: <><strong>H-2</strong> Extract <code>capture-agent</code>: the local-only half that records and uploads, making the daemon relocatable. <em>blocked by: R-2, R-4</em></> },
+          { done: true, text: <><strong>H-3</strong> Chunked idempotent audio upload keyed by <code>(sessionId, chunkSeq)</code>, resumable. <em>blocked by: H-2, H-1</em></> },
+          { done: true, text: <><strong>H-4</strong> Cursor-resumable SSE proven against the function duration cap — a test that kills the connection at 300 s and verifies zero lost events. <em>blocked by: G-4, H-1</em></> },
+          { done: true, text: <><strong>H-5</strong> Vercel deployment: protocol routes, per-function <code>maxDuration</code>, Neon, Blob. <em>blocked by: H-1, H-3, H-4</em></> },
+          { done: true, text: <><strong>H-6</strong> Pairing auth: device code to signed token; loopback stays anonymous, remote always requires a token. <em>blocked by: H-5</em></> },
+          { done: true, text: <><strong>H-7</strong> Hybrid sync mode — transcribe locally, sync text and notes only. <em>The recommended default. blocked by: H-4, T-5</em></> },
+          { done: true, text: <><strong>H-8</strong> Cloud STT provider with diarization for full-offload mode. <em>blocked by: T-2, A-1</em></> },
+          { done: true, text: <><strong>H-9</strong> Read-only web viewer reusing the protocol types. <em>blocked by: H-5</em></> },
+          { done: true, text: <><strong>V-8</strong> Extends H-4: fuzzed cursor-resumption (connections killed at many random offsets, asserting zero gaps and zero duplicates) against a deliberately short <code>maxDuration</code> so the cap is reachable in CI seconds rather than 300 s; plus a preview-deployment smoke test and dialect-parity tests running the same store suite on SQLite and Postgres. <em>blocked by: H-5, V-2a. Exit: the same suite passes on both dialects.</em></> },
         ]} />
 
         <Tasks phase="M9" title="Ship & package — 8 d · ships 1.0" items={[
