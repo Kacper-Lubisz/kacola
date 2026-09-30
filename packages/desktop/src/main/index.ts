@@ -211,7 +211,8 @@ async function daemonUp(): Promise<void> {
   }
   void capture?.reconcile()
   refreshActive()
-  if (watching) return
+  // nothing to watch for: no in-app capture (PipeWire daemon) and no Tray (Linux)
+  if (watching || (!capture && !tray)) return
   watching = true
   // a session event is when a recording may have started or stopped; the tick catches anything missed
   void client.subscribe({
