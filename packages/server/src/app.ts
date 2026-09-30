@@ -321,6 +321,8 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     heartbeatAgentLease: 'unsupported',
     releaseAgentLease: 'unsupported',
     liveAttach: 'unsupported',
+    // ---- Agendas wave 2: the live tracker runs in the device's daemon
+    getAgendaTracker: 'unsupported',
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))

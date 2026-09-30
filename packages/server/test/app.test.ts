@@ -272,6 +272,7 @@ describe('hosted contract: every route', () => {
       heartbeatAgentLease: () => notHere(c.call('heartbeatAgentLease', { params: { leaseId: 'lse_x' } })),
       releaseAgentLease: () => notHere(c.call('releaseAgentLease', { params: { leaseId: 'lse_x' } })),
       liveAttach: () => notHere(c.stream('liveAttach', { params }).next()),
+      getAgendaTracker: () => notHere(c.call('getAgendaTracker', { params: { id: 'agd_x' } })),
     }
     const seen: RouteName[] = []
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {
