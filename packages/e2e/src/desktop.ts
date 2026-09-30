@@ -3,8 +3,7 @@ import { join } from 'node:path'
 import { type DesktopApp, matchBaseline } from '@gnomeola/testkit/desktop'
 import type { HeadlessDisplay } from '@gnomeola/testkit/ui'
 
-// Helpers for the Electron window e2e (packages/e2e/test/desktop-*.e2e.test.ts), the counterpart of
-// ./ui.ts for the GTK app.
+// Helpers for the Electron window e2e (packages/e2e/test/desktop-*.e2e.test.ts).
 
 export const DESKTOP_ARTIFACTS = join(import.meta.dirname, '..', 'test', '__artifacts__', 'desktop')
 export const BASELINES = join(import.meta.dirname, '..', 'test', '__screenshots__', 'desktop')
