@@ -134,6 +134,8 @@ export function NotesEditor({
           EditorView.contentAttributes.of({
             'aria-label': label,
             'aria-multiline': 'true',
+            // focusable in the tab order explicitly, so the scroller counts as keyboard-reachable (axe)
+            tabindex: '0',
             spellcheck: 'true',
             autocapitalize: 'sentences',
           }),

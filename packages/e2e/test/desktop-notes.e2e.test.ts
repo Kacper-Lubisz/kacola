@@ -109,7 +109,28 @@ function helpers(getApp: () => DesktopApp, getDaemon: () => DaemonHandle, scheme
     return matchBaseline(file, join(BASELINES, `${name}-${scheme}.png`), { artifactsDir: ARTIFACTS })
   }
   const axe = async () => expect(await getApp().axe()).toEqual([])
-  return { w, versions, head, openSession, editor, editorText, status, shot, axe }
+  /** The held stream shows `text`, and nothing more arrives (the fake server is holding it). */
+  const streamedUpTo = async (text: string) => {
+    const soFar = w().getByRole('region', { name: 'Enhanced notes so far' })
+    await waitFor(
+      async () => ((await soFar.textContent()) ?? '').includes(text),
+      15_000,
+      `"${text}" streamed`,
+    )
+    let last = ''
+    await waitFor(
+      async () => {
+        const now = (await soFar.textContent()) ?? ''
+        const still = now === last
+        last = now
+        if (!still) await new Promise((r) => setTimeout(r, 300))
+        return still
+      },
+      5000,
+      'the held stream to settle',
+    )
+  }
+  return { w, versions, head, openSession, editor, editorText, status, shot, axe, streamedUpTo }
 }
 
 describe('Notes in the Electron window: type, enhance, review, apply (light)', () => {
@@ -143,7 +164,9 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     // the editor is themed from the brand tokens: Instrument Sans body
     const font = await h
       .w()
-      .evaluate(`getComputedStyle(document.querySelector('[data-notes-pane] [data-notes-editor]').shadowRoot.querySelector('.cm-content')).fontFamily`)
+      .evaluate(
+        `getComputedStyle(document.querySelector('[data-notes-pane] [data-notes-editor]').shadowRoot.querySelector('.cm-content')).fontFamily`,
+      )
     expect(font).toMatch(/Instrument Sans/)
     await h.axe()
     await h.w().mouse.move(0, 0)
@@ -157,20 +180,14 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     const before = await h.head(SEED.retro)
     await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
     await h.w().getByRole('progressbar', { name: 'Enhancing' }).waitFor({ timeout: 10_000 })
-    const soFar = h.w().getByRole('region', { name: 'Enhanced notes so far' })
-    await waitFor(
-      async () => /Ana dashboard/.test((await soFar.textContent()) ?? ''),
-      15_000,
-      'streamed text',
-    )
-    await h
-      .w()
-      .getByText(/words written so far/)
-      .waitFor()
-    await h.axe()
-    await h.w().mouse.move(0, 0)
-    await h.shot('enhancing')
-    release()
+    try {
+      await h.streamedUpTo('migration thursday')
+      await h.w().getByText('words written so far', { exact: false }).waitFor()
+      await h.axe()
+      await h.shot('enhancing')
+    } finally {
+      release()
+    }
     await h.w().getByRole('heading', { name: 'Review Enhanced Notes' }).waitFor({ timeout: 20_000 })
     // the request: effort high, the typed notes last, the key from the environment
     const req = ctx.api.seen.at(-1)!
@@ -214,7 +231,8 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
       const n = changes.indexOf(r) + 1
       const sw = h.w().getByRole('switch', { name: `Use enhanced text for change ${n}`, exact: true })
       expect(await sw.isChecked()).toBe(true)
-      await sw.click()
+      // a pointer click on the switch's track (the input itself is visually hidden)
+      await sw.locator('xpath=ancestor::label[1]').click()
       await waitFor(async () => !(await sw.isChecked()), 5000, `change ${n} reverted`)
       choices[r.i] = 'mine'
     }
@@ -351,6 +369,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
   })
 
   it('dismissing the save dialog writes nothing and says nothing', async () => {
+    await h.status('Notes exported to').waitFor({ state: 'detached', timeout: 10_000 })
     await ctx.app.evaluateMain(({ dialog }) => {
       dialog.showSaveDialog = (async () => ({ canceled: true, filePath: '' })) as typeof dialog.showSaveDialog
     })
@@ -380,6 +399,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     const dialog = h.w().getByRole('dialog', { name: 'Version History' })
     await dialog.waitFor()
     const list = dialog.getByRole('listbox', { name: 'Versions' })
+    await list.getByRole('option').first().waitFor()
     // newest first, every version listed, the head marked current
     expect(await list.getByRole('option').count()).toBe(before.length)
     expect(await list.getByRole('option').first().textContent()).toContain(
@@ -482,7 +502,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     )
     await dialog.getByRole('option', { name: /Retrospective/ }).waitFor({ state: 'detached' })
     await dialog.getByRole('button', { name: 'Close' }).click()
-    await h.w().getByText('General template', { exact: true }).waitFor({ timeout: 10_000 })
+    await h.w().getByText('General meeting template', { exact: true }).waitFor({ timeout: 10_000 })
   })
 
   it('saves what was typed even when the session is left before the autosave fires', async () => {
@@ -524,12 +544,13 @@ describe('Notes in dark and high contrast', () => {
       ctx.api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
       const release = ctx.api.holdAfter(9)
       await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
-      const soFar = h.w().getByRole('region', { name: 'Enhanced notes so far' })
-      await waitFor(async () => /Ana dashboard/.test((await soFar.textContent()) ?? ''), 15_000, 'streamed')
-      await h.axe()
-      await h.w().mouse.move(0, 0)
-      await h.shot('enhancing')
-      release()
+      try {
+        await h.streamedUpTo('migration thursday')
+        await h.axe()
+        await h.shot('enhancing')
+      } finally {
+        release()
+      }
       await h.w().getByRole('heading', { name: 'Review Enhanced Notes' }).waitFor({ timeout: 20_000 })
       await h.axe()
       await h.shot('review')

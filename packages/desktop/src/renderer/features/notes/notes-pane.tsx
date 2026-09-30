@@ -1,4 +1,4 @@
-import type { MergeChoice, NoteTemplate, TemplateSuggestion } from '@gnomeola/protocol'
+import type { MergeChoice, NoteTemplate, Session, TemplateSuggestion } from '@gnomeola/protocol'
 import { _, fmt } from '@gnomeola/ui-core/i18n'
 import {
   enhanceProblem,
@@ -137,15 +137,17 @@ function EnhanceProblemBanner({
   )
 }
 
+/** The session frame's Notes tab (PaneProps: `{ session }`, phase 2A). */
 export function NotesPane({
-  sessionId,
+  session,
   onOpenPreferences,
 }: {
-  sessionId: string
+  session: Session
+  /** Offered when enhancing needs a provider set up (the shell's Preferences dialog). */
   onOpenPreferences?: () => void
 }) {
+  const sessionId = session.id
   const { queries, bridge } = useServices()
-  const { data: session } = useQuery(queries.session(sessionId))
   const { data: tpl } = useQuery(queries.templates(sessionId))
   const { feed, state } = useNotesFeed(sessionId)
   const [merging, setMerging] = useState(false)
@@ -167,7 +169,7 @@ export function NotesPane({
     [],
   )
 
-  if (!feed || !state || !session) {
+  if (!feed || !state) {
     return (
       <div className="flex h-full items-center justify-center bg-bg-window">
         <KSpinner label={_('Loading…')} size={24} />

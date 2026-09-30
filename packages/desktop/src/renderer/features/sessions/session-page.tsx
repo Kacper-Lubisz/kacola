@@ -6,7 +6,7 @@ import { HeaderBar } from '../../design/primitives/index.ts'
 import { NotesPane } from '../notes/notes-pane.tsx'
 
 // Placeholder session detail (phase 2A replaces it with the session frame: transcript / notes / ask).
-// Until then the Notes pane (phase 2C) fills the body, keyed per session so leaving flushes its draft.
+// Until then the Notes pane (phase 2C) fills the body (it flushes its draft when the session changes).
 export function SessionPage({ sessionId }: { sessionId: string }) {
   const { queries } = useServices()
   const { data: session } = useQuery(queries.session(sessionId))
@@ -20,7 +20,7 @@ export function SessionPage({ sessionId }: { sessionId: string }) {
         <p className="m-0 text-dim">{statusSummary(session, now)}</p>
       </div>
       <div className="min-h-0 flex-1">
-        <NotesPane key={sessionId} sessionId={sessionId} />
+        <NotesPane session={session} />
       </div>
     </div>
   )
