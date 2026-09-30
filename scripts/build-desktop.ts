@@ -11,7 +11,9 @@
 //
 // The staged project is only package.json + out/ (main, preload, renderer: electron-vite bundles them
 // completely, so the asar carries no node_modules). extraResources: runtime/ (daemon.mjs, cli.mjs and
-// their natives), icon.png (the window icon), THIRD_PARTY_NOTICES.md. Fuses come from
+// their natives), icon.png (the window icon), THIRD_PARTY_NOTICES.md, extension/ (the GNOME Shell
+// top-bar extension, schema compiled, for Preferences' "Install" — Linux) and tray*.png (the macOS
+// menu-bar icon). Fuses come from
 // packages/desktop/fuses.config.ts, flipped in afterPack (RunAsNode on: the same binary runs the daemon
 // and the CLI).
 import { execFileSync } from 'node:child_process'
@@ -33,6 +35,7 @@ import { buildRuntime, REPO } from './build-runtime.ts'
 export const APP_ID = 'org.gnome.Gnomeola'
 export const DESKTOP = join(REPO, 'packages', 'desktop')
 export const BRAND_ICONS = join(REPO, 'brand', 'icons')
+export const EXTENSION_UUID = 'gnomeola@gnomeola.org'
 
 export function electronVersion(): string {
   return (
@@ -73,7 +76,7 @@ export function stageDesktopApp(stage: string, o: { skipVite?: boolean } = {}): 
         description: 'Record, transcribe and search your meetings',
         license: pkg.license,
         author: 'The gnomeola contributors',
-        homepage: 'https://github.com/gnomeola/gnomeola',
+        homepage: 'https://github.com/kacperlubisz/gnomeola',
         type: 'module',
         main: 'out/main/index.js',
         desktopName: pkg.desktopName,
@@ -86,6 +89,14 @@ export function stageDesktopApp(stage: string, o: { skipVite?: boolean } = {}): 
   cpSync(out, join(stage, 'out'), { recursive: true })
   cpSync(join(REPO, 'THIRD_PARTY_NOTICES.md'), join(stage, 'THIRD_PARTY_NOTICES.md'))
   cpSync(join(BRAND_ICONS, 'png', '512.png'), join(stage, 'icon.png'))
+  cpSync(join(BRAND_ICONS, 'png', '16.png'), join(stage, 'tray.png'))
+  cpSync(join(BRAND_ICONS, 'png', '32.png'), join(stage, 'tray@2x.png'))
+  // the top-bar extension as the app installs it: its GSettings schema compiled (the Shell needs
+  // gschemas.compiled for an extension copied into place by hand)
+  const ext = join(stage, 'extension', EXTENSION_UUID)
+  rmSync(join(stage, 'extension'), { recursive: true, force: true })
+  cpSync(join(REPO, 'extensions', EXTENSION_UUID), ext, { recursive: true })
+  execFileSync('glib-compile-schemas', ['--strict', join(ext, 'schemas')])
   return pkg.version!
 }
 
@@ -133,6 +144,7 @@ export async function buildLinuxApp(o: { outDir: string; skipVite?: boolean }): 
         { from: 'runtime', to: 'runtime' },
         { from: 'icon.png', to: 'icon.png' },
         { from: 'THIRD_PARTY_NOTICES.md', to: 'THIRD_PARTY_NOTICES.md' },
+        { from: 'extension', to: 'extension' },
       ],
       linux: {
         target: [{ target: 'dir', arch: ['x64'] }],

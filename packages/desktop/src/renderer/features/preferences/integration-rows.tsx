@@ -3,15 +3,18 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import type { CliInstallState } from '../../../shared/bridge.ts'
 import { useServices } from '../../data/services.tsx'
-import { AlertDialog, Button, Row, Spinner, useToast } from '../../design/primitives/index.ts'
+import { AlertDialog, Button, Row, Spinner, Switch, useToast } from '../../design/primitives/index.ts'
 
-// "Install command-line tool and Claude skill" and "Install top-bar extension" (Preferences →
-// Integration). Both run in main (src/main/integration.ts): the CLI through the bundled
-// `gnomeola install-cli --json`, the extension a stub until packaging implements it. Their state is a
-// query keyed ['integration', …] — it lives in main, not the daemon, so the EventBridge never touches it.
+// "Install command-line tool and Claude skill", "Install top-bar extension" and "Start in the
+// background at login" (Preferences → Integration). All run in main: the CLI through the bundled
+// `gnomeola install-cli --json` (src/main/integration.ts), the extension as a copy into the user's
+// extensions dir (src/main/extension.ts), autostart through the Background portal / an autostart entry
+// / a macOS login item (src/main/autostart.ts). Their state is a query keyed ['integration', …] — it
+// lives in main, not the daemon, so the EventBridge never touches it.
 
 const CLI_KEY = ['integration', 'cli'] as const
 const EXT_KEY = ['integration', 'extension'] as const
+const AUTOSTART_KEY = ['integration', 'autostart'] as const
 
 export function cliSubtitle(s: CliInstallState | undefined): string {
   if (!s) return _('Checking…')
@@ -163,6 +166,31 @@ export function ExtensionRow() {
           {_('Install')}
         </Button>
       ) : null}
+    </Row>
+  )
+}
+
+export function BackgroundRow() {
+  const { bridge } = useServices()
+  const qc = useQueryClient()
+  const toast = useToast()
+  const status = useQuery({ queryKey: AUTOSTART_KEY, queryFn: () => bridge.getAutostart() })
+  const title = _('Start in the background at login')
+  return (
+    <Row
+      title={title}
+      subtitle={_('Record from the top bar and the command line without opening this window')}
+    >
+      <Switch
+        aria-label={title}
+        isSelected={status.data?.enabled ?? false}
+        isDisabled={!status.data}
+        onChange={async (enabled) => {
+          const next = await bridge.setAutostart(enabled)
+          qc.setQueryData(AUTOSTART_KEY, next)
+          if (next.detail) toast(next.detail, { tone: 'error' })
+        }}
+      />
     </Row>
   )
 }

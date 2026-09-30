@@ -20,7 +20,7 @@ import {
   TextField,
   useToast,
 } from '../../design/primitives/index.ts'
-import { CliInstallRow, ExtensionRow } from './integration-rows.tsx'
+import { BackgroundRow, CliInstallRow, ExtensionRow } from './integration-rows.tsx'
 import { setApiKeyMutation, updateSettingsMutation } from './settings-data.ts'
 
 // Preferences: every daemon setting the window owns (the GTK dialog's, S-3), applied as soon as it
@@ -345,6 +345,7 @@ function Integration() {
     >
       <CliInstallRow />
       <ExtensionRow />
+      <BackgroundRow />
     </RowGroup>
   )
 }
