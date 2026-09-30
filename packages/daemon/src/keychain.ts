@@ -34,7 +34,7 @@ import type { KeyAccount, Keyring } from './interfaces.ts'
 // strictly worse. `-T <app>` adds more trusted apps, which we don't need. A locked keychain either fails
 // with 36 or blocks on an unlock dialog, so every call has a timeout.
 
-const LABELS: Record<KeyAccount, string> = { anthropic: 'Anthropic', openai: 'OpenAI' }
+const LABELS: Record<KeyAccount, string> = { anthropic: 'Anthropic', openai: 'OpenAI', typesafe: 'TypeSafe' }
 
 /** Longest line security's interactive reader takes (MAX_LINE_LEN), minus headroom for the newline. */
 const MAX_LINE = 4000

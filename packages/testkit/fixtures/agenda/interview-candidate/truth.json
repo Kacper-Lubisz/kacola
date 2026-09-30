@@ -1,0 +1,416 @@
+{
+  "id": "interview-candidate",
+  "title": "Job interview, the user as the candidate",
+  "description": "The user (mic) is a candidate talking to a recruiter (Leah) and a hiring manager (Tom) on the far end. Info-to-get items: team size, tech stack, remote policy, salary (answered then corrected), on-call (deflected), next steps.",
+  "sampleRate": 16000,
+  "durationMs": 105754,
+  "tracks": {
+    "mic": "mic.opus",
+    "system": "system.opus"
+  },
+  "speakers": [
+    {
+      "name": "Sam",
+      "track": "mic",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "name": "Leah",
+      "track": "system",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "name": "Tom",
+      "track": "system",
+      "source": "tts-piper-en_US-sam-medium"
+    }
+  ],
+  "utterances": [
+    {
+      "track": "system",
+      "speaker": "Leah",
+      "startMs": 2361,
+      "endMs": 8811,
+      "text": "Hi Sam, thanks for joining. I'm Leah from the recruiting team, and Tom, the hiring manager, is here too.",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Tom",
+      "startMs": 9179,
+      "endMs": 10669,
+      "text": "Hello, nice to meet you.",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 11040,
+      "endMs": 14187,
+      "text": "Nice to meet you both. I have a few questions, if that is okay.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Leah",
+      "startMs": 14892,
+      "endMs": 16259,
+      "text": "Of course, go ahead.",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 16859,
+      "endMs": 19038,
+      "text": "First, how big is the team I would be joining?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Tom",
+      "startMs": 19915,
+      "endMs": 23927,
+      "text": "There are eight engineers today, plus a designer and a product manager.",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 24404,
+      "endMs": 25567,
+      "text": "And what do you build with?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Tom",
+      "startMs": 26188,
+      "endMs": 33075,
+      "text": "Mostly Go on the back end. The front end moved to TypeScript last year, and everything runs on Postgres.",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 33744,
+      "endMs": 36839,
+      "text": "That sounds good. What is the policy on working from home?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Leah",
+      "startMs": 37537,
+      "endMs": 43179,
+      "text": "We are hybrid. People come into the office on Tuesdays and Thursdays, and the rest of the week is remote.",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 43605,
+      "endMs": 45896,
+      "text": "Great. Could you share the salary range for the role?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Leah",
+      "startMs": 46609,
+      "endMs": 50249,
+      "text": "For this level the base is one hundred and ten to one hundred and thirty thousand.",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Leah",
+      "startMs": 50890,
+      "endMs": 56180,
+      "text": "Sorry, I was looking at the wrong sheet. For senior it is one hundred and twenty to one hundred and forty thousand.",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 56786,
+      "endMs": 57571,
+      "text": "Thanks for checking.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Tom",
+      "startMs": 58194,
+      "endMs": 62816,
+      "text": "By the way, have you been to our office before? It is right next to the river.",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 63379,
+      "endMs": 66288,
+      "text": "Not yet, but I walked past it once on the way to a concert.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 66714,
+      "endMs": 68325,
+      "text": "How does on-call work on the team?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Tom",
+      "startMs": 68773,
+      "endMs": 74016,
+      "text": "Good question. It is changing next quarter, so let's leave that for the technical round.",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 74707,
+      "endMs": 77433,
+      "text": "Okay, fair enough. And what happens after today?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Leah",
+      "startMs": 77794,
+      "endMs": 82475,
+      "text": "Next is a technical interview with two engineers, and then a short chat with the director.",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 82887,
+      "endMs": 84315,
+      "text": "How long does that usually take?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Leah",
+      "startMs": 85033,
+      "endMs": 87185,
+      "text": "About two weeks from start to finish.",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Tom",
+      "startMs": 87685,
+      "endMs": 90588,
+      "text": "Do you have any questions about the product itself?",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 91071,
+      "endMs": 93161,
+      "text": "Yes. Who are your biggest customers?",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Tom",
+      "startMs": 94037,
+      "endMs": 96218,
+      "text": "Mostly logistics companies in Europe.",
+      "source": "tts-piper-en_US-sam-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 96861,
+      "endMs": 98268,
+      "text": "Great, I think that's all from me.",
+      "source": "tts-piper-en_US-joe-medium"
+    },
+    {
+      "track": "system",
+      "speaker": "Leah",
+      "startMs": 98937,
+      "endMs": 102334,
+      "text": "Lovely. I'll send you the details for the technical round by email.",
+      "source": "tts-piper-en_GB-cori-medium"
+    },
+    {
+      "track": "mic",
+      "speaker": "Sam",
+      "startMs": 102894,
+      "endMs": 104254,
+      "text": "Thank you both, speak soon.",
+      "source": "tts-piper-en_US-joe-medium"
+    }
+  ],
+  "gaps": [],
+  "silences": [],
+  "facts": [],
+  "injections": [],
+  "license": "Synthesized with Piper voices (MIT code; voices trained on public-domain, CC0 or Apache-2.0 data — see docs/stt.md). Script and audio: GPL-3.0-or-later as part of gnomeola.",
+  "agenda": {
+    "meeting": {
+      "kind": "interview",
+      "userRole": "candidate",
+      "scheduledEndMs": 194254
+    },
+    "goals": [
+      "Understand the team and what they build with",
+      "Find out the salary range and the remote policy",
+      "Learn how on-call works and what the next steps are"
+    ],
+    "items": [
+      {
+        "id": "team",
+        "text": "Team size",
+        "kind": "info-to-get",
+        "expected": {
+          "status": "covered",
+          "settledAtMs": 23927,
+          "startedAtMs": 16859,
+          "evidence": [
+            4,
+            5
+          ],
+          "settledBy": 5,
+          "outcome": "Eight engineers, a designer and a product manager.",
+          "answer": "8 engineers plus a designer and a PM",
+          "answerAliases": [
+            "eight engineers",
+            "eight engineers, a designer and a product manager",
+            "10 people"
+          ],
+          "implicit": false
+        }
+      },
+      {
+        "id": "stack",
+        "text": "Tech stack",
+        "kind": "info-to-get",
+        "expected": {
+          "status": "covered",
+          "settledAtMs": 33075,
+          "startedAtMs": 24404,
+          "evidence": [
+            6,
+            7
+          ],
+          "settledBy": 7,
+          "outcome": "Go on the back end, TypeScript on the front end, Postgres.",
+          "answer": "Go, TypeScript, Postgres",
+          "answerAliases": [
+            "Go and TypeScript on Postgres",
+            "Go, TS, Postgres"
+          ],
+          "implicit": false
+        }
+      },
+      {
+        "id": "remote",
+        "text": "Remote work policy",
+        "kind": "info-to-get",
+        "expected": {
+          "status": "covered",
+          "settledAtMs": 43179,
+          "startedAtMs": 33744,
+          "evidence": [
+            8,
+            9
+          ],
+          "settledBy": 9,
+          "outcome": "Hybrid: in the office on Tuesdays and Thursdays, remote otherwise.",
+          "answer": "hybrid, office on Tuesdays and Thursdays",
+          "answerAliases": [
+            "hybrid",
+            "two office days",
+            "Tuesdays and Thursdays in the office"
+          ],
+          "implicit": false
+        }
+      },
+      {
+        "id": "salary",
+        "text": "Salary range for the role",
+        "kind": "info-to-get",
+        "expected": {
+          "status": "covered",
+          "settledAtMs": 56180,
+          "startedAtMs": 43605,
+          "evidence": [
+            10,
+            11,
+            12
+          ],
+          "settledBy": 12,
+          "outcome": "Base 120k–140k for senior (first quoted 110k–130k from the wrong sheet, then corrected).",
+          "answer": "120k-140k",
+          "answerAliases": [
+            "120,000 to 140,000",
+            "one hundred and twenty to one hundred and forty thousand"
+          ],
+          "implicit": false
+        }
+      },
+      {
+        "id": "oncall",
+        "text": "On-call rotation",
+        "kind": "info-to-get",
+        "expected": {
+          "status": "in_progress",
+          "settledAtMs": null,
+          "startedAtMs": 66714,
+          "evidence": [
+            16,
+            17
+          ],
+          "settledBy": null,
+          "outcome": null,
+          "answer": null,
+          "answerAliases": [],
+          "implicit": false
+        }
+      },
+      {
+        "id": "next",
+        "text": "Interview next steps",
+        "kind": "info-to-get",
+        "expected": {
+          "status": "covered",
+          "settledAtMs": 82475,
+          "startedAtMs": 74707,
+          "evidence": [
+            18,
+            19,
+            20,
+            21
+          ],
+          "settledBy": 19,
+          "outcome": "A technical interview with two engineers, then a chat with the director; about two weeks.",
+          "answer": "technical interview with two engineers, then a chat with the director",
+          "answerAliases": [
+            "technical round then director",
+            "two more interviews"
+          ],
+          "implicit": false
+        }
+      }
+    ],
+    "tangents": [
+      14,
+      15
+    ]
+  },
+  "generator": {
+    "script": "packages/testkit/scripts/generate-fixtures.ts",
+    "sherpaOnnx": "1.13.8",
+    "generatedAt": "2026-09-30T15:52:07.565Z"
+  }
+}

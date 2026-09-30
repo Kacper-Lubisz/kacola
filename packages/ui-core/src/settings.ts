@@ -60,7 +60,14 @@ export function deviceChoices(
 
 /** A `settings.updated` event carries StoredSettings: keep the derived key flag we already know. */
 export function withStored(prev: Settings | null, stored: StoredSettings): Settings {
-  return { ...stored, llm: { ...stored.llm, apiKeyConfigured: prev?.llm.apiKeyConfigured ?? false } }
+  const { decisions, ...rest } = stored
+  return {
+    ...rest,
+    llm: { ...stored.llm, apiKeyConfigured: prev?.llm.apiKeyConfigured ?? false },
+    ...(decisions
+      ? { decisions: { ...decisions, apiKeyConfigured: prev?.decisions?.apiKeyConfigured ?? false } }
+      : {}),
+  }
 }
 
 /** Models the configured pipeline needs: live + VAD always, the final model unless the pass is off. */
@@ -93,4 +100,5 @@ export const roleLabel = (role: ModelInfo['role']): string =>
     vad: _('Voice detection'),
     segmentation: _('Speaker turns'),
     embedding: _('Speaker recognition'),
+    'text-embedding': _('Offline decisions'),
   })[role]
