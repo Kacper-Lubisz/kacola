@@ -24,7 +24,7 @@ export function StatusPage({
           <Icon name={icon} size={128} />
         </div>
       ) : null}
-      <h2 className="m-0 text-[20pt] font-extrabold">{title}</h2>
+      <h1 className="m-0 text-[20pt] font-extrabold">{title}</h1>
       {description ? <p className="m-0 max-w-[40ch] text-balance">{description}</p> : null}
       {children ? <div className="mt-6 flex flex-col items-center gap-3">{children}</div> : null}
     </section>

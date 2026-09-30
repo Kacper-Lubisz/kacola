@@ -1,3 +1,4 @@
+import './zod-config.ts'
 import './styles.css'
 import { setTranslator } from '@gnomeola/ui-core/i18n'
 import { QueryClientProvider } from '@tanstack/react-query'

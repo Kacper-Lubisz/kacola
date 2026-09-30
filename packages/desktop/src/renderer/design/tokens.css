@@ -3,8 +3,10 @@
  * (values from libadwaita 1.8's stylesheet — LGPL-2.1+, values copied, not the file), so v1 looks like a
  * GNOME app and a redesign is a change here plus in design/primitives, nothing else.
  *
- * Three axes, all set by main from the desktop portal (see src/main/theme.ts):
- *   scheme    prefers-color-scheme (main sets nativeTheme.themeSource)
+ * Three axes, all set by main from the desktop portal (see src/main/theme.ts) and applied to <html> by
+ * data/theme.ts — attributes, not prefers-color-scheme, because Chromium on Linux does not reliably map
+ * nativeTheme.themeSource onto the media query:
+ *   scheme    <html data-scheme="dark">
  *   contrast  <html data-contrast="high">
  *   accent    --accent-bg-color overridden inline on <html> from the portal's accent-color
  *
@@ -15,8 +17,10 @@
 :root {
   color-scheme: light;
 
-  /* accent (the portal can override --accent-bg-color) */
-  --accent-bg-color: #3584e4;
+  /* accent (the portal can override --accent-bg-color; data/theme.ts then picks a readable fg).
+     libadwaita's blue-3 #3584e4 under white text is 3.7:1, below WCAG AA for our 11pt buttons (axe
+     gate), so the default fill is blue-4. */
+  --accent-bg-color: #1c71d8;
   --accent-fg-color: #ffffff;
   --accent-color: color-mix(in oklab, var(--accent-bg-color) 80%, black);
 
@@ -60,7 +64,8 @@
 
   /* derived, as libadwaita derives them */
   --border-opacity: 15%;
-  --dim-opacity: 55%;
+  /* libadwaita dims to 55%; that fails WCAG AA for small text on the sidebar (axe gate), so 75% */
+  --dim-opacity: 75%;
   --disabled-opacity: 50%;
   --border-color: color-mix(in srgb, currentColor var(--border-opacity), transparent);
   --dim-fg-color: color-mix(in srgb, var(--window-fg-color) var(--dim-opacity), transparent);
@@ -82,43 +87,41 @@
   --sidebar-width: 280px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --accent-color: color-mix(in oklab, var(--accent-bg-color) 60%, white);
-    --destructive-bg-color: #c01c28;
-    --destructive-color: #ff938c;
-    --success-bg-color: #26a269;
-    --success-color: #78e9ab;
-    --warning-bg-color: #cd9309;
-    --warning-color: #ffc252;
-    --error-bg-color: #c01c28;
-    --error-color: #ff938c;
+:root[data-scheme="dark"] {
+  color-scheme: dark;
+  --accent-color: color-mix(in oklab, var(--accent-bg-color) 60%, white);
+  --destructive-bg-color: #c01c28;
+  --destructive-color: #ff938c;
+  --success-bg-color: #26a269;
+  --success-color: #78e9ab;
+  --warning-bg-color: #cd9309;
+  --warning-color: #ffc252;
+  --error-bg-color: #c01c28;
+  --error-color: #ff938c;
 
-    --window-bg-color: #222226;
-    --window-fg-color: #ffffff;
-    --view-bg-color: #1d1d20;
-    --view-fg-color: #ffffff;
-    --headerbar-bg-color: #2e2e32;
-    --headerbar-fg-color: #ffffff;
-    --headerbar-border-color: #ffffff;
-    --headerbar-shade-color: rgb(0 0 6 / 36%);
-    --sidebar-bg-color: #2e2e32;
-    --sidebar-fg-color: #ffffff;
-    --sidebar-backdrop-color: #28282c;
-    --sidebar-shade-color: rgb(0 0 6 / 25%);
-    --sidebar-border-color: rgb(0 0 6 / 36%);
-    --card-bg-color: rgb(255 255 255 / 8%);
-    --card-fg-color: #ffffff;
-    --card-shade-color: rgb(0 0 6 / 36%);
-    --dialog-bg-color: #36363a;
-    --dialog-fg-color: #ffffff;
-    --popover-bg-color: #36363a;
-    --popover-fg-color: #ffffff;
-    --thumbnail-bg-color: #39393d;
-    --shade-color: rgb(0 0 6 / 25%);
-    --scrollbar-outline-color: rgb(0 0 6 / 50%);
-  }
+  --window-bg-color: #222226;
+  --window-fg-color: #ffffff;
+  --view-bg-color: #1d1d20;
+  --view-fg-color: #ffffff;
+  --headerbar-bg-color: #2e2e32;
+  --headerbar-fg-color: #ffffff;
+  --headerbar-border-color: #ffffff;
+  --headerbar-shade-color: rgb(0 0 6 / 36%);
+  --sidebar-bg-color: #2e2e32;
+  --sidebar-fg-color: #ffffff;
+  --sidebar-backdrop-color: #28282c;
+  --sidebar-shade-color: rgb(0 0 6 / 25%);
+  --sidebar-border-color: rgb(0 0 6 / 36%);
+  --card-bg-color: rgb(255 255 255 / 8%);
+  --card-fg-color: #ffffff;
+  --card-shade-color: rgb(0 0 6 / 36%);
+  --dialog-bg-color: #36363a;
+  --dialog-fg-color: #ffffff;
+  --popover-bg-color: #36363a;
+  --popover-fg-color: #ffffff;
+  --thumbnail-bg-color: #39393d;
+  --shade-color: rgb(0 0 6 / 25%);
+  --scrollbar-outline-color: rgb(0 0 6 / 50%);
 }
 
 /* High contrast: libadwaita's approach — stronger borders, no dimming, solid focus rings. */
@@ -134,12 +137,10 @@
   --card-fg-color: rgb(0 0 6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root[data-contrast="high"] {
-    --window-fg-color: #ffffff;
-    --view-fg-color: #ffffff;
-    --headerbar-fg-color: #ffffff;
-    --sidebar-fg-color: #ffffff;
-    --card-fg-color: #ffffff;
-  }
+:root[data-scheme="dark"][data-contrast="high"] {
+  --window-fg-color: #ffffff;
+  --view-fg-color: #ffffff;
+  --headerbar-fg-color: #ffffff;
+  --sidebar-fg-color: #ffffff;
+  --card-fg-color: #ffffff;
 }

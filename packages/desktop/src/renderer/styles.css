@@ -76,6 +76,13 @@
   }
 }
 
+/* React Aria's pressable rule (it would inject this inline; see index.html) */
+@layer base {
+  [data-react-aria-pressable] {
+    touch-action: pan-x pan-y pinch-zoom;
+  }
+}
+
 /* Draggable header bars (frameless window). Interactive children opt out. */
 @utility app-drag {
   -webkit-app-region: drag;

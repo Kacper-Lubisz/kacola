@@ -285,10 +285,12 @@ function showWindow(): void {
 app.on('window-all-closed', () => {})
 
 let quitting = false
+let stopWatchingPortal: () => void = () => {}
 app.on('before-quit', (e) => {
   if (quitting) return
   e.preventDefault()
   quitting = true
+  stopWatchingPortal()
   void supervisor.stop().finally(() => app.exit(0))
 })
 for (const sig of ['SIGTERM', 'SIGINT'] as const) process.on(sig, () => app.quit())
@@ -298,7 +300,7 @@ void app.whenReady().then(async () => {
   wireIpc()
   readButtonLayout()
   await refreshTheme()
-  watchPortal(() => void refreshTheme())
+  stopWatchingPortal = watchPortal(() => void refreshTheme())
   nativeTheme.on('updated', () => {
     if (process.platform === 'darwin') void refreshTheme()
   })

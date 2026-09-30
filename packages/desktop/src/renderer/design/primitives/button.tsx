@@ -19,8 +19,8 @@ export type ButtonProps = Omit<AriaButtonProps, 'className' | 'children'> & {
 }
 
 const VARIANT: Record<ButtonVariant, string> = {
-  default: 'bg-hover text-fg data-[hovered]:bg-active data-[pressed]:bg-active',
-  flat: 'bg-transparent text-fg data-[hovered]:bg-hover data-[pressed]:bg-active',
+  default: 'bg-hover text-inherit data-[hovered]:bg-active data-[pressed]:bg-active',
+  flat: 'bg-transparent text-inherit data-[hovered]:bg-hover data-[pressed]:bg-active',
   suggested: 'bg-accent text-on-accent data-[hovered]:brightness-110 data-[pressed]:brightness-90',
   destructive:
     'bg-destructive text-on-destructive data-[hovered]:brightness-110 data-[pressed]:brightness-90',
