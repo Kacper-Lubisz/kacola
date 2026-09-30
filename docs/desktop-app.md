@@ -441,6 +441,56 @@ headless Shell, where the GPU process runs SwiftShader; `--in-process-gpu` (347)
 still not applied; the renderer grew 19 MB and main 9 MB since phase 1). Cold start still beats GTK:
 first pixels 779–913 ms against 1021–1033 ms.
 
+### Memory investigation (E-12, 2026-09-30)
+
+A/B in the same session, `desktop-perf.e2e` 3 runs each (PSS, MB):
+
+| | total | main | GPU | renderer | network | broker | zygotes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| before | 402–405 | 120–123 | 115–116 | 88 | 29 | 20 | 12+12+5 |
+| after | **392–393** | 115–116 | 115–116 | 83 | 29 | 20 | 12+12+5 |
+
+(Absolute figures move by a few MB with whatever else is running on the machine; a separate copy of the
+tree, run alone, measured 397–399 → 386–387, with main 123 → 115–116 and the renderer 85–87 → 81–82.)
+
+What main holds, from its smaps and V8 heap snapshots (via `--inspect`): about 50 MB is its share of the
+Electron binary's pages and 40–56 MB is anonymous memory. Its V8 heap is small, about 13 MB committed and
+10 MB used. A bare Electron window's main (a sandboxed `data:` page) sits at 101 MB, and 108 MB once it
+uses Node's `fetch` (undici's JS and llhttp wasm: +7 MB). The app's main has no big dependency: its
+bundle is 282 kB (zod + the protocol route table included), and Node's built-ins dominate its strings.
+The extra ~10 MB was **garbage**. At start-up the app:// handler streams the renderer bundle and fonts
+through JS `Response` bodies, and V8 collects on allocation, never on idleness: the main isolate gets
+no idle-time GC. So after start-up about 7 MB of dead buffers (V8 `external` 11.7 → 4.4 MB) plus dead
+heap objects stayed resident indefinitely. One forced full GC took main from 123 to 113 MB.
+
+Changes:
+- `src/main/memory.ts` `IdleCollector`: a full GC of main (a few ms on a ~10 MB heap, `gc` exposed at
+  runtime) 10 s after the first paint, after the window closes (background mode) and every 5 minutes, so
+  the garbage from the tunnel's streams doesn't pile up to V8's external-memory trigger (~64 MB) either.
+  Main: −5 to −7 MB. `--js-flags=--max-semi-space-size=1` had the same effect on the command line.
+  Setting it from main with `v8.setFlagsFromString` does nothing (the heap is already configured), and
+  every launcher would have to pass it, so the GC was chosen instead.
+- The renderer bundle is minified, and the renderer, main and preload bundles are ASCII-only
+  (`asciiOnly()` in `electron.vite.config.ts` escapes every non-ASCII unit). V8 keeps a script's
+  source for as long as it runs. Unminified, with a few em-dashes and CLDR symbols in it, the 3.1 MB
+  renderer bundle was a two-byte 6 MB string. It is now 1.4 MB of one-byte source. esbuild's
+  `charset: 'ascii'` leaves regex literals alone (protocol's action-item regexes carry `—–`), hence the
+  plugin. Renderer: −5 MB; its V8 heap went from 13.8 to 12.4 MB used.
+
+What remains (392 against the 350 gate, all measured, none cheap):
+- **GPU process, 115 MB**: SwiftShader / the GL stack in the headless Shell, the same as a bare window
+  (112). Only GPU flags move it (see above), and those are out of scope here.
+- **Chromium's fixed processes**: zygotes, broker and the network service come to about 77 MB. A bare
+  window has the same.
+- **Main, ~115 MB**: about 101 MB is what any Electron main costs, plus undici for Node `fetch`
+  (+7 MB). Moving main's HTTP (the supervisor's health checks, the tunnel, main's protocol client) to
+  Electron's `net.fetch` would drop undici. But it changes the tunnel's request semantics (Chromium's
+  stack may add `Origin`, which the daemon's CSRF guard reads), so it wasn't done as a cheap win.
+- **Renderer, ~83 MB against 42 for a bare page**: +13 MB of Electron binary pages (Blink paths a
+  data: page never touches), about 12 MB of V8 heap for React + React Aria + TanStack + CodeMirror, and
+  Blink's style/layout for the screens. Code-splitting CodeMirror or the `#/gallery` route would save
+  1–2 MB at most.
+
 Reproduce: `node packages/testkit/src/desktop/e1-spike/measure.ts` (`RUNS=n`, `ONLY=1` for Electron only,
 `EXTRA="--flags"`). The real app is tracked by the non-blocking perf e2e
 (`packages/e2e/test/desktop-perf.e2e.test.ts`): it writes `__artifacts__/desktop-perf.json` and warns
