@@ -13,6 +13,7 @@ import type { Services } from '../data/services.tsx'
 import { EmptyState, HeaderBar } from '../design/primitives/index.ts'
 import { SESSION_TABS, type SessionTab } from '../features/sessions/pane.ts'
 import { SessionPage } from '../features/sessions/session-page.tsx'
+import { parseTime } from '../features/transcript/search-params.ts'
 import { Gallery } from './gallery.tsx'
 import { MainLayout, NoSessionSelected } from './main-layout.tsx'
 
@@ -22,7 +23,7 @@ import { MainLayout, NoSessionSelected } from './main-layout.tsx'
 //
 //   /                       main layout, nothing selected
 //   /sessions/$sessionId    main layout, one session; ?tab=transcript|ask|notes|details, ?segment=<id>
-//                           (a citation: the transcript pane scrolls to that segment)
+//                           or ?t=<seconds> (a citation: the transcript pane scrolls to that line)
 //   /gallery                every primitive in every state (design in code, with HMR)
 
 const rootRoute = createRootRouteWithContext<Services>()({ component: Outlet })
@@ -34,9 +35,11 @@ const indexRoute = createRoute({ getParentRoute: () => mainRoute, path: '/', com
 const sessionRoute = createRoute({
   getParentRoute: () => mainRoute,
   path: '/sessions/$sessionId',
-  validateSearch: (s: Record<string, unknown>): { tab?: SessionTab; segment?: string } => ({
+  validateSearch: (s: Record<string, unknown>): { tab?: SessionTab; segment?: string; t?: number } => ({
     ...(SESSION_TABS.includes(s.tab as SessionTab) ? { tab: s.tab as SessionTab } : {}),
     ...(typeof s.segment === 'string' ? { segment: s.segment } : {}),
+    // a time in seconds: the transcript shows the line playing then (features/transcript/search-params.ts)
+    ...parseTime(s.t),
   }),
   loader: async ({ context: { queryClient, queries }, params }) => {
     // seed from the list the sidebar already holds, so selecting a row costs no round trip
