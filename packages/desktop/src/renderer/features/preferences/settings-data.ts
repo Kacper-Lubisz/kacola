@@ -41,7 +41,13 @@ export function updateSettingsMutation(api: Api, qc: QueryClient) {
 export function setApiKeyMutation(api: Api, qc: QueryClient) {
   return {
     mutationKey: ['setApiKey'],
-    mutationFn: (key: string | null) => api.call('setApiKey', { body: { key } }),
-    onSettled: () => qc.invalidateQueries({ queryKey: keys.settings(), exact: true }),
+    mutationFn: (v: string | null | { key: string | null; provider: 'anthropic' | 'openai' | 'typesafe' }) =>
+      api.call('setApiKey', {
+        body: v !== null && typeof v === 'object' ? { key: v.key, provider: v.provider } : { key: v },
+      }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: keys.health(), exact: true })
+      return qc.invalidateQueries({ queryKey: keys.settings(), exact: true })
+    },
   }
 }

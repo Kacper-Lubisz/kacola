@@ -257,8 +257,10 @@ export class EventBridge {
     }
     if (d.type === 'settings.updated') {
       this.qc.setQueryData<Settings>(keys.settings(), (cur) => (cur ? withStored(cur, d.settings) : cur))
-      // the private-session agent allow list rides the settings (agents.allowPrivate)
+      // the private-session agent allow list rides the settings (agents.allowPrivate); the decisions
+      // provider's readiness is on /health
       void this.qc.invalidateQueries({ queryKey: ['agentAccess'] })
+      void this.qc.invalidateQueries({ queryKey: keys.health(), exact: true, refetchType: 'active' })
     }
     if (isAgendaEvent(d)) this.foldAgenda(d)
     if (d.type === 'template.upserted' || d.type === 'template.deleted') {
