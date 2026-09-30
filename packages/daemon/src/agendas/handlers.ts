@@ -152,6 +152,11 @@ export function agendaHandlers(svc: AgendaService): Pick<Handlers, AgendaRouteNa
     createAgentLease: notYet('agent leases'),
     heartbeatAgentLease: notYet('agent leases'),
     releaseAgentLease: notYet('agent leases'),
+    listAgentLeases: notYet('agent leases'),
+    updateAgentLease: notYet('agent leases'),
+    listLiveSessions: notYet('live sessions'),
+    getAgentAccess: notYet('agent access'),
+    setAgentAccess: notYet('agent access'),
     liveAttach: async () => notYet('live attach')(),
   }
 }

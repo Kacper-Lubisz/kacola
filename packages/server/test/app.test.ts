@@ -269,9 +269,17 @@ describe('hosted contract: every route', () => {
       agendaInviteBlock: () => notHere(c.call('agendaInviteBlock', { params: { id: 'agd_x' }, body: {} })),
       createAgentLease: () =>
         notHere(c.call('createAgentLease', { params: { id: s.id }, body: { name: 'claude' } })),
-      heartbeatAgentLease: () => notHere(c.call('heartbeatAgentLease', { params: { leaseId: 'lse_x' } })),
+      heartbeatAgentLease: () =>
+        notHere(c.call('heartbeatAgentLease', { params: { leaseId: 'lse_x' }, body: {} })),
       releaseAgentLease: () => notHere(c.call('releaseAgentLease', { params: { leaseId: 'lse_x' } })),
       liveAttach: () => notHere(c.stream('liveAttach', { params }).next()),
+      listAgentLeases: () => notHere(c.call('listAgentLeases', { params: { id: s.id } })),
+      updateAgentLease: () =>
+        notHere(c.call('updateAgentLease', { params: { leaseId: 'lse_x' }, body: { mode: 'act' } })),
+      listLiveSessions: () => notHere(c.call('listLiveSessions')),
+      getAgentAccess: () => notHere(c.call('getAgentAccess', { params: { id: s.id } })),
+      setAgentAccess: () =>
+        notHere(c.call('setAgentAccess', { params: { id: s.id }, body: { allowAgents: true } })),
     }
     const seen: RouteName[] = []
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {
