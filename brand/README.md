@@ -87,4 +87,10 @@ var(--k-color-bg-surface))` (Tailwind: `bg-speaker-1/14`).
   under the 3:1 needed for bold button text. The new value (3.71:1) darkens on hover, like light mode.
 - Primary (ink) buttons can't get a darker fill, so hover/pressed mix the ink 14% / 24% toward the window
   colour (in both themes) — shown in `preview.html`.
+- `text.tertiary` is `#70675A` light / `#978C7B` dark (spec `#8A7F6E` / `#857A69`, 3.2–3.9:1): adjusted to 4.5:1
+  on every background so hints, placeholders and timestamps meet AA.
+- Added text-safe status colours `status.{success,warning,danger,info}Text` (4.5:1 on every background). The plain
+  `status.*` colours are for fills, icons and marks (3:1 on window and surface; light `status.warning` is 2.99:1 on
+  `bg.sidebar`, so don't put warning marks on the sidebar without a label). Destructive button text and error
+  messages use `status.dangerText`.
 - Added `typography.emptyState` (Fraunces Italic 28/34, 600) so the empty-state headline has a token.
