@@ -250,6 +250,9 @@ importers:
 
   packages/e2e:
     dependencies:
+      '@electric-sql/pglite':
+        specifier: ^0.5.8
+        version: 0.5.8
       '@gnomeola/cli':
         specifier: workspace:*
         version: link:../cli

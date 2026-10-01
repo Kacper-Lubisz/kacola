@@ -7,15 +7,24 @@ import {
   agendaEdit,
   agendaExport,
   agendaImport,
+  agendaInvite,
   agendaLink,
   agendaList,
   agendaRemove,
-  agendaShare,
   agendaShow,
   agendaStatus,
   contextAdd,
   suggest,
 } from './commands/agenda.ts'
+import {
+  agendaFollow,
+  agendaFollowConfirm,
+  agendaShareHistory,
+  agendaShareOn,
+  agendaShareRecap,
+  agendaShareStatus,
+  agendaUnshare,
+} from './commands/agenda-share.ts'
 import { ask } from './commands/ask.ts'
 import { bugReport } from './commands/bugreport.ts'
 import { installCliCommand, uninstallCliCommand } from './commands/install-cli.ts'
@@ -72,8 +81,19 @@ usage: gnomeola <command> [options]
   agenda export <agenda> | import <agenda> (--from FILE | --stdin) [--merge]
                                               the markdown form: - [ ] item (10m, @ana) [kind]
   agenda link <agenda> --meeting <ref> [--start ISO]
-  agenda share <agenda> [--write | --remove]  the invitation block (kacola:// link); --write puts it
-                                              in the calendar event where the calendar allows
+  agenda invite <agenda> [--write | --remove] the invitation block (kacola:// link, + the web link once
+                                              shared); --write puts it in the calendar event where allowed
+ team sharing (the user's decision: share, unshare, share-recap and follow only when they ask):
+  agenda share <agenda> [--name N] [--members a@x,b@y] [--goals] [--no-invitees]
+                                              share on your hosted server: a web link for invitees;
+                                              listed attendees may follow it in their own kacola
+  agenda unshare <agenda>                     the link stops working (a follower: stop following)
+  agenda share-status <agenda>                link, sync state, comments, who joined
+  agenda share-recap <agenda> [--off]         let people with the link see the outcomes
+  agenda share-history <agenda>               every device's status changes and their outcome
+  agenda follow <link> --email E [--name N]   follow someone's agenda: the host emails a code
+  agenda follow-confirm <link> --email E --code C
+                                              …then the code: a local copy that stays in step
   context add [--agenda A] --title T (--file F | --stdin | --body TEXT) [--shared] [--pinned]
                                               a card for the meeting; private unless --shared
   suggest [--agenda A] "…" --kind next-point|question|missed|fact-check|looks-covered
@@ -292,6 +312,14 @@ export async function run(argv: string[], io: Io): Promise<number> {
           merge: { type: 'boolean' },
           write: { type: 'boolean' },
           remove: { type: 'boolean' },
+          // team sharing
+          name: { type: 'string' },
+          members: { type: 'string' },
+          goals: { type: 'boolean' },
+          'no-invitees': { type: 'boolean' },
+          email: { type: 'string' },
+          code: { type: 'string' },
+          off: { type: 'boolean' },
         })
         if (helpOr(v)) return EXIT.OK
         const [sub, ...args] = p
@@ -355,13 +383,44 @@ export async function run(argv: string[], io: Io): Promise<number> {
           case 'link':
             await agendaLink(ctx, args[0], { meeting: v.meeting, start: v.start })
             break
+          case 'invite':
+            await agendaInvite(ctx, args[0], { write: v.write, remove: v.remove })
+            break
           case 'share':
-            await agendaShare(ctx, args[0], { write: v.write, remove: v.remove })
+            if (v.write || v.remove)
+              throw usage(
+                'the invitation block moved to `agenda invite`',
+                'gnomeola agenda invite <agenda> --write   (`agenda share` now shares the agenda on your server)',
+              )
+            await agendaShareOn(ctx, args[0], {
+              name: v.name,
+              members: v.members,
+              goals: v.goals,
+              noInvitees: v['no-invitees'],
+            })
+            break
+          case 'unshare':
+            await agendaUnshare(ctx, args[0])
+            break
+          case 'share-status':
+            await agendaShareStatus(ctx, args[0])
+            break
+          case 'share-recap':
+            await agendaShareRecap(ctx, args[0], { off: v.off })
+            break
+          case 'share-history':
+            await agendaShareHistory(ctx, args[0])
+            break
+          case 'follow':
+            await agendaFollow(ctx, args[0], { email: v.email, name: v.name })
+            break
+          case 'follow-confirm':
+            await agendaFollowConfirm(ctx, args[0], { email: v.email, code: v.code })
             break
           default:
             throw usage(
               sub ? `unknown subcommand: agenda ${sub}` : 'agenda what?',
-              'agenda create|list|show|add|edit|remove|status|export|import|link|share — see gnomeola --help',
+              'agenda create|list|show|add|edit|remove|status|export|import|link|invite|share|unshare|share-status|share-recap|share-history|follow|follow-confirm — see gnomeola --help',
             )
         }
         break

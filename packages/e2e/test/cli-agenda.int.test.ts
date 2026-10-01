@@ -237,15 +237,15 @@ describe('agenda verbs through the real daemon', () => {
     expect(s.stderr).toMatch(/suggest needs a live lease[\s\S]*gnomeola live attach/)
   })
 
-  it('share: the invitation block; a read-only calendar hands it back to paste', async () => {
-    const r = await ok(['agenda', 'share', 'next'])
-    await expect(stable(r.stdout)).toMatchFileSnapshot(golden('agenda-share'))
-    const w = JSON.parse((await ok(['agenda', 'share', 'next', '--write'])).stdout)
+  it('invite: the invitation block; a read-only calendar hands it back to paste', async () => {
+    const r = await ok(['agenda', 'invite', 'next'])
+    await expect(stable(r.stdout)).toMatchFileSnapshot(golden('agenda-invite'))
+    const w = JSON.parse((await ok(['agenda', 'invite', 'next', '--write'])).stdout)
     expect(w).toMatchObject({
       written: false,
       reason: expect.stringMatching(/file calendar provider is read-only/),
     })
-    const text = await gnomeola(['agenda', 'share', 'next'], d.baseUrl, { tty: true })
+    const text = await gnomeola(['agenda', 'invite', 'next'], d.baseUrl, { tty: true })
     // not shared: the block carries the app link only (team sharing adds `web: <host>/a/<token>`)
     expect(text.stdout).toMatch(/^-- kacola agenda --\nAgenda: kacola:\/\/meeting\/one-on-one%40x\n/)
   })

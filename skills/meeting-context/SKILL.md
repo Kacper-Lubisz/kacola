@@ -105,10 +105,20 @@ the previous instance's unfinished items). When the user wants to prepare a meet
    ```
    `--meeting` takes a meeting id (from step 1), an event UID, or `next` / `today` when that is really
    the one; `--reuse` if it already has an agenda. The JSON output carries the agenda id.
-6. **Offer the invitation link**: `gnomeola agenda share <agd_id>` prints the block
-   (`Agenda: kacola://… · web: …`). Only with the user's yes, `--write` puts it into the calendar event
-   (never over the organiser's text); read-only calendars or events they don't organise return the
-   block to paste instead.
+6. **Offer the invitation link**: `gnomeola agenda invite <agd_id>` prints the block
+   (`Agenda: kacola://…`, plus `· web: https://…` once the agenda is shared). Only with the user's yes,
+   `--write` puts it into the calendar event (never over the organiser's text); read-only calendars or
+   events they don't organise return the block to paste instead.
+7. **Sharing with the other attendees is the user's decision.** `gnomeola agenda share <agd_id>` puts the
+   agenda's items (never transcripts, notes, evidence or private cards) on the user's hosted server: a web
+   link where invitees read it and may add items and comments, and attendees who run kacola can follow it.
+   Run it ONLY when the user says to share it — you may mention that it exists when they ask how to get
+   the agenda to the others, but never share, unshare (`agenda unshare`), share a recap (`agenda
+   share-recap`) or follow someone's agenda (`agenda follow <link> --email …`, then `agenda follow-confirm
+   … --code …`) on your own. Ask before `--goals` (goals are often personal) and before listing attendees
+   with `--members a@x,b@y`. Reading is fine any time: `agenda share-status` (link, sync state, comments)
+   and `agenda share-history` (every device's changes and their outcome). Exit 6 means no sharing server
+   is configured: tell the user, don't work around it.
 
 Markdown form: `- [ ] text (10m, @owner) [kind]`; checkboxes `[ ]` open, `[~]` in progress, `[x]`
 covered, `[-]` skipped, `[>]` parked; kinds `topic` (default), `question`, `must-cover`, `decision`,

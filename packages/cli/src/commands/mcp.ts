@@ -12,14 +12,15 @@ import {
   agendaEdit,
   agendaExport,
   agendaImport,
+  agendaInvite,
   agendaList,
   agendaRemove,
-  agendaShare,
   agendaShow,
   agendaStatus,
   contextAdd,
   suggest,
 } from './agenda.ts'
+import { agendaShareHistory, agendaShareStatus } from './agenda-share.ts'
 import { ask } from './ask.ts'
 import { McpLive } from './mcp-live.ts'
 import { meetingsNext, meetingsToday } from './meetings.ts'
@@ -433,7 +434,34 @@ export function buildMcpServer(
         "(only when the user asked; read-only calendars return the block to paste). Never changes the organiser's text.",
       inputSchema: { agenda: agendaRef, write: z.boolean().optional() },
     },
-    async (a) => run((ctx) => agendaShare(ctx, a.agenda, { write: a.write })),
+    async (a) => run((ctx) => agendaInvite(ctx, a.agenda, { write: a.write })),
+  )
+
+  // team sharing: reads only. Sharing, unsharing and following stay the user's acts (the CLI's verbs,
+  // run only when the user asked for exactly that).
+  server.registerTool(
+    'agenda_share_status',
+    {
+      title: 'Is this agenda shared, and how is its sync doing',
+      description:
+        'Team sharing status of an agenda: shared or followed, the web link, the sync state (ok, syncing, error, ' +
+        'revoked) and its error, changes waiting or refused, the invitees’ and attendees’ comments, and (for the ' +
+        'owner) who joined. Read only: sharing is the user’s decision — suggest `gnomeola agenda share` only when they ask.',
+      inputSchema: { agenda: agendaRef },
+    },
+    async (a) => run((ctx) => agendaShareStatus(ctx, a.agenda)),
+  )
+
+  server.registerTool(
+    'agenda_share_history',
+    {
+      title: 'The merge history of a shared agenda',
+      description:
+        'Every status change any device made to a shared agenda (the owner, attendees, their trackers and agents), ' +
+        'with what became of it: applied, agreed, refused or superseded, and why. Read only.',
+      inputSchema: { agenda: agendaRef },
+    },
+    async (a) => run((ctx) => agendaShareHistory(ctx, a.agenda)),
   )
 
   return server

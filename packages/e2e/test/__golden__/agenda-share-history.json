@@ -1,0 +1,37 @@
+{
+  "agendaId": "<agd:1>",
+  "total": 3,
+  "changes": [
+    {
+      "itemId": "<itm:1>",
+      "item": "Roadmap",
+      "from": "open",
+      "to": "covered",
+      "by": "Ben",
+      "role": "member",
+      "outcome": "applied",
+      "at": "<iso>"
+    },
+    {
+      "itemId": "<itm:1>",
+      "item": "Roadmap",
+      "from": "covered",
+      "to": "in-progress",
+      "by": "Kacper",
+      "role": "owner",
+      "outcome": "applied",
+      "at": "<iso>"
+    },
+    {
+      "itemId": "<itm:1>",
+      "item": "Roadmap",
+      "from": "in-progress",
+      "to": "covered",
+      "by": "Ben",
+      "role": "member",
+      "outcome": "refused",
+      "reason": "the owner set it to in-progress by hand (manual wins)",
+      "at": "<iso>"
+    }
+  ]
+}
