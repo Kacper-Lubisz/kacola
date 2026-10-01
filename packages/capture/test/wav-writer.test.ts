@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, statSync } from 'node:fs'
+import { mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -136,5 +136,51 @@ describe('WavWriter', () => {
   it('fails at open if even the header cannot be written', () => {
     const p = join(dir, 'nohdr.wav')
     expect(() => new WavWriter(p, { sampleRate: 16000, ops: fullDiskOps(10) })).toThrow(WavWriteError)
+  })
+})
+
+// A recording resumed after a daemon restart appends to the WAVs already in the session dir.
+describe('WavWriter append (a recording continued after a restart)', () => {
+  it('continues a finalised WAV: old samples untouched, new ones after them, header exact', () => {
+    const p = join(dir, 'append.wav')
+    const first = new WavWriter(p, { sampleRate: 16000 })
+    first.write(tone(16000))
+    first.close()
+    const again = new WavWriter(p, { sampleRate: 16000, append: true })
+    expect(again.samplesWritten).toBe(16000)
+    again.write(tone(8000, 16000))
+    expect(again.close()).toEqual({ dataBytes: 48000, durationMs: 1500 })
+    expect(readWavInfo(p).dataBytes).toBe(48000)
+    expect(recoverWav(p).status).toBe('ok')
+    expect(wavToInt16(readFileSync(p)).samples).toEqual(tone(24000))
+  })
+
+  it('continues the WAV of a killed writer once recoverWav has repaired it (a torn sample is dropped)', () => {
+    const p = join(dir, 'append-killed.wav')
+    // the writer "dies" before its first flush: the header still describes 0 bytes
+    const w = new WavWriter(p, { sampleRate: 16000, flushIntervalMs: 60_000 })
+    w.write(tone(4000))
+    writeFileSync(p, Buffer.from([0x01]), { flag: 'a' }) // and a torn half sample at the end
+    expect(readWavInfo(p).dataBytes).toBe(0)
+    expect(recoverWav(p).status).toBe('repaired')
+    const again = new WavWriter(p, { sampleRate: 16000, append: true })
+    expect(again.samplesWritten).toBe(4000)
+    again.write(tone(4000, 4000))
+    again.close()
+    expect(wavToInt16(readFileSync(p)).samples).toEqual(tone(8000))
+  })
+
+  it('starts fresh when there is no file, and refuses a WAV it could not have written', () => {
+    const fresh = join(dir, 'append-missing.wav')
+    const w = new WavWriter(fresh, { sampleRate: 16000, append: true })
+    expect(w.samplesWritten).toBe(0)
+    w.write(tone(100))
+    w.close()
+    expect(readWavInfo(fresh).dataBytes).toBe(200)
+    const other = join(dir, 'append-48k.wav')
+    new WavWriter(other, { sampleRate: 48000 }).close()
+    expect(() => new WavWriter(other, { sampleRate: 16000, append: true })).toThrow(
+      /cannot append .*\(48000 Hz/,
+    )
   })
 })
