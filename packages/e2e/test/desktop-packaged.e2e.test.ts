@@ -17,7 +17,7 @@ import { REPO } from '../src/runtime.ts'
 // DevTools protocol, which the build allows only with GNOMEOLA_ALLOW_REMOTE_DEBUGGING=1.
 //
 // First run: onboarding installs the CLI (+ skill) whose shim starts this binary with --background;
-// Preferences installs the top-bar extension (never enabling it) and the autostart entry; closing the
+// Preferences installs the top-bar extension (queued for the next login) and the autostart entry; closing the
 // window keeps main and the daemon; a second launch re-opens the window; quitting stops the daemon; and
 // the shim brings the app up in the background when the daemon is down.
 //
@@ -194,13 +194,14 @@ describe('the packaged Linux app (linux-unpacked)', () => {
         .waitFor({ timeout: 20_000 })
     })
 
-    it('Preferences installs the top-bar extension (never enabled) and the autostart entry', async () => {
+    it('Preferences installs and enables the top-bar extension, and the autostart entry', async () => {
       await cdp.window.keyboard.press('Control+,')
       const prefs = cdp.window.getByRole('dialog', { name: 'Preferences' })
       await prefs.getByRole('tab', { name: 'Integration' }).click()
-      const row = prefs.getByText('Top-bar extension').locator('../..')
-      await row.getByRole('button', { name: 'Install' }).click()
-      await row.getByText(/^Installed\./).waitFor({ timeout: 20_000 })
+      const row = prefs.getByText('Top-bar extension', { exact: true }).locator('../..')
+      await row.getByRole('button', { name: 'Install & Enable' }).click()
+      // the running Shell reads extensions at start-up: queued for the next login
+      await row.getByText('Installed — log out and back in to turn it on').waitFor({ timeout: 20_000 })
       const dest = join(display.env.XDG_DATA_HOME!, 'gnome-shell', 'extensions', EXT)
       for (const f of ['metadata.json', 'extension.js', 'model.js', 'schemas/gschemas.compiled'])
         expect(existsSync(join(dest, f)), f).toBe(true)
@@ -208,7 +209,7 @@ describe('the packaged Linux app (linux-unpacked)', () => {
         env: display.env,
         encoding: 'utf8',
       })
-      expect(enabled).not.toContain(EXT)
+      expect(enabled).toContain(`'${EXT}'`)
 
       const sw = prefs.getByRole('switch', { name: 'Start in the background at login' })
       await sw.focus()

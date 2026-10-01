@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -17,6 +17,12 @@ import { gnomeola } from '../src/cli.ts'
 import { markOnboarded, setTheme, uiStatePath } from '../src/desktop.ts'
 import { poll, transcriptList } from '../src/desktop-ui.ts'
 import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
+import {
+  initialFakeShell,
+  installFakeShellTools,
+  readFakeShell,
+  writeFakeShell,
+} from '../src/fake-shell-extensions.ts'
 import { SEED, seedMeetings } from '../src/seed.ts'
 import { linkToken, type ShareHost, startShareHost } from '../src/share-host.ts'
 
@@ -33,6 +39,7 @@ import { linkToken, type ShareHost, startShareHost } from '../src/share-host.ts'
 // is compared with the previous run's (captured-window.json), and the suite reports any that differ.
 
 const CASSETTES = join(import.meta.dirname, '..', '..', 'llm', 'test', 'fixtures', 'cassettes')
+const EXT_UUID = 'gnomeola@gnomeola.org'
 const CLI_BIN = join(import.meta.dirname, '..', '..', 'cli', 'bin', 'gnomeola')
 const KEY = 'sk-ant-e2e-atlas-planted-key-0000000'
 const OPENAI_KEY = 'sk-proj-e2e-atlas-planted-openai-key-01'
@@ -1781,6 +1788,104 @@ describe('atlas: first run (real daemon, models not downloaded, calendar off)', 
       masks: [models.getByRole('progressbar')],
     })
     expect(app.problems()).toEqual([])
+  })
+})
+
+describe('atlas: the top-bar extension (fake gdbus / gsettings on PATH)', () => {
+  it('the sidebar card, the log-in-again copy, Update, On, and the extensions-off question', async () => {
+    const tools = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-shell-'))
+    const statePath = join(tools, 'state.json')
+    const extDir = join(display.env.XDG_DATA_HOME!, 'gnome-shell', 'extensions')
+    const dest = join(extDir, EXT_UUID)
+    const path = installFakeShellTools(
+      join(tools, 'bin'),
+      statePath,
+      initialFakeShell({ extensionsDir: extDir }),
+    )
+    // a real daemon: Preferences needs its settings
+    const daemon = await startDaemon()
+    // the card is the point here: onboarded, the card not dismissed
+    markOnboarded(display)
+    writeFileSync(
+      uiStatePath(display),
+      JSON.stringify({ version: 1, onboardingDone: true, skippedMissing: ['whisper-small.en'] }),
+    )
+    const app = await launchDesktop({
+      display,
+      env: { GNOMEOLA_URL: daemon.baseUrl, PATH: path, ...WINDOW_ENV },
+    })
+    const card = app.window.getByRole('region', { name: 'Top-bar extension' })
+    const prefs = app.window.getByRole('dialog', { name: 'Preferences' })
+    const refocus = () => app.window.evaluate(`window.dispatchEvent(new Event('focus'))`)
+    try {
+      await freeze(app)
+      await card.getByRole('button', { name: 'Install & Enable' }).waitFor({ timeout: 20_000 })
+      await atlas.shoot(app.window, 'integrations__sidebar__extension-card', {
+        expect: card.getByRole('button', { name: 'Install & Enable' }),
+      })
+      await card.getByRole('button', { name: 'Install & Enable' }).click()
+      const login = 'Installed — log out and back in to turn it on'
+      await card.getByText(login).waitFor({ timeout: 20_000 })
+      await dismissToast(app, login)
+      await atlas.shoot(app.window, 'integrations__sidebar__extension-login', {
+        expect: card.getByText(login),
+      })
+
+      // an older copy on disk, which the next login loaded
+      const meta = readFileSync(join(dest, 'metadata.json'), 'utf8')
+      writeFileSync(
+        join(dest, 'metadata.json'),
+        meta.replace(/"version-name": "[^"]*"/, '"version-name": "0.0.9"'),
+      )
+      writeFakeShell(statePath, {
+        ...readFakeShell(statePath),
+        owner: ':1.500',
+        loaded: { [EXT_UUID]: { version: '0.0.9', type: 2 } },
+      })
+      await app.window.keyboard.press('Control+,')
+      await prefs.getByRole('tab', { name: 'Integration' }).click()
+      const update = prefs.getByRole('button', { name: 'Update' })
+      await update.waitFor({ timeout: 10_000 })
+      await atlas.shoot(app.window, 'integrations__preferences__extension-update', { expect: update })
+      await update.click()
+      const updated = 'Updated — log out and back in to use the new version'
+      await prefs.getByText(updated).waitFor({ timeout: 10_000 })
+      // the toast sits under Preferences' backdrop (no clicking it away): let it time out
+      await app.window
+        .getByRole('region', { name: 'Notifications' })
+        .filter({ hasText: updated })
+        .waitFor({ state: 'detached', timeout: 20_000 })
+
+      // the next login: on
+      const version = JSON.parse(readFileSync(join(dest, 'metadata.json'), 'utf8'))['version-name'] as string
+      writeFakeShell(statePath, {
+        ...readFakeShell(statePath),
+        owner: ':1.600',
+        loaded: { [EXT_UUID]: { version, type: 2 } },
+      })
+      await refocus()
+      const on = prefs.getByText('On — showing in the GNOME top bar')
+      await on.waitFor({ timeout: 10_000 })
+      await atlas.shoot(app.window, 'integrations__preferences__extension-on', { expect: on })
+
+      // GNOME Extensions' main switch turned off: asked before turning every extension back on
+      writeFakeShell(statePath, { ...readFakeShell(statePath), disableUserExtensions: true })
+      await refocus()
+      await prefs.getByRole('button', { name: 'Enable' }).click({ timeout: 10_000 })
+      const ask = app.window.getByRole('alertdialog', { name: 'Turn On GNOME Extensions?' })
+      await atlas.shoot(app.window, 'integrations__enable__ask-extensions', {
+        expect: ask.getByRole('button', { name: 'Turn On Extensions' }),
+        keepFocus: true,
+      })
+      await ask.getByRole('button', { name: 'Cancel' }).click()
+      expect(app.problems()).toEqual([])
+    } finally {
+      await app.close()
+      await daemon.stop()
+      rmSync(dest, { recursive: true, force: true })
+      rmSync(tools, { recursive: true, force: true })
+      markOnboarded(display)
+    }
   })
 })
 

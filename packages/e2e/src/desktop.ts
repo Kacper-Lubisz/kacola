@@ -14,7 +14,14 @@ export function markOnboarded(d: HeadlessDisplay, skipped: string[] = ['whisper-
   mkdirSync(dir, { recursive: true })
   writeFileSync(
     join(dir, 'ui-state.json'),
-    JSON.stringify({ version: 1, onboardingDone: true, skippedMissing: skipped }),
+    // the top-bar extension card dismissed too: the headless Shell never has it, and the suites'
+    // screens are not about it (desktop-extension.e2e is)
+    JSON.stringify({
+      version: 1,
+      onboardingDone: true,
+      skippedMissing: skipped,
+      extensionCardDismissed: true,
+    }),
   )
 }
 

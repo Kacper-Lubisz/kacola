@@ -48,8 +48,13 @@ export function useOnboarding(live: boolean) {
     (skippedMissing: string[] | null) => {
       const next: UiState = { version: 1, onboardingDone: true, skippedMissing: skippedMissing ?? [] }
       setUiState(next)
-      // not fatal if it fails: onboarding simply shows again next time
-      bridge.setUiState(next).catch(() => {})
+      // read fresh and merge: the sidebar's extension card keeps its dismissal in the same file.
+      // Not fatal if it fails: onboarding simply shows again next time
+      bridge
+        .getUiState()
+        .catch(() => null)
+        .then((cur) => bridge.setUiState({ ...cur, ...next }))
+        .catch(() => {})
       void qc.invalidateQueries({ queryKey: queries.models().queryKey })
     },
     [bridge, qc, queries],

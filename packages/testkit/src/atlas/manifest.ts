@@ -79,6 +79,36 @@ export const ATLAS: AtlasEntry[] = [
     'integration-page',
     'Preferences › Integration: command-line tool + skill, top-bar extension, background',
   ),
+  win(
+    'integrations',
+    'sidebar',
+    'extension-card',
+    'On GNOME, until the top-bar extension is on: the sidebar card with Install & Enable (dismissible)',
+  ),
+  win(
+    'integrations',
+    'sidebar',
+    'extension-login',
+    'After Install & Enable: the Shell loads new extensions at login, so "log out and back in"',
+  ),
+  win(
+    'integrations',
+    'preferences',
+    'extension-update',
+    'Preferences › Integration: an older copy of the top-bar extension, Update',
+  ),
+  win(
+    'integrations',
+    'preferences',
+    'extension-on',
+    'Preferences › Integration: the top-bar extension On, with Disable and Remove',
+  ),
+  win(
+    'integrations',
+    'enable',
+    'ask-extensions',
+    'Extensions switched off in GNOME: asked before Enable turns them all back on',
+  ),
 
   // ---- Start a recording
   win(

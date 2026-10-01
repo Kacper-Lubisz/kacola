@@ -49,6 +49,8 @@ const bridge: GnomeolaBridge = {
   uninstallCli: () => ipcRenderer.invoke(IPC.cliUninstall),
   extensionStatus: () => ipcRenderer.invoke(IPC.extensionStatus),
   installExtension: () => ipcRenderer.invoke(IPC.extensionInstall),
+  disableExtension: () => ipcRenderer.invoke(IPC.extensionDisable),
+  removeExtension: () => ipcRenderer.invoke(IPC.extensionRemove),
   getAutostart: () => ipcRenderer.invoke(IPC.autostartGet),
   setAutostart: (enabled: boolean) => ipcRenderer.invoke(IPC.autostartSet, enabled === true),
   onDeepLink: (cb) => listen<string>(IPC.deepLink, cb),
