@@ -139,10 +139,14 @@ describe('desktop: speaker settings and voiceprints against the real daemon', ()
     expect(await voiceprints.isChecked()).toBe(false)
     expect(await app.axe()).toEqual([])
 
+    // Wait for the SWITCH as well as the daemon before toggling again: under load the window can still
+    // show the old state when the daemon already has the new one, and a click then flips it back.
     await toggle('Tell far-end speakers apart')
     await poll(async () => (await settings()).speakers?.diarize === false, 5000, 'diarize off')
+    await poll(async () => !(await diarize.isChecked()), 5000, 'the diarize switch off')
     await toggle('Tell far-end speakers apart')
     await poll(async () => (await settings()).speakers?.diarize === true, 5000, 'diarize on again')
+    await poll(async () => diarize.isChecked(), 5000, 'the diarize switch on again')
     await toggle('Recognise people across meetings')
     await poll(async () => (await settings()).speakers?.voiceprints === true, 5000, 'voiceprints on')
     await poll(async () => voiceprints.isChecked(), 5000, 'the voiceprints switch on')
