@@ -140,9 +140,12 @@ function outcome(s: ExtensionState): { text: string; error?: boolean } | null {
   switch (s.state) {
     case 'enabled':
       return { text: _('The top-bar extension is on') }
-    case 'needs-login':
     case 'manual':
-      return { text: extensionView(s).subtitle.replace(/:$/, '') }
+      return { text: _('Installed. Run the command shown to turn it on.') }
+    case 'needs-login':
+      return {
+        text: s.command ? _('Installed. Run the command shown to turn it on.') : extensionView(s).subtitle,
+      }
     case 'error':
       return {
         text: fmt(_('Could not turn on the top-bar extension: {reason}'), { reason: s.detail }),
@@ -198,7 +201,7 @@ function CommandLine({ command }: { command: string }) {
   const toast = useToast()
   return (
     <span className="mt-1 flex items-center gap-2">
-      <code className="min-w-0 rounded-sm bg-bg-sidebar px-2 py-1 type-mono text-text-primary select-all">
+      <code className="min-w-0 flex-1 rounded-sm bg-bg-sidebar px-2 py-1 type-mono [overflow-wrap:anywhere] text-text-primary select-all">
         {command}
       </code>
       <IconButton

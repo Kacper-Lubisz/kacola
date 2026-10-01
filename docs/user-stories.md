@@ -139,23 +139,42 @@ flowchart TD
 ### integrations — Install the CLI + skill and the top-bar extension
 - **Status:** built
 - **Persona:** a user who wants Claude Code to read their meetings, or wants the top bar.
-- **Entry points:** onboarding (default on); Preferences › Integration.
+- **Entry points:** onboarding (default on; the top-bar extension has its own button there); Preferences ›
+  Integration; on GNOME, a dismissible card at the foot of the sidebar until the extension is on.
 - **Steps:** 1. Preferences › Integration shows whether `gnomeola` is on the PATH and where. 2. Install /
   Reinstall / Remove the command-line tool and the Claude skill (`~/.claude/skills/meeting-context`).
-  3. Install the top-bar extension (copied, never enabled; the user enables it). 4. Start in the
+  3. The top-bar extension: one button that does the right thing — Install & Enable, Update or Enable —
+  through the Shell's own D-Bus API. A fresh install is queued for the next login (the Shell reads new
+  extensions only at login on Wayland): "Installed — log out and back in to turn it on". If GNOME has every
+  extension switched off, it asks before turning them back on. Once on: On, with Disable and Remove. In
+  the Flatpak (no access to the Shell) it copies the files and shows the command to run. 4. Start in the
   background at login.
-- **States:** `integrations__preferences__integration-page`.
-- **Tests:** install.e2e, desktop-dialogs, flatpak.e2e.
+- **States:** `integrations__preferences__integration-page`, `integrations__sidebar__extension-card`,
+  `integrations__sidebar__extension-login`, `integrations__preferences__extension-update`,
+  `integrations__preferences__extension-on`, `integrations__enable__ask-extensions`.
+- **Tests:** install.e2e, desktop-dialogs, desktop-extension.e2e (a real private Shell + faked states),
+  extension-setup (unit), flatpak.e2e.
 
 ```mermaid
 flowchart TD
   A([Preferences › Integration]) --> B[CLI + skill row, extension row, background row]
   B -->|Install| C[gnomeola on PATH, skill in ~/.claude/skills]
-  B -->|Install extension| D[Copied to the Shell's extensions dir]
-  D --> E[User enables it in Extensions]
+  S([Sidebar card, GNOME only]) -->|Install & Enable| D[Copied; the Shell has not loaded it yet]
+  B -->|Install & Enable| D
+  D --> L[Installed — log out and back in to turn it on]
+  L -->|next login| ON[On, with Disable and Remove]
+  B -->|An older copy| U[Update]
+  U --> L
+  B -->|Extensions off in GNOME| Q[Turn On GNOME Extensions?]
+  Q -->|Turn On Extensions| ON
   B -->|Another gnomeola comes first| F[Replace the Other gnomeola?]
   B -.macOS /usr/local/bin.-> G[One administrator prompt, or ~/.local/bin]
   %% shot: B = integrations__preferences__integration-page
+  %% shot: S = integrations__sidebar__extension-card
+  %% shot: L = integrations__sidebar__extension-login
+  %% shot: U = integrations__preferences__extension-update
+  %% shot: ON = integrations__preferences__extension-on
+  %% shot: Q = integrations__enable__ask-extensions
 ```
 
 ## Start a recording

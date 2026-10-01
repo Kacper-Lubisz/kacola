@@ -427,13 +427,15 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
     await display.screenshot(join(REPO, 'packages', 'e2e', 'test', '__artifacts__', 'flatpak-window.png'))
   })
 
-  it('Preferences installs the top-bar extension into the host’s extensions dir (never enabled)', async () => {
+  it('Preferences installs the top-bar extension into the host’s extensions dir, and says how to switch it on', async () => {
     await cdp.window.keyboard.press('Control+,')
     const prefs = cdp.window.getByRole('dialog', { name: 'Preferences' })
     await prefs.getByRole('tab', { name: 'Integration' }).click()
-    const row = prefs.getByText('Top-bar extension').locator('../..')
-    await row.getByRole('button', { name: 'Install' }).click()
-    await row.getByText(/^Installed\./).waitFor({ timeout: 20_000 })
+    const row = prefs.getByText('Top-bar extension', { exact: true }).locator('../..')
+    await row.getByRole('button', { name: 'Install & Enable' }).click()
+    // the sandbox cannot reach the Shell (no --talk-name=org.gnome.Shell), so: the command to run
+    await row.getByText('Installed. To turn it on, run this in a terminal:').waitFor({ timeout: 20_000 })
+    await row.getByText('gnome-extensions enable gnomeola@gnomeola.org', { exact: true }).waitFor()
     const dest = join(home, '.local', 'share', 'gnome-shell', 'extensions', 'gnomeola@gnomeola.org')
     for (const f of ['metadata.json', 'extension.js', 'schemas/gschemas.compiled'])
       expect(existsSync(join(dest, f)), f).toBe(true)

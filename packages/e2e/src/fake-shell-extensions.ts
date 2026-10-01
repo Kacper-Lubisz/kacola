@@ -204,12 +204,22 @@ export function installFakeShellTools(dir: string, statePath: string, state: Fak
   mkdirSync(dir, { recursive: true })
   writeFakeShell(statePath, state)
   const path = process.env.PATH ?? '/usr/bin:/bin'
-  for (const tool of ['gdbus', 'gsettings', 'gnome-extensions']) {
+  // which calls are the Shell's: anything else (the Settings portal, `gdbus monitor`, other schemas) is
+  // exec'd straight into the real tool, so nothing of ours lingers around a long-running one
+  const ours: Record<string, string | null> = {
+    gdbus: '*" org.gnome.Shell "*',
+    gsettings: '*" org.gnome.shell "*',
+    'gnome-extensions': null,
+  }
+  for (const [tool, pattern] of Object.entries(ours)) {
     const real = which(tool, path, dir) ?? `/usr/bin/${tool}`
+    const fake = `FAKE_SHELL_REAL=${JSON.stringify(real)} FAKE_SHELL_STATE=${JSON.stringify(statePath)} exec ${JSON.stringify(process.execPath)} ${JSON.stringify(import.meta.filename)} ${tool} "$@"`
     const p = join(dir, tool)
     writeFileSync(
       p,
-      `#!/bin/sh\nFAKE_SHELL_REAL=${JSON.stringify(real)} FAKE_SHELL_STATE=${JSON.stringify(statePath)} exec ${JSON.stringify(process.execPath)} ${JSON.stringify(import.meta.filename)} ${tool} "$@"\n`,
+      pattern
+        ? `#!/bin/sh\ncase " $* " in ${pattern}) ${fake} ;; esac\nexec ${JSON.stringify(real)} "$@"\n`
+        : `#!/bin/sh\n${fake}\n`,
     )
     chmodSync(p, 0o755)
   }
