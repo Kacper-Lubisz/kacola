@@ -61,7 +61,7 @@
   "suggestions": [],
   "links": {
     "app": "kacola://meeting/one-on-one%40x",
-    "web": "https://kacola.example/a/<agd:1>"
+    "web": null
   },
   "history": [
     {

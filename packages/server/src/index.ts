@@ -18,5 +18,14 @@ export {
   verifyToken,
 } from './auth.ts'
 export { HttpError, toHttpError } from './errors.ts'
+export {
+  consoleMailer,
+  type Mail,
+  type Mailer,
+  MemoryMailer,
+  mailerFromEnv,
+  webhookMailer,
+} from './mailer.ts'
 export { type NodeHandler, nodeHandler, type Served, serve } from './node.ts'
+export { SHARE_LINK_ROUTES, SHARE_PARTICIPANT_ROUTES, shareOpen } from './sharing.ts'
 export { eventStream } from './sse.ts'

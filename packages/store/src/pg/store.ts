@@ -54,6 +54,16 @@ import {
   truthy,
 } from '../rows.ts'
 import { parseQuery, searchText, snippet, toTsQuery } from '../search-text.ts'
+import type { SharePlan } from '../shares.ts'
+import {
+  loadShareState,
+  runAsync,
+  SHARE_SNAPSHOT_QUERIES,
+  type ShareKey,
+  type ShareState,
+  shareOps,
+  shareSnapshot,
+} from '../shares-apply.ts'
 import { migratePg, pgMigrations } from './migrations.ts'
 
 // StoreApi on Postgres — Neon in production, PGlite in `pnpm check`, a real server in the int tier.
@@ -334,6 +344,18 @@ export class PgStore implements StoreApi {
       case 'agenda.context.deleted':
       case 'agenda.suggestion.upserted':
         await runOps(e, agendaOps(data))
+        return
+      // ---- team sharing: the same statements as the SQLite store (../shares-apply.ts)
+      case 'share.upserted':
+      case 'share.revoked':
+      case 'share.participant.upserted':
+      case 'share.item.upserted':
+      case 'share.item.deleted':
+      case 'share.change':
+      case 'share.card.upserted':
+      case 'share.card.deleted':
+      case 'share.comment.upserted':
+        await runOps(e, shareOps(data))
         return
       default: {
         const never: never = data
@@ -704,7 +726,54 @@ export class PgStore implements StoreApi {
         for (const [k, q] of Object.entries(AGENDA_SNAPSHOT_QUERIES)) got[q] = await rows(this.db, sql.raw(q))
         return agendaSnapshot((q) => got[q]!)
       })()),
+      ...(await (async () => {
+        const got: Record<string, Row[]> = {}
+        for (const q of Object.values(SHARE_SNAPSHOT_QUERIES)) got[q] = await rows(this.db, sql.raw(q))
+        return shareSnapshot((q) => got[q]!)
+      })()),
     }
+  }
+
+  // ---------------------------------------------------------------------------- team sharing
+
+  async shareWrite<R>(
+    key: ShareKey | null,
+    o: { participantTokenHash?: string | null },
+    plan: (s: ShareState | null, now: Date) => SharePlan<R>,
+  ): Promise<R> {
+    return this.write(async (trx, events) => {
+      // the writer lock first, as every commit takes it, so the state read below is current
+      await sql`SELECT value FROM counters WHERE name = 'seq' FOR UPDATE`.execute(trx)
+      const now = this.now()
+      const state = key
+        ? await runAsync(
+            loadShareState(key, { participantTokenHash: o.participantTokenHash ?? null, now }),
+            (q) => rows(trx, bind(q)),
+          )
+        : null
+      const p = plan(state, now)
+      for (const data of p.events) await this.commitIn(trx, events, () => ({ sessionId: null, data }))
+      await runOps(trx, p.bookkeeping)
+      return p.result
+    })
+  }
+
+  async shareRead<R>(
+    key: ShareKey,
+    o: { participantTokenHash?: string | null },
+    read: (s: ShareState | null) => R,
+  ): Promise<R> {
+    // one snapshot for the several queries of the load
+    const state = await this.db
+      .transaction()
+      .setIsolationLevel('repeatable read')
+      .execute((trx) =>
+        runAsync(
+          loadShareState(key, { participantTokenHash: o.participantTokenHash ?? null, now: this.now() }),
+          (q) => rows(trx, bind(q)),
+        ),
+      )
+    return read(state)
   }
 
   /** As ../store.ts speakerSummaries: `me`, the live far-end speakers in creation order, then `them`. */

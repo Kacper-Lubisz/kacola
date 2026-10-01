@@ -246,9 +246,8 @@ describe('agenda verbs through the real daemon', () => {
       reason: expect.stringMatching(/file calendar provider is read-only/),
     })
     const text = await gnomeola(['agenda', 'share', 'next'], d.baseUrl, { tty: true })
-    expect(text.stdout).toMatch(
-      /^-- kacola agenda --\nAgenda: kacola:\/\/meeting\/one-on-one%40x · web: https:\/\/kacola\.example\/a\/agd_/,
-    )
+    // not shared: the block carries the app link only (team sharing adds `web: <host>/a/<token>`)
+    expect(text.stdout).toMatch(/^-- kacola agenda --\nAgenda: kacola:\/\/meeting\/one-on-one%40x\n/)
   })
 
   it('list, and privacy: a private agenda is invisible here', async () => {

@@ -12,6 +12,8 @@ import {
   type DurableEventData,
   type Evidence,
   isForwardMove,
+  isPeer,
+  isPeerHuman,
   NewAgendaItem,
   newAgendaId,
   parseAgendaMarkdown,
@@ -613,7 +615,8 @@ export class AgendaStore {
         const last = this.history(agendaId)
           .filter((c) => c.itemId === itemId)
           .at(-1)
-        if (last?.by === 'user' && last.override)
+        // a person's override locks the item: the user's, or (team sharing) another attendee's in person
+        if (last && (last.by === 'user' || isPeerHuman(last.by)) && last.override)
           throw new StoreError(
             'conflict',
             `the user set "${cur.text}" to ${cur.status} by hand; ${by} cannot change it (manual wins)`,
@@ -806,6 +809,134 @@ export class AgendaStore {
       } else if (cur.itemId) item = this.item(agendaId, cur.itemId)
     })
     return { suggestion: suggestion!, item }
+  }
+
+  // ------------------------------------------------------------------- team sharing: the mirror
+  //
+  // What another device did on a shared agenda, as the hosted server decided it, written here by the
+  // share sync. These bypass the forward-only rules on purpose — the server already judged the change
+  // against every device's history — but they only ever carry a `peer:` or `invitee:` attribution, which
+  // no request body can claim, so nothing local can use them to skip the rules.
+
+  private requireMirrorBy(by: ChangedBy): void {
+    if (!isPeer(by) && !by.startsWith('invitee:'))
+      throw new StoreError('bad_request', `mirrored changes are attributed to peer:… or invitee:…, not ${by}`)
+  }
+
+  /** Create (with the shared id) or update an item that another device owns. Never touches the status. */
+  mirrorItem(
+    agendaId: string,
+    i: {
+      id: string
+      text: string
+      kind: AgendaItem['kind']
+      owner: string | null
+      timeboxMin: number | null
+      outcome?: string | null
+      carriedFrom?: AgendaItem['carriedFrom']
+    },
+    by: ChangedBy,
+  ): AgendaItem {
+    this.requireMirrorBy(by)
+    let out: AgendaItem | undefined
+    this.scoped(agendaId, (version, at) => {
+      const cur = this.item(agendaId, i.id)
+      out = cur
+        ? {
+            ...cur,
+            text: i.text,
+            kind: i.kind,
+            owner: i.owner,
+            timeboxMin: i.timeboxMin,
+            ...(i.outcome !== undefined ? { outcome: i.outcome } : {}),
+            changedBy: by,
+            updatedAt: at,
+          }
+        : {
+            id: i.id,
+            agendaId,
+            text: i.text,
+            kind: i.kind,
+            owner: i.owner,
+            timeboxMin: i.timeboxMin,
+            order: this.items(agendaId).length,
+            status: 'open',
+            evidence: [],
+            outcome: i.outcome ?? null,
+            changedBy: by,
+            createdBy: by,
+            carriedFrom: i.carriedFrom ?? null,
+            createdAt: at,
+            updatedAt: at,
+          }
+      return { type: 'agenda.item.upserted', agendaId, version, at, item: out }
+    })
+    return out!
+  }
+
+  /** The status the hosted server settled on, attributed to the device that set it. No evidence crosses. */
+  mirrorStatus(
+    agendaId: string,
+    itemId: string,
+    to: AgendaItemStatus,
+    by: ChangedBy,
+    o: { auto?: boolean; confidence?: number | null } = {},
+  ): { item: AgendaItem; change: StatusChange | null } {
+    this.requireMirrorBy(by)
+    let item: AgendaItem | undefined
+    let change: StatusChange | null = null
+    this.store.transaction(() => {
+      const cur = this.requireItem(agendaId, itemId)
+      if (cur.status === to) {
+        item = cur
+        return
+      }
+      const forward = isForwardMove(cur.status, to)
+      this.scoped(agendaId, (version, at) => {
+        change = {
+          itemId,
+          from: cur.status,
+          to,
+          by,
+          at,
+          note: null,
+          evidence: [],
+          override: !forward,
+          auto: o.auto ?? false,
+          confidence: o.confidence ?? null,
+        }
+        item = { ...cur, status: to, evidence: forward ? cur.evidence : [], changedBy: by, updatedAt: at }
+        return { type: 'agenda.item.status', agendaId, version, at, item, change }
+      })
+    })
+    return { item: item!, change }
+  }
+
+  /** A context card the owner shared, on a member's copy (same id; read-only there). */
+  mirrorCard(
+    agendaId: string,
+    c: { id: string; title: string; body: string; pinned: boolean; sourceUrl: string | null },
+    by: ChangedBy,
+  ): ContextCard {
+    this.requireMirrorBy(by)
+    let out: ContextCard | undefined
+    this.scoped(agendaId, (version, at) => {
+      const cur = this.card(agendaId, c.id)
+      out = {
+        id: c.id,
+        agendaId,
+        title: c.title,
+        body: c.body,
+        source: c.sourceUrl ? { kind: 'url', ref: c.sourceUrl } : { kind: 'user', ref: null },
+        visibility: 'shared',
+        pinned: c.pinned,
+        createdBy: cur?.createdBy ?? by,
+        createdAt: cur?.createdAt ?? at,
+        updatedAt: at,
+      }
+      return { type: 'agenda.context.upserted', agendaId, version, at, card: out }
+    })
+    return out!
   }
 
   /**

@@ -3,6 +3,7 @@ import { AgendaEphemeralEvents, AgendaEvents } from './agendas.ts'
 import { CalendarStatus, Meeting } from './calendar.ts'
 import { NoteTemplate, NoteVersion } from './notes.ts'
 import { Iso, ModelInfo, QaMessage, Segment, Session, StoredSettings, TrackKind } from './schemas.ts'
+import { ShareEvents, SharingEphemeralEvents } from './sharing.ts'
 import { SpeakerEvents } from './speakers.ts'
 import { TrackerEphemeralEvents } from './tracker.ts'
 
@@ -32,6 +33,8 @@ export const DurableEventData = z.discriminatedUnion('type', [
   ...SpeakerEvents,
   // ---- kacola phases 1–2: agendas (schemas in ./agendas.ts)
   ...AgendaEvents,
+  // ---- kacola phase 5: team sharing, on the hosted server only (./sharing.ts)
+  ...ShareEvents,
 ])
 export type DurableEventData = z.infer<typeof DurableEventData>
 
@@ -71,6 +74,8 @@ export const EphemeralEventData = z.discriminatedUnion('type', [
   ...AgendaEphemeralEvents,
   // ---- Agendas wave 2: the live tracker's status (./tracker.ts)
   ...TrackerEphemeralEvents,
+  // ---- kacola phase 5: an agenda's sharing changed (./sharing.ts)
+  ...SharingEphemeralEvents,
 ])
 export type EphemeralEventData = z.infer<typeof EphemeralEventData>
 

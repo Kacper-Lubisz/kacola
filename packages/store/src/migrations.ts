@@ -286,6 +286,102 @@ export const migrations: readonly Migration[] = [
       CREATE INDEX agenda_suggestions_agenda ON agenda_suggestions (agenda_id);
     `,
   },
+  {
+    // kacola phase 5 — team sharing on the hosted server (see ./shares-apply.ts). Mirrored, same version
+    // and name, in ./pg/migrations.ts. The first six tables are domain state written only from `share.*`
+    // events (keys + a JSON `data` column, like the agenda tables); the last three are bookkeeping that
+    // holds the secrets — the link token, participant tokens, magic-link codes — only as SHA-256 hashes,
+    // never in an event (BOOKKEEPING_TABLES).
+    version: 7,
+    name: 'sharing',
+    up: `
+      CREATE TABLE shares (
+        id TEXT PRIMARY KEY,
+        revoked INTEGER NOT NULL,
+        updated_at TEXT NOT NULL,
+        data TEXT NOT NULL
+      ) STRICT;
+
+      CREATE TABLE share_items (
+        share_id TEXT NOT NULL,
+        id TEXT NOT NULL,
+        occurrence TEXT NOT NULL,
+        position INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        data TEXT NOT NULL,
+        PRIMARY KEY (share_id, id)
+      ) STRICT;
+
+      -- every status change any device submitted, applied or not (nothing is silently lost)
+      CREATE TABLE share_changes (
+        share_id TEXT NOT NULL,
+        id TEXT NOT NULL,
+        actor TEXT NOT NULL,
+        change_key TEXT NOT NULL,
+        item_id TEXT NOT NULL,
+        occurrence TEXT NOT NULL,
+        data TEXT NOT NULL,
+        PRIMARY KEY (share_id, id)
+      ) STRICT;
+      CREATE UNIQUE INDEX share_changes_key ON share_changes (share_id, actor, change_key);
+
+      CREATE TABLE share_cards (
+        share_id TEXT NOT NULL,
+        id TEXT NOT NULL,
+        occurrence TEXT NOT NULL,
+        data TEXT NOT NULL,
+        PRIMARY KEY (share_id, id)
+      ) STRICT;
+
+      CREATE TABLE share_comments (
+        share_id TEXT NOT NULL,
+        id TEXT NOT NULL,
+        occurrence TEXT NOT NULL,
+        author TEXT NOT NULL,
+        at TEXT NOT NULL,
+        data TEXT NOT NULL,
+        PRIMARY KEY (share_id, id)
+      ) STRICT;
+
+      CREATE TABLE share_participants (
+        id TEXT PRIMARY KEY,
+        share_id TEXT NOT NULL,
+        email TEXT NOT NULL,
+        revoked INTEGER NOT NULL,
+        data TEXT NOT NULL
+      ) STRICT;
+      CREATE UNIQUE INDEX share_participants_email ON share_participants (share_id, email);
+
+      -- bookkeeping: the link secret of each share, hashed
+      CREATE TABLE share_tokens (
+        token_hash TEXT PRIMARY KEY,
+        share_id TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL
+      ) STRICT;
+
+      -- bookkeeping: participants' tokens (members' daemons, verified invitees' browsers), hashed
+      CREATE TABLE share_participant_tokens (
+        token_hash TEXT PRIMARY KEY,
+        participant_id TEXT NOT NULL,
+        share_id TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      ) STRICT;
+      CREATE INDEX share_participant_tokens_share ON share_participant_tokens (share_id);
+
+      -- bookkeeping: magic-link codes, hashed; also what the rate limits count
+      CREATE TABLE share_codes (
+        code_hash TEXT PRIMARY KEY,
+        share_id TEXT NOT NULL,
+        email TEXT NOT NULL,
+        name TEXT,
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        used_at TEXT,
+        attempts INTEGER NOT NULL
+      ) STRICT;
+      CREATE INDEX share_codes_share ON share_codes (share_id, created_at);
+    `,
+  },
 ]
 
 /**
@@ -298,6 +394,9 @@ export const BOOKKEEPING_TABLES: readonly string[] = [
   'devices',
   'pairing_requests',
   'audio_chunks',
+  'share_tokens',
+  'share_participant_tokens',
+  'share_codes',
 ]
 
 function validateList(list: readonly Migration[]): void {

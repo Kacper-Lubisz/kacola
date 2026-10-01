@@ -24,6 +24,8 @@ import pkg from '../package.json' with { type: 'json' }
 import { agendaHandlers } from './agendas/handlers.ts'
 import { agendaRecapHook } from './agendas/recap.ts'
 import { AgendaService } from './agendas/service.ts'
+import { type ShareConfig, SharingService } from './agendas/sharing.ts'
+import { sharingHandlers } from './agendas/sharing-handlers.ts'
 import { AgendaTracker, type TrackerOptions } from './agendas/tracker.ts'
 import { agendaLlm, trackerHandlers } from './agendas/tracker-wiring.ts'
 import { AgentChannel, type AgentLimits } from './agents/channel.ts'
@@ -101,8 +103,8 @@ export type DaemonOptions = {
   /** External capture (macOS): recordings waiting for audio from the app, fed by the ingest route. */
   externalCapture?: ExternalCaptureHub | null
   // ---- agendas
-  /** Base URL of the hosted agenda page (`<base>/a/<id>`) for invitation blocks. Default
-   *  GNOMEOLA_AGENDA_WEB_BASE, else none (the block carries only the kacola:// link). */
+  /** Base URL of the hosted agenda page (`<base>/a/<token>`) a SHARED agenda's invitation block carries.
+   *  Default GNOMEOLA_AGENDA_WEB_BASE, else the sharing host. An unshared agenda has no web link. */
   agendaWebBase?: string | null
   // ---- agent channel (leases, live attach)
   /** Applied to live speech before it reaches agents. Default: pass-through (see agents/guard.ts). */
@@ -119,6 +121,10 @@ export type DaemonOptions = {
   tracker?: TrackerOptions | false
   /** Test seam: the text LLM for bridge lines and recaps. Default: the Q&A provider from settings + key. */
   agendaLlm?: () => Promise<LlmProvider | null>
+  // ---- kacola phase 5: team sharing
+  /** The hosted server agendas are shared on, and sync timing. Default from the environment
+   *  (GNOMEOLA_SHARE_URL / _TOKEN, else GNOMEOLA_SYNC_URL / _TOKEN; GNOMEOLA_OWNER_NAME / _EMAIL). */
+  share?: Partial<ShareConfig>
 }
 
 export type Daemon = {
@@ -141,6 +147,8 @@ export type Daemon = {
   readonly decisions: DecisionsService
   /** Agendas wave 2: the live tracker (null when switched off); `tracker.guard` is the SpeechGuard. */
   readonly tracker: AgendaTracker | null
+  /** Team sharing: shared agendas and the ones this device follows. */
+  readonly sharing: SharingService
   /** Open SSE connections. */
   readonly sseClients: number
   close(): Promise<void>
@@ -215,13 +223,27 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
   })
   speakers = new SpeakerService({ store, sessions, settings: () => settings.get(), logger })
   const spk = speakers
-  const agendas = new AgendaService({
-    store,
-    calendar,
-    logger,
-    webBase: o.agendaWebBase !== undefined ? o.agendaWebBase : (env.GNOMEOLA_AGENDA_WEB_BASE ?? null),
-  })
+  const agendas = new AgendaService({ store, calendar, logger })
   agendas.start()
+  // ---- kacola phase 5: team sharing (push the projection, mirror what others did)
+  const sharing = new SharingService({
+    store,
+    agendas,
+    bus,
+    logger,
+    dataDir: o.dataDir,
+    config: {
+      url: o.share?.url ?? (env.GNOMEOLA_SHARE_URL || env.GNOMEOLA_SYNC_URL || null),
+      token: o.share?.token ?? (env.GNOMEOLA_SHARE_TOKEN || env.GNOMEOLA_SYNC_TOKEN || null),
+      webBase: o.agendaWebBase !== undefined ? o.agendaWebBase : env.GNOMEOLA_AGENDA_WEB_BASE || null,
+      ownerName: o.share?.ownerName ?? (env.GNOMEOLA_OWNER_NAME || null),
+      ownerLabel: o.share?.ownerLabel ?? (env.GNOMEOLA_OWNER_EMAIL || null),
+      pollMs: o.share?.pollMs ?? Number(env.GNOMEOLA_SHARE_POLL_MS ?? 15_000),
+      debounceMs: o.share?.debounceMs ?? Number(env.GNOMEOLA_SHARE_DEBOUNCE_MS ?? 500),
+      ...(o.share?.fetch ? { fetch: o.share.fetch } : {}),
+    },
+  })
+  sharing.start()
   // ---- Agendas wave 2: the live tracker + the recap
   const llmFor = agendaLlm(settings, o.agendaLlm)
   const tracker =
@@ -435,6 +457,10 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     }),
     // ---- Agendas wave 2: the live tracker's status
     ...trackerHandlers(agendas, tracker),
+    // ---- kacola phase 5: team sharing (share / follow / status / merge history)
+    ...sharingHandlers(sharing, agents, (id) => {
+      if (!agendas.agendas.get(id)) throw new DaemonError('not_found', `no agenda ${id}`)
+    }),
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))
@@ -579,6 +605,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
       server.close()
       autoRecord.stop()
       tracker?.stop()
+      await sharing.stop()
       agendas.stop()
       agents.stop()
       await dbus?.stop()
@@ -610,6 +637,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     agendas,
     agents,
     tracker,
+    sharing,
     get sseClients() {
       return sse.size
     },

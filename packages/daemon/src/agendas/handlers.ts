@@ -53,6 +53,9 @@ export function agendaHandlers(svc: AgendaService, channel: AgentChannel): Pick<
         'unauthorized',
         `"${by}" is set by a lease, not the request body (gnomeola live attach)`,
       )
+    // team sharing: another device's attribution comes only from the share sync
+    if (by !== undefined && by.startsWith('peer:'))
+      throw new DaemonError('unauthorized', `"${by}" is written by the share sync, not a request body`)
   }
   const exists = (id: string): Agenda => {
     const a = store.get(id)

@@ -1,5 +1,5 @@
 import type { ApiError } from '@gnomeola/protocol'
-import { StoreError } from '@gnomeola/store/core'
+import { ShareForbidden, ShareGone, ShareRateLimited, StoreError } from '@gnomeola/store/core'
 import { CloudSttError } from '@gnomeola/stt/cloud'
 import { ZodError } from 'zod'
 
@@ -34,6 +34,11 @@ export const needsToken = (message = 'a bearer token is required (pair this devi
 
 export function toHttpError(err: unknown): HttpError {
   if (err instanceof HttpError) return err
+  // team sharing: a revoked link is gone (410), a rate limit is 429, a refused share action 403
+  if (err instanceof ShareGone) return new HttpError('not_found', err.message, 410)
+  if (err instanceof ShareRateLimited)
+    return new HttpError('conflict', err.message, 429, { 'retry-after': '60' })
+  if (err instanceof ShareForbidden) return new HttpError('unauthorized', err.message)
   if (err instanceof StoreError) return new HttpError(err.code, err.message)
   if (err instanceof ZodError) {
     const detail = err.issues

@@ -194,11 +194,19 @@ export function checkAgendaLog(events: readonly DurableEvent[]): Violation[] {
       const forward = RANK[c.to]! > RANK[c.from]!
       if (c.override === forward)
         v.push({ rule: 'override-flag', detail: `${c.itemId}: ${c.from}->${c.to} override=${c.override}` })
-      if (c.by !== 'user' && !forward)
+      // team sharing: `peer:` changes mirror what the hosted server decided for another device; the
+      // server judged them against every device's history, so they may move either way here — but they
+      // carry no evidence (nothing of a transcript crosses devices), and a peer's override in person
+      // locks the item like the user's own
+      const peer = c.by.startsWith('peer:')
+      const human = c.by === 'user' || (peer && !c.by.includes('/'))
+      if (peer && c.evidence.length)
+        v.push({ rule: 'peer-no-evidence', detail: `${c.itemId}: ${c.by} carries evidence` })
+      if (c.by !== 'user' && !peer && !forward)
         v.push({ rule: 'forward-only', detail: `${c.itemId}: ${c.by} moved ${c.from}->${c.to}` })
-      if (c.by !== 'user' && lockedByUser.has(c.itemId))
+      if (c.by !== 'user' && !peer && lockedByUser.has(c.itemId))
         v.push({ rule: 'manual-wins', detail: `${c.itemId}: ${c.by} changed it after the user's override` })
-      if (c.by === 'user') {
+      if (human) {
         if (c.override) lockedByUser.add(c.itemId)
         else lockedByUser.delete(c.itemId)
       }
