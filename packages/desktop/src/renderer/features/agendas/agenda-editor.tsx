@@ -202,11 +202,7 @@ export function ItemMeta({ item, change }: { item: AgendaItem; change: StatusCha
     <div className="flex flex-wrap items-center gap-1">
       {item.kind !== 'topic' ? <Chip>{kindLabel(item.kind)}</Chip> : null}
       {item.owner ? <Chip icon="person">{item.owner === 'me' ? _('me') : item.owner}</Chip> : null}
-      {item.timeboxMin ? (
-        <Chip icon="clock">
-          {fmt(ngettext('{n} min', '{n} min', item.timeboxMin), { n: item.timeboxMin })}
-        </Chip>
-      ) : null}
+      {item.timeboxMin ? <Chip icon="clock">{fmt(_('{n} min'), { n: item.timeboxMin })}</Chip> : null}
       {item.carriedFrom ? (
         <Chip icon="carry" label={_('Carried over from the last meeting')}>
           {_('carried over')}
