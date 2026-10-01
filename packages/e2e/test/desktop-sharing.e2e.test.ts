@@ -427,6 +427,12 @@ describe('desktop: team sharing', () => {
     await expect(page()).rejects.toMatchObject({ status: 410 })
     expect(await w().getByRole('tab', { name: 'Sharing' }).count()).toBe(0)
 
+    // the attendee's daemon learns it on its next sync (then the window renders its agenda.share report)
+    await until(
+      () => share(B, s.bAgenda),
+      (st) => st.state === 'revoked',
+      'the attendee’s copy to learn it is no longer shared',
+    )
     await relaunch(B)
     await go(`#/agendas/${s.bAgenda}`)
     const banner = w().getByRole('status', {

@@ -18,6 +18,7 @@ import { markOnboarded, setTheme, uiStatePath } from '../src/desktop.ts'
 import { poll, transcriptList } from '../src/desktop-ui.ts'
 import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
 import { SEED, seedMeetings } from '../src/seed.ts'
+import { linkToken, type ShareHost, startShareHost } from '../src/share-host.ts'
 
 // The screen atlas, window part (docs/user-stories.md, packages/testkit/src/atlas): the real Electron
 // window against the real daemon walks every built state the user stories touch, asserts each one by
@@ -1297,6 +1298,310 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
       masks: clock(),
     })
     expect(app.problems()).toEqual([])
+  })
+})
+
+describe('atlas: team sharing (two daemons + a local hosted server)', () => {
+  // The organiser shares a weekly team sync from the window; an invitee adds an item and a comment
+  // through the link; an attendee's window follows it with the emailed code, adds an item, moves one in
+  // person, and that attendee's own Claude (a real lease on their recording) checks one off; the
+  // organiser sees all of it attributed, the merge history, shares the recap and unshares; the
+  // attendee's copy stays, no longer shared. Wall-clock parts (the meeting's hours, sync times, the
+  // random link and code, the sidebar's relative times, Coming up) are masked.
+  let host: ShareHost
+  let A: DaemonHandle
+  let B: DaemonHandle
+  let app: DesktopApp | undefined
+  let box = ''
+  const w = () => app!.window
+  const view = (d: DaemonHandle, id: string) =>
+    d.client.call('getAgenda', { params: { id }, query: { includePrivate: true } })
+  const clock = () => [
+    w().getByRole('navigation', { name: 'Session list' }),
+    w().getByRole('region', { name: 'Coming up' }),
+    w().getByText(/\d{2}:\d{2}–\d{2}:\d{2}/),
+    w().locator('h1 + p'),
+    w().locator('[data-share-time]'),
+    w().getByRole('complementary', { name: 'Sessions' }).locator('header').first(),
+  ]
+  const launch = async (d: DaemonHandle) => {
+    if (app) {
+      expect(app.problems()).toEqual([])
+      await app.close()
+    }
+    app = await launchDesktop({ display, env: { GNOMEOLA_URL: d.baseUrl, ...WINDOW_ENV } })
+    await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 20_000 })
+    await w().emulateMedia({ reducedMotion: 'reduce' })
+    await w().setViewportSize({ width: 1280, height: HEIGHT })
+  }
+  const hash = async () => ((await w().evaluate('location.hash')) as string).split('/')[2]!.split('?')[0]!
+  const waitFor = async <T>(probe: () => Promise<T>, ok: (v: T) => boolean, what: string) => {
+    const end = Date.now() + 20_000
+    for (;;) {
+      const v = await probe().catch(() => undefined)
+      if (v !== undefined && ok(v)) return v
+      if (Date.now() > end) throw new Error(`timed out waiting for ${what}`)
+      await new Promise((r) => setTimeout(r, 100))
+    }
+  }
+
+  afterAll(async () => {
+    await app?.close()
+    await A?.stop()
+    await B?.stop()
+    await host?.close()
+    if (box) rmSync(box, { recursive: true, force: true })
+  })
+
+  it('share, an invitee’s item, follow with a code, teammates’ items and agents, the merge history, recap, unshare', async () => {
+    box = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-sharing-'))
+    const now = Date.now()
+    const t = (min: number) => new Date(now + min * 60_000).toISOString()
+    const calendar = (file: string) =>
+      writeFileSync(
+        file,
+        JSON.stringify({
+          calendars: [{ id: 'cal-work', name: 'Work' }],
+          occurrences: [0, 1].map((week) => ({
+            uid: 'team-sync@x',
+            summary: 'Team sync',
+            sourceUid: 'cal-work',
+            calendarName: 'Work',
+            recurrenceId: t(-5 + week * 7 * 24 * 60),
+            start: t(-5 + week * 7 * 24 * 60),
+            end: t(25 + week * 7 * 24 * 60),
+            description: '',
+            location: '',
+            url: '',
+            allDay: false,
+            startDate: null,
+            endDate: null,
+            timezone: 'UTC',
+            status: 'CONFIRMED',
+            myPartstat: null,
+            organizer: 'mailto:kacper@example.com',
+            attendees: 3,
+            recurring: true,
+            xprops: {},
+          })),
+        }),
+      )
+    host = await startShareHost()
+    const daemon = (name: string, env: Record<string, string>) => {
+      const file = join(box, `${name}.json`)
+      calendar(file)
+      return startDaemon({
+        dataDir: join(box, name),
+        env: {
+          GNOMEOLA_CALENDAR: `file:${file}`,
+          GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
+          GNOMEOLA_TRACKER: 'off',
+          GNOMEOLA_SPEECH_GUARD: 'none',
+          GNOMEOLA_SHARE_POLL_MS: '500',
+          GNOMEOLA_SHARE_DEBOUNCE_MS: '100',
+          ...env,
+        },
+      })
+    }
+    A = await daemon('owner', host.ownerEnv({ name: 'Kacper', email: 'kacper@example.com' }))
+    B = await daemon('attendee', { GNOMEOLA_OWNER_EMAIL: 'ben@example.com' })
+    markOnboarded(
+      display,
+      (await A.client.call('listModels')).models.map((m) => m.id),
+    )
+
+    // ---- the organiser shares
+    await launch(A)
+    const v = await A.client.call('createAgenda', {
+      body: {
+        eventUid: 'team-sync@x',
+        items: [
+          { text: 'Roadmap', kind: 'must-cover', timeboxMin: 10 },
+          { text: 'Hiring' },
+          { text: 'Budget' },
+        ],
+      },
+    })
+    const agenda = v.agenda.id
+    await w().evaluate(`location.hash = ${JSON.stringify(`#/agendas/${agenda}`)}`)
+    await w().getByRole('heading', { level: 1, name: 'Team sync' }).waitFor()
+    await w().getByRole('button', { name: 'Share…' }).click()
+    const dlg = w().getByRole('dialog', { name: 'Share Agenda' })
+    await dlg.getByRole('textbox', { name: 'Your name' }).fill('Kacper')
+    await dlg.getByRole('textbox', { name: 'Attendees who use kacola' }).fill('ben@example.com')
+    await atlas.shoot(w(), 'agenda-share__share__dialog', {
+      expect: dlg.getByRole('button', { name: 'Share', exact: true }),
+      masks: clock(),
+    })
+    await dlg.getByRole('button', { name: 'Share', exact: true }).click()
+    const field = dlg.getByRole('textbox', { name: 'Web link' })
+    await field.waitFor({ timeout: 20_000 })
+    const link = await field.inputValue()
+    await dlg.getByText('Up to date').waitFor()
+    await atlas.shoot(w(), 'agenda-share__shared__link', {
+      expect: [field, dlg.getByRole('button', { name: 'Copy Link' })],
+      masks: [field, ...clock()],
+    })
+    await w().keyboard.press('Escape')
+    await dlg.waitFor({ state: 'detached' })
+
+    // an invitee without kacola: an item and a comment through the link
+    const ivy = await host.invitee(linkToken(link), 'ivy@example.com', 'Ivy')
+    const offsite = await ivy.call('shareAddItem', {
+      params: { token: linkToken(link) },
+      body: { text: 'Offsite dates', kind: 'question' },
+    })
+    await ivy.call('shareAddComment', {
+      params: { token: linkToken(link) },
+      body: { itemId: offsite.id, text: 'Friday works for me' },
+    })
+
+    // ---- an attendee's window follows it, adds an item, moves one in person
+    await launch(B)
+    await w()
+      .getByRole('region', { name: 'Coming up' })
+      .getByRole('button', { name: 'Follow a shared agenda' })
+      .click({ timeout: 20_000 })
+    const follow = w().getByRole('dialog', { name: 'Follow a Shared Agenda' })
+    await follow.getByRole('textbox', { name: 'Link' }).fill(link)
+    await follow.getByRole('textbox', { name: 'Your email' }).fill('ben@example.com')
+    await follow.getByRole('textbox', { name: 'Your name (optional)' }).fill('Ben')
+    await follow.getByRole('button', { name: 'Send Code' }).click()
+    const code = follow.getByRole('textbox', { name: 'Code' })
+    await code.waitFor({ timeout: 20_000 })
+    await code.fill(host.codeFor('ben@example.com'))
+    await atlas.shoot(w(), 'agenda-share__follow__code', { expect: code, masks: [code, ...clock()] })
+    await follow.getByRole('button', { name: 'Follow', exact: true }).click()
+    await w().getByRole('heading', { level: 1, name: 'Team sync' }).waitFor({ timeout: 20_000 })
+    const copy = await hash()
+    await w().getByRole('textbox', { name: 'New item' }).fill('Demo the new dashboard')
+    await w().keyboard.press('Enter')
+    await w().getByRole('button', { name: 'Status of “Hiring”: Open' }).click()
+    await w().getByRole('menuitem', { name: 'In progress' }).click()
+    // the attendee records the meeting too, and their own Claude (act mode) checks the roadmap off
+    const { meetings } = await B.client.call('listMeetings', { query: { from: t(-60), to: t(60) } })
+    const { session } = await B.client.call('joinMeeting', { params: { id: meetings[0]!.id }, body: {} })
+    await waitFor(
+      async () => (await view(B, copy)).agenda.sessionId,
+      (id) => id === session.id,
+      'the copy linked to the attendee’s recording',
+    )
+    const seg = await waitFor(
+      async () => (await B.client.call('getTranscript', { params: { id: session.id } })).segments,
+      (s) => s.length > 0,
+      'a segment on the attendee’s recording',
+    )
+    const grant = await B.client.call('createAgentLease', {
+      params: { id: session.id },
+      body: { name: 'claude', mode: 'act' },
+    })
+    const claude = createClient({ baseUrl: B.baseUrl, headers: { [LEASE_HEADER]: grant.token } })
+    const roadmap = (await view(B, copy)).items.find((i) => i.text === 'Roadmap')!
+    await claude.call('setAgendaItemStatus', {
+      params: { id: copy, itemId: roadmap.id },
+      body: {
+        status: 'covered',
+        confidence: 0.92,
+        evidence: [{ segmentId: seg[0]!.id, quote: 'the roadmap is agreed', confidence: 0.92 }],
+      },
+    })
+    await waitFor(
+      () => view(A, agenda),
+      (a) =>
+        a.items.find((i) => i.text === 'Roadmap')?.changedBy === 'peer:ben@example.com/agent:claude' &&
+        a.items.find((i) => i.text === 'Hiring')?.changedBy === 'peer:ben@example.com' &&
+        a.items.some((i) => i.text === 'Demo the new dashboard' && i.createdBy === 'peer:ben@example.com'),
+      'the attendee’s changes on the organiser’s agenda',
+    )
+    await B.client.call('stopSession', { params: { id: session.id } })
+
+    // ---- the organiser's window: everyone's items and check-offs, attributed; the merge history
+    await launch(A)
+    await w().evaluate(`location.hash = ${JSON.stringify(`#/agendas/${agenda}`)}`)
+    const grid = w().getByRole('grid', { name: 'Agenda items' })
+    await grid
+      .getByRole('row', { name: 'Roadmap' })
+      .getByText('checked by Ben’s Claude')
+      .waitFor({ timeout: 20_000 })
+    await atlas.shoot(w(), 'agenda-team__shared__teammate-items', {
+      expect: [
+        grid.getByRole('row', { name: 'Hiring' }).getByText('marked by Ben'),
+        grid.getByRole('row', { name: 'Demo the new dashboard' }).getByText('added by Ben'),
+        grid.getByRole('row', { name: 'Offsite dates' }).getByText('Friday works for me'),
+      ],
+      masks: clock(),
+    })
+    await w().getByRole('tab', { name: 'Sharing' }).click()
+    const merged = w().getByRole('list', { name: 'Merge history' })
+    await merged.getByRole('listitem', { name: /Roadmap: Open → Covered by Ben’s Claude, Applied/ }).waitFor()
+    await atlas.shoot(w(), 'agenda-share__history__merge', {
+      expect: [merged, w().getByRole('list', { name: 'Comments' }).getByText('Friday works for me')],
+      masks: clock(),
+    })
+
+    // ---- the organiser records, stops, shares the recap
+    const budget = (await view(A, agenda)).items.find((i) => i.text === 'Budget')!
+    await A.client.call('updateAgendaItem', {
+      params: { id: agenda, itemId: budget.id },
+      body: {
+        outcome: 'Outcome: Approved at 40k.\nDecisions:\n- 40k for Q4\nActions:\n- Kacper: tell finance',
+      },
+    })
+    await A.client.call('setAgendaItemStatus', {
+      params: { id: agenda, itemId: budget.id },
+      body: { status: 'covered' },
+    })
+    const am = (await A.client.call('listMeetings', { query: { from: t(-60), to: t(60) } })).meetings
+    const own = (await A.client.call('joinMeeting', { params: { id: am[0]!.id }, body: {} })).session
+    await waitFor(
+      async () => (await view(A, agenda)).agenda.sessionId,
+      (id) => id === own.id,
+      'the agenda linked to the organiser’s recording',
+    )
+    await A.client.call('stopSession', { params: { id: own.id } })
+    await w().evaluate(`location.hash = ${JSON.stringify(`#/sessions/${own.id}?tab=agenda`)}`)
+    const recap = w().locator('section[aria-labelledby="recap"]')
+    await recap.getByRole('list', { name: 'Recap per item' }).waitFor({ timeout: 20_000 })
+    await recap.getByText('Share recap', { exact: true }).click()
+    await recap.getByText('People with the link see each item’s outcome.').waitFor({ timeout: 20_000 })
+    await atlas.shoot(w(), 'agenda-share__recap__shared', {
+      expect: recap.getByRole('switch', { name: /Share recap/ }),
+      masks: clock(),
+    })
+
+    // ---- unshare; the attendee's copy stays, no longer shared
+    await w().evaluate(`location.hash = ${JSON.stringify(`#/agendas/${agenda}`)}`)
+    await w()
+      .getByRole('button', { name: /^Shared: / })
+      .click({ timeout: 20_000 })
+    await w().getByRole('dialog', { name: 'Share Agenda' }).getByRole('button', { name: 'Unshare…' }).click()
+    await w()
+      .getByRole('alertdialog', { name: 'Stop sharing this agenda?' })
+      .getByRole('button', { name: 'Unshare', exact: true })
+      .click()
+    await w().getByRole('button', { name: 'Share…' }).waitFor({ timeout: 20_000 })
+    let last: unknown
+    await waitFor(
+      async () => {
+        last = await B.client.call('getAgendaShare', { params: { id: copy } })
+        return last as { state: string }
+      },
+      (st) => st.state === 'revoked',
+      'the attendee’s copy to learn it is no longer shared',
+    ).catch((err) => {
+      throw new Error(`${(err as Error).message}: ${JSON.stringify(last)}`)
+    })
+    await launch(B)
+    await w().evaluate(`location.hash = ${JSON.stringify(`#/agendas/${copy}`)}`)
+    const banner = w().getByRole('status', {
+      name: 'Kacper stopped sharing this agenda. Your copy stays on this computer.',
+    })
+    await banner.waitFor({ timeout: 20_000 })
+    await atlas.shoot(w(), 'agenda-share__revoked__banner', {
+      expect: [banner, w().getByRole('button', { name: 'Following: No longer shared' })],
+      masks: clock(),
+    })
+    expect(app!.problems()).toEqual([])
   })
 })
 

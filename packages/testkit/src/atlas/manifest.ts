@@ -408,7 +408,28 @@ export const ATLAS: AtlasEntry[] = [
   win('interview-mode', 'interviewer', 'competencies', 'Interviewer: competencies covered'),
   win('agenda-recap', 'per-item', 'outcomes', 'The recap: outcome, decisions and actions per item'),
   win('agenda-recap', 'carry-over', 'next-occurrence', 'Open items rolled to the next occurrence'),
-  planned(
+  win(
+    'agenda-share',
+    'share',
+    'dialog',
+    'Share the agenda: your name, invitees may add items, goals kept private, attendees who follow it',
+  ),
+  win('agenda-share', 'shared', 'link', 'Shared: the web link to copy, the sync state, Unshare'),
+  win(
+    'agenda-share',
+    'follow',
+    'code',
+    'An attendee follows the link in their own kacola: their email, then the code it was sent',
+  ),
+  win(
+    'agenda-share',
+    'history',
+    'merge',
+    'The Sharing tab: comments, people, and every device’s changes with their outcome',
+  ),
+  win('agenda-share', 'recap', 'shared', 'Share recap: the outcomes reach the link'),
+  win('agenda-share', 'revoked', 'banner', 'The organiser stopped sharing: the attendee keeps a copy'),
+  win(
     'agenda-team',
     'shared',
     'teammate-items',
