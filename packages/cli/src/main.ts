@@ -533,6 +533,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
           'no-wait': { type: 'boolean' },
           timeout: { type: 'string' },
           cancel: { type: 'boolean' },
+          'only-supervised': { type: 'boolean' },
         })
         if (helpOr(v)) return EXIT.OK
         const sub = p[0] ?? 'status'
@@ -548,6 +549,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
               mode: v.now ? 'now' : 'when-idle',
               force: Boolean(v.force),
               wait: !v['no-wait'],
+              onlySupervised: Boolean(v['only-supervised']),
               timeoutMs: v.timeout
                 ? (() => {
                     try {

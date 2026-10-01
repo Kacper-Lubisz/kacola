@@ -90,7 +90,7 @@ export async function daemonIdle(ctx: Ctx) {
 
 export async function daemonRestart(
   ctx: Ctx,
-  o: { mode: RestartMode; force: boolean; wait: boolean; timeoutMs: number | null },
+  o: { mode: RestartMode; force: boolean; wait: boolean; timeoutMs: number | null; onlySupervised?: boolean },
 ) {
   const before = await ctx.client.call('daemonInfo').catch((err) => {
     if (err instanceof GnomeolaApiError && err.status === 404)
@@ -101,6 +101,14 @@ export async function daemonRestart(
       )
     return mapApiError(err)
   })
+  if (o.onlySupervised && !before.supervised) {
+    // scripts/install.sh: a daemon nobody restarts (started by hand) is left to whoever started it
+    ctx.io.stderr(
+      `gnomeola: the daemon at ${ctx.client.baseUrl} (pid ${before.pid}) is not supervised, so it was not restarted; restart it yourself once nothing is recording\n`,
+    )
+    if (ctx.format === 'json') ctx.io.stdout(renderJson({ state: 'skipped', supervised: false }, ctx.io))
+    return
+  }
   let r: RestartResponse
   try {
     r = await ctx.client.call('requestRestart', { body: { mode: o.mode, force: o.force, by: 'cli' } })
@@ -108,9 +116,8 @@ export async function daemonRestart(
     if (err instanceof GnomeolaApiError && err.code === 'conflict') throw refused(err.message)
     return mapApiError(err)
   }
-  const say = (line: string) => {
-    if (ctx.format !== 'json') ctx.io.stderr(`${line}\n`)
-  }
+  // progress goes to stderr in both formats: stdout stays the one JSON result for scripts and agents
+  const say = (line: string) => ctx.io.stderr(`gnomeola: ${line}\n`)
   if (r.state === 'waiting')
     say(
       `waiting for ${r.waitingOn.map(brief).join(', ')} to finish before restarting` +

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # gnomeola user-level installer (non-Flatpak; the plan's S-2 ships this first).
 #
-#   scripts/install.sh [--prefix DIR] [--node PATH] [--no-service] [--no-skill] [--no-extension] [--dry-run]
+#   scripts/install.sh [--prefix DIR] [--node PATH] [--no-service] [--no-skill] [--no-extension] [--dry-run] [--force]
 #   scripts/install.sh --uninstall [--prefix DIR] [--purge]
 #
 # Installs, per user and without root:
@@ -23,6 +23,11 @@
 # The window attaches to the systemd daemon (GNOMEOLA_URL, default http://127.0.0.1:8787); with --no-service it
 # starts its own bundled daemon instead. GNOMEOLA_DESKTOP_APP_DIR=<linux-unpacked> installs that build instead
 # of building one (dist/desktop/linux-unpacked is rebuilt when any package source is newer than it).
+#
+# A meeting being recorded is never interrupted: if the running daemon (asked at GNOMEOLA_URL) is recording,
+# install refuses — exit 3, nothing replaced — unless --force. Afterwards the daemon is asked to restart on the
+# new version once nothing is recording (`gnomeola daemon restart`, at once if idle); it is never restarted
+# under a recording.
 set -euo pipefail
 
 PREFIX="${HOME}/.local"
@@ -33,6 +38,7 @@ EXTENSION=1
 DRY=0
 UNINSTALL=0
 PURGE=0
+FORCE=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --prefix) PREFIX="$2"; shift 2 ;;
@@ -43,7 +49,8 @@ while [ $# -gt 0 ]; do
     --dry-run) DRY=1; shift ;;
     --uninstall) UNINSTALL=1; shift ;;
     --purge) PURGE=1; shift ;;
-    -h|--help) sed -n '2,28p' "$0"; exit 0 ;;
+    --force) FORCE=1; shift ;;
+    -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
     *) echo "install.sh: unknown option $1" >&2; exit 2 ;;
   esac
 done
@@ -60,6 +67,7 @@ DATA="${XDG_DATA_HOME:-${HOME}/.local/share}/gnomeola"
 SKILLS="${HOME}/.claude/skills"
 EXT_UUID="gnomeola@gnomeola.org"
 EXT_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/gnome-shell/extensions/${EXT_UUID}"
+DAEMON_URL="${GNOMEOLA_URL:-http://127.0.0.1:8787}"
 
 run() { if [ "$DRY" = 1 ]; then echo "+ $*"; else "$@"; fi; }
 say() { echo "gnomeola: $*"; }
@@ -109,6 +117,29 @@ fi
 [ -n "$NODE" ] || { echo "install.sh: need Node 24+ (pass --node PATH)" >&2; exit 1; }
 [ -d "${SRC}/node_modules" ] || { echo "install.sh: run 'pnpm install' in ${SRC} first" >&2; exit 1; }
 for tool in pw-record pw-dump ffmpeg; do command -v "$tool" >/dev/null || say "warning: $tool not found — capture/archive will be unavailable"; done
+
+# Is a meeting being recorded right now? Asked of the running daemon itself (`gnomeola daemon idle`, with this
+# checkout's CLI: it understands older daemons too) — never inferred. Exit 0 idle or no daemon, 5 recording.
+daemon_cli() { "$NODE" "${SRC}/packages/cli/src/main.ts" "$@" --url "$DAEMON_URL"; }
+set +e
+BUSY="$(daemon_cli daemon idle --text 2>&1)"
+IDLE_CODE=$?
+set -e
+if [ "$IDLE_CODE" != 0 ]; then
+  if [ "$IDLE_CODE" = 5 ]; then
+    WHY="the gnomeola daemon at ${DAEMON_URL} is ${BUSY#gnomeola: }"
+  else
+    WHY="could not tell whether the gnomeola daemon at ${DAEMON_URL} is recording (${BUSY})"
+  fi
+  if [ "$FORCE" != 1 ]; then
+    echo "install.sh: refusing to install: ${WHY}." >&2
+    echo "install.sh: installing now would replace the files it runs from in the middle of the meeting. Run this" >&2
+    echo "install.sh: again when the meeting has ended, or pass --force (the daemon then restarts on the new version" >&2
+    echo "install.sh: only once the recording has finished)." >&2
+    exit 3
+  fi
+  say "warning: ${WHY}; installing anyway (--force): the daemon restarts only once the recording has finished"
+fi
 say "installing to ${PREFIX} with node $("$NODE" -v) at ${NODE}"
 
 # ---- build ------------------------------------------------------------------------------------------
@@ -212,16 +243,47 @@ Wants=pipewire.service
 [Service]
 Type=simple
 ExecStart=${BIN}/gnomeolad
+# reload = restart once nothing is recording (SIGHUP); the daemon then exits 76, which is a restart, not a failure
+ExecReload=/bin/kill -HUP \$MAINPID
 Restart=on-failure
 RestartSec=2
+RestartForceExitStatus=76
+SuccessExitStatus=76
+# stop/restart suspends a live recording (the next daemon resumes it) within a few seconds; never hold up a logout
+TimeoutStopSec=15
 # The daemon binds loopback only (and refuses anything else); no network exposure to configure.
 
 [Install]
 WantedBy=default.target
 UNIT
   systemctl_user daemon-reload
-  systemctl_user enable --now gnomeolad.service
+  systemctl_user enable gnomeolad.service
 fi
+
+# The running daemon moves to the new version by restarting once nothing is recording — asked of the daemon at
+# the moment of the restart, never decided here (`gnomeola daemon restart`, the newly installed CLI). A daemon
+# from before deferred restarts is asked whether it is idle right now, and restarted only if so.
+restart_daemon() {
+  [ "$SERVICE" = 1 ] || return 0
+  if [ "$DRY" = 1 ]; then echo "+ gnomeola daemon restart --no-wait --only-supervised (once idle)"; return 0; fi
+  local code=0
+  "$NODE" "${APP}/packages/cli/src/main.ts" daemon restart --no-wait --only-supervised --text --url "$DAEMON_URL" || code=$?
+  case "$code" in
+    0) ;;
+    3) systemctl_user start gnomeolad.service ;; # nothing answers: start it
+    6)
+      if "$NODE" "${APP}/packages/cli/src/main.ts" daemon idle --url "$DAEMON_URL" >/dev/null 2>&1; then
+        say "restarting the (older) daemon: it is idle"
+        systemctl_user restart gnomeolad.service
+      else
+        say "the running daemon is recording and predates deferred restarts: restart it after the meeting with"
+        say "  systemctl --user restart gnomeolad"
+      fi
+      ;;
+    *) say "warning: could not ask the daemon to restart (exit ${code}); once idle: systemctl --user reload gnomeolad" ;;
+  esac
+}
+restart_daemon
 
 # ---- GNOME Shell extension (C-9) -------------------------------------------------------------------
 # Packed with the Shell's own `gnome-extensions pack`, then unpacked into the user's extensions dir with
