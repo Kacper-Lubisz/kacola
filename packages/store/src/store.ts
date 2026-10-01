@@ -31,12 +31,13 @@ import {
   SqliteQueryCompiler,
   sql,
 } from 'kysely'
-import { applyAgendaEvent, detachAgendasOf } from './agendas.ts'
+import { applyAgendaEvent, detachAgendasOf, runOps } from './agendas.ts'
 import { StoreError } from './errors.ts'
 import { capSnippet, SNIPPET_TOKENS, toFtsQuery } from './fts.ts'
 import { BOOKKEEPING_TABLES, migrations as defaultMigrations, type Migration, migrate } from './migrations.ts'
 import { applyNotesEvent, deleteNotesOf } from './notes.ts'
 import type { DB, QaRow, SegmentRow, SessionRow, SpeakerRow, TrackRow, VoiceprintRow } from './schema.ts'
+import { shareOps } from './shares-apply.ts'
 
 // The store. Two rules make the event log trustworthy:
 //
@@ -181,7 +182,7 @@ function rowToQa(r: QaRow): QaMessage {
 export class Store {
   readonly db: Database.Database
   readonly path: string
-  private readonly now: () => Date
+  readonly now: () => Date
   private readonly stmts = new Map<string, Database.Statement>()
   private readonly listeners = new Set<Listener>()
   private readonly outbox: DurableEvent[] = []
@@ -457,6 +458,18 @@ export class Store {
       case 'agenda.context.deleted':
       case 'agenda.suggestion.upserted':
         applyAgendaEvent(this.db, data)
+        return
+      // ---- team sharing, hosted only (./shares-apply.ts)
+      case 'share.upserted':
+      case 'share.revoked':
+      case 'share.participant.upserted':
+      case 'share.item.upserted':
+      case 'share.item.deleted':
+      case 'share.change':
+      case 'share.card.upserted':
+      case 'share.card.deleted':
+      case 'share.comment.upserted':
+        runOps(this.db, shareOps(data))
         return
       default: {
         const never: never = data

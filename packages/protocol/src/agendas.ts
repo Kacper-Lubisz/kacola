@@ -67,15 +67,23 @@ export const isForwardMove = (from: AgendaItemStatus, to: AgendaItemStatus): boo
 /**
  * Who changed something. `user` is the owner (the window, the CLI, their own Claude acting through the
  * CLI); `tracker` is the daemon's live tracker; `agent:<name>` a connected agent holding a lease;
- * `invitee:<email>` someone without kacola, through the shared web page.
+ * `invitee:<email>` someone without kacola, through the shared web page. Team sharing adds
+ * `peer:<label>` — another attendee's device on a shared agenda (`peer:ana@x.com` the person,
+ * `peer:ana@x.com/tracker` their tracker, `peer:ana@x.com/agent:claude` their agent) — written only by
+ * the share sync mirroring what the hosted server decided (never accepted from a request body).
  */
 export const ChangedBy = z
   .string()
-  .regex(/^(user|tracker|agent:[A-Za-z0-9._-]{1,64}|invitee:[^\s@]{1,64}@[^\s@]{1,190})$/, {
-    message: 'changedBy must be user, tracker, agent:<name> or invitee:<email>',
-  })
+  .regex(
+    /^(user|tracker|agent:[A-Za-z0-9._-]{1,64}|invitee:[^\s@]{1,64}@[^\s@]{1,190}|peer:[^\s/]{1,190}(\/(tracker|agent:[A-Za-z0-9._-]{1,64}))?)$/,
+    { message: 'changedBy must be user, tracker, agent:<name>, invitee:<email> or peer:<label>[/…]' },
+  )
 export type ChangedBy = z.infer<typeof ChangedBy>
 export const isAutomated = (by: string): boolean => by === 'tracker' || by.startsWith('agent:')
+/** Written by the share sync (another attendee's device, as the hosted server decided). */
+export const isPeer = (by: string): boolean => by.startsWith('peer:')
+/** A person on another device (not their tracker or agent): their override locks like the user's. */
+export const isPeerHuman = (by: string): boolean => isPeer(by) && !by.includes('/')
 
 /** An item owner: `me`, `them`, or a name. Kept free of the characters the markdown form uses. */
 export const ItemOwner = z

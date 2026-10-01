@@ -2,6 +2,7 @@ import {
   authConfigFromEnv,
   createHostedApp,
   type HostedApp,
+  mailerFromEnv,
   type NodeHandler,
   nodeHandler,
 } from '@gnomeola/server'
@@ -23,6 +24,7 @@ import { cloudSttFromEnv } from '@gnomeola/stt/cloud'
 //   GNOMEOLA_AUTH_SECRET (>= 32 chars), GNOMEOLA_ADMIN_TOKEN            required: remote ALWAYS needs a token
 //   BLOB_READ_WRITE_TOKEN                                              Vercel Blob (audio, full offload)
 //   DEEPGRAM_API_KEY                                                   cloud STT (full offload), optional
+//   GNOMEOLA_MAIL_WEBHOOK (+ _SECRET), GNOMEOLA_PUBLIC_URL             team sharing: magic-link email, link base
 //
 // There is no anonymous mode here: without an auth secret every request is refused (503), and loopback
 // is never trusted (a function has no loopback callers).
@@ -69,6 +71,9 @@ export async function appFromEnv(
     pollMs: Number(env.GNOMEOLA_POLL_MS ?? 1000),
     heartbeatMs: 15_000,
     log: (level, msg, fields) => console[level](JSON.stringify({ msg, ...fields })),
+    // team sharing: magic-link codes (GNOMEOLA_MAIL_WEBHOOK); without one, shared pages are read-only
+    mailer: mailerFromEnv(env),
+    publicUrl: env.GNOMEOLA_PUBLIC_URL || null,
   })
 }
 

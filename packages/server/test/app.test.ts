@@ -2,11 +2,13 @@ import {
   AnyEvent,
   createClient,
   GnomeolaApiError,
+  PARTICIPANT_HEADER,
   type RouteName,
   routes,
   type Session,
 } from '@gnomeola/protocol'
 import { afterEach, describe, expect, it } from 'vitest'
+import { MemoryMailer } from '../src/mailer.ts'
 import { ADMIN, type Hosted, SECRET, startHosted } from './helpers.ts'
 
 // T1 contract for the hosted server: every route in the table, through the typed client (which
@@ -38,8 +40,15 @@ const notHere = (p: Promise<unknown>) =>
 
 describe('hosted contract: every route', () => {
   it('serves or explicitly refuses each route with schema-valid answers', async () => {
-    const h = await hosted({ auth: { secret: SECRET, adminToken: ADMIN }, heartbeatMs: 30 })
+    const mailer = new MemoryMailer()
+    const h = await hosted({ auth: { secret: SECRET, adminToken: ADMIN }, heartbeatMs: 30, mailer })
     const c = h.client
+    // team sharing: the owner (admin token here) shares; an invitee works through the link
+    let share = { id: '', token: '' }
+    let participantToken = ''
+    const invitee = () =>
+      createClient({ baseUrl: h.url, headers: { [PARTICIPANT_HEADER]: participantToken } })
+    const occurrence = { agendaId: 'agd_h', title: 'Shared sync', meeting: null, goals: [] }
     const s = await c.call('createSession', { body: { title: 'hosted' } })
     const priv = await c.call('createSession', { body: { title: 'private', private: true } })
     await h.store.upsertSegment({
@@ -282,6 +291,107 @@ describe('hosted contract: every route', () => {
         notHere(c.call('setAgentAccess', { params: { id: s.id }, body: { allowAgents: true } })),
       draftAgenda: () => notHere(c.stream('draftAgenda', { params: { id: 'agd_x' }, body: {} }).next()),
       getAgendaTracker: () => notHere(c.call('getAgendaTracker', { params: { id: 'agd_x' } })),
+      // ---- team sharing (in this order: each step uses the previous one)
+      createShare: async () => {
+        const r = await c.call('createShare', {
+          body: {
+            ownerName: 'Kacper',
+            ownerLabel: 'owner',
+            options: { allowInvitees: true, members: [] },
+            occurrence,
+          },
+        })
+        share = { id: r.share.id, token: r.token }
+        return r
+      },
+      updateShare: () =>
+        c.call('updateShare', { params: { shareId: share.id }, body: { ownerName: 'Kacper L' } }),
+      pushShare: async () => {
+        const r = await c.call('pushShare', {
+          params: { shareId: share.id },
+          body: {
+            ops: [
+              {
+                op: 'item',
+                item: {
+                  id: 'itm_h1',
+                  occurrence: 'agd_h',
+                  text: 'Retry budget',
+                  kind: 'topic',
+                  owner: null,
+                  timeboxMin: null,
+                  order: 0,
+                  carriedFrom: null,
+                },
+              },
+              {
+                op: 'status',
+                key: 'k1',
+                itemId: 'itm_h1',
+                from: 'open',
+                to: 'covered',
+                by: 'tracker',
+                at: '2026-10-01T10:00:00.000Z',
+                auto: true,
+                confidence: 0.9,
+              },
+            ],
+          },
+        })
+        expect(r.changes.map((x) => x.outcome)).toEqual(['applied'])
+        return r
+      },
+      getShareState: () => c.call('getShareState', { params: { shareId: share.id } }),
+      listShareChanges: () => c.call('listShareChanges', { params: { shareId: share.id } }),
+      getSharedPage: async () => {
+        const p = await c.call('getSharedPage', { params: { token: share.token } })
+        expect(p.items.map((i) => i.text)).toEqual(['Retry budget'])
+        return p
+      },
+      shareVerify: () =>
+        c.call('shareVerify', { params: { token: share.token }, body: { email: 'ana@example.com' } }),
+      shareConfirm: async () => {
+        const code = /code is ([A-Z]{4}-[A-Z]{4})/.exec(mailer.last('ana@example.com')!.text)![1]!
+        const r = await c.call('shareConfirm', {
+          params: { token: share.token },
+          body: { email: 'ana@example.com', code },
+        })
+        participantToken = r.token
+        return r
+      },
+      shareAddItem: () =>
+        invitee().call('shareAddItem', { params: { token: share.token }, body: { text: 'Offsite' } }),
+      shareAddComment: () =>
+        invitee().call('shareAddComment', {
+          params: { token: share.token },
+          body: { text: 'Can we do Friday?' },
+        }),
+      hideShareComment: async () => {
+        const st = await c.call('getShareState', { params: { shareId: share.id } })
+        return c.call('hideShareComment', { params: { shareId: share.id, commentId: st.comments[0]!.id } })
+      },
+      revokeShareParticipant: async () => {
+        const st = await c.call('getShareState', { params: { shareId: share.id } })
+        return c.call('revokeShareParticipant', {
+          params: { shareId: share.id, participantId: st.participants[0]!.id },
+        })
+      },
+      revokeShare: () => c.call('revokeShare', { params: { shareId: share.id } }),
+      getAgendaShare: () => notHere(c.call('getAgendaShare', { params: { id: 'agd_x' } })),
+      shareAgenda: () => notHere(c.call('shareAgenda', { params: { id: 'agd_x' }, body: {} })),
+      unshareAgenda: () => notHere(c.call('unshareAgenda', { params: { id: 'agd_x' } })),
+      shareAgendaRecap: () =>
+        notHere(c.call('shareAgendaRecap', { params: { id: 'agd_x' }, body: { shared: true } })),
+      syncAgendaShare: () => notHere(c.call('syncAgendaShare', { params: { id: 'agd_x' } })),
+      getAgendaShareHistory: () => notHere(c.call('getAgendaShareHistory', { params: { id: 'agd_x' } })),
+      followAgenda: () =>
+        notHere(c.call('followAgenda', { body: { link: `${h.url}/a/${'x'.repeat(32)}`, email: 'a@b.co' } })),
+      confirmFollowAgenda: () =>
+        notHere(
+          c.call('confirmFollowAgenda', {
+            body: { link: `${h.url}/a/${'x'.repeat(32)}`, email: 'a@b.co', code: 'ABCD-EFGH' },
+          }),
+        ),
     }
     const seen: RouteName[] = []
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {

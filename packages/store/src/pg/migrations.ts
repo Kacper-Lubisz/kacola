@@ -253,6 +253,86 @@ export const pgMigrations: readonly Migration[] = [
       CREATE INDEX agenda_suggestions_agenda ON agenda_suggestions (agenda_id);
     `,
   },
+  {
+    // team sharing (mirror of the SQLite migration of the same name; rows written by ../shares-apply.ts)
+    version: 7,
+    name: 'sharing',
+    up: `
+      CREATE TABLE shares (
+        id text COLLATE "C" PRIMARY KEY,
+        revoked integer NOT NULL,
+        updated_at text COLLATE "C" NOT NULL,
+        data text NOT NULL
+      );
+      CREATE TABLE share_items (
+        share_id text COLLATE "C" NOT NULL,
+        id text COLLATE "C" NOT NULL,
+        occurrence text COLLATE "C" NOT NULL,
+        position integer NOT NULL,
+        status text NOT NULL,
+        data text NOT NULL,
+        PRIMARY KEY (share_id, id)
+      );
+      CREATE TABLE share_changes (
+        share_id text COLLATE "C" NOT NULL,
+        id text COLLATE "C" NOT NULL,
+        actor text COLLATE "C" NOT NULL,
+        change_key text COLLATE "C" NOT NULL,
+        item_id text COLLATE "C" NOT NULL,
+        occurrence text COLLATE "C" NOT NULL,
+        data text NOT NULL,
+        PRIMARY KEY (share_id, id)
+      );
+      CREATE UNIQUE INDEX share_changes_key ON share_changes (share_id, actor, change_key);
+      CREATE TABLE share_cards (
+        share_id text COLLATE "C" NOT NULL,
+        id text COLLATE "C" NOT NULL,
+        occurrence text COLLATE "C" NOT NULL,
+        data text NOT NULL,
+        PRIMARY KEY (share_id, id)
+      );
+      CREATE TABLE share_comments (
+        share_id text COLLATE "C" NOT NULL,
+        id text COLLATE "C" NOT NULL,
+        occurrence text COLLATE "C" NOT NULL,
+        author text COLLATE "C" NOT NULL,
+        at text COLLATE "C" NOT NULL,
+        data text NOT NULL,
+        PRIMARY KEY (share_id, id)
+      );
+      CREATE TABLE share_participants (
+        id text COLLATE "C" PRIMARY KEY,
+        share_id text COLLATE "C" NOT NULL,
+        email text COLLATE "C" NOT NULL,
+        revoked integer NOT NULL,
+        data text NOT NULL
+      );
+      CREATE UNIQUE INDEX share_participants_email ON share_participants (share_id, email);
+      CREATE TABLE share_tokens (
+        token_hash text PRIMARY KEY,
+        share_id text COLLATE "C" NOT NULL UNIQUE,
+        created_at text NOT NULL
+      );
+      CREATE TABLE share_participant_tokens (
+        token_hash text PRIMARY KEY,
+        participant_id text COLLATE "C" NOT NULL,
+        share_id text COLLATE "C" NOT NULL,
+        created_at text NOT NULL
+      );
+      CREATE INDEX share_participant_tokens_share ON share_participant_tokens (share_id);
+      CREATE TABLE share_codes (
+        code_hash text PRIMARY KEY,
+        share_id text COLLATE "C" NOT NULL,
+        email text COLLATE "C" NOT NULL,
+        name text,
+        created_at text COLLATE "C" NOT NULL,
+        expires_at text COLLATE "C" NOT NULL,
+        used_at text,
+        attempts integer NOT NULL
+      );
+      CREATE INDEX share_codes_share ON share_codes (share_id, created_at);
+    `,
+  },
 ]
 
 const LOCK_KEY = 0x676e6f6d // 'gnom'

@@ -112,6 +112,15 @@ export function ingestSubject(data: DurableEventData): {
     case 'agenda.context.upserted':
     case 'agenda.context.deleted':
     case 'agenda.suggestion.upserted':
+    case 'share.upserted':
+    case 'share.revoked':
+    case 'share.participant.upserted':
+    case 'share.item.upserted':
+    case 'share.item.deleted':
+    case 'share.change':
+    case 'share.card.upserted':
+    case 'share.card.deleted':
+    case 'share.comment.upserted':
       return { sessionId: null, segmentId: null }
   }
 }
@@ -128,7 +137,12 @@ export function ingestSubject(data: DurableEventData): {
  *   - M3 speakers, merges and attributions apply when their session (and every speaker they name)
  *     exists; voiceprints are biometric, device-local data and are never stored here, even if pushed;
  *   - settings and notes templates are device-local and never synced; deleting an absent session is a
- *     no-op; agendas are device-local until the team-sharing phase.
+ *     no-op;
+ *   - agendas: a device's agenda log is never replicated — it holds private context cards, evidence
+ *     quoted from transcripts and suggestions. Team sharing pushes a PROJECTION through its own routes
+ *     (/shared/:id/push, judged by ./shares.ts), so local `agenda.*` events are skipped here;
+ *   - `share.*` events are written by the hosted server itself; a device pushing one is forging server
+ *     state, so they are rejected (reported back), never applied.
  */
 export function decideIngest(data: DurableEventData, facts: IngestFacts): IngestDecision {
   switch (data.type) {
@@ -183,8 +197,8 @@ export function decideIngest(data: DurableEventData, facts: IngestFacts): Ingest
     case 'template.upserted':
     case 'template.deleted':
       return { kind: 'skip' }
-    // Agendas stay on the device for now: sharing them (and what an invitee may see — never private
-    // context) is the team-sharing phase's decision, made explicitly, not by replicating the log.
+    // A device's agenda log never replicates (private cards, evidence quotes, suggestions): team sharing
+    // pushes an explicit projection through /shared/:id/push instead (./shares.ts decides it).
     case 'agenda.upserted':
     case 'agenda.deleted':
     case 'agenda.item.upserted':
@@ -195,6 +209,19 @@ export function decideIngest(data: DurableEventData, facts: IngestFacts): Ingest
     case 'agenda.context.deleted':
     case 'agenda.suggestion.upserted':
       return { kind: 'skip' }
+    case 'share.upserted':
+    case 'share.revoked':
+    case 'share.participant.upserted':
+    case 'share.item.upserted':
+    case 'share.item.deleted':
+    case 'share.change':
+    case 'share.card.upserted':
+    case 'share.card.deleted':
+    case 'share.comment.upserted':
+      return {
+        kind: 'reject',
+        reason: `${data.type} is written by the hosted server, not synced from a device`,
+      }
   }
 }
 

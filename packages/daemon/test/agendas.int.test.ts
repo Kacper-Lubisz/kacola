@@ -204,7 +204,8 @@ describe('agendas in the daemon', () => {
       written: false,
       reason: null,
       appLink: 'kacola://meeting/one-on-one%40x',
-      webLink: expect.stringMatching(/^https:\/\/kacola\.example\/a\/agd_/),
+      // no web link until the agenda is shared (team sharing: <host>/a/<token>; see sharing tests)
+      webLink: null,
     })
     expect(cal.descriptions.get('one-on-one@x')).toBe('Weekly sync.\nAgenda below.')
     const w = await c.call('agendaInviteBlock', { params: { id: a!.id }, body: { write: true } })

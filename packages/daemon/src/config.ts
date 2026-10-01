@@ -109,6 +109,12 @@ environment:
   GNOMEOLA_ADMIN_TOKEN     optional owner token that can approve pairings remotely
   GNOMEOLA_SYNC_URL        hybrid sync: push transcripts and notes to this hosted server
   GNOMEOLA_SYNC_TOKEN      the device token for GNOMEOLA_SYNC_URL (from \`gnomeola pair\`)
+  GNOMEOLA_SHARE_URL       team sharing: the hosted server agendas are shared on (default GNOMEOLA_SYNC_URL)
+  GNOMEOLA_SHARE_TOKEN     its device token (default GNOMEOLA_SYNC_TOKEN); only agendas leave, never transcripts
+  GNOMEOLA_OWNER_NAME      how you appear on shared agendas (default "Organizer")
+  GNOMEOLA_OWNER_EMAIL     your label on shared changes (others see peer:<it>)
+  GNOMEOLA_AGENDA_WEB_BASE base of the shared page link (<base>/a/<token>; default the sharing host)
+  GNOMEOLA_SHARE_POLL_MS   pull shared agendas this often (default 15000; 0 = only on demand)
 `
 
 export class UsageError extends Error {

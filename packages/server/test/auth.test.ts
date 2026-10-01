@@ -11,6 +11,7 @@ import { MemoryBlobStore } from '@gnomeola/store/blob'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createHostedApp, type HostedApp } from '../src/app.ts'
 import { isLoopbackRequest, OPEN_ROUTES, signToken, verifyToken } from '../src/auth.ts'
+import { SHARE_LINK_ROUTES } from '../src/sharing.ts'
 import { ADMIN, type Hosted, openStore, SECRET, startHosted } from './helpers.ts'
 
 // H-6: pairing auth. Loopback may stay anonymous; a remote request ALWAYS needs a valid token — on every
@@ -99,12 +100,12 @@ describe('loopback detection', () => {
 })
 
 describe('every route refuses an unauthenticated remote request', () => {
-  it('401 + WWW-Authenticate on every route but the two pairing entry points, SSE included', async () => {
+  it('401 + WWW-Authenticate on every route but the pairing entry points and a shared agenda link, SSE included', async () => {
     const a = await app()
     const open: RouteName[] = []
     for (const [name, def] of entries) {
       const res = await a.fetch(requestFor(name, def), REMOTE)
-      if (OPEN_ROUTES.has(name)) {
+      if (OPEN_ROUTES.has(name) || SHARE_LINK_ROUTES.includes(name)) {
         expect(res.status, name).not.toBe(401)
         open.push(name)
         await res.body?.cancel()
@@ -115,7 +116,8 @@ describe('every route refuses an unauthenticated remote request', () => {
       expect(res.headers.get('content-type'), name).toMatch(/json/) // never an event stream
       expect(await res.json(), name).toMatchObject({ error: { code: 'unauthorized' } })
     }
-    expect(open.sort()).toEqual(['pairStart', 'pairToken'])
+    // the link routes are keyed by the link token (an unknown one is a 404), not by pairing
+    expect(open.sort()).toEqual(['pairStart', 'pairToken', ...SHARE_LINK_ROUTES].sort())
   })
 
   it('refuses forged, garbage and wrongly-schemed credentials the same way', async () => {

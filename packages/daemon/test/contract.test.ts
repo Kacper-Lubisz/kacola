@@ -18,6 +18,9 @@ import {
   type RouteName,
   routes,
 } from '@gnomeola/protocol'
+import { createHostedApp, MemoryMailer, type Served, serve } from '@gnomeola/server'
+import { SqliteStoreApi } from '@gnomeola/store'
+import { MemoryBlobStore } from '@gnomeola/store/blob'
 import { waitFor } from '@gnomeola/testkit/daemon'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ManualCalendarProvider } from '../src/calendar/providers.ts'
@@ -56,10 +59,24 @@ describe('contract: every route, real server, typed client', () => {
   let daemon: Daemon
   let c: GnomeolaClient
   const cal = new ManualCalendarProvider()
+  // team sharing: a hosted server to share on (and a second share, made directly, to follow)
+  const ADMIN = 'contract-admin-token-0123456789'
+  const mailer = new MemoryMailer()
+  let hosted: Served
 
   beforeAll(async () => {
     dir = mkdtempSync(join(tmpdir(), 'gnomeola-contract-'))
+    hosted = await serve(
+      createHostedApp({
+        store: SqliteStoreApi.open(':memory:'),
+        blobs: new MemoryBlobStore(),
+        auth: { secret: 's'.repeat(40), adminToken: ADMIN },
+        trustLoopback: false,
+        mailer,
+      }),
+    )
     daemon = await createDaemon({
+      share: { url: hosted.url, token: ADMIN, pollMs: 0, debounceMs: 10_000, ownerName: 'Kacper' },
       dataDir: dir,
       port: 0,
       pipeline: new FakePipeline({
@@ -95,6 +112,7 @@ describe('contract: every route, real server, typed client', () => {
   })
   afterAll(async () => {
     await daemon?.close()
+    await hosted?.close()
     rmSync(dir, { recursive: true, force: true })
   })
 
@@ -104,6 +122,7 @@ describe('contract: every route, real server, typed client', () => {
     const priv = await c.call('createSession', { body: { title: 'private', private: true } })
     const params = { id: s.id }
     const ag = { id: '', item: '', card: '', suggestion: '', session: '' }
+    const share = { agenda: '', link: '' }
     // the agent channel: one lease on the recording the agenda is linked to
     let grant: LeaseGrant | null = null
     const lease = async () => {
@@ -450,6 +469,86 @@ describe('contract: every route, real server, typed client', () => {
         expect(r.tracker).toBeNull()
         return r
       },
+      // ---- kacola phase 5: team sharing (in order: share, recap, sync, history, unshare; follow)
+      getAgendaShare: async () => {
+        const a = await c.call('createAgenda', {
+          body: { title: 'shared contract', items: [{ text: 'Roadmap' }, { text: 'Hiring' }] },
+        })
+        share.agenda = a.agenda.id
+        const r = await c.call('getAgendaShare', { params: { id: a.agenda.id } })
+        expect(r).toMatchObject({ shared: false, state: 'off' })
+        return r
+      },
+      shareAgenda: async () => {
+        const r = await c.call('shareAgenda', {
+          params: { id: share.agenda },
+          body: { members: ['me@example.com'] },
+        })
+        expect(r).toMatchObject({ shared: true, role: 'owner', state: 'ok' })
+        expect(r.link).toMatch(new RegExp(`^${hosted.url}/a/[A-Za-z0-9_-]{32}$`))
+        return r
+      },
+      shareAgendaRecap: () =>
+        c.call('shareAgendaRecap', { params: { id: share.agenda }, body: { shared: true } }),
+      syncAgendaShare: () => c.call('syncAgendaShare', { params: { id: share.agenda } }),
+      getAgendaShareHistory: () => c.call('getAgendaShareHistory', { params: { id: share.agenda } }),
+      unshareAgenda: async () => {
+        const r = await c.call('unshareAgenda', { params: { id: share.agenda } })
+        expect(r).toMatchObject({ shared: false, link: null })
+        return r
+      },
+      followAgenda: async () => {
+        const h = createClient({ baseUrl: hosted.url, token: ADMIN })
+        const other = await h.call('createShare', {
+          body: {
+            ownerName: 'Ana',
+            ownerLabel: 'ana@example.com',
+            options: { allowInvitees: false, members: ['me@example.com'] },
+            occurrence: { agendaId: 'agd_other', title: 'Ana’s sync', meeting: null, goals: [] },
+          },
+        })
+        share.link = `${hosted.url}/a/${other.token}`
+        return c.call('followAgenda', { body: { link: share.link, email: 'me@example.com' } })
+      },
+      confirmFollowAgenda: async () => {
+        const code = /code is ([A-Z]{4}-[A-Z]{4})/.exec(mailer.last('me@example.com')!.text)![1]!
+        const r = await c.call('confirmFollowAgenda', {
+          body: { link: share.link, email: 'me@example.com', code },
+        })
+        expect(r).toMatchObject({ shared: true, role: 'member' })
+        return r
+      },
+      // the hosted server's own share routes are not the daemon's
+      createShare: () =>
+        notHere(
+          c.call('createShare', {
+            body: {
+              ownerName: 'x',
+              ownerLabel: 'x',
+              options: { allowInvitees: true, members: [] },
+              occurrence: { agendaId: 'a', title: 't', meeting: null, goals: [] },
+            },
+          }),
+        ),
+      updateShare: () => notHere(c.call('updateShare', { params: { shareId: 'shr_x' }, body: {} })),
+      revokeShare: () => notHere(c.call('revokeShare', { params: { shareId: 'shr_x' } })),
+      pushShare: () => notHere(c.call('pushShare', { params: { shareId: 'shr_x' }, body: { ops: [] } })),
+      getShareState: () => notHere(c.call('getShareState', { params: { shareId: 'shr_x' } })),
+      listShareChanges: () => notHere(c.call('listShareChanges', { params: { shareId: 'shr_x' } })),
+      revokeShareParticipant: () =>
+        notHere(c.call('revokeShareParticipant', { params: { shareId: 'shr_x', participantId: 'spt_x' } })),
+      hideShareComment: () =>
+        notHere(c.call('hideShareComment', { params: { shareId: 'shr_x', commentId: 'scm_x' } })),
+      getSharedPage: () => notHere(c.call('getSharedPage', { params: { token: 't' } })),
+      shareVerify: () =>
+        notHere(c.call('shareVerify', { params: { token: 't' }, body: { email: 'a@b.co' } })),
+      shareConfirm: () =>
+        notHere(
+          c.call('shareConfirm', { params: { token: 't' }, body: { email: 'a@b.co', code: 'ABCD-EFGH' } }),
+        ),
+      shareAddItem: () => notHere(c.call('shareAddItem', { params: { token: 't' }, body: { text: 'x' } })),
+      shareAddComment: () =>
+        notHere(c.call('shareAddComment', { params: { token: 't' }, body: { text: 'x' } })),
     }
     for (const [name, call] of Object.entries(calls) as [RouteName, () => Promise<unknown>][]) {
       await expect(call(), name).resolves.toBeDefined()

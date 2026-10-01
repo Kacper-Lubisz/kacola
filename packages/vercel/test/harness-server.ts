@@ -51,6 +51,8 @@ const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2',
 }
 
 function serveStatic(path: string, res: ServerResponse, headers: Record<string, string>): boolean {
@@ -110,6 +112,8 @@ const server = createServer(async (req, res) => {
       if (!new RegExp(r.src).test(url.pathname)) continue
       Object.assign(headers, r.headers ?? {})
       if (r.dest?.startsWith('/_fn/')) return await invoke(r.dest.slice(5), req, res, headers)
+      // a rewrite to a static file (Vercel then serves it from the filesystem)
+      if (r.dest && req.method === 'GET' && serveStatic(r.dest, res, headers)) return
       if (!r.continue) break
     }
     res.writeHead(404, { ...headers, 'content-type': 'text/plain' })

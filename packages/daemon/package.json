@@ -24,6 +24,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@gnomeola/evals": "workspace:*",
     "@gnomeola/testkit": "workspace:*"
   }

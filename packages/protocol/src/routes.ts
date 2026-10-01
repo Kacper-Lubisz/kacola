@@ -34,6 +34,7 @@ import {
   SettingsPatch,
   TrackKind,
 } from './schemas.ts'
+import { sharingRoutes } from './sharing.ts'
 import {
   MergeSpeakerBody,
   RenameSpeakerBody,
@@ -295,6 +296,8 @@ export const routes = {
   draftAgenda: { method: 'POST', path: '/agendas/:id/draft', body: DraftAgendaBody, response: 'sse' },
   // ---- Agendas wave 2: the live tracker (./tracker.ts)
   ...trackerRoutes,
+  // ---- kacola phase 5: team sharing (./sharing.ts)
+  ...sharingRoutes,
 } as const satisfies Record<string, RouteDef>
 
 export type Routes = typeof routes

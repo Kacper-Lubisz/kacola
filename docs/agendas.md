@@ -60,8 +60,10 @@ Ephemeral (appended to `EphemeralEventData`): `agent.presence {leaseId, name, mo
 connected·reading·idle·disconnected}`, emitted by the agent channel (the envelope's `sessionId` is the
 attached recording; see the agent channel section below).
 
-Hosted sync: agenda events are device-local for now (`decideIngest` skips them, the sync agent does not
-push them, the hosted server answers the agenda routes 501). Team sharing decides what an invitee may see.
+Hosted sync: a device's agenda log never replicates (`decideIngest` skips `agenda.*`, the hosted server
+answers the agenda routes 501). Team sharing pushes an explicit projection instead — see
+[docs/sharing.md](sharing.md) — and mirrors other devices' changes back attributed `peer:<label>[/tracker|
+/agent:x]` or `invitee:<email>` (`ChangedBy` gained the `peer:` form; only the share sync writes it).
 
 ## Store (`packages/store/src/agendas.ts`, `agendas-apply.ts`)
 
@@ -96,8 +98,9 @@ accepting `looks-covered` covers the item as the acceptor), `importMarkdown`, re
 - **`resolveMeetingLink(eventUid, start)`** / `resolveLink({link})`: what a deep link opens.
 - **invite block**: `inviteBlock(id, {write, remove})` through `CalendarService.editDescription`.
 
-The web link base is `DaemonOptions.agendaWebBase` or `GNOMEOLA_AGENDA_WEB_BASE` (`<base>/a/<id>`); unset,
-blocks carry only the `kacola://` link.
+The web link exists once the agenda is shared ([team sharing](sharing.md)): `<base>/a/<token>`, the base
+being `DaemonOptions.agendaWebBase` / `GNOMEOLA_AGENDA_WEB_BASE`, else the sharing host. Unshared, blocks
+carry only the `kacola://` link.
 
 ## Routes (`agendaRoutes`)
 
@@ -227,8 +230,7 @@ meeting" workflow and the copilot section (below).
 - **Recap**: `daemon.agendas.onRecap(hook)`; write outcomes with `updateItem(…, {outcome})`.
 - **Window**: `resolveAgendaLink` for the scheme; `AgendaView` + the `agenda.*` events on `/events` to stay
   current; `version` for optimistic edits (import `baseVersion`, `updateAgenda.baseVersion`).
-- **Team sharing**: decide which agenda events replicate (never private cards), the invitee routes, and
-  serve `<GNOMEOLA_AGENDA_WEB_BASE>/a/<id>`.
+- **Team sharing**: built — see [docs/sharing.md](sharing.md) (projection, merge rules, routes for the window).
 
 ## The agent channel (phase 4)
 

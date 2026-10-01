@@ -49,8 +49,6 @@ export type AgendaServiceDeps = {
   calendar: CalendarService
   logger: Logger
   now?: () => Date
-  /** Base of the hosted web page for an agenda (`<base>/a/<id>`); null until team sharing is set up. */
-  webBase?: string | null
 }
 
 type Body = z.output<typeof CreateAgendaBody>
@@ -78,6 +76,8 @@ export class AgendaService {
   private readonly recapHooks = new Set<RecapHook>()
   private readonly stopped = new Set<string>()
   private unsubscribe: (() => void) | null = null
+  private rollOverFilter: ((a: Agenda) => boolean) | null = null
+  private webLink: ((a: Agenda) => string | null) | null = null
 
   constructor(d: AgendaServiceDeps) {
     this.d = d
@@ -92,6 +92,16 @@ export class AgendaService {
   stop(): void {
     this.unsubscribe?.()
     this.unsubscribe = null
+  }
+
+  /** Team sharing: which agendas roll over by themselves (a follower's copy waits for the owner's). */
+  setRollOverFilter(f: (a: Agenda) => boolean): void {
+    this.rollOverFilter = f
+  }
+
+  /** Team sharing: the https link of a shared agenda (`<host>/a/<token>`), null when it is not shared. */
+  setWebLink(f: (a: Agenda) => string | null): void {
+    this.webLink = f
   }
 
   /** The recap wave's hook point: called once per linked recording when it stops. */
@@ -272,6 +282,7 @@ export class AgendaService {
   rollOver(agendaId: string): Agenda | null {
     const a = this.agendas.get(agendaId)
     if (!a?.meeting?.recurring) return null
+    if (this.rollOverFilter && !this.rollOverFilter(a)) return null
     const open = this.agendas.items(a.id).filter((i) => !RESOLVED_STATUSES.includes(i.status))
     if (!open.length) return null
     const after = Date.parse(a.meeting.start)
@@ -353,8 +364,8 @@ export class AgendaService {
     // a series gets the series link: it opens whichever occurrence is current or next, so the invitation
     // stays right for every occurrence; a one-off gets its agenda.
     const appLink = a.meeting?.recurring ? formatMeetingLink(a.meeting.eventUid) : formatAgendaLink(a.id)
-    const base = this.d.webBase?.replace(/\/+$/, '')
-    return { appLink, webLink: base ? `${base}/a/${encodeURIComponent(a.id)}` : null }
+    // the web page exists only once the agenda is shared (team sharing: `<host>/a/<token>`)
+    return { appLink, webLink: this.webLink?.(a) ?? null }
   }
 
   async inviteBlock(agendaId: string, o: { write?: boolean; remove?: boolean }): Promise<InviteBlockResult> {

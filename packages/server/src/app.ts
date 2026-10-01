@@ -19,6 +19,8 @@ import pkg from '../package.json' with { type: 'json' }
 import { audioStatus, deleteAudio, finalize, putChunk } from './audio.ts'
 import { Auth, type AuthConfig, isLoopbackRequest, OPEN_ROUTES, type Principal } from './auth.ts'
 import { errorBody, HttpError, needsToken, toHttpError } from './errors.ts'
+import type { Mailer } from './mailer.ts'
+import { shareOpen, sharingHandlers } from './sharing.ts'
 import { eventStream } from './sse.ts'
 
 // The hosted gnomeola server: the same route table the local daemon serves, answered from the async
@@ -49,18 +51,22 @@ export type HostedAppOptions = {
   maxBodyBytes?: number
   now?: () => Date
   log?: (level: 'info' | 'warn' | 'error', msg: string, fields?: Record<string, unknown>) => void
+  /** Team sharing: sends magic-link codes. null/absent: shared agendas are read-only on the page. */
+  mailer?: Mailer | null
+  /** Team sharing: the base URL links in emails use (GNOMEOLA_PUBLIC_URL); default the request's origin. */
+  publicUrl?: string | null
 }
 
 export type RequestContext = { remoteAddress?: string | undefined }
 
-type Ctx<N extends RouteName> = {
+export type Ctx<N extends RouteName> = {
   params: ParamsOf<N>
   query: QueryOut<N>
   body: BodyOut<N>
   principal: Principal
   req: Request
 }
-type JsonHandler<N extends RouteName> = (c: Ctx<N>) => Promise<ResponseOf<N>> | ResponseOf<N>
+export type JsonHandler<N extends RouteName> = (c: Ctx<N>) => Promise<ResponseOf<N>> | ResponseOf<N>
 type StreamHandler<N extends RouteName> = (c: Ctx<N>) => Promise<Response>
 /** Every route is either served or explicitly not — adding a route without deciding fails to compile. */
 type HostedHandlers = {
@@ -329,6 +335,17 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     draftAgenda: 'unsupported',
     // ---- Agendas wave 2: the live tracker runs in the device's daemon
     getAgendaTracker: 'unsupported',
+    // ---- kacola phase 5: team sharing — the shared copies live here (./sharing.ts); sharing an agenda,
+    // following one and its status are the device daemon's routes
+    ...sharingHandlers({ store, mailer: o.mailer ?? null, publicUrl: o.publicUrl ?? null, log }),
+    getAgendaShare: 'unsupported',
+    shareAgenda: 'unsupported',
+    unshareAgenda: 'unsupported',
+    shareAgendaRecap: 'unsupported',
+    syncAgendaShare: 'unsupported',
+    getAgendaShareHistory: 'unsupported',
+    followAgenda: 'unsupported',
+    confirmFollowAgenda: 'unsupported',
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))
@@ -345,7 +362,7 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     }
     if (req.headers.has('authorization')) return auth.authenticate(req.headers.get('authorization'))
     if (loopback && trustLoopback) return { kind: 'loopback' }
-    if (OPEN_ROUTES.has(name)) return { kind: 'anonymous' }
+    if (OPEN_ROUTES.has(name) || shareOpen(name, req)) return { kind: 'anonymous' }
     throw needsToken()
   }
 

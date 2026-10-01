@@ -12,6 +12,12 @@ import type {
   Session,
   SessionMeeting,
   SessionStatus,
+  Share,
+  SharedCard,
+  SharedChange,
+  SharedComment,
+  SharedItem,
+  ShareParticipant,
   Speaker,
   SpeakerSummary,
   StatusChange,
@@ -22,6 +28,8 @@ import type {
   TrackKind,
   Voiceprint,
 } from '@gnomeola/protocol'
+import type { SharePlan } from './shares.ts'
+import type { ShareKey, ShareState } from './shares-apply.ts'
 
 // H-1 — the store as an asynchronous interface, so one server can run on either dialect:
 //
@@ -95,6 +103,13 @@ export type DomainSnapshot = {
   agendaHistory: StatusChange[]
   agendaContext: ContextCard[]
   agendaSuggestions: Suggestion[]
+  /** Team sharing (hosted): shares (tombstones included), items, every submitted change, cards, comments, participants. */
+  shares: Share[]
+  shareItems: SharedItem[]
+  shareChanges: SharedChange[]
+  shareCards: SharedCard[]
+  shareComments: SharedComment[]
+  shareParticipants: ShareParticipant[]
 }
 
 // ------------------------------------------------------------------ hosted bookkeeping
@@ -188,4 +203,21 @@ export interface StoreApi {
   /** `duplicate` = same bytes already recorded; `conflict` = different bytes under the same key. */
   putAudioChunk(c: AudioChunkRecord): Promise<'stored' | 'duplicate' | 'conflict'>
   audioChunks(sessionId: string): Promise<AudioChunkRecord[]>
+
+  // ---- team sharing: one share's state, loaded and planned inside the writer's transaction
+  /**
+   * Load the share (null when `key` is null or names nothing), run `plan` (pure: ./shares.ts), commit its
+   * events and bookkeeping in the same transaction, return its result. `participantTokenHash` fills
+   * `state.caller`.
+   */
+  shareWrite<R>(
+    key: ShareKey | null,
+    o: { participantTokenHash?: string | null },
+    plan: (s: ShareState | null, now: Date) => SharePlan<R>,
+  ): Promise<R>
+  shareRead<R>(
+    key: ShareKey,
+    o: { participantTokenHash?: string | null },
+    read: (s: ShareState | null) => R,
+  ): Promise<R>
 }

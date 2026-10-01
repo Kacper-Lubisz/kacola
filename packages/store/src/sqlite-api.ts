@@ -13,6 +13,7 @@ import type {
   SyncItem,
   SyncPushResult,
 } from '@gnomeola/protocol'
+import { runOps } from './agendas.ts'
 import { agendaSnapshot } from './agendas-apply.ts'
 import type {
   AudioChunkRecord,
@@ -31,6 +32,8 @@ import type {
 import { byKey, checkIngestOrder, decideIngest, ingestSubject } from './domain.ts'
 import { NoteStore } from './notes.ts'
 import { type Row, rowToChunk, rowToDevice, rowToQa } from './rows.ts'
+import type { SharePlan } from './shares.ts'
+import { loadShareState, runSync, type ShareKey, type ShareState, shareSnapshot } from './shares-apply.ts'
 import { Store, type StoreOptions } from './store.ts'
 
 // StoreApi over the synchronous SQLite `Store`. Every method runs synchronously inside the returned
@@ -173,6 +176,7 @@ export class SqliteStoreApi implements StoreApi {
       ).map((r) => ({ segmentId: r.id, source: r.speaker_source })),
       voiceprints: s.voiceprints().sort(byKey((v) => v.id)),
       ...agendaSnapshot((q) => this.db.prepare(q).all() as Row[]),
+      ...shareSnapshot((q) => this.db.prepare(q).all() as Row[]),
     }
   }
 
@@ -322,5 +326,40 @@ export class SqliteStoreApi implements StoreApi {
         .prepare('SELECT * FROM audio_chunks WHERE session_id = ? ORDER BY chunk_seq')
         .all(sessionId) as Row[]
     ).map(rowToChunk)
+  }
+
+  // ---------------------------------------------------------------------------- team sharing
+
+  async shareWrite<R>(
+    key: ShareKey | null,
+    o: { participantTokenHash?: string | null },
+    plan: (s: ShareState | null, now: Date) => SharePlan<R>,
+  ): Promise<R> {
+    const s = this.store
+    return s.transaction(() => {
+      const now = s.now()
+      const state = key
+        ? runSync(
+            loadShareState(key, { participantTokenHash: o.participantTokenHash ?? null, now }),
+            (q) => this.db.prepare(q.sql).all(...q.params) as Row[],
+          )
+        : null
+      const p = plan(state, now)
+      for (const data of p.events) s.commit(() => ({ sessionId: null, data }))
+      runOps(this.db, p.bookkeeping)
+      return p.result
+    })
+  }
+
+  async shareRead<R>(
+    key: ShareKey,
+    o: { participantTokenHash?: string | null },
+    read: (s: ShareState | null) => R,
+  ): Promise<R> {
+    const state = runSync(
+      loadShareState(key, { participantTokenHash: o.participantTokenHash ?? null, now: this.store.now() }),
+      (q) => this.db.prepare(q.sql).all(...q.params) as Row[],
+    )
+    return read(state)
   }
 }

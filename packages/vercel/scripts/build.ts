@@ -110,6 +110,8 @@ export async function buildOutput(
       },
       { src: '^/events$', dest: '/_fn/events' },
       { src: '^/sessions/[^/]+/audio/finalize$', dest: '/_fn/finalize' },
+      // L-19: a shared agenda's page (the token stays in the URL; the page reads it)
+      { src: '^/a/[A-Za-z0-9_-]{16,128}/?$', dest: '/agenda.html' },
       { handle: 'filesystem' },
       { src: `^/(${API_PREFIXES.join('|')})(/.*)?$`, dest: '/_fn/api' },
     ],

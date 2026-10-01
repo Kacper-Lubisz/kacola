@@ -13,6 +13,7 @@ import {
   routes,
   type SyncItem,
 } from '@gnomeola/protocol'
+import { SHARE_LINK_ROUTES } from '@gnomeola/server'
 import { SqliteStoreApi } from '@gnomeola/store'
 import { type FakeDeepgram, startFakeDeepgram } from '@gnomeola/testkit/cloud-stt'
 import { seededRandom } from '@gnomeola/testkit/daemon'
@@ -175,7 +176,9 @@ for (const dialect of ['sqlite', 'postgres'] as const) {
             ...(def.body ? { body: '{}' } : {}),
           },
         )
-        if (name === 'pairStart' || name === 'pairToken') expect(res.status, name).not.toBe(401)
+        // the pairing entry points, and a shared agenda's link routes (keyed by the link token: 404 here)
+        if (name === 'pairStart' || name === 'pairToken' || SHARE_LINK_ROUTES.includes(name))
+          expect(res.status, name).not.toBe(401)
         else expect(res.status, name).toBe(401)
         await res.body?.cancel()
       }
