@@ -26,8 +26,16 @@ import type { Mailer } from './mailer.ts'
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex')
 const token = () => randomBytes(24).toString('base64url')
-const id = (kind: string) =>
-  `${kind}_${Date.now().toString(36).padStart(9, '0')}${randomBytes(6).toString('hex')}`
+// Ids sort in creation order (the merge history is listed by id): time, then a per-process counter for
+// ids made in the same millisecond, then randomness so instances never collide.
+let lastMs = 0
+let seqInMs = 0
+const id = (kind: string) => {
+  const ms = Math.max(Date.now(), lastMs)
+  seqInMs = ms === lastMs ? seqInMs + 1 : 0
+  lastMs = ms
+  return `${kind}_${ms.toString(36).padStart(9, '0')}${seqInMs.toString(36).padStart(3, '0')}${randomBytes(5).toString('hex')}`
+}
 
 /** An 8-letter code like `BDFG-HJKL` (20^8 ≈ 2.6e10; five guesses per code). */
 function newCode(): string {

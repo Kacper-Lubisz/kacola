@@ -639,8 +639,9 @@ export class SharingService {
   /** Take the server's header into the record (a member learns the owner's current occurrence here). */
   private adopt(rec: ShareRecord, s: SharedAgendaState): void {
     rec.ownerName = s.share.ownerName
-    rec.current = s.share.current
+    // the owner decides the current occurrence (their record leads the server, not the other way round)
     if (rec.role === 'member') {
+      rec.current = s.share.current
       rec.allowInvitees = s.share.options.allowInvitees
       // follow the owner's current occurrence (a recurring series' next meeting arrives here)
       if (!rec.occurrences[s.share.current]) {
