@@ -21,6 +21,7 @@ import { EvidenceChip } from './evidence.tsx'
 import { attributionText, displayAgent, kindLabel, whoLabel } from './labels.ts'
 import { addItemsMutation, resolveSuggestionMutation, setStatusMutation } from './mutations.ts'
 import { RecapView } from './recap.tsx'
+import { TrackerStatusLine } from './tracker-status.tsx'
 
 // The session page's Agenda tab while recording (and in review after): the items with their status as
 // the meeting moves them — auto marks and agents' marks attributed ("auto", "checked by Claude") with a
@@ -386,6 +387,7 @@ export function LivePanel({ view, session }: { view: AgendaView; session: Sessio
           {_('Edit Agenda')}
         </Button>
       </div>
+      <TrackerStatusLine agendaId={view.agenda.id} />
       {live ? null : <RecapView view={view} session={session} />}
       {live ? <NotCoveredCard view={view} now={now} /> : null}
       {live ? <NextPointCard view={view} now={now} /> : null}

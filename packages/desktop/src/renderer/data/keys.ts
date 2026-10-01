@@ -23,6 +23,8 @@ export const keys = {
   // ---- agendas (kacola wave 2): one AgendaView per agenda, folded from the agenda.* events
   agenda: (id: string) => ['agenda', id] as const,
   agendaHistory: (id: string) => ['agendaHistory', id] as const,
+  /** The live tracker's status for an agenda's recording (agenda.tracker events keep it current). */
+  agendaTracker: (id: string) => ['agendaTracker', id] as const,
   /** Every agenda (summaries), for matching calendar meetings to their agendas. */
   agendas: () => ['agendas'] as const,
   /** The agenda linked to a recorded session (its id, or null). */

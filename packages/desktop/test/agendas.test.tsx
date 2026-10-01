@@ -7,6 +7,7 @@ import type {
   SseMessage,
   StatusChange,
   Suggestion,
+  TrackerStatus,
 } from '@gnomeola/protocol'
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -184,6 +185,7 @@ function mount(o: {
       listSpeakers: () => ({ speakers: [] }),
       getSession: ({ params }) => (o.sessions ?? []).find((s) => s.id === params!.id),
       listAgentLeases: () => ({ leases: [] }),
+      getAgendaTracker: () => ({ tracker: null }),
       getAgentAccess: () => ({ sessionId: 's1', private: false, allowAgents: false, attachable: true }),
       ...o.handlers,
     },
@@ -507,6 +509,118 @@ describe('live panel', () => {
       'No outcome recorded.',
     )
     expect(screen.queryByRole('region', { name: 'Next talking point' })).toBeNull()
+    app.stop()
+  })
+})
+
+describe('the live tracker', () => {
+  const status = (over: Partial<TrackerStatus> = {}): TrackerStatus => ({
+    sessionId: 's1',
+    agendaId: 'agd_1',
+    state: 'running',
+    selected: 'openai',
+    provider: 'openai',
+    model: 'gpt-5.5',
+    detail: null,
+    segments: 10,
+    relevant: 6,
+    rounds: 4,
+    decisionCalls: 12,
+    dropped: 0,
+    errors: 0,
+    costUsd: null,
+    lastRoundAt: T,
+    recap: { state: 'pending', detail: null, items: 0 },
+    ...over,
+  })
+
+  it('shows who follows the meeting, a fallback with its reason (agenda.tracker events), then the recap state', async () => {
+    const view = agendaView({ sessionId: 's1' })
+    const { app } = mount({
+      view,
+      path: '/sessions/s1?tab=agenda',
+      sessions: [recording],
+      handlers: { getAgendaTracker: () => ({ tracker: status() }) },
+    })
+    await screen.findByText('Following the meeting · decisions OpenAI')
+    act(() =>
+      app.daemon.emit(
+        ephemeral(
+          {
+            type: 'agenda.tracker',
+            status: status({ state: 'degraded', provider: 'local', detail: 'quota: no credits remaining' }),
+          },
+          's1',
+        ),
+      ),
+    )
+    await screen.findByRole('status', {
+      name: 'Live tracking fell back to the on-device model: quota: no credits remaining',
+    })
+    act(() =>
+      app.daemon.emit(
+        ephemeral(
+          {
+            type: 'agenda.tracker',
+            status: status({
+              state: 'stopped',
+              recap: { state: 'unavailable', detail: 'no API key', items: 0 },
+            }),
+          },
+          's1',
+        ),
+      ),
+    )
+    await screen.findByRole('status', { name: 'No recap: no API key' })
+    app.stop()
+  })
+
+  it('a next-point card the tracker replaced (dismissed by tracker) is hidden; its successor shows', async () => {
+    const view = agendaView({ sessionId: 's1' })
+    view.suggestions = [
+      sug('old', { kind: 'next-point', source: 'tracker', text: 'Old bridge', itemId: 'Hiring plan' }),
+    ]
+    const { app } = mount({ view, path: '/sessions/s1?tab=agenda', sessions: [recording] })
+    const card = await screen.findByRole('region', { name: 'Next talking point' })
+    expect(card.textContent).toContain('Old bridge')
+    act(() => {
+      app.daemon.emit(
+        durable(300, {
+          type: 'agenda.suggestion.upserted',
+          agendaId: 'agd_1',
+          suggestion: sug('old', {
+            kind: 'next-point',
+            source: 'tracker',
+            text: 'Old bridge',
+            itemId: 'Hiring plan',
+            state: 'dismissed',
+            resolvedBy: 'tracker',
+            resolvedAt: T,
+          }),
+        }),
+      )
+      app.daemon.emit(
+        durable(301, {
+          type: 'agenda.suggestion.upserted',
+          agendaId: 'agd_1',
+          suggestion: sug('new', {
+            kind: 'next-point',
+            source: 'tracker',
+            text: 'New bridge',
+            itemId: 'Offsite dates',
+            createdAt: '2026-09-30T10:05:00.000Z',
+          }),
+        }),
+      )
+    })
+    await until(
+      () =>
+        screen.getByRole('region', { name: 'Next talking point' }).textContent?.includes('New bridge') ??
+        false,
+    )
+    expect(screen.queryByText('Old bridge')).toBeNull()
+    // not a user dismissal: nothing was sent
+    expect(app.daemon.calls).not.toContain('dismissSuggestion')
     app.stop()
   })
 })

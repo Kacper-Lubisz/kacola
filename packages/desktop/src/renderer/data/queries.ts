@@ -144,6 +144,13 @@ export function createQueries(api: Api) {
             .changes,
         ...live,
       }),
+    agendaTracker: (id: string) =>
+      queryOptions({
+        queryKey: keys.agendaTracker(id),
+        queryFn: async ({ signal }) =>
+          (await api.call('getAgendaTracker', { params: { id }, signal })).tracker,
+        ...live,
+      }),
     agendas: () =>
       queryOptions({
         queryKey: keys.agendas(),

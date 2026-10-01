@@ -236,7 +236,10 @@ export class EventBridge {
     else if (d.type === 'calendar.updated') {
       this.qc.setQueryData(keys.calendar(), d.calendar)
       void this.qc.invalidateQueries({ queryKey: keys.upcoming() })
-    } else if (d.type === 'agent.presence' && e.sessionId)
+    } else if (d.type === 'agenda.tracker')
+      // how the live tracker is doing (degraded, the recap's state): the event carries the whole status
+      this.qc.setQueryData(keys.agendaTracker(d.status.agendaId), d.status)
+    else if (d.type === 'agent.presence' && e.sessionId)
       // the presence chip's lease list (states, modes, the activity history) is the daemon's: refetch
       void this.qc.invalidateQueries({ queryKey: keys.leases(e.sessionId), exact: true })
   }
@@ -295,6 +298,7 @@ export class EventBridge {
     if (d.type === 'agenda.deleted') {
       this.qc.removeQueries({ queryKey: keys.agenda(id), exact: true })
       this.qc.removeQueries({ queryKey: keys.agendaHistory(id), exact: true })
+      this.qc.removeQueries({ queryKey: keys.agendaTracker(id), exact: true })
     } else {
       const cur = this.qc.getQueryData<AgendaView>(keys.agenda(id))
       if (cur) {
