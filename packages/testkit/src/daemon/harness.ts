@@ -209,7 +209,10 @@ export async function startDaemon(opts: StartDaemonOptions = {}): Promise<Daemon
       if (!c) return { code: null, signal: null }
       if (c.exitCode === null && c.signalCode === null)
         await new Promise<void>((resolveExit, reject) => {
-          const t = setTimeout(() => reject(new Error(`daemon did not exit within ${timeoutMs} ms`)), timeoutMs)
+          const t = setTimeout(
+            () => reject(new Error(`daemon did not exit within ${timeoutMs} ms`)),
+            timeoutMs,
+          )
           c.once('exit', () => {
             clearTimeout(t)
             resolveExit()

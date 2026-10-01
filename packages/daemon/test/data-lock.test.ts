@@ -75,7 +75,10 @@ describe('the data dir lock', () => {
   it('a recycled pid (same pid, different process start time) is not the old owner', () => {
     const dir = tmp()
     // this very process, but "started" at another time: the pid was reused
-    writeFileSync(join(dir, LOCK_FILE), JSON.stringify(owner({ pid: process.pid, procStart: '1', token: 'x' })))
+    writeFileSync(
+      join(dir, LOCK_FILE),
+      JSON.stringify(owner({ pid: process.pid, procStart: '1', token: 'x' })),
+    )
     const self = procStartTime(process.pid)
     if (process.platform === 'linux') expect(self).not.toBeNull()
     // in-process, our own pid is always alive; a different pid with a mismatching start time is stale
@@ -181,7 +184,10 @@ describe('racing for one data dir', () => {
 
   it('exactly one of eight simultaneous daemons gets a fresh dir', async () => {
     const results = await race(tmp(), 8)
-    expect(results.filter((r) => r.startsWith('WIN')), results.join(' | ')).toHaveLength(1)
+    expect(
+      results.filter((r) => r.startsWith('WIN')),
+      results.join(' | '),
+    ).toHaveLength(1)
     expect(results.filter((r) => r === 'LOCKED')).toHaveLength(7)
   }, 30_000)
 
@@ -189,7 +195,10 @@ describe('racing for one data dir', () => {
     const dir = tmp()
     writeFileSync(join(dir, LOCK_FILE), JSON.stringify(owner({ pid: 999_999_999 })))
     const results = await race(dir, 8)
-    expect(results.filter((r) => r.startsWith('WIN')), results.join(' | ')).toEqual(['WIN takeover'])
+    expect(
+      results.filter((r) => r.startsWith('WIN')),
+      results.join(' | '),
+    ).toEqual(['WIN takeover'])
     expect(results.filter((r) => r === 'LOCKED')).toHaveLength(7)
   }, 30_000)
 })
