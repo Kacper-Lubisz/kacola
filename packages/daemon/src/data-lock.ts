@@ -5,7 +5,9 @@ import {
   linkSync,
   mkdirSync,
   openSync,
+  readdirSync,
   readFileSync,
+  readlinkSync,
   renameSync,
   statSync,
   unlinkSync,
@@ -80,7 +82,63 @@ export type DataDirLock = {
   release(): void
 }
 
+/** The database file the lock protects (see openWriters). */
+export const DB_FILE = 'gnomeola.db'
+
+/**
+ * Other processes that have `file` (or its -wal / -journal) open for WRITING, from /proc/<pid>/fd and
+ * fdinfo (Linux; [] elsewhere, or for processes we may not inspect — other users'). Readers (a
+ * read-only Store, a backup) do not count.
+ */
+export function openWriters(file: string, selfPid = process.pid): { pid: number; cmd: string }[] {
+  const targets = new Set([file, `${file}-wal`, `${file}-journal`].map((f) => resolve(f)))
+  let pids: string[]
+  try {
+    pids = readdirSync('/proc').filter((d) => /^\d+$/.test(d))
+  } catch {
+    return []
+  }
+  const out: { pid: number; cmd: string }[] = []
+  for (const p of pids) {
+    const pid = Number(p)
+    if (pid === selfPid) continue
+    let fds: string[]
+    try {
+      fds = readdirSync(`/proc/${p}/fd`)
+    } catch {
+      continue
+    }
+    for (const fd of fds) {
+      let target: string
+      try {
+        target = readlinkSync(`/proc/${p}/fd/${fd}`)
+      } catch {
+        continue
+      }
+      if (!targets.has(target)) continue
+      let writable = true
+      try {
+        const flags = /^flags:\s*([0-7]+)/m.exec(readFileSync(`/proc/${p}/fdinfo/${fd}`, 'utf8'))?.[1]
+        if (flags !== undefined) writable = (Number.parseInt(flags, 8) & 3) !== 0 // O_ACCMODE != O_RDONLY
+      } catch {}
+      if (!writable) continue
+      let cmd = ''
+      try {
+        cmd = readFileSync(`/proc/${p}/cmdline`, 'utf8').split('\0').join(' ').trim().slice(0, 300)
+      } catch {}
+      out.push({ pid, cmd })
+      break
+    }
+  }
+  return out
+}
+
 export type AcquireOptions = {
+  /**
+   * Also refuse while another process has the database open for writing (a daemon from before this
+   * lock, which holds no lock file). Default true.
+   */
+  checkOpenWriters?: boolean
   pid?: number
   /** Liveness of another process (tests inject). Default: kill(pid, 0) + /proc start time. */
   isAlive?: (owner: LockOwner) => boolean
@@ -287,6 +345,25 @@ export function acquireDataDirLock(dataDir: string, o: AcquireOptions = {}): Dat
     // whoever wins the dir after this stale lock goes reports when its owner was last alive
     takenOverFrom = { owner: cur, lastAliveAt: mtime }
     removeStale(path, cur)
+  }
+  // A daemon from before this lock existed (the one running while this version is installed) holds no
+  // lock file, but it does hold the database open for writing: ask the kernel who has it open.
+  if (o.checkOpenWriters ?? true) {
+    const writer = openWriters(join(dataDir, DB_FILE), pid)[0]
+    if (writer) {
+      try {
+        unlinkSync(path)
+      } catch {}
+      throw new DataDirLockedError(dataDir, {
+        pid: writer.pid,
+        startedAt: '',
+        port: null,
+        host: null,
+        procStart: procStartTime(writer.pid),
+        token: 'unlocked-writer',
+        cmd: writer.cmd,
+      })
+    }
   }
   let held = true
   const stillOurs = () => {

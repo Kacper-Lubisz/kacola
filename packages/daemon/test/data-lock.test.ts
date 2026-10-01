@@ -7,9 +7,11 @@ import {
   acquireDataDirLock,
   assertNotRealDataDirInTests,
   DataDirLockedError,
+  DB_FILE,
   LOCK_FILE,
   type LockOwner,
   lockOwner,
+  openWriters,
   procStartTime,
   realDataDirs,
 } from '../src/data-lock.ts'
@@ -146,6 +148,45 @@ describe('the data dir lock', () => {
     expect(() => assertNotRealDataDirInTests(`${real[0]}/`, { VITEST: 'true' })).toThrow(/refusing/)
     expect(() => assertNotRealDataDirInTests(real[0]!, {})).not.toThrow() // the real daemon, of course
     expect(() => assertNotRealDataDirInTests(tmp(), { VITEST: 'true' })).not.toThrow()
+  })
+})
+
+describe.skipIf(process.platform !== 'linux')('a daemon from before the lock (no lock file)', () => {
+  /** A process holding `file` open (like a running pre-lock daemon's SQLite), until killed. */
+  const holder = async (file: string, flag: 'r+' | 'r') => {
+    const c = spawn(process.execPath, [
+      '-e',
+      `require('fs').openSync(${JSON.stringify(file)}, '${flag}'); console.log('open'); setInterval(() => {}, 1000)`,
+    ])
+    await new Promise<void>((r) => c.stdout.once('data', () => r()))
+    return c
+  }
+
+  it('is found by the database it holds open for writing, and refused like a lock', async () => {
+    const dir = tmp()
+    writeFileSync(join(dir, DB_FILE), '')
+    const c = await holder(join(dir, DB_FILE), 'r+')
+    try {
+      expect(openWriters(join(dir, DB_FILE)).map((w) => w.pid)).toEqual([c.pid])
+      expect(() => acquireDataDirLock(dir)).toThrow(`another gnomeola daemon (pid ${c.pid}) owns ${dir}`)
+      expect(existsSync(join(dir, LOCK_FILE))).toBe(false) // our attempt leaves nothing behind
+    } finally {
+      c.kill('SIGKILL')
+    }
+    await new Promise((r) => c.once('exit', r))
+    acquireDataDirLock(dir).release()
+  })
+
+  it('a reader (a backup, a read-only store) does not count', async () => {
+    const dir = tmp()
+    writeFileSync(join(dir, DB_FILE), '')
+    const c = await holder(join(dir, DB_FILE), 'r')
+    try {
+      expect(openWriters(join(dir, DB_FILE))).toEqual([])
+      acquireDataDirLock(dir).release()
+    } finally {
+      c.kill('SIGKILL')
+    }
   })
 })
 
