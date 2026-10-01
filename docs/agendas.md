@@ -186,8 +186,9 @@ fields (status through `setStatus`, so it is recorded), new ones are added, miss
 ## CLI and MCP
 
 The CLI's read-only rule gains exactly the agenda verbs (owner's writes; still nothing deletes meetings or
-notes): `agenda create|list|show|add|edit|remove|status|export|import|link|share`, `context add`,
-`suggest`. All `--json` (compact when piped), golden-tested through the real daemon
+notes): `agenda create|list|show|add|edit|remove|status|export|import|link|invite`, `context add`,
+`suggest` — and team sharing's `agenda share|unshare|share-status|share-recap|share-history|follow|
+follow-confirm` ([docs/sharing.md](sharing.md)). All `--json` (compact when piped), golden-tested through the real daemon
 (`packages/e2e/test/cli-agenda.int.test.ts`, `__golden__/agenda-*.json`), under `BUDGET.agenda` (3 000
 tokens; `show` refuses with exit 5 above it, `--full` bypasses) and `BUDGET.contextCard` (2 000). Refs:
 `agd_…`/prefix, `next`, `latest`; items by position, id or text. Exit codes: 1 conflict (e.g. the meeting
@@ -196,7 +197,8 @@ off, 7 no live lease. `suggest` is a connected agent's verb: it needs a live lea
 
 `gnomeola mcp` adds `list_agendas`, `get_agenda`, `create_agenda`, `add_agenda_items`, `edit_agenda_item`,
 `remove_agenda_item`, `set_agenda_item_status`, `export_agenda_markdown`, `import_agenda_markdown`,
-`add_context_card`, `suggest_for_agenda`, `agenda_invite_block` — each runs the CLI command function, so
+`add_context_card`, `suggest_for_agenda`, `agenda_invite_block`, and the sharing reads `agenda_share_status`,
+`agenda_share_history` — each runs the CLI command function, so
 budgets, refusals and privacy are shared. The live tools and resource are the agent channel's (below).
 
 The skill (`skills/meeting-context/SKILL.md`, installed by `gnomeola skill install`) has the "Prepare a

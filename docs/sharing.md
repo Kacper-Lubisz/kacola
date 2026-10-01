@@ -141,6 +141,30 @@ ones), `GNOMEOLA_OWNER_NAME`, `GNOMEOLA_OWNER_EMAIL` (your `peer:` label on othe
 `GNOMEOLA_AGENDA_WEB_BASE` (the link's base, default the host), `GNOMEOLA_SHARE_POLL_MS` (default 15 000),
 `GNOMEOLA_SHARE_DEBOUNCE_MS` (default 500).
 
+## The window, the CLI and MCP (L-23…L-27)
+
+**Window** (`packages/desktop/src/renderer/features/agendas/share*.tsx`, `follow.tsx`; docs/desktop-app.md,
+"Team sharing"): the agenda editor's **Share…** button opens the Share dialog (your name, invitees may add
+items and comment, share the goals too — off —, attendees who use kacola), then the link with **Copy Link**,
+the sync state and its error, **Sync Now**, **Unshare…** (confirmed). A **Sharing** tab appears while the
+agenda is shared or followed: comments, people (owner), the merge history (each change with who made it,
+its outcome and why). Invitee and peer contributions are attributed in place: "added by Ivy
+(ivy@example.com)" with the comment under the item, "marked by Ben", "by Ben's tracker", "checked by Ben's
+Claude" — in the status chips, the history popover and the live panel. The recap has **Share recap**.
+**Follow a shared agenda**: the sidebar's Coming up, the main menu, or a `https://…/a/<token>` link handed
+to the app (main accepts https, or http on loopback, and the renderer opens the dialog prefilled) — link +
+email → the emailed code → the local copy opens. The EventBridge folds the ephemeral `agenda.share` into
+`['agendaShare', id]` (nothing refetched; a merge history on screen refetches).
+
+**CLI** (`packages/cli/src/commands/agenda-share.ts`; all `--json`): `agenda share <agenda> [--name N]
+[--members a@x,b@y] [--goals] [--no-invitees]`, `agenda unshare`, `agenda share-status`, `agenda
+share-recap [--off]`, `agenda share-history`, `agenda follow <link> --email E [--name N]`, `agenda
+follow-confirm <link> --email E --code C`. The invitation block moved to `agenda invite [--write|--remove]`
+(`agenda share --write` is a usage error that says so). Exit codes: 6 no sharing host (503), 1 refused (409:
+a private agenda, someone else's copy, history of an unshared agenda), 5 a wrong or expired code (403), 2
+usage. **MCP**: `agenda_share_status`, `agenda_share_history` — reads only; sharing stays the user's act.
+The skill's "Prepare a meeting" offers to share only on the user's say-so.
+
 ## The page (L-19)
 
 `https://<host>/a/<token>` (a Vercel rewrite to `agenda.html`): the kacola tokens (light, dark, high
@@ -160,12 +184,14 @@ localStorage per link. A quiet line at the foot says what made it.
 | the device projection never contains evidence, notes, private/agent cards, goals (unless opted in), the session or the calendar; passes the strict schema; idempotent | `packages/daemon/test/share-projection.test.ts` |
 | **two daemons + the hosted server (PGlite and real Postgres)** following one recurring agenda: share, follow by magic link, invitee item + comment, per-item merges attributed (applied / refused / agreed), nothing lost, local "manual wins" across devices, recap only when shared, carry-over into the next occurrence on the same link and the attendee following it, the wire assertion, private → unshared, unshare → 410 and an empty server | `packages/daemon/test/team-sharing.int.test.ts` |
 | the page in headless Chrome against the Vercel build: content, landmarks, light/dark, invitee code flow (wrong code refused), item + comment seen by the owner, magic link, recap, unshared | `packages/vercel/test/agenda-web.e2e.test.ts` |
+| the CLI verbs through real daemons and a local hosted server (PGlite): goldens, exit codes 6 / 1 / 5 / 2, the merge history with a refused change, recap on/off on the page, unshare → 410 and the follower revoked; MCP lists only the two read tools | `packages/e2e/test/cli-agenda-share.int.test.ts`, `__golden__/agenda-{share,share-status,follow,follow-confirm,share-history,share-recap,unshare}.json` |
+| the window: share + copy link, an invitee's item and comment attributed, follow from Coming up (a wrong code refused), a refused change in the merge history, Share recap reaching the link, unshare (confirmed) → 410 and the follower's banner; axe in light / dark / high contrast; baselines `sharing-*` ≤ 1 % | `packages/e2e/test/desktop-sharing.e2e.test.ts` |
+| the screens' logic (jsdom): options sent, link + copy, `agenda.share` re-rendering, unshare confirmation, no host, attribution of invitee / peer / peer tracker / peer agent, comments, the merge history entries, revoked banner, recap switch, the follow flow and a share link handed to the app | `packages/desktop/test/agendas.test.tsx` (team sharing), `event-bridge.test.ts`, `deep-link.test.ts`, `packages/ui-core/test/agendas.test.ts` |
+| the atlas: window states (`agenda-share__*`, `agenda-team__shared__teammate-items` with a peer agent's check-off) and the page (`agenda-invitee__web__*`) | `packages/e2e/test/atlas.e2e.test.ts`, `packages/vercel/test/atlas-web.e2e.test.ts` |
 | every route schema-valid (daemon and hosted) | `packages/daemon/test/contract.test.ts`, `packages/server/test/app.test.ts` |
 
 ## Not done / limits
 
-- No CLI or MCP verbs for sharing yet (the routes above are the contract; `gnomeola agenda share` still
-  prints the invitation block, which now carries the web link once shared).
 - Member edits of other people's items (text) are not supported; members add and edit their own.
 - A member's daemon that already built its own agenda for the next occurrence by carry-over (outside the
   share) would push those carried items as its own; the follower filter only stops the automatic roll-over.
