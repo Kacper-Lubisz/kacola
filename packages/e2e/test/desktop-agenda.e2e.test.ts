@@ -1,24 +1,24 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { AgendaView, LeaseInfo } from '@gnomeola/protocol'
+import { type AgendaView, createClient, LEASE_HEADER, type LeaseGrant } from '@gnomeola/protocol'
 import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
+import { buildDesktop, type DesktopApp, launchDesktop, matchBaseline } from '@gnomeola/testkit/desktop'
 import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
 
 type Locator = ReturnType<DesktopApp['window']['getByRole']>
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { type AgentChannelOverlay, startAgentChannelOverlay } from '../src/agent-channel-overlay.ts'
-import { setTheme } from '../src/desktop.ts'
+import { BASELINES, DESKTOP_ARTIFACTS, setTheme } from '../src/desktop.ts'
 import { expectScreenshot } from '../src/desktop-ui.ts'
 import { type CannedResponse, type FakeAnthropic, startFakeAnthropic } from '../src/fake-anthropic.ts'
 import { markOnboarded } from '../src/ui.ts'
 
 // The agenda UI (kacola wave 2) in the Electron window, against the REAL daemon — its agenda service,
 // calendar service (a calendar file), the draft route through @gnomeola/llm to a fake Anthropic server —
-// and, for the agent channel's owner routes that are not merged yet (they answer 501), the overlay in
-// ../src/agent-channel-overlay.ts (schema-checked stand-ins; real routes pass straight through).
+// and the agent channel: a real lease for "Claude" (act mode), whose writes carry its token, and
+// presence from its heartbeats. The live tracker is off here (GNOMEOLA_TRACKER=off: its marks depend on
+// timing; desktop-tracker.e2e follows the real one) and so is the speech guard.
 //
 // The flows: the editor (keyboard add, edit dialog, status, drag and keyboard reorder, history, goals,
 // context cards), markdown export / copy / import, Add link to invite refused by a read-only calendar
@@ -32,7 +32,6 @@ const PIPELINE = { speed: 4, segmentEveryMs: 1500, partialEveryMs: 250, finalize
 const KEY = 'sk-ant-e2e-desktop-agenda-000111222'
 const MEETING = '1:1 with Ana'
 const WEEK = 7 * 24 * 60
-const OLD = '2026-01-15T10:00:00.000Z'
 
 const sse = (body: string): CannedResponse => ({
   status: 200,
@@ -91,7 +90,7 @@ async function until<T>(
 describe('desktop: agendas', () => {
   let display: HeadlessDisplay
   let daemon: DaemonHandle
-  let overlay: AgentChannelOverlay
+  let grant: LeaseGrant
   let api: FakeAnthropic
   let app: DesktopApp
   let dir = ''
@@ -140,11 +139,24 @@ describe('desktop: agendas', () => {
     await w().mouse.move(0, 0)
     await w().evaluate('document.fonts.ready.then(() => new Promise((r) => setTimeout(r, 300)))')
   }
-  const shot = async (name: string, region: Locator) => {
+  const shot = async (name: string, region: Locator, masks: Locator[] = []) => {
     for (const scheme of ['light', 'dark'] as const) {
       await setTheme(app, scheme)
       await still()
-      await expectScreenshot(app, `agenda-${name}-${scheme}`, { region })
+      if (!masks.length) await expectScreenshot(app, `agenda-${name}-${scheme}`, { region })
+      else {
+        // wall-clock times (an agent's activity) under an opaque box
+        const out = join(DESKTOP_ARTIFACTS, `agenda-${name}-${scheme}.png`)
+        await region.screenshot({
+          path: out,
+          caret: 'initial',
+          animations: 'allow',
+          mask: masks,
+          maskColor: '#A89A84',
+        })
+        const failure = matchBaseline(out, join(BASELINES, `agenda-${name}-${scheme}.png`))
+        if (failure) throw new Error(`screenshot agenda-${name}-${scheme}: ${failure}`)
+      }
     }
     await setTheme(app, 'light')
   }
@@ -189,16 +201,20 @@ describe('desktop: agendas', () => {
         GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
         ANTHROPIC_API_KEY: KEY,
         ANTHROPIC_BASE_URL: api.url,
+        GNOMEOLA_TRACKER: 'off',
+        GNOMEOLA_SPEECH_GUARD: 'none',
       },
     })
-    overlay = await startAgentChannelOverlay(daemon.baseUrl)
     display = await startHeadlessDisplay({ size: '1280x800' })
     markerId = display.env.GNOMEOLA_HEADLESS_ID!
     markOnboarded(
       display,
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
-    app = await launchDesktop({ display, env: { GNOMEOLA_URL: overlay.url, GNOMEOLA_COLOR_SCHEME: 'light' } })
+    app = await launchDesktop({
+      display,
+      env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
+    })
     await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 20_000 })
     await w().emulateMedia({ reducedMotion: 'reduce' })
   }, 300_000)
@@ -210,7 +226,6 @@ describe('desktop: agendas', () => {
   afterAll(async () => {
     await app?.close()
     await display?.close()
-    await overlay?.close()
     await daemon?.stop()
     await api?.close()
     if (dir) rmSync(dir, { recursive: true, force: true })
@@ -476,7 +491,7 @@ describe('desktop: agendas', () => {
     ])
   })
 
-  it('Join and record → the live panel folds the tracker’s and the agent’s marks; suggestions; undo; interview; compact', async () => {
+  it('Join and record → the live panel folds the agent’s marks; suggestions; undo; interview; compact', async () => {
     await daemon.client.call('addAgendaItems', {
       params: { id: meetingAgenda },
       body: { items: [{ text: 'Parking lot' }, { text: 'Skip this one' }] },
@@ -503,37 +518,45 @@ describe('desktop: agendas', () => {
       'a transcript segment',
     )
     const ids = Object.fromEntries((await view(meetingAgenda)).items.map((i) => [i.text, i.id]))
-    const status = (text: string, body: Record<string, unknown>) =>
-      daemon.client.call('setAgendaItemStatus', {
+    // the user's Claude, connected in act mode: its writes carry its lease token (attributed agent:claude)
+    grant = await daemon.client.call('createAgentLease', {
+      params: { id: sessionId },
+      body: { name: 'claude', mode: 'act' },
+    })
+    const claude = createClient({ baseUrl: daemon.baseUrl, headers: { [LEASE_HEADER]: grant.token } })
+    const status = (text: string, body: Record<string, unknown>, as = daemon.client) =>
+      as.call('setAgendaItemStatus', {
         params: { id: meetingAgenda, itemId: ids[text]! },
         body: body as never,
       })
-    await status('Promo timeline', {
-      status: 'covered',
-      by: 'tracker',
-      auto: true,
-      confidence: 0.93,
-      evidence: [{ segmentId: seg[0]!.id, quote: 'so the promo goes in March', confidence: 0.93 }],
-    })
-    await status('How is onboarding going', { status: 'in-progress', by: 'agent:claude' })
+    await status(
+      'Promo timeline',
+      {
+        status: 'covered',
+        confidence: 0.93,
+        evidence: [{ segmentId: seg[0]!.id, quote: 'so the promo goes in March', confidence: 0.93 }],
+      },
+      claude,
+    )
+    await status('How is onboarding going', { status: 'in-progress' }, claude)
     await status('Parking lot', { status: 'parked' })
     await status('Skip this one', { status: 'skipped' })
-    await daemon.client.call('addSuggestion', {
+    await claude.call('addSuggestion', {
       params: { id: meetingAgenda },
       body: { kind: 'question', text: 'Ask whether the March cycle has a deadline', source: 'agent:claude' },
     })
-    await daemon.client.call('addSuggestion', {
+    await claude.call('addSuggestion', {
       params: { id: meetingAgenda },
       body: {
         kind: 'next-point',
         text: 'Bridge to the review date while onboarding wraps up',
         itemId: ids['Next review date'],
-        source: 'tracker',
+        source: 'agent:claude',
       },
     })
 
     const promo = w().getByRole('listitem', { name: 'Promo timeline' })
-    await promo.getByText('auto').waitFor()
+    await promo.getByText('checked by Claude').waitFor()
     await w()
       .getByRole('listitem', { name: 'How is onboarding going' })
       .getByText('checked by Claude')
@@ -545,7 +568,7 @@ describe('desktop: agendas', () => {
       .waitFor()
     await axeAllModes('live panel')
     await shot('live', w().getByRole('tabpanel', { name: 'Agenda' }))
-    // every status at once: open, in progress (agent), covered (auto + evidence), skipped, parked
+    // every status at once: open, in progress (agent), covered (agent + evidence), skipped, parked
     await shot('live-items', w().getByRole('list', { name: 'Agenda items' }))
 
     // the evidence chip jumps the transcript to the line
@@ -558,7 +581,7 @@ describe('desktop: agendas', () => {
     )
     await w().getByRole('tab', { name: 'Agenda' }).click()
 
-    // undo the auto mark: the user sets it back (an override)
+    // undo the agent's mark: the user sets it back (an override; manual wins after)
     await w().getByRole('listitem', { name: 'Promo timeline' }).getByRole('button', { name: 'Undo' }).click()
     await until(
       () => item(meetingAgenda, 'Promo timeline'),
@@ -616,73 +639,50 @@ describe('desktop: agendas', () => {
     await w().getByRole('button', { name: 'Full view' }).click()
   })
 
-  it('presence: connected / reading, the activity on the chip, mode, Disconnect', async () => {
-    const lease: LeaseInfo = {
-      id: 'lse_e2e1',
-      sessionId,
-      agendaId: meetingAgenda,
-      name: 'claude',
-      mode: 'suggest',
-      createdAt: OLD,
-      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
-      heartbeatAt: new Date().toISOString(),
-      state: 'connected',
-      endedAt: null,
-      endReason: null,
-      counts: { statusChanges: 1, suggestions: 1, items: 0, context: 0, refused: 0 },
-      actions: [
-        {
-          at: OLD,
-          kind: 'status',
-          outcome: 'applied',
-          summary: 'Marked “How is onboarding going” in progress',
-          ref: null,
-        },
-        {
-          at: OLD,
-          kind: 'suggestion',
-          outcome: 'suggested',
-          summary: 'Suggested asking about the deadline',
-          ref: null,
-        },
-      ],
-    }
-    overlay.leases.push(lease)
-    overlay.presence(sessionId, { leaseId: lease.id, name: 'claude', mode: 'suggest', state: 'connected' })
+  it('presence: connected / reading, the activity on the chip, mode, Disconnect (the real agent channel)', async () => {
+    const claude = createClient({ baseUrl: daemon.baseUrl, headers: { [LEASE_HEADER]: grant.token } })
+    const lease = async () =>
+      (
+        await daemon.client.call('listAgentLeases', {
+          params: { id: sessionId },
+          query: { includeEnded: true },
+        })
+      ).leases.find((l) => l.id === grant.lease.id)!
     const chip = w().getByRole('button', { name: 'Claude · connected. Show agent' })
     await chip.waitFor({ timeout: 10_000 })
     await still()
     await expectScreenshot(app, 'agenda-presence-connected-light', { region: chip })
-    overlay.presence(sessionId, { leaseId: lease.id, name: 'claude', mode: 'suggest', state: 'reading' })
+    await claude.call('heartbeatAgentLease', {
+      params: { leaseId: grant.lease.id },
+      body: { state: 'reading' },
+    })
     const reading = w().getByRole('button', { name: 'Claude · reading. Show agent' })
     await reading.waitFor()
     await still()
     await expectScreenshot(app, 'agenda-presence-reading-light', { region: reading })
     await reading.click()
     const pop = w().getByRole('dialog', { name: 'Connected agents' })
-    await pop.getByText('Suggested asking about the deadline').waitFor()
+    await pop
+      .getByText(/Ask whether the March cycle has a deadline/)
+      .first()
+      .waitFor()
     // `region` off for this one scan: React Aria puts the popover's screen-reader-only Dismiss button
     // beside (not inside) its dialog, outside every landmark; everything the popover shows is in the dialog
     await axeAllModes('presence popover', ['region'])
-    await shot('presence-popover', pop)
-    await pop.getByRole('radio', { name: 'Act' }).click()
-    await until(
-      async () => overlay.leases[0]!.mode,
-      (m) => m === 'act',
-      'the mode change',
-    )
+    await shot('presence-popover', pop, [
+      pop.getByRole('list', { name: 'Activity' }).locator('span.font-mono'),
+    ])
+    await pop.getByRole('radio', { name: 'Observe' }).click()
+    await until(lease, (l) => l.mode === 'observe', 'the mode change')
     await pop.getByRole('button', { name: 'Disconnect' }).click()
-    await until(
-      async () => overlay.leases[0]!.endReason,
-      (r) => r === 'revoked',
-      'the revoke',
-    )
+    await until(lease, (l) => l.endReason === 'revoked', 'the revoke')
     await w()
       .getByRole('button', { name: /Claude · / })
       .waitFor({ state: 'detached' })
-    expect(overlay.answered).toEqual(
-      expect.arrayContaining(['listAgentLeases', 'updateAgentLease', 'releaseAgentLease']),
-    )
+    // the token is dead
+    await expect(
+      claude.call('heartbeatAgentLease', { params: { leaseId: grant.lease.id }, body: {} }),
+    ).rejects.toMatchObject({ status: expect.any(Number) })
   })
 
   it('after Stop: the recap per item, and open items carried over to the next occurrence', async () => {

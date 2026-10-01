@@ -396,7 +396,7 @@ export const ATLAS: AtlasEntry[] = [
   ),
   win('agenda-live', 'suggest', 'looks-covered', '"Looks covered?" when the tracker is unsure'),
   win('agenda-live', 'next-point', 'card', 'The one "next talking point" card with a bridge line'),
-  planned('agenda-live', 'time', 'not-covered', 'Five minutes before the end: what is not covered yet'),
+  win('agenda-live', 'time', 'not-covered', 'Five minutes before the end: what is not covered yet'),
   win('agenda-live', 'context', 'panel', 'The context panel: cards from the agenda and the connected agent'),
   win(
     'interview-mode',

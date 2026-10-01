@@ -462,6 +462,31 @@ describe('agendas (kacola wave 2)', () => {
     expect(qc.getQueryData(keys.agendaHistory('agd_1'))).toBeUndefined()
   })
 
+  it('an add’s echo arriving before its response replaces the optimistic tmp_ row at once', async () => {
+    const { daemon, bridge, qc } = setup({ lastSeq: 1 })
+    bridge.start()
+    await bridge.ready
+    qc.setQueryData(keys.agenda('agd_1'), {
+      agenda: agenda(),
+      items: [item('a'), item('tmp_x_0', { text: 'New one', order: 1 })],
+      context: [],
+      suggestions: [],
+    } satisfies AgendaView)
+    daemon.emit(
+      durable(2, {
+        type: 'agenda.item.upserted',
+        agendaId: 'agd_1',
+        version: 4,
+        at: T,
+        item: item('itm_real', { text: 'New one', order: 1 }),
+      }),
+    )
+    expect(qc.getQueryData<AgendaView>(keys.agenda('agd_1'))!.items.map((i) => i.id)).toEqual([
+      'a',
+      'itm_real',
+    ])
+  })
+
   it('re-folds agenda events a late fetch missed; presence goes to the store and refetches the leases', async () => {
     const { daemon, bridge, qc, store } = setup({
       lastSeq: 1,

@@ -214,9 +214,9 @@ export function carriesOver(view: AgendaView): AgendaItem[] {
 }
 
 /**
- * An item's recap, read from its outcome. The recap hook (tracker wave) writes the LLM's per-item recap
- * into `outcome` in the recap prompt's form — `Status: …` / `Outcome: …` / `Decisions:` / `Actions:` with
- * `- Owner: action` lines; a person's plain outcome ("approved at 40k") is just the outcome.
+ * An item's recap, read from its outcome. The daemon's recap (agendas/recap.ts formatOutcome) writes the
+ * outcome sentence(s), then `Decisions:` / `Actions:` blocks of `- …` lines (`- Owner: action`); the recap
+ * prompt's raw form (`Status:` / `Outcome:` headers) reads the same. A plain outcome is just the outcome.
  */
 export type ItemRecap = {
   outcome: string | null
@@ -232,7 +232,9 @@ export function parseRecapOutcome(text: string | null): ItemRecap {
     r.outcome = text.trim()
     return r
   }
-  let block: 'outcome' | 'decisions' | 'actions' | null = null
+  // the daemon's recap (formatOutcome) leads with the outcome sentence(s), no header; the prompt's own
+  // form says `Outcome:`. Lines before any header are the outcome either way.
+  let block: 'outcome' | 'decisions' | 'actions' | null = 'outcome'
   const outcome: string[] = []
   for (const l of lines) {
     if (!l) continue

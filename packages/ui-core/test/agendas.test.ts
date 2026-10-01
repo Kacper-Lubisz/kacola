@@ -311,6 +311,16 @@ describe('parseRecapOutcome', () => {
       decisions: [],
       actions: [],
     })
+    // the daemon's form (formatOutcome): the outcome first, no header; an interview answer above it
+    expect(
+      parseRecapOutcome(
+        'eight engineers\nSettled: team size.\nDecisions:\n- hire two\nActions:\n- Sam: post the role',
+      ),
+    ).toEqual({
+      outcome: 'eight engineers Settled: team size.',
+      decisions: ['hire two'],
+      actions: [{ owner: 'Sam', text: 'post the role' }],
+    })
     expect(
       parseRecapOutcome(
         'Status: covered\nOutcome: Promo goes to the March cycle.\nDecisions:\n- March, not January\nActions:\n- Ana: send the packet by Friday\n- book the room',

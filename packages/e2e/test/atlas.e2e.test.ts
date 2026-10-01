@@ -3,16 +3,16 @@ import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { formatMeetingLink } from '@gnomeola/protocol'
+import { createClient, formatMeetingLink, LEASE_HEADER } from '@gnomeola/protocol'
 import { Store } from '@gnomeola/store'
 import { ATLAS_NOW, Atlas, HEIGHT, type Theme } from '@gnomeola/testkit/atlas'
 import { ATLAS } from '@gnomeola/testkit/atlas/manifest'
 import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
 import { buildDesktop, type DesktopApp, launchDesktop, launchSecondInstance } from '@gnomeola/testkit/desktop'
+import { loadAgendaFixture } from '@gnomeola/testkit/fixtures'
 import { makeSession, type StubDaemon, startStubDaemon } from '@gnomeola/testkit/stub-daemon'
 import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { type AgentChannelOverlay, startAgentChannelOverlay } from '../src/agent-channel-overlay.ts'
 import { gnomeola } from '../src/cli.ts'
 import { markOnboarded, setTheme, uiStatePath } from '../src/desktop.ts'
 import { poll, transcriptList } from '../src/desktop-ui.ts'
@@ -933,7 +933,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
   })
 })
 
-describe('atlas: agendas (real daemon, a calendar file, the draft route, the agent-channel overlay)', () => {
+describe('atlas: agendas (real daemon, a calendar file, the draft route, the agent channel)', () => {
   // A weekly 1:1 under way (started 5 min ago, 30 min long) and its next occurrence; the agenda is opened
   // from its kacola:// link, planned with Claude (a replayed stream, held), edited, followed live while
   // it records (the tracker's and an agent's marks posted over HTTP, as those waves do), then recapped.
@@ -941,7 +941,6 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
   // meeting's hours, the sidebar's relative times, a recording's timer, Coming up — is masked.
   let daemon: DaemonHandle
   let api: FakeAnthropic
-  let overlay: AgentChannelOverlay
   let app: DesktopApp
   let box = ''
   let agendaId = ''
@@ -954,7 +953,8 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
     w().getByRole('region', { name: 'Coming up' }),
     w().getByText(/\d{2}:\d{2}–\d{2}:\d{2}/),
     w().locator('h1 + p'),
-    w().getByRole('button', { name: /^(Record|Stop|Pause|Resume)/ }),
+    // the record control (its elapsed timer while recording)
+    w().getByRole('complementary', { name: 'Sessions' }).locator('header').first(),
   ]
   const draftStream = (chunks: string[]) => {
     const ev = (type: string, data: Record<string, unknown>) =>
@@ -991,7 +991,6 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
 
   afterAll(async () => {
     await app?.close()
-    await overlay?.close()
     await daemon?.stop()
     await api?.close()
     if (box) rmSync(box, { recursive: true, force: true })
@@ -1036,14 +1035,16 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
         GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
         ANTHROPIC_API_KEY: KEY,
         ANTHROPIC_BASE_URL: api.url,
+        // the marks below are Claude's (a real lease); the live tracker's own run is shot further down
+        GNOMEOLA_TRACKER: 'off',
+        GNOMEOLA_SPEECH_GUARD: 'none',
       },
     })
-    overlay = await startAgentChannelOverlay(daemon.baseUrl)
     markOnboarded(
       display,
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
-    const env = { GNOMEOLA_URL: overlay.url, ...WINDOW_ENV }
+    const env = { GNOMEOLA_URL: daemon.baseUrl, ...WINDOW_ENV }
     app = await launchDesktop({ display, env })
     await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 20_000 })
     await w().emulateMedia({ reducedMotion: 'reduce' })
@@ -1155,47 +1156,51 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
       'a transcript segment',
     )
     const ids = Object.fromEntries((await view(agendaId)).items.map((i) => [i.text, i.id]))
-    const status = (text: string, body: Record<string, unknown>) =>
-      daemon.client.call('setAgendaItemStatus', {
-        params: { id: agendaId, itemId: ids[text]! },
-        body: body as never,
-      })
-    await status('Promo timeline', {
-      status: 'covered',
-      by: 'tracker',
-      auto: true,
-      confidence: 0.93,
-      evidence: [{ segmentId: seg[0]!.id, quote: 'so the promo goes in March', confidence: 0.93 }],
+    // the user's Claude on the live channel (act mode): its writes carry its lease token
+    const grant = await daemon.client.call('createAgentLease', {
+      params: { id: sessionId },
+      body: { name: 'claude', mode: 'act' },
     })
-    await status('How is onboarding going', { status: 'in-progress', by: 'agent:claude' })
+    const claude = createClient({ baseUrl: daemon.baseUrl, headers: { [LEASE_HEADER]: grant.token } })
+    const status = (text: string, body: Record<string, unknown>, as = daemon.client) =>
+      as.call('setAgendaItemStatus', { params: { id: agendaId, itemId: ids[text]! }, body: body as never })
+    await status(
+      'Promo timeline',
+      {
+        status: 'covered',
+        confidence: 0.93,
+        evidence: [{ segmentId: seg[0]!.id, quote: 'so the promo goes in March', confidence: 0.93 }],
+      },
+      claude,
+    )
+    await status('How is onboarding going', { status: 'in-progress' }, claude)
     await status('Parking lot', { status: 'parked' })
     await status('Skip this one', { status: 'skipped' })
     const suggest = (body: Record<string, unknown>) =>
-      daemon.client.call('addSuggestion', { params: { id: agendaId }, body: body as never })
+      claude.call('addSuggestion', { params: { id: agendaId }, body: body as never })
     await suggest({
       kind: 'next-point',
       text: 'Bridge to the review date while onboarding wraps up',
       itemId: ids['Next review date'],
-      source: 'tracker',
+      source: 'agent:claude',
     })
     await suggest({
       kind: 'looks-covered',
       text: 'Onboarding sounds settled: mark it covered?',
       itemId: ids['How is onboarding going'],
-      source: 'tracker',
+      source: 'agent:claude',
     })
-    await daemon.client.call('addContextCard', {
+    await claude.call('addContextCard', {
       params: { id: agendaId },
       body: {
         title: 'Last review (from Claude)',
         body: 'March review: promo readiness "close"; asked for a mentoring example.',
         source: { kind: 'agent', ref: 'claude' },
-        by: 'agent:claude',
       },
     })
     const panel = w().getByRole('tabpanel', { name: 'Agenda' })
     const promo = panel.getByRole('listitem', { name: 'Promo timeline' })
-    await promo.getByText('auto').waitFor({ timeout: 15_000 })
+    await promo.getByText('checked by Claude').waitFor({ timeout: 15_000 })
     const next = panel.getByRole('region', { name: 'Next talking point' })
     await atlas.shoot(w(), 'agenda-live__next-point__card', {
       expect: next.getByText(/Bridge to the review date/),
@@ -1213,52 +1218,22 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
       expect: list.getByRole('listitem', { name: 'Skip this one' }),
       masks: clock(),
     })
-    await promo.scrollIntoViewIfNeeded()
-    await atlas.shoot(w(), 'agenda-live__check-off__auto-covered', {
-      expect: promo.getByRole('button', { name: 'Show in transcript: “so the promo goes in March”' }),
-      masks: clock(),
-    })
     const ctx = panel.getByRole('article', { name: 'Last review (from Claude)' })
     await ctx.scrollIntoViewIfNeeded()
     await atlas.shoot(w(), 'agenda-live__context__panel', { expect: ctx, masks: clock() })
 
-    // presence: the user's Claude on the live channel (the overlay until the agent-channel handlers merge)
-    overlay.leases.push({
-      id: 'lse_atlas',
-      sessionId,
-      agendaId,
-      name: 'claude',
-      mode: 'suggest',
-      createdAt: '2026-01-15T10:00:00.000Z',
-      expiresAt: t(60),
-      heartbeatAt: new Date().toISOString(),
-      state: 'connected',
-      endedAt: null,
-      endReason: null,
-      counts: { statusChanges: 1, suggestions: 0, items: 0, context: 1, refused: 0 },
-      actions: [
-        {
-          at: '2026-01-15T10:00:00.000Z',
-          kind: 'status',
-          outcome: 'applied',
-          summary: 'Marked “How is onboarding going” in progress',
-          ref: null,
-        },
-        {
-          at: '2026-01-15T10:00:00.000Z',
-          kind: 'context',
-          outcome: 'applied',
-          summary: 'Added “Last review”',
-          ref: null,
-        },
-      ],
+    // presence: the same lease, reading (its heartbeat says so)
+    await claude.call('heartbeatAgentLease', {
+      params: { leaseId: grant.lease.id },
+      body: { state: 'reading' },
     })
-    overlay.presence(sessionId, { leaseId: 'lse_atlas', name: 'claude', mode: 'suggest', state: 'reading' })
     await w().getByRole('button', { name: 'Claude · reading. Show agent' }).click()
     const pop = w().getByRole('dialog', { name: 'Connected agents' })
+    await pop.getByRole('list', { name: 'Activity' }).waitFor()
     await atlas.shoot(w(), 'agenda-live__presence__agent', {
       expect: pop.getByRole('button', { name: 'Disconnect' }),
-      masks: clock(),
+      // the activity's times are now's
+      masks: [...clock(), pop.getByRole('list', { name: 'Activity' }).locator('span.font-mono')],
     })
     await w().keyboard.press('Escape')
     await pop.waitFor({ state: 'detached' })
@@ -1320,6 +1295,133 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
         .getByText(/items? carried over/)
         .first(),
       masks: clock(),
+    })
+    expect(app.problems()).toEqual([])
+  })
+})
+
+describe('atlas: the live tracker (a replayed meeting, on-device decisions)', () => {
+  // src/tracker-daemon.ts: the real daemon replaying the manager-1on1 agenda fixture with the tracker on
+  // (on-device decisions, a scripted text LLM). Shot once the whole meeting has been replayed and the
+  // tracker is idle, so what it decided is settled; times (the T-5 countdown, the sidebar) are masked.
+  let daemon: DaemonHandle
+  let app: DesktopApp
+  let box = ''
+  afterAll(async () => {
+    await app?.close()
+    await daemon?.stop()
+    if (box) rmSync(box, { recursive: true, force: true })
+  })
+
+  it('auto check-offs with evidence, and what is not covered five minutes before the end', async () => {
+    box = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-tracker-'))
+    const calFile = join(box, 'calendar.json')
+    const now = Date.now()
+    const t = (min: number) => new Date(now + min * 60_000).toISOString()
+    writeFileSync(
+      calFile,
+      JSON.stringify({
+        calendars: [{ id: 'cal-work', name: 'Work' }],
+        occurrences: [
+          {
+            uid: 'tracker-1on1@x',
+            summary: '1:1 Dana / Sam',
+            sourceUid: 'cal-work',
+            calendarName: 'Work',
+            recurrenceId: null,
+            start: t(-1),
+            end: t(4),
+            description: '',
+            location: '',
+            url: '',
+            allDay: false,
+            startDate: null,
+            endDate: null,
+            timezone: 'UTC',
+            status: 'CONFIRMED',
+            myPartstat: null,
+            organizer: 'mailto:me@example.com',
+            attendees: 2,
+            recurring: false,
+            xprops: {},
+          },
+        ],
+      }),
+    )
+    daemon = await startDaemon({
+      dataDir: join(box, 'data'),
+      entry: join(import.meta.dirname, '..', 'src', 'tracker-daemon.ts'),
+      env: { GNOMEOLA_CALENDAR: `file:${calFile}` },
+    })
+    markOnboarded(
+      display,
+      (await daemon.client.call('listModels')).models.map((m) => m.id),
+    )
+    app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl, ...WINDOW_ENV } })
+    const w = () => app.window
+    const clock = () => [
+      w().getByRole('navigation', { name: 'Session list' }),
+      w().getByRole('region', { name: 'Coming up' }),
+      w().locator('h1 + p'),
+      // the record control (its elapsed timer while recording)
+      w().getByRole('complementary', { name: 'Sessions' }).locator('header').first(),
+    ]
+    await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 20_000 })
+    await w().emulateMedia({ reducedMotion: 'reduce' })
+    await w().setViewportSize({ width: 1280, height: HEIGHT })
+    const fx = loadAgendaFixture('manager-1on1')
+    const meetings = await poll(
+      async () => {
+        const m = (await daemon.client.call('listMeetings', {})).meetings
+        return m.length ? m : null
+      },
+      15_000,
+      'the calendar meeting',
+    )
+    const agenda = await daemon.client.call('createAgenda', {
+      body: {
+        meetingId: meetings[0]!.id,
+        items: fx.truth.agenda!.items.map((it) => ({ text: it.text, kind: it.kind })),
+      },
+    })
+    const { session } = await daemon.client.call('joinMeeting', { params: { id: meetings[0]!.id }, body: {} })
+    await w().evaluate(`location.hash = '#/sessions/${session.id}?tab=agenda'`)
+    await poll(
+      async () =>
+        (
+          await daemon.client.call('getTranscript', {
+            params: { id: session.id },
+            query: { includePrivate: true },
+          })
+        ).segments.length >= fx.truth.utterances.length,
+      60_000,
+      'the replayed meeting',
+    )
+    await poll(
+      async () => {
+        const tr = (await daemon.client.call('getAgendaTracker', { params: { id: agenda.agenda.id } }))
+          .tracker
+        return tr && tr.lastRoundAt && Date.now() - Date.parse(tr.lastRoundAt) > 3_000
+      },
+      30_000,
+      'the tracker to settle',
+    )
+    const panel = w().getByRole('tabpanel', { name: 'Agenda' })
+    const auto = panel
+      .getByRole('list', { name: 'Agenda items' })
+      .getByRole('listitem')
+      .filter({ hasText: 'auto' })
+      .first()
+    await auto.scrollIntoViewIfNeeded()
+    await atlas.shoot(w(), 'agenda-live__check-off__auto-covered', {
+      expect: auto.getByRole('button', { name: /^Show in transcript: / }).first(),
+      masks: clock(),
+    })
+    const left = panel.getByRole('region', { name: 'Not covered yet' })
+    await left.scrollIntoViewIfNeeded()
+    await atlas.shoot(w(), 'agenda-live__time__not-covered', {
+      expect: left,
+      masks: [...clock(), left.locator('span.font-mono')],
     })
     expect(app.problems()).toEqual([])
   })

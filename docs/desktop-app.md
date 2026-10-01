@@ -424,10 +424,19 @@ Contracts: docs/agendas.md (agenda core, drafting) and the agent channel's owner
 - **Tests.** `test/agendas.test.tsx` (screens over a one-agenda fake daemon that echoes every write),
   `test/event-bridge.test.ts` (folds, late fetch, presence), `packages/ui-core/test/agendas.test.ts`;
   `packages/e2e/test/desktop-agenda.e2e.test.ts` against the real daemon + calendar file + fake Anthropic,
-  with `src/agent-channel-overlay.ts` answering the agent channel's owner routes while the daemon still
-  answers them 501 (it passes real handlers through once they exist); baselines
-  `agenda-{editor,planning,live,interview,presence-popover,recap}-{light,dark}` and
-  `agenda-presence-{connected,reading}-light`; `desktop-deeplink.e2e` asserts the agenda screen.
+  and the real agent channel (a lease for "Claude" in act mode whose writes carry its token; presence from
+  its heartbeats; mode change and Disconnect through the owner routes), the live tracker off for
+  determinism; baselines `agenda-{editor,planning,live,live-items,interview,presence-popover,recap}-{light,dark}`
+  and `agenda-presence-{connected,reading}-light` (the popover's activity times masked).
+  `desktop-tracker.e2e` follows the REAL tracker (`src/tracker-daemon.ts`: the manager-1on1 fixture
+  replayed, on-device decisions, a scripted text LLM): its status line, auto check-offs with evidence, its
+  next-point card, the T-5 list, then the recap per item — behaviour, not pixels.
+  `desktop-deeplink.e2e` asserts the agenda screen.
+- **Tracker status** (`tracker-status.tsx`): `['agendaTracker', id]` from `GET /agendas/:id/tracker`,
+  replaced by each ephemeral `agenda.tracker` event. Running: "Following the meeting · decisions <provider>";
+  degraded: a warning banner with the reason; after the recording: "Writing the recap…", or why there is
+  none / it failed. A next-point card the tracker replaced arrives dismissed by `tracker` and is simply
+  hidden (only open cards show); it is never treated as the user's dismissal.
 
 ## Footprint (E-1 gate, 2026-09-30)
 

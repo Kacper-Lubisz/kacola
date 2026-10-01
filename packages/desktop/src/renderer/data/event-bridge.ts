@@ -302,7 +302,13 @@ export class EventBridge {
     } else {
       const cur = this.qc.getQueryData<AgendaView>(keys.agenda(id))
       if (cur) {
-        const next = applyAgendaEvent(cur, d)
+        let next = applyAgendaEvent(cur, d)
+        // an add's echo can beat its response: the optimistic `tmp_…` row with the same text goes now
+        // (features/agendas/mutations.ts drops the rest when the response lands)
+        if (next && d.type === 'agenda.item.upserted' && !cur.items.some((i) => i.id === d.item.id)) {
+          const tmp = next.items.find((i) => i.id.startsWith('tmp_') && i.text === d.item.text)
+          if (tmp) next = { ...next, items: next.items.filter((i) => i !== tmp) }
+        }
         if (next && next !== cur) this.qc.setQueryData(keys.agenda(id), next)
       }
       this.qc.setQueryData<StatusChange[]>(keys.agendaHistory(id), (h) => (h ? applyHistoryEvent(h, d) : h))
