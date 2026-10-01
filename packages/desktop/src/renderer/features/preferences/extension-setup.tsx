@@ -168,9 +168,10 @@ export function useExtension() {
     staleTime: 0,
   })
   const { refetch } = status
-  // Electron windows keep `visibilityState` when they lose focus, so the window's own focus event
+  // the window's own focus event (an Electron window keeps `visibilityState` when it loses focus, so
+  // TanStack's refetch-on-focus never fires); every place showing it listens, one check serves them all
   useEffect(() => {
-    const onFocus = () => void refetch()
+    const onFocus = () => void refetch({ cancelRefetch: false })
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
   }, [refetch])
