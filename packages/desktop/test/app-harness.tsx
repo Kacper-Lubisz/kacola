@@ -14,6 +14,7 @@ import type {
   AppInfo,
   AutostartState,
   CliInstallState,
+  ExtensionState,
   GnomeolaBridge,
   UiState,
 } from '../src/shared/bridge.ts'
@@ -97,8 +98,17 @@ export function fakeBridge(over: Partial<GnomeolaBridge> = {}) {
       return cli
     }),
     uninstallCli: vi.fn(async () => cli),
-    extensionStatus: vi.fn(async () => ({ state: 'not-installed' as const })),
-    installExtension: vi.fn(async () => ({ state: 'unavailable' as const, detail: 'not yet' })),
+    // off GNOME by default (no sidebar card); the extension tests set their own states
+    extensionStatus: vi.fn(async (): Promise<ExtensionState> => ({ state: 'unsupported' })),
+    installExtension: vi.fn(
+      async (): Promise<ExtensionState> => ({ state: 'unavailable', detail: 'not yet' }),
+    ),
+    disableExtension: vi.fn(
+      async (): Promise<ExtensionState> => ({ state: 'disabled', userExtensionsOff: false }),
+    ),
+    removeExtension: vi.fn(
+      async (): Promise<ExtensionState> => ({ state: 'not-installed', userExtensionsOff: false }),
+    ),
     getAutostart: vi.fn(async () => autostart),
     setAutostart: vi.fn(async (enabled: boolean) => {
       autostart = { enabled }

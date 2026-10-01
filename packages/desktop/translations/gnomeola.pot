@@ -101,6 +101,7 @@ msgstr ""
 #: src/renderer/features/agendas/live-panel.tsx:171
 #: src/renderer/features/agendas/live-panel.tsx:286
 #: src/renderer/features/notes/notes-pane.tsx:141
+#: src/renderer/features/preferences/extension-setup.tsx:347
 msgid "Dismiss"
 msgstr ""
 
@@ -123,7 +124,7 @@ msgid "translator-credits"
 msgstr ""
 
 #: src/renderer/features/about/about-dialog.tsx:35
-#: src/renderer/features/sessions/session-sidebar.tsx:57
+#: src/renderer/features/sessions/session-sidebar.tsx:58
 msgid "About gnomeola"
 msgstr ""
 
@@ -461,6 +462,8 @@ msgstr ""
 
 #: src/renderer/features/agendas/agenda-editor.tsx:319
 #: src/renderer/features/agendas/context-cards.tsx:73
+#: src/renderer/features/preferences/extension-setup.tsx:289
+#: src/renderer/features/preferences/extension-setup.tsx:296
 #: src/renderer/features/preferences/integration-rows.tsx:106
 #: src/renderer/features/preferences/preferences-dialog.tsx:119
 msgid "Remove"
@@ -577,7 +580,7 @@ msgid "Open Live Agenda"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-page.tsx:119
-#: src/renderer/features/sessions/recorder.ts:80
+#: src/renderer/features/sessions/recorder.ts:77
 msgid "Could not start recording: {reason}"
 msgstr ""
 
@@ -614,7 +617,7 @@ msgstr ""
 #: src/renderer/features/agendas/context-cards.tsx:62
 #: src/renderer/features/sessions/session-details.tsx:106
 #: src/renderer/features/sessions/session-details.tsx:111
-#: src/renderer/features/sessions/session-sidebar.tsx:92
+#: src/renderer/features/sessions/session-sidebar.tsx:93
 msgid "Private"
 msgstr ""
 
@@ -860,31 +863,31 @@ msgstr ""
 msgid "Code"
 msgstr ""
 
-#: src/renderer/features/agendas/follow.tsx:163
+#: src/renderer/features/agendas/follow.tsx:166
 msgid ""
 "Someone shared a meeting’s agenda with you. Your kacola keeps a copy in step "
 "with theirs: your status changes and the items you add go to everyone "
 "following it."
 msgstr ""
 
-#: src/renderer/features/agendas/follow.tsx:167
+#: src/renderer/features/agendas/follow.tsx:170
 #: src/renderer/features/agendas/share.tsx:262
 msgid "Link"
 msgstr ""
 
-#: src/renderer/features/agendas/follow.tsx:175
+#: src/renderer/features/agendas/follow.tsx:178
 msgid "That is not a shared agenda link ({example})."
 msgstr ""
 
-#: src/renderer/features/agendas/follow.tsx:180
+#: src/renderer/features/agendas/follow.tsx:183
 msgid "Your email"
 msgstr ""
 
-#: src/renderer/features/agendas/follow.tsx:182
+#: src/renderer/features/agendas/follow.tsx:185
 msgid "The address the organizer invited."
 msgstr ""
 
-#: src/renderer/features/agendas/follow.tsx:187
+#: src/renderer/features/agendas/follow.tsx:190
 msgid "Your name (optional)"
 msgstr ""
 
@@ -1391,7 +1394,7 @@ msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:230
 #: src/renderer/features/notes/action-items.tsx:48
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:177
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:182
 msgid "Done"
 msgstr ""
 
@@ -1535,6 +1538,7 @@ msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:411
 #: src/renderer/features/notes/notes-pane.tsx:136
+#: src/renderer/features/preferences/extension-setup.tsx:51
 #: src/renderer/routes/main-layout.tsx:78
 msgid "Try Again"
 msgstr ""
@@ -1616,15 +1620,15 @@ msgstr ""
 msgid "Could not change the recap’s sharing"
 msgstr ""
 
-#: src/renderer/features/agendas/share.tsx:615
+#: src/renderer/features/agendas/share.tsx:616
 msgid "Share recap"
 msgstr ""
 
-#: src/renderer/features/agendas/share.tsx:618
+#: src/renderer/features/agendas/share.tsx:619
 msgid "People with the link see each item’s outcome."
 msgstr ""
 
-#: src/renderer/features/agendas/share.tsx:619
+#: src/renderer/features/agendas/share.tsx:620
 msgid "Outcomes stay on this computer until you share them."
 msgstr ""
 
@@ -2216,193 +2220,344 @@ msgstr ""
 msgid "(empty)"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:32
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:222
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:34
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:227
 #: src/renderer/features/preferences/preferences-dialog.tsx:216
 msgid "Ready"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:34
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:36
 msgid "Downloading… {percent}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:36
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:38
 msgid "Damaged: download again"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:38
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:40
 msgid "Not downloaded"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:80
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:89
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:82
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:91
+#: src/renderer/features/preferences/extension-setup.tsx:71
+#: src/renderer/features/preferences/extension-setup.tsx:269
 #: src/renderer/features/preferences/integration-rows.tsx:20
-#: src/renderer/features/preferences/integration-rows.tsx:146
 msgid "Checking…"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:82
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:84
 msgid "Available ({backend})"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:83
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:103
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:85
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:105
 msgid "Not available: {detail}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:94
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:96
 msgid "Reading {calendars}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:97
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:99
 msgid "No calendars found. Add one in GNOME Calendar or Online Accounts."
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:99
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:101
 msgid "Connecting to your calendars…"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:101
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:103
 msgid "Calendar reading is turned off"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:148
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:153
 #: src/renderer/features/preferences/integration-rows.tsx:88
 #: src/renderer/features/preferences/integration-rows.tsx:121
 msgid "Command-line tool installed"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:150
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:155
 #: src/renderer/features/preferences/integration-rows.tsx:77
 msgid "Could not install the command-line tool: {reason}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:170
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:175
 msgid "Welcome to gnomeola"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:181
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:186
 msgid "Skip for Now"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:184
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:189
 msgid "Download all models"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:191
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:196
 msgid "Download {size}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:194
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:199
 msgid "Downloading…"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:204
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:209
 msgid ""
 "gnomeola transcribes on this computer. It needs a few speech models first, "
 "and access to your microphone and system audio."
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:208
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:213
 msgid "Speech Models"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:208
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:213
 msgid "Speech models"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:211
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:216
 msgid "Loading models"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:227
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:232
 msgid "{model} download progress"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:233
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:238
 msgid "Download {model}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:236
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:241
 msgid "Download"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:246
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:251
 msgid "Something went wrong: {reason}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:249
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:254
 msgid "Audio Capture"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:249
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:254
 msgid "Audio capture"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:250
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:251
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:255
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:256
 msgid "Microphone and system audio"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:254
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:259
 msgid "Capture available"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:255
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:260
 msgid "Capture not available"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:256
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:261
 msgid "Checking audio capture"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:261
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:266
 msgid "Meetings"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:261
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:266
 msgid "Calendar access"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:262
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:263
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:267
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:268
 msgid "Calendar"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:266
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:271
 msgid "Calendar available"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:267
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:272
 msgid "Calendar not available"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:268
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:273
 msgid "Checking calendar access"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:273
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:278
 msgid "For Agents"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:273
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:278
 msgid "Command-line tool"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:274
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:276
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:289
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:279
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:281
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:294
 msgid "Install command-line tool and Claude skill"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:280
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:285
 #: src/renderer/features/preferences/integration-rows.tsx:34
 msgid ""
 "Lets agents like Claude Code read your meetings through the gnomeola command"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:285
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:290
 msgid "Installed"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:303
+msgid "Top Bar"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:303
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:304
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:305
+#: src/renderer/features/preferences/extension-setup.tsx:268
+#: src/renderer/features/preferences/extension-setup.tsx:337
+#: src/renderer/features/preferences/extension-setup.tsx:342
+msgid "Top-bar extension"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:308
+#: src/renderer/features/preferences/extension-setup.tsx:272
+msgid "On"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:48
+msgid "Install & Enable"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:49
+#: src/renderer/features/preferences/integration-rows.tsx:90
+msgid "Update"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:50
+msgid "Enable"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:73
+msgid "Extensions are turned off in GNOME"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:80
+msgid "Shows the recording state and the next meeting in the GNOME top bar"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:88
+msgid "Version {installed} is installed; this app comes with {bundled}"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:92
+msgid "An older copy is installed; this app comes with a newer one"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:99
+msgid "Updated — log out and back in to use the new version"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:103
+msgid ""
+"Installed — log out and back in, then run this in a terminal to turn it on:"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:106
+msgid "Installed, but not turned on"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:109
+msgid ""
+"Installed — log out and back in (or restart GNOME Shell with Alt+F2, r) to "
+"turn it on"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:110
+msgid "Installed — log out and back in to turn it on"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:116
+msgid "Installed, but extensions are turned off in GNOME"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:116
+msgid "Installed, but turned off"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:123
+msgid "On — showing in the GNOME top bar"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:125
+msgid "Installed. To turn it on, run this in a terminal:"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:129
+msgid "It stopped with an error: {reason}"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:131
+msgid "The installed copy does not support this version of GNOME Shell"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:142
+msgid "The top-bar extension is on"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:148
+msgid "Could not turn on the top-bar extension: {reason}"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:207
+msgid "Copy command"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:208
+msgid "Copied the command"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:225
+#: src/renderer/features/preferences/integration-rows.tsx:83
+msgid "Working…"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:237
+msgid "Turn On GNOME Extensions?"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:240
+msgid "Turn On Extensions"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:244
+msgid ""
+"Extensions are turned off in GNOME. Turning on the top-bar extension turns "
+"extensions back on, including any others you have enabled."
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:281
+msgid "The top-bar extension is off"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:284
+msgid "Disable"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:293
+msgid "Remove the Top-Bar Extension?"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:300
+msgid "The top-bar extension was removed"
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:304
+msgid ""
+"It disappears from the top bar and is deleted from your extensions folder."
 msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:23
@@ -2433,16 +2588,7 @@ msgstr ""
 msgid "Command-line tool and Claude skill"
 msgstr ""
 
-#: src/renderer/features/preferences/integration-rows.tsx:83
-msgid "Working…"
-msgstr ""
-
 #: src/renderer/features/preferences/integration-rows.tsx:90
-msgid "Update"
-msgstr ""
-
-#: src/renderer/features/preferences/integration-rows.tsx:90
-#: src/renderer/features/preferences/integration-rows.tsx:166
 msgid "Install"
 msgstr ""
 
@@ -2476,27 +2622,11 @@ msgid ""
 "command at this app instead."
 msgstr ""
 
-#: src/renderer/features/preferences/integration-rows.tsx:148
-msgid "Installed. Enable it in GNOME Extensions if it is not showing."
-msgstr ""
-
-#: src/renderer/features/preferences/integration-rows.tsx:150
-msgid "Shows the recording state and the next meeting in the GNOME top bar"
-msgstr ""
-
-#: src/renderer/features/preferences/integration-rows.tsx:155
-msgid "Top-bar extension"
-msgstr ""
-
-#: src/renderer/features/preferences/integration-rows.tsx:162
-msgid "Top-bar extension installed"
-msgstr ""
-
-#: src/renderer/features/preferences/integration-rows.tsx:178
+#: src/renderer/features/preferences/integration-rows.tsx:146
 msgid "Start in the background at login"
 msgstr ""
 
-#: src/renderer/features/preferences/integration-rows.tsx:182
+#: src/renderer/features/preferences/integration-rows.tsx:150
 msgid ""
 "Record from the top bar and the command line without opening this window"
 msgstr ""
@@ -2778,7 +2908,7 @@ msgid "Loading settings"
 msgstr ""
 
 #: src/renderer/features/preferences/preferences-dialog.tsx:479
-#: src/renderer/features/sessions/session-sidebar.tsx:44
+#: src/renderer/features/sessions/session-sidebar.tsx:45
 #: src/renderer/features/shell/shortcuts.tsx:29
 msgid "Preferences"
 msgstr ""
@@ -2882,70 +3012,70 @@ msgstr ""
 msgid "Transcript"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:40
 #: src/renderer/features/sessions/session-sidebar.tsx:41
+#: src/renderer/features/sessions/session-sidebar.tsx:42
 #: src/renderer/features/shell/shortcuts.tsx:31
 msgid "Main menu"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:47
+#: src/renderer/features/sessions/session-sidebar.tsx:48
 msgid "Follow a Shared Agenda…"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:50
+#: src/renderer/features/sessions/session-sidebar.tsx:51
 msgid "Set Up Speech Models…"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:53
+#: src/renderer/features/sessions/session-sidebar.tsx:54
 #: src/renderer/features/shell/shortcuts.tsx:83
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:88
+#: src/renderer/features/sessions/session-sidebar.tsx:89
 #: src/renderer/features/shell/shortcuts.tsx:25 ../ui-core/src/format.ts:61
 msgid "Recording"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:121
+#: src/renderer/features/sessions/session-sidebar.tsx:122
 msgid "Lost the connection to the daemon. Reconnecting…"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:126
+#: src/renderer/features/sessions/session-sidebar.tsx:127
 msgid "A speech model is not downloaded yet"
 msgid_plural "Speech models are not downloaded yet"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:132
+#: src/renderer/features/sessions/session-sidebar.tsx:133
 msgid "Set Up"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:137
+#: src/renderer/features/sessions/session-sidebar.tsx:138
 #: src/renderer/features/shell/shortcuts.tsx:32
 msgid "Search sessions"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:145
+#: src/renderer/features/sessions/session-sidebar.tsx:146
 msgid "No Matching Sessions"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:145
+#: src/renderer/features/sessions/session-sidebar.tsx:146
 msgid "No Sessions Yet"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:147
+#: src/renderer/features/sessions/session-sidebar.tsx:148
 msgid "Try a different search."
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:147
+#: src/renderer/features/sessions/session-sidebar.tsx:148
 msgid "Press Record to capture your first meeting."
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:151
+#: src/renderer/features/sessions/session-sidebar.tsx:152
 msgid "Session list"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:153
+#: src/renderer/features/sessions/session-sidebar.tsx:154
 #: src/renderer/routes/main-layout.tsx:101
 msgid "Sessions"
 msgstr ""
@@ -3267,15 +3397,15 @@ msgstr ""
 msgid "added by {name}"
 msgstr ""
 
-#: src/renderer/features/sessions/recorder.ts:88
+#: src/renderer/features/sessions/recorder.ts:85
 msgid "Could not stop recording: {reason}"
 msgstr ""
 
-#: src/renderer/features/sessions/recorder.ts:94
+#: src/renderer/features/sessions/recorder.ts:91
 msgid "Could not pause recording: {reason}"
 msgstr ""
 
-#: src/renderer/features/sessions/recorder.ts:100
+#: src/renderer/features/sessions/recorder.ts:97
 msgid "Could not resume recording: {reason}"
 msgstr ""
 

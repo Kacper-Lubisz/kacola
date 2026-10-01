@@ -41,7 +41,7 @@ import { autostartStatus, requestBackground, setAutostart } from './autostart.ts
 import { CaptureController, type CaptureWindowLike, captureTracks } from './capture.ts'
 import { readDesktopConfig } from './config.ts'
 import { DeepLinkQueue, deepLinkFromArgv, normalizeDeepLink, schemeRegistration } from './deep-link.ts'
-import { extensionSource, extensionStatus, installExtension } from './extension.ts'
+import { ExtensionManager, extensionSource, runCommand } from './extension.ts'
 import { checkClipboardText, checkSaveRequest, type SaveDialogOptions, saveText } from './files.ts'
 import { cliEntry, Integration, runCli, shq } from './integration.ts'
 import { IdleCollector } from './memory.ts'
@@ -115,14 +115,15 @@ const cli = cliEntry(process.env, {
   resourcesPath: app.isPackaged ? process.resourcesPath : undefined,
   appDir: HERE,
 })
-const extensionDeps = {
+const extension = new ExtensionManager({
   platform: process.platform,
   env: process.env,
   source: extensionSource({
     resourcesPath: app.isPackaged ? process.resourcesPath : undefined,
     appDir: HERE,
   }),
-}
+  run: runCommand(process.env),
+})
 const integration = new Integration(cli ? runCli(process.execPath, cli, process.env) : null, {
   // packaged Linux outside Flatpak: the shim starts this very binary in the background when the daemon
   // is down (the Flatpak and macOS modes have their own launch commands)
@@ -130,8 +131,7 @@ const integration = new Integration(cli ? runCli(process.execPath, cli, process.
     app.isPackaged && process.platform === 'linux' && !FLATPAK
       ? `${shq(process.execPath)} --background`
       : null,
-  extensionStatus: () => extensionStatus(extensionDeps),
-  installExtension: () => installExtension(extensionDeps),
+  extension,
 })
 
 /** What a login starts (Linux outside Flatpak): this binary (+ the main script when unpackaged). */
@@ -491,6 +491,8 @@ function wireIpc(): void {
   handle(IPC.cliUninstall, () => integration.uninstallCli())
   handle(IPC.extensionStatus, () => integration.extensionStatus())
   handle(IPC.extensionInstall, () => integration.installExtension())
+  handle(IPC.extensionDisable, () => integration.disableExtension())
+  handle(IPC.extensionRemove, () => integration.removeExtension())
   handle(IPC.deepLinkTake, (e) => {
     const url = deepLinks.take(e.sender.id)
     if (url) logLine({ event: 'deep-link-delivered', url })

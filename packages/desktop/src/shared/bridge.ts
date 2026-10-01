@@ -29,6 +29,8 @@ export const IPC = {
   cliUninstall: 'gnomeola:cli-uninstall',
   extensionStatus: 'gnomeola:extension-status',
   extensionInstall: 'gnomeola:extension-install',
+  extensionDisable: 'gnomeola:extension-disable',
+  extensionRemove: 'gnomeola:extension-remove',
   autostartGet: 'gnomeola:autostart-get',
   autostartSet: 'gnomeola:autostart-set',
   /** main → renderer: a kacola:// link (validated, canonical) for a renderer that has taken once. */
@@ -90,6 +92,8 @@ export type UiState = {
   version: 1
   onboardingDone: boolean
   skippedMissing: string[]
+  /** The sidebar's "top-bar extension" card was dismissed. */
+  extensionCardDismissed?: boolean
 }
 
 export type Catalogue = {
@@ -126,10 +130,43 @@ export type CliInstallState =
   | { state: 'foreign'; path: string | null; detail: string }
   | { state: 'error' | 'unavailable'; detail: string }
 
-/** The GNOME Shell top-bar extension. */
+/**
+ * The GNOME Shell top-bar extension, as main sees it (src/main/extension.ts). `userExtensionsOff`: GNOME
+ * has every user extension switched off (org.gnome.shell disable-user-extensions); turning this one on
+ * turns them back on, which the window asks about first.
+ */
 export type ExtensionState =
-  | { state: 'installed' | 'not-installed' | 'unsupported' }
-  | { state: 'error' | 'unavailable'; detail: string }
+  /** Not GNOME (or not Linux): nothing to show anywhere. */
+  | { state: 'unsupported' }
+  /** This build does not ship the extension. */
+  | { state: 'unavailable'; detail: string }
+  | { state: 'not-installed'; userExtensionsOff: boolean }
+  /** An older copy is installed; this app has `bundled`. */
+  | { state: 'outdated'; installed: string; bundled: string; userExtensionsOff: boolean }
+  /**
+   * On disk, but the running Shell has not loaded it (a new install: the Shell only reads extensions at
+   * login on Wayland) or still runs the old code (`reason: 'updated'`). `queued`: it turns on by itself
+   * at the next login. `command`: when this app cannot queue it (Flatpak), what to run after logging in.
+   */
+  | {
+      state: 'needs-login'
+      reason: 'new' | 'updated'
+      queued: boolean
+      session: 'wayland' | 'x11'
+      command: string | null
+      userExtensionsOff: boolean
+    }
+  /** Loaded by the Shell, switched off. */
+  | { state: 'disabled'; userExtensionsOff: boolean }
+  /** Loaded and running. */
+  | { state: 'enabled' }
+  /** Installed, but this app cannot reach the Shell to switch it on (the Flatpak sandbox): run this. */
+  | { state: 'manual'; command: string }
+  /**
+   * `crashed`: the Shell loaded it and it failed (`detail` is the Shell's error); `shell-version`: it does
+   * not support this GNOME Shell; `failed`: an install or switch-on step went wrong (`detail` says what).
+   */
+  | { state: 'error'; reason: 'crashed' | 'shell-version' | 'failed'; detail: string }
 
 /** Background mode: start (without a window) at login. */
 export type AutostartState = { enabled: boolean; detail?: string }
@@ -163,7 +200,15 @@ export interface GnomeolaBridge {
   installCli(force: boolean): Promise<CliInstallState>
   uninstallCli(): Promise<CliInstallState>
   extensionStatus(): Promise<ExtensionState>
+  /**
+   * The one button: install (or update) the extension if needed, turn GNOME's user extensions back on
+   * if they are off, and switch it on — or queue it for the next login when the Shell has not loaded it.
+   */
   installExtension(): Promise<ExtensionState>
+  /** Switch it off (it stays installed). */
+  disableExtension(): Promise<ExtensionState>
+  /** Uninstall it from the user's extensions directory. */
+  removeExtension(): Promise<ExtensionState>
   /** Start in the background at login (Linux: autostart entry / Background portal; macOS: login item). */
   getAutostart(): Promise<AutostartState>
   setAutostart(enabled: boolean): Promise<AutostartState>

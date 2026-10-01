@@ -16,12 +16,14 @@ import {
   Switch,
   useToast,
 } from '../../design/primitives/index.ts'
+import { ExtensionAction, ExtensionSubtitle, useExtension } from '../preferences/extension-setup.tsx'
 import { cliSubtitle, useCliInstall } from '../preferences/integration-rows.tsx'
 
 // First run (S-1): the models the configured pipeline needs, with sizes, downloaded through the daemon
 // (POST /models/:id/download) with live progress from model.progress events (EventBridge → ['models']);
 // whether audio capture works (health().capture); whether meetings can be read from the calendar; and
-// — new in the desktop app — installing the command-line tool and Claude skill (on by default).
+// — new in the desktop app — installing the command-line tool and Claude skill (on by default) and, on
+// GNOME, the top-bar extension (its own button: it may need a new login, so never done on Done).
 // Skippable: Escape or the close button counts as "skip for now"; the caller remembers the outcome.
 
 const percent = (p: number | null) => `${Math.round((p ?? 0) * 100)}%`
@@ -114,6 +116,9 @@ export function OnboardingDialog({ onFinished }: { onFinished: (skippedMissing: 
   // a daemon without the M4 routes (or a failing one) simply leaves the row saying so
   const calendar = useQuery({ ...queries.calendar(), retry: false, refetchOnMount: 'always' })
   const cli = useCliInstall()
+  const ext = useExtension()
+  const showExtension =
+    ext.status !== undefined && ext.status.state !== 'unsupported' && ext.status.state !== 'unavailable'
   const [installCli, setInstallCli] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const finished = useRef(false)
@@ -294,6 +299,21 @@ export function OnboardingDialog({ onFinished }: { onFinished: (skippedMissing: 
             </Row>
           </Item>
         </Section>
+        {showExtension ? (
+          <Section title={_('Top Bar')} label={_('Top-bar extension')}>
+            <Item name={_('Top-bar extension')}>
+              <Row title={_('Top-bar extension')} subtitle={<ExtensionSubtitle view={ext.view} />}>
+                {ext.view.on ? (
+                  <span className="text-status-success">
+                    <Icon name="success" label={_('On')} />
+                  </span>
+                ) : (
+                  <ExtensionAction ext={ext} variant="secondary" />
+                )}
+              </Row>
+            </Item>
+          </Section>
+        ) : null}
       </div>
     </Dialog>
   )

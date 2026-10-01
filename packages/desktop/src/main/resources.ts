@@ -31,6 +31,7 @@ export function sanitizeUiState(v: unknown): UiState {
     skippedMissing: Array.isArray(o.skippedMissing)
       ? o.skippedMissing.filter((x): x is string => typeof x === 'string').slice(0, 100)
       : [],
+    ...(o.extensionCardDismissed === true ? { extensionCardDismissed: true } : {}),
   }
 }
 

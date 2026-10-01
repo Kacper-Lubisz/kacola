@@ -26,11 +26,12 @@ import {
 } from '../../design/primitives/index.ts'
 import { useFollow } from '../agendas/follow.tsx'
 import { ComingUp } from '../agendas/upcoming.tsx'
+import { ExtensionCard } from '../preferences/extension-setup.tsx'
 import { useDialogs } from '../shell/dialogs.tsx'
 import { useRecorder } from './recorder.ts'
 
-// The sidebar: record control + primary menu in its header bar, status banners, the search box, and
-// the session list (server state from ['sessions'], kept live by the EventBridge; selection from the
+// The sidebar: record control + primary menu in its header bar, status banners, the search box, the
+// session list, and at its foot the top-bar extension card (GNOME only, until it is on or dismissed) (server state from ['sessions'], kept live by the EventBridge; selection from the
 // route). A recording shows the red live dot and its running time.
 
 export function PrimaryMenu() {
@@ -157,6 +158,7 @@ export function SessionSidebar({ missingModels }: { missingModels: number }) {
           />
         </nav>
       )}
+      <ExtensionCard />
     </div>
   )
 }

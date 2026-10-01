@@ -16,7 +16,7 @@ import type { CliInstallState, ExtensionState } from '../shared/bridge.ts'
 // /usr/local/bin needs an administrator: one osascript prompt copies the shim there (declined: the
 // ~/.local/bin fallback stays).
 //
-// The top-bar extension install is extension.ts (a copy into the user's extensions dir, never enabled).
+// The top-bar extension is extension.ts (install / update / switch on through the Shell's D-Bus API).
 
 /** Which CLI entry to run: GNOMEOLA_CLI_ENTRY, the packaged runtime, the built runtime, the dev source. */
 export function cliEntry(
@@ -134,8 +134,13 @@ export type IntegrationOptions = {
   launch?: string | null
   /** Runs osascript (the macOS admin prompt); tests replace it. */
   exec?: Exec
-  extensionStatus?: () => ExtensionState
-  installExtension?: () => ExtensionState
+  /** The top-bar extension (src/main/extension.ts ExtensionManager); absent: this build has none. */
+  extension?: {
+    status(): Promise<ExtensionState>
+    turnOn(): Promise<ExtensionState>
+    disable(): Promise<ExtensionState>
+    remove(): Promise<ExtensionState>
+  }
 }
 
 const execDefault: Exec = (argv) =>
@@ -202,10 +207,18 @@ export class Integration {
   }
 
   async extensionStatus(): Promise<ExtensionState> {
-    return this.o.extensionStatus?.() ?? NO_EXTENSION
+    return (await this.o.extension?.status()) ?? NO_EXTENSION
   }
 
   async installExtension(): Promise<ExtensionState> {
-    return this.o.installExtension?.() ?? NO_EXTENSION
+    return (await this.o.extension?.turnOn()) ?? NO_EXTENSION
+  }
+
+  async disableExtension(): Promise<ExtensionState> {
+    return (await this.o.extension?.disable()) ?? NO_EXTENSION
+  }
+
+  async removeExtension(): Promise<ExtensionState> {
+    return (await this.o.extension?.remove()) ?? NO_EXTENSION
   }
 }

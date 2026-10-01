@@ -5,15 +5,15 @@ import type { CliInstallState } from '../../../shared/bridge.ts'
 import { useServices } from '../../data/services.tsx'
 import { AlertDialog, Button, Row, Spinner, Switch, useToast } from '../../design/primitives/index.ts'
 
-// "Install command-line tool and Claude skill", "Install top-bar extension" and "Start in the
-// background at login" (Preferences → Integration). All run in main: the CLI through the bundled
-// `gnomeola install-cli --json` (src/main/integration.ts), the extension as a copy into the user's
-// extensions dir (src/main/extension.ts), autostart through the Background portal / an autostart entry
+// "Install command-line tool and Claude skill", the top-bar extension and "Start in the background at
+// login" (Preferences → Integration). All run in main: the CLI through the bundled
+// `gnomeola install-cli --json` (src/main/integration.ts), the extension through the Shell's D-Bus API
+// (src/main/extension.ts; its row is in ./extension-setup.tsx), autostart through the Background portal /
+// an autostart entry
 // / a macOS login item (src/main/autostart.ts). Their state is a query keyed ['integration', …] — it
 // lives in main, not the daemon, so the EventBridge never touches it.
 
 const CLI_KEY = ['integration', 'cli'] as const
-const EXT_KEY = ['integration', 'extension'] as const
 const AUTOSTART_KEY = ['integration', 'autostart'] as const
 
 export function cliSubtitle(s: CliInstallState | undefined): string {
@@ -135,40 +135,8 @@ export function CliInstallRow() {
   )
 }
 
-export function ExtensionRow() {
-  const { bridge } = useServices()
-  const qc = useQueryClient()
-  const toast = useToast()
-  const status = useQuery({ queryKey: EXT_KEY, queryFn: () => bridge.extensionStatus() })
-  const s = status.data
-  if (s?.state === 'unsupported') return null
-  const subtitle = !s
-    ? _('Checking…')
-    : s.state === 'installed'
-      ? _('Installed. Enable it in GNOME Extensions if it is not showing.')
-      : s.state === 'not-installed'
-        ? _('Shows the recording state and the next meeting in the GNOME top bar')
-        : 'detail' in s
-          ? s.detail
-          : ''
-  return (
-    <Row title={_('Top-bar extension')} subtitle={subtitle}>
-      {s && s.state !== 'installed' ? (
-        <Button
-          size="sm"
-          onPress={async () => {
-            const next = await bridge.installExtension()
-            qc.setQueryData(EXT_KEY, next)
-            if (next.state === 'installed') toast(_('Top-bar extension installed'))
-            else if (next.state === 'error' || next.state === 'unavailable') toast(next.detail)
-          }}
-        >
-          {_('Install')}
-        </Button>
-      ) : null}
-    </Row>
-  )
-}
+// The top-bar extension row lives with the sidebar card and onboarding's copy of it.
+export { ExtensionRow } from './extension-setup.tsx'
 
 export function BackgroundRow() {
   const { bridge } = useServices()

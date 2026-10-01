@@ -10,20 +10,12 @@ import {
   execArg,
   setAutostart,
 } from '../src/main/autostart.ts'
-import {
-  EXTENSION_UUID,
-  extensionSource,
-  extensionStatus,
-  extensionsDir,
-  installExtension,
-} from '../src/main/extension.ts'
 import { trayMenuModel, trayTooltip } from '../src/main/tray.ts'
 
-// Background mode (autostart / Background portal, the macOS Tray menu) and the top-bar extension install.
-// The packaged app runs them for real in desktop-packaged.e2e and flatpak.e2e.
+// Background mode (autostart / Background portal, the macOS Tray menu). The packaged app runs them for
+// real in desktop-packaged.e2e and flatpak.e2e. (The top-bar extension: packages/e2e/test/extension-setup.)
 
 const tmp = () => mkdtempSync(join(tmpdir(), 'gnomeola-bg-'))
-const REPO_EXT = join(import.meta.dirname, '..', '..', '..', 'extensions', EXTENSION_UUID)
 
 describe('autostart', () => {
   it('writes an XDG autostart entry that starts this binary in the background, and removes only ours', async () => {
@@ -140,52 +132,5 @@ describe('the macOS Tray menu', () => {
     expect(labels({ daemon: { kind: 'unreachable', error: 'x' }, active: null })[0]).toBe(
       '[gnomeola is not reachable]',
     )
-  })
-})
-
-describe('the top-bar extension install', () => {
-  it('goes to the host’s extensions dir: XDG_DATA_HOME, but HOST_XDG_DATA_HOME / ~/.local/share in the Flatpak', () => {
-    expect(extensionsDir({ HOME: '/h', XDG_DATA_HOME: '/d' })).toBe('/d/gnome-shell/extensions')
-    expect(extensionsDir({ HOME: '/h' })).toBe('/h/.local/share/gnome-shell/extensions')
-    expect(extensionsDir({ HOME: '/h', XDG_DATA_HOME: '/h/.var/app/x/data', FLATPAK_ID: 'x' })).toBe(
-      '/h/.local/share/gnome-shell/extensions',
-    )
-    expect(extensionsDir({ HOME: '/h', FLATPAK_ID: 'x', HOST_XDG_DATA_HOME: '/hd' })).toBe(
-      '/hd/gnome-shell/extensions',
-    )
-  })
-
-  it('finds the packaged copy first, else the checkout’s', () => {
-    const res = tmp()
-    mkdirSync(join(res, 'extension', EXTENSION_UUID), { recursive: true })
-    writeFileSync(join(res, 'extension', EXTENSION_UUID, 'metadata.json'), '{}')
-    expect(extensionSource({ resourcesPath: res, appDir: '/nowhere' })).toBe(
-      join(res, 'extension', EXTENSION_UUID),
-    )
-    expect(extensionSource({ appDir: join(import.meta.dirname, '..', 'out', 'main') })).toBe(
-      join(import.meta.dirname, '..', '..', '..', 'extensions', EXTENSION_UUID),
-    )
-  })
-
-  it('copies it (schema compiled), reports installed, and never touches the enabled list', () => {
-    const data = tmp()
-    const d = { platform: 'linux' as const, env: { HOME: data, XDG_DATA_HOME: data }, source: REPO_EXT }
-    expect(extensionStatus(d)).toEqual({ state: 'not-installed' })
-    expect(installExtension(d)).toEqual({ state: 'installed' })
-    const dest = join(data, 'gnome-shell', 'extensions', EXTENSION_UUID)
-    for (const f of ['metadata.json', 'extension.js', 'schemas/gschemas.compiled'])
-      expect(existsSync(join(dest, f)), f).toBe(true)
-    // an older copy is "not installed" (Install updates it)
-    const meta = JSON.parse(readFileSync(join(dest, 'metadata.json'), 'utf8'))
-    writeFileSync(join(dest, 'metadata.json'), JSON.stringify({ ...meta, 'version-name': '0.0.1' }))
-    expect(extensionStatus(d)).toEqual({ state: 'not-installed' })
-    expect(installExtension(d)).toEqual({ state: 'installed' })
-  })
-
-  it('is unsupported off Linux, unavailable without a copy in the build', () => {
-    expect(extensionStatus({ platform: 'darwin', env: {}, source: REPO_EXT })).toEqual({
-      state: 'unsupported',
-    })
-    expect(installExtension({ platform: 'linux', env: {}, source: null }).state).toBe('unavailable')
   })
 })
