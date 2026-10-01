@@ -1802,21 +1802,18 @@ describe('atlas: the top-bar extension (fake gdbus / gsettings on PATH)', () => 
       statePath,
       initialFakeShell({ extensionsDir: extDir }),
     )
-    const stub: StubDaemon = await startStubDaemon([
-      makeSession('Platform standup', {
-        createdAt: '2026-03-12T09:30:00.000Z',
-        startedAt: '2026-03-12T09:30:00.000Z',
-        endedAt: '2026-03-12T09:42:00.000Z',
-        durationMs: 12 * 60_000,
-      }),
-    ])
+    // a real daemon: Preferences needs its settings
+    const daemon = await startDaemon()
     // the card is the point here: onboarded, the card not dismissed
     markOnboarded(display)
     writeFileSync(
       uiStatePath(display),
       JSON.stringify({ version: 1, onboardingDone: true, skippedMissing: ['whisper-small.en'] }),
     )
-    const app = await launchDesktop({ display, env: { GNOMEOLA_URL: stub.url, PATH: path, ...WINDOW_ENV } })
+    const app = await launchDesktop({
+      display,
+      env: { GNOMEOLA_URL: daemon.baseUrl, PATH: path, ...WINDOW_ENV },
+    })
     const card = app.window.getByRole('region', { name: 'Top-bar extension' })
     const prefs = app.window.getByRole('dialog', { name: 'Preferences' })
     const refocus = () => app.window.evaluate(`window.dispatchEvent(new Event('focus'))`)
@@ -1853,7 +1850,11 @@ describe('atlas: the top-bar extension (fake gdbus / gsettings on PATH)', () => 
       await update.click()
       const updated = 'Updated — log out and back in to use the new version'
       await prefs.getByText(updated).waitFor({ timeout: 10_000 })
-      await dismissToast(app, updated)
+      // the toast sits under Preferences' backdrop (no clicking it away): let it time out
+      await app.window
+        .getByRole('region', { name: 'Notifications' })
+        .filter({ hasText: updated })
+        .waitFor({ state: 'detached', timeout: 20_000 })
 
       // the next login: on
       const version = JSON.parse(readFileSync(join(dest, 'metadata.json'), 'utf8'))['version-name'] as string
@@ -1880,7 +1881,7 @@ describe('atlas: the top-bar extension (fake gdbus / gsettings on PATH)', () => 
       expect(app.problems()).toEqual([])
     } finally {
       await app.close()
-      await stub.close()
+      await daemon.stop()
       rmSync(dest, { recursive: true, force: true })
       rmSync(tools, { recursive: true, force: true })
       markOnboarded(display)

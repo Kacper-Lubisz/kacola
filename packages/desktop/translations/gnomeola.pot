@@ -101,7 +101,7 @@ msgstr ""
 #: src/renderer/features/agendas/live-panel.tsx:171
 #: src/renderer/features/agendas/live-panel.tsx:286
 #: src/renderer/features/notes/notes-pane.tsx:141
-#: src/renderer/features/preferences/extension-setup.tsx:347
+#: src/renderer/features/preferences/extension-setup.tsx:350
 msgid "Dismiss"
 msgstr ""
 
@@ -462,8 +462,8 @@ msgstr ""
 
 #: src/renderer/features/agendas/agenda-editor.tsx:319
 #: src/renderer/features/agendas/context-cards.tsx:73
-#: src/renderer/features/preferences/extension-setup.tsx:289
-#: src/renderer/features/preferences/extension-setup.tsx:296
+#: src/renderer/features/preferences/extension-setup.tsx:292
+#: src/renderer/features/preferences/extension-setup.tsx:299
 #: src/renderer/features/preferences/integration-rows.tsx:106
 #: src/renderer/features/preferences/preferences-dialog.tsx:119
 msgid "Remove"
@@ -2241,7 +2241,7 @@ msgstr ""
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:82
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:91
 #: src/renderer/features/preferences/extension-setup.tsx:71
-#: src/renderer/features/preferences/extension-setup.tsx:269
+#: src/renderer/features/preferences/extension-setup.tsx:272
 #: src/renderer/features/preferences/integration-rows.tsx:20
 msgid "Checking…"
 msgstr ""
@@ -2417,14 +2417,14 @@ msgstr ""
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:303
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:304
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:305
-#: src/renderer/features/preferences/extension-setup.tsx:268
-#: src/renderer/features/preferences/extension-setup.tsx:337
-#: src/renderer/features/preferences/extension-setup.tsx:342
+#: src/renderer/features/preferences/extension-setup.tsx:271
+#: src/renderer/features/preferences/extension-setup.tsx:340
+#: src/renderer/features/preferences/extension-setup.tsx:345
 msgid "Top-bar extension"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:308
-#: src/renderer/features/preferences/extension-setup.tsx:272
+#: src/renderer/features/preferences/extension-setup.tsx:275
 msgid "On"
 msgstr ""
 
@@ -2508,54 +2508,59 @@ msgstr ""
 msgid "The top-bar extension is on"
 msgstr ""
 
-#: src/renderer/features/preferences/extension-setup.tsx:148
+#: src/renderer/features/preferences/extension-setup.tsx:144
+#: src/renderer/features/preferences/extension-setup.tsx:147
+msgid "Installed. Run the command shown to turn it on."
+msgstr ""
+
+#: src/renderer/features/preferences/extension-setup.tsx:151
 msgid "Could not turn on the top-bar extension: {reason}"
 msgstr ""
 
-#: src/renderer/features/preferences/extension-setup.tsx:207
+#: src/renderer/features/preferences/extension-setup.tsx:210
 msgid "Copy command"
 msgstr ""
 
-#: src/renderer/features/preferences/extension-setup.tsx:208
+#: src/renderer/features/preferences/extension-setup.tsx:211
 msgid "Copied the command"
 msgstr ""
 
-#: src/renderer/features/preferences/extension-setup.tsx:225
+#: src/renderer/features/preferences/extension-setup.tsx:228
 #: src/renderer/features/preferences/integration-rows.tsx:83
 msgid "Working…"
 msgstr ""
 
-#: src/renderer/features/preferences/extension-setup.tsx:237
+#: src/renderer/features/preferences/extension-setup.tsx:240
 msgid "Turn On GNOME Extensions?"
 msgstr ""
 
-#: src/renderer/features/preferences/extension-setup.tsx:240
+#: src/renderer/features/preferences/extension-setup.tsx:243
 msgid "Turn On Extensions"
 msgstr ""
 
-#: src/renderer/features/preferences/extension-setup.tsx:244
+#: src/renderer/features/preferences/extension-setup.tsx:247
 msgid ""
 "Extensions are turned off in GNOME. Turning on the top-bar extension turns "
 "extensions back on, including any others you have enabled."
 msgstr ""
 
-#: src/renderer/features/preferences/extension-setup.tsx:281
+#: src/renderer/features/preferences/extension-setup.tsx:284
 msgid "The top-bar extension is off"
 msgstr ""
 
-#: src/renderer/features/preferences/extension-setup.tsx:284
+#: src/renderer/features/preferences/extension-setup.tsx:287
 msgid "Disable"
 msgstr ""
 
-#: src/renderer/features/preferences/extension-setup.tsx:293
+#: src/renderer/features/preferences/extension-setup.tsx:296
 msgid "Remove the Top-Bar Extension?"
 msgstr ""
 
-#: src/renderer/features/preferences/extension-setup.tsx:300
+#: src/renderer/features/preferences/extension-setup.tsx:303
 msgid "The top-bar extension was removed"
 msgstr ""
 
-#: src/renderer/features/preferences/extension-setup.tsx:304
+#: src/renderer/features/preferences/extension-setup.tsx:307
 msgid ""
 "It disappears from the top bar and is deleted from your extensions folder."
 msgstr ""
