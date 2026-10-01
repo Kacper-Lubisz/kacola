@@ -176,7 +176,23 @@ beforeAll(async () => {
     params: { id: past.agenda.id, itemId: past.items[0]!.id },
     body: { status: 'covered', outcome: OUTCOME },
   })
+  // the recap (the live tracker wave) would ask the same fake provider when the recording stops: no text
+  // LLM for that moment, so it settles as `unavailable`
+  const llm = (await c.call('getSettings')).llm
+  await c.call('updateSettings', { body: { llm: { provider: 'none' } } })
   await c.call('stopSession', { params: { id: session.id } })
+  await waitFor(
+    async () => {
+      const t = (await c.call('getAgendaTracker', { params: { id: past.agenda.id } })).tracker
+      return t !== null && ['done', 'unavailable', 'failed'].includes(t.recap.state)
+    },
+    15_000,
+    'the recap to settle',
+  )
+  await c.call('updateSettings', { body: { llm: { provider: llm.provider, model: llm.model } } })
+  // (the tracker's bridge lines while it recorded reached the fakes too; the recording is over)
+  anthropic.reset()
+  openai.reset()
 
   // next week's: rolled over on stop (the open "Dashboard owner" carried), goals set by the user
   const next = await waitFor(
