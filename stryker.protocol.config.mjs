@@ -20,5 +20,21 @@ export default {
   thresholds: { high: 90, low: 80, break: 85 },
   tempDirName: '.stryker-tmp',
   cleanTempDir: 'always',
-  ignorePatterns: ['.claude', 'notes', 'node_modules', '**/fixtures/**'],
+  // Stryker copies the project into a sandbox: keep build outputs (dist/ holds the Flatpak build cache,
+  // GBs), screenshots and reports out, or its file scan alone runs out of memory.
+  ignorePatterns: [
+    '.claude',
+    'notes',
+    'node_modules',
+    '**/fixtures/**',
+    'dist',
+    'reports',
+    '**/out/**',
+    '**/__artifacts__/**',
+    '**/__screenshots__/**',
+    '**/test-results/**',
+    'packaging/flatpak/input',
+    '**/.vercel/**',
+    '.stryker-tmp',
+  ],
 }

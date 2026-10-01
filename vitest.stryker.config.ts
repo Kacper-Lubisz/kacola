@@ -5,7 +5,11 @@ import { defineConfig } from 'vitest/config'
 // neither needs them nor copies their fixtures.
 export default defineConfig({
   test: {
-    include: ['packages/protocol/test/**/*.test.ts', 'packages/testkit/test/invariants.test.ts'],
+    include: [
+      'packages/protocol/test/**/*.test.ts',
+      'packages/testkit/test/invariants.test.ts',
+      'packages/testkit/test/invariants-agenda.test.ts',
+    ],
     exclude: ['**/node_modules/**', '**/*.int.test.ts', '**/*.e2e.test.ts', '**/*.eval.test.ts'],
     testTimeout: 10_000,
   },
