@@ -16,6 +16,8 @@ export type TrackRecorderOptions = {
   device: string
   flushIntervalMs?: number
   fileOps?: FileOps
+  /** Continue the WAV already at `path` (a resumed recording): the position starts after its audio. */
+  append?: boolean
   emit: <K extends keyof CaptureEvents>(event: K, ...args: CaptureEvents[K]) => void
 }
 
@@ -37,6 +39,7 @@ export class TrackRecorder {
       sampleRate: SAMPLE_RATE,
       flushIntervalMs: opts.flushIntervalMs,
       ops: opts.fileOps,
+      append: opts.append,
     })
     this.meter = new LevelMeter(LEVEL_WINDOW_SAMPLES, (lvl, end) =>
       this.emit('level', {

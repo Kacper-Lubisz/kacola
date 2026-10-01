@@ -1,9 +1,10 @@
-import { existsSync, mkdirSync, rmSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { recoverWav } from '@gnomeola/capture'
 import type { Session, StoredSettings } from '@gnomeola/protocol'
 import type { Store } from '@gnomeola/store'
 import type { EventBus } from './bus.ts'
+import type { DataDirLock } from './data-lock.ts'
 import { DaemonError } from './errors.ts'
 import type {
   KnownVoice,
@@ -30,6 +31,54 @@ type Active = {
   speakers: Map<string, string>
 }
 
+/** What a SIGTERM'd daemon leaves in a session dir so the next one can resume the recording. */
+export type SuspendMarker = {
+  /** When capture stopped. */
+  at: string
+  /** The status the user saw: a paused recording resumes paused. */
+  was: 'recording' | 'paused'
+  /** Recording time on the session timeline when it stopped. */
+  durationMs: number
+  reason: string
+  pid: number
+}
+
+export const SUSPEND_FILE = 'suspended.json'
+/** The session's `error` while it waits for the next daemon (status `paused`). */
+export const SUSPENDED_NOTE = 'the daemon is restarting; this recording resumes when it is back'
+
+/** A recording the previous daemon left mid-meeting that this one will continue (see recover()). */
+export type Resumable = {
+  id: string
+  was: 'recording' | 'paused'
+  /** Audio already on disk (the timeline position the new run continues from). */
+  offsetMs: number
+  /** How long nobody was capturing: a `restart` gap of this length (0 for a paused recording). */
+  gapMs: number
+  /** When capture stopped (suspend time, or the crashed daemon's last sign of life). */
+  stoppedAt: string
+  how: 'suspended' | 'crashed'
+}
+
+export type RecoveryPlan = {
+  /** Closed out as `recovered` (a crash, beyond the resume window). */
+  recovered: Session[]
+  /** Closed out as `stopped`: suspended for a restart, but the next daemon came too late. */
+  closed: Session[]
+  /** To continue with continueAfterRestart() once the daemon is listening. */
+  resumable: Resumable[]
+}
+
+export type RecoverOptions = {
+  /** Continue a recording left by the previous daemon if it stopped at most this long ago. 0 = never. */
+  resumeWindowMs?: number
+  /** When the previous daemon was last alive (its stale lock's heartbeat), after a crash. */
+  lastAliveAt?: Date | null
+}
+
+const fmtSpan = (ms: number) =>
+  ms >= 120_000 ? `${Math.round(ms / 60_000)} min` : `${Math.max(0, Math.round(ms / 1000))} s`
+
 export type SessionManagerDeps = {
   store: Store
   bus: EventBus
@@ -49,6 +98,9 @@ export class SessionManager {
   private readonly now: () => number
   private readonly active = new Map<string, Active>()
   private readonly queues = new Map<string, Promise<unknown>>()
+  /** Recordings continued after a restart by this daemon, for /daemon. */
+  readonly resumed: { id: string; gapMs: number }[] = []
+  private pendingResumes = 0
 
   constructor(deps: SessionManagerDeps) {
     this.d = deps
@@ -65,6 +117,16 @@ export class SessionManager {
 
   get activeCount(): number {
     return this.active.size
+  }
+
+  /** Recordings this daemon is capturing (or about to resume): nothing here means a restart is harmless. */
+  get busy(): boolean {
+    return this.active.size > 0 || this.pendingResumes > 0
+  }
+
+  /** The ids of the recordings this daemon is capturing right now. */
+  activeIds(): string[] {
+    return [...this.active.keys()]
   }
 
   /** Recording time of a live session: accumulated before the current stretch, and when it began. */
@@ -314,40 +376,277 @@ export class SessionManager {
   }
 
   /**
-   * Startup: any session still `recording`/`paused` belongs to a daemon that died. Close it out as
-   * `recovered`, ended at the last moment we know it was alive, with its duration covering every
-   * segment we kept. Its audio and segments are left exactly as they were.
+   * Startup: any session still `recording`/`paused` belongs to a daemon that is gone. Either
+   *
+   *   - it was suspended for a restart (SIGTERM mid-recording: suspendAll() left a marker), or the daemon
+   *     crashed while it was recording, and capture stopped less than `resumeWindowMs` ago: RESUMABLE —
+   *     its WAV headers are repaired and it is left as it is, for continueAfterRestart() once we listen;
+   *   - suspended, but the next daemon (us) came too late: closed out as `stopped`, ended when capture
+   *     stopped, with an `error` that says what happened (a restart, not a crash);
+   *   - otherwise (a crash too long ago, or while paused): closed out as `recovered`, ended at the last
+   *     moment we know it was alive, with its duration covering every segment we kept.
+   *
+   * Audio and segments are left exactly as they were.
+   *
+   * Only ever with the data dir's lock held: "still recording" means "its daemon is gone" only if no
+   * other daemon can own this dir. Run by a second daemon, this closed out a meeting that was still
+   * being recorded (2026-10-01).
    */
-  recover(): Session[] {
-    const out: Session[] = []
+  recover(lock: DataDirLock, o: RecoverOptions = {}): RecoveryPlan {
+    if (!lock.held || resolve(lock.dataDir) !== resolve(this.d.dataDir))
+      throw new Error(`recover() needs the lock on ${this.d.dataDir}`)
+    const windowMs = o.resumeWindowMs ?? 0
+    const now = this.now()
+    const plan: RecoveryPlan = { recovered: [], closed: [], resumable: [] }
     for (const s of this.d.store.sessionsWithStatus(['recording', 'paused'])) {
-      const endedAt = this.d.store.lastEventAt(s.id) ?? s.startedAt ?? s.createdAt
-      // The capturing process died without finalising its WAV headers: repair them so the audio up to the
-      // last flush is playable, and let its real length count towards the session's duration.
-      let audioMs = 0
-      for (const t of s.tracks) {
-        if (!t.audioPath || !existsSync(t.audioPath)) continue
-        try {
-          const r = recoverWav(t.audioPath)
-          if (r.status !== 'unrecoverable') audioMs = Math.max(audioMs, r.durationMs)
-          this.d.logger.info('recovered audio', { sessionId: s.id, track: t.kind, status: r.status })
-        } catch (err) {
-          this.d.logger.error('audio recovery failed', { sessionId: s.id, track: t.kind, err })
+      const marker = this.readSuspend(s.id)
+      // The capturing process stopped without (or before) finalising its WAV headers: repair them so the
+      // audio up to the last write is playable, and let its real length count towards the duration.
+      const { audioMs, lastWriteAt } = this.repairAudio(s)
+      const audioEnd = Math.max(s.durationMs, this.d.store.maxSegmentEndMs(s.id), Math.round(audioMs))
+      if (marker) {
+        const stoppedAt = Date.parse(marker.at)
+        const offsetMs = Math.max(audioEnd, marker.durationMs)
+        if (now - stoppedAt <= windowMs) {
+          plan.resumable.push({
+            id: s.id,
+            was: marker.was,
+            offsetMs,
+            gapMs: marker.was === 'recording' ? Math.max(0, now - stoppedAt) : 0,
+            stoppedAt: marker.at,
+            how: 'suspended',
+          })
+          continue
         }
+        this.clearSuspend(s.id)
+        plan.closed.push(
+          this.d.store.updateSession(s.id, (cur) => ({
+            ...cur,
+            status: 'stopped',
+            endedAt: marker.at,
+            durationMs: offsetMs,
+            error:
+              windowMs > 0
+                ? `the recording stopped when the daemon restarted, and the daemon was not back within ${fmtSpan(windowMs)} to resume it`
+                : 'the recording stopped when the daemon restarted',
+          })),
+        )
+        this.d.logger.warn('suspended session closed out', { sessionId: s.id, suspendedAt: marker.at })
+        continue
       }
-      const durationMs = Math.max(s.durationMs, this.d.store.maxSegmentEndMs(s.id), Math.round(audioMs))
-      out.push(
+      // a crash: the last sign of life is the newest of the last audio write, the last durable event and
+      // the dead daemon's lock heartbeat
+      const lastEvent = this.d.store.lastEventAt(s.id)
+      const alive = Math.max(
+        lastWriteAt ?? 0,
+        lastEvent ? Date.parse(lastEvent) : 0,
+        o.lastAliveAt?.getTime() ?? 0,
+      )
+      if (s.status === 'recording' && alive > 0 && now - alive <= windowMs) {
+        plan.resumable.push({
+          id: s.id,
+          was: 'recording',
+          offsetMs: audioEnd,
+          gapMs: Math.max(0, now - alive),
+          stoppedAt: new Date(alive).toISOString(),
+          how: 'crashed',
+        })
+        continue
+      }
+      const endedAt = lastEvent ?? s.startedAt ?? s.createdAt
+      plan.recovered.push(
         this.d.store.updateSession(s.id, (cur) => ({
           ...cur,
           status: 'recovered',
           endedAt,
-          durationMs,
+          durationMs: audioEnd,
           error: `recording interrupted: the daemon exited while this session was ${cur.status}`,
         })),
       )
       this.d.logger.warn('recovered interrupted session', { sessionId: s.id, was: s.status, endedAt })
     }
-    return out
+    this.pendingResumes += plan.resumable.length
+    return plan
+  }
+
+  /** Repair a session's WAV headers; the longest track's length and the newest write time. */
+  private repairAudio(s: Session): { audioMs: number; lastWriteAt: number | null } {
+    let audioMs = 0
+    let lastWriteAt: number | null = null
+    for (const t of s.tracks) {
+      if (!t.audioPath || !existsSync(t.audioPath)) continue
+      try {
+        const st = statSync(t.audioPath)
+        lastWriteAt = Math.max(lastWriteAt ?? 0, st.mtimeMs)
+        // the fake pipeline leaves empty placeholder files: nothing to repair
+        if (st.size === 0) continue
+        const r = recoverWav(t.audioPath)
+        if (r.status !== 'unrecoverable') audioMs = Math.max(audioMs, r.durationMs)
+        this.d.logger.info('recovered audio', { sessionId: s.id, track: t.kind, status: r.status })
+      } catch (err) {
+        this.d.logger.error('audio recovery failed', { sessionId: s.id, track: t.kind, err })
+      }
+    }
+    return { audioMs, lastWriteAt }
+  }
+
+  private suspendPath(id: string): string {
+    return join(this.sessionDir(id), SUSPEND_FILE)
+  }
+
+  private readSuspend(id: string): SuspendMarker | null {
+    try {
+      const m = JSON.parse(readFileSync(this.suspendPath(id), 'utf8')) as SuspendMarker
+      if (typeof m.at !== 'string' || Number.isNaN(Date.parse(m.at))) return null
+      return { ...m, was: m.was === 'paused' ? 'paused' : 'recording', durationMs: Number(m.durationMs) || 0 }
+    } catch {
+      return null
+    }
+  }
+
+  private clearSuspend(id: string): void {
+    rmSync(this.suspendPath(id), { force: true })
+  }
+
+  /**
+   * Continue a recording the previous daemon left (recover()'s `resumable`): capture resumes into the
+   * same session and WAVs after a `restart` gap of the real length, and the session is `recording`
+   * again (or `paused`, if that is how the user left it). If the pipeline cannot continue, the session
+   * is closed out at the moment capture stopped, saying why.
+   */
+  async continueAfterRestart(r: Resumable): Promise<Session | null> {
+    try {
+      return await this.serial(r.id, async () => {
+        const s = this.d.store.getSession(r.id)
+        if (!s || !isActive(s.status) || this.active.has(r.id)) return null
+        const settings = this.d.settings()
+        const a: Active = {
+          handle: null,
+          closed: false,
+          runningSince: null,
+          accumulatedMs: r.offsetMs + r.gapMs,
+          speakers: new Map(),
+        }
+        this.active.set(r.id, a)
+        let handle: RecordingHandle
+        try {
+          handle = await this.d.pipeline.start(
+            {
+              sessionId: r.id,
+              sessionDir: this.sessionDir(r.id),
+              tracks: [
+                { kind: 'mic', device: settings.capture.micDevice },
+                { kind: 'system', device: settings.capture.systemDevice },
+              ],
+              settings,
+              voices: this.d.knownVoices?.() ?? [],
+              continueAt: { offsetMs: r.offsetMs, gapMs: r.gapMs },
+            },
+            this.sink(r.id, a),
+          )
+        } catch (err) {
+          a.closed = true
+          this.active.delete(r.id)
+          this.clearSuspend(r.id)
+          const message = err instanceof Error ? err.message : String(err)
+          this.d.logger.error('could not resume after restart', { sessionId: r.id, err: message })
+          return this.d.store.updateSession(r.id, (cur) => ({
+            ...cur,
+            status: 'stopped',
+            endedAt: r.stoppedAt,
+            durationMs: Math.max(cur.durationMs, r.offsetMs),
+            error: `the recording stopped when the daemon restarted and could not be resumed: ${message}`,
+          }))
+        }
+        a.handle = handle
+        if (r.was === 'paused') await handle.pause()
+        else a.runningSince = this.now()
+        this.clearSuspend(r.id)
+        this.resumed.push({ id: r.id, gapMs: r.gapMs })
+        const out = this.d.store.updateSession(r.id, (cur) => ({
+          ...cur,
+          status: r.was,
+          durationMs: a.accumulatedMs,
+          error: null,
+        }))
+        this.d.logger.warn('resumed recording after restart', {
+          sessionId: r.id,
+          how: r.how,
+          gapMs: r.gapMs,
+          offsetMs: r.offsetMs,
+          status: out.status,
+        })
+        return out
+      })
+    } catch (err) {
+      this.d.logger.error('resume failed', { sessionId: r.id, err })
+      return null
+    } finally {
+      this.pendingResumes = Math.max(0, this.pendingResumes - 1)
+    }
+  }
+
+  /**
+   * SIGTERM while recording (systemctl restart, logout, shutdown): capture stops and what was captured is
+   * flushed, and every live session is left `paused` with a suspend marker instead of being stopped, so
+   * the next daemon resumes it (recover() → continueAfterRestart()). The marker and status are written FIRST, so a
+   * flush that overruns `flushMs` (or a SIGKILL after it) still leaves a resumable session; the flush
+   * itself is bounded so shutdown and logout stay fast.
+   */
+  async suspendAll(reason: string, flushMs = 6_000): Promise<string[]> {
+    const ids = [...this.active.keys()]
+    await Promise.all(
+      ids.map((id) =>
+        this.serial(id, async () => {
+          const a = this.active.get(id)
+          const cur = this.d.store.getSession(id)
+          if (!a || !cur || !isActive(cur.status)) return
+          const durationMs = this.elapsed(a)
+          const marker: SuspendMarker = {
+            at: new Date(this.now()).toISOString(),
+            was: cur.status === 'paused' ? 'paused' : 'recording',
+            durationMs,
+            reason,
+            pid: process.pid,
+          }
+          const path = this.suspendPath(id)
+          mkdirSync(this.sessionDir(id), { recursive: true })
+          writeFileSync(`${path}.tmp`, JSON.stringify(marker))
+          renameSync(`${path}.tmp`, path)
+          this.d.store.updateSession(id, (s) => ({
+            ...s,
+            status: 'paused',
+            durationMs,
+            error: SUSPENDED_NOTE,
+          }))
+          this.d.logger.info('suspending recording for a restart', { sessionId: id, reason, was: marker.was })
+          if (a.handle) {
+            let timer: NodeJS.Timeout | undefined
+            const flushed = await Promise.race([
+              a.handle.stop().then(
+                () => true,
+                (err) => {
+                  this.d.logger.error('pipeline stop failed while suspending', { sessionId: id, err })
+                  return true
+                },
+              ),
+              new Promise<false>((r) => {
+                timer = setTimeout(() => r(false), flushMs)
+              }),
+            ])
+            clearTimeout(timer)
+            if (!flushed)
+              this.d.logger.warn('suspend flush overran; the next daemon repairs the audio', {
+                sessionId: id,
+              })
+          }
+          a.closed = true
+          a.runningSince = null
+          this.active.delete(id)
+        }).catch((err) => this.d.logger.error('suspend failed', { sessionId: id, err })),
+      ),
+    )
+    return ids
   }
 
   /** Graceful shutdown: stop every running recording cleanly. */

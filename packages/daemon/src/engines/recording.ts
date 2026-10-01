@@ -199,7 +199,7 @@ export class RecordingPipeline implements TranscriptionPipeline {
       ...(t.device && t.device !== 'default' ? { device: t.device } : {}),
     }))
     try {
-      await capture.start(opts.sessionDir, specs)
+      await capture.start(opts.sessionDir, specs, opts.continueAt ? { continueAt: opts.continueAt } : {})
     } catch (err) {
       for (const off of offs) off()
       await pipeline.stop(0).catch(() => {})

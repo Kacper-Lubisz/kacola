@@ -32,6 +32,14 @@ export type PipelineStartOptions = {
   settings: StoredSettings
   /** Voices remembered from earlier sessions (A-6); empty unless voiceprints are switched on. */
   voices?: KnownVoice[]
+  /**
+   * Resume a recording the previous daemon left mid-meeting (a restart): the session dir already holds
+   * `offsetMs` of audio per track. Append to those files, fill `gapMs` (the time no daemon was
+   * capturing) with silence reported as a `restart` gap on every track, and carry the timeline on from
+   * `offsetMs + gapMs` — segment times continue where the earlier ones stopped. A pipeline that cannot
+   * continue throws; the daemon then closes the session out.
+   */
+  continueAt?: { offsetMs: number; gapMs: number }
 }
 
 /** A person's voice as the diarizer needs it: an embedding from one model. */

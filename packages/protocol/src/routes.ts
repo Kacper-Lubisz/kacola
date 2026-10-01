@@ -3,6 +3,7 @@ import { DraftAgendaBody } from './agenda-draft.ts'
 import { agendaRoutes } from './agendas.ts'
 import { CalendarStatus, JoinMeetingBody, ListMeetingsQuery, MeetingList, NextMeeting } from './calendar.ts'
 import { externalCaptureRoutes } from './capture.ts'
+import { daemonControlRoutes } from './daemon-control.ts'
 import {
   AudioChunkBody,
   AudioChunkResult,
@@ -298,6 +299,8 @@ export const routes = {
   ...trackerRoutes,
   // ---- kacola phase 5: team sharing (./sharing.ts)
   ...sharingRoutes,
+  // ---- sticky daemon: one owner per data dir, restarts that wait for the recording (./daemon-control.ts)
+  ...daemonControlRoutes,
 } as const satisfies Record<string, RouteDef>
 
 export type Routes = typeof routes

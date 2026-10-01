@@ -94,6 +94,8 @@ describe('contract: every route, real server, typed client', () => {
       env: {},
       heartbeatMs: 50,
       calendar: cal,
+      // a restart the contract asks for is only recorded: this in-process daemon must keep running
+      onRestart: () => {},
     })
     c = createClient({ baseUrl: daemon.url, timeoutMs: 5_000 })
     const now = Date.now()
@@ -469,6 +471,18 @@ describe('contract: every route, real server, typed client', () => {
         expect(r.tracker).toBeNull()
         return r
       },
+      // ---- sticky daemon: what is live, a restart that waits for it (and is cancelled), refused --now
+      daemonInfo: async () => {
+        const r = await c.call('daemonInfo')
+        expect(r).toMatchObject({ pid: process.pid, dataDir: dir, supervised: false })
+        return r
+      },
+      requestRestart: async () => {
+        const r = await c.call('requestRestart', { body: { mode: 'when-idle', by: 'contract' } })
+        expect(['waiting', 'restarting']).toContain(r.state)
+        return r
+      },
+      cancelRestart: () => c.call('cancelRestart'),
       // ---- kacola phase 5: team sharing (in order: share, recap, sync, history, unshare; follow)
       getAgendaShare: async () => {
         const a = await c.call('createAgenda', {

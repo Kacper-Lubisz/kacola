@@ -12,6 +12,7 @@ import {
   Emitter,
   SAMPLE_RATE,
   SAMPLES_PER_MS,
+  type StartOptions,
   type TrackSpec,
 } from './types.ts'
 import { decodeWav } from './wav.ts'
@@ -94,7 +95,9 @@ export class FileCaptureSource implements CaptureSource {
     return this.position / SAMPLES_PER_MS
   }
 
-  async start(sessionDir: string, specs: readonly TrackSpec[]): Promise<void> {
+  async start(sessionDir: string, specs: readonly TrackSpec[], opts: StartOptions = {}): Promise<void> {
+    if (opts.continueAt)
+      throw new Error(`the ${this.backend} source cannot continue a recording after a restart`)
     if (this._state !== 'idle') throw new Error(`cannot start from state ${this._state}`)
     const kinds = new Set(specs.map((s) => s.kind))
     if (!specs.length || kinds.size !== specs.length) throw new Error('need one spec per track kind')

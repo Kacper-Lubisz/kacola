@@ -41,6 +41,8 @@ export type DaemonHandle = {
   kill(signal?: NodeJS.Signals): Promise<{ code: number | null; signal: NodeJS.Signals | null }>
   /** Start again on the same data dir (after stop/kill, or stopping it first). New port. */
   restart(): Promise<void>
+  /** Resolves when the current process exits by itself (e.g. a requested restart: code 76). */
+  exited(timeoutMs?: number): Promise<{ code: number | null; signal: NodeJS.Signals | null }>
 }
 
 const DEFAULT_ENTRY = resolve(import.meta.dirname, '../../../daemon/src/main.ts')
@@ -201,6 +203,19 @@ export async function startDaemon(opts: StartDaemonOptions = {}): Promise<Daemon
     async restart() {
       if (child) await stopProcess()
       await spawnOnce()
+    },
+    async exited(timeoutMs = 30_000) {
+      const c = child as ChildProcess | null
+      if (!c) return { code: null, signal: null }
+      if (c.exitCode === null && c.signalCode === null)
+        await new Promise<void>((resolveExit, reject) => {
+          const t = setTimeout(() => reject(new Error(`daemon did not exit within ${timeoutMs} ms`)), timeoutMs)
+          c.once('exit', () => {
+            clearTimeout(t)
+            resolveExit()
+          })
+        })
+      return { code: c.exitCode, signal: c.signalCode }
     },
   }
 }

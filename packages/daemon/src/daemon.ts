@@ -7,6 +7,7 @@ import type { LlmProvider } from '@gnomeola/llm'
 import {
   type BodyOut,
   DEFAULT_PORT,
+  DEFAULT_RESUME_WINDOW_MS,
   matchPath,
   type ParamsOf,
   parseSince,
@@ -39,6 +40,7 @@ import { endOfLocalDay, localMidnight } from './calendar/meetings.ts'
 import { type CalendarProvider, NoCalendar } from './calendar/providers.ts'
 import { CalendarService } from './calendar/service.ts'
 import { RecordingControl } from './control.ts'
+import { acquireDataDirLock, type DataDirLock } from './data-lock.ts'
 import { DbusService } from './dbus/service.ts'
 import { DecisionsService } from './decisions.ts'
 import { apiErrorBody, DaemonError, toDaemonError } from './errors.ts'
@@ -53,6 +55,7 @@ import { Logger } from './logger.ts'
 import type { MicActivitySource } from './mic-activity.ts'
 import type { NotesEngine } from './notes/engine.ts'
 import { notesHandlers } from './notes/handlers.ts'
+import { RestartControl, type RestartHook } from './restart.ts'
 import { SessionManager } from './sessions.ts'
 import { SettingsService } from './settings.ts'
 import { SpeakerService } from './speakers.ts'
@@ -64,6 +67,12 @@ export const LOOPBACK_HOSTS = new Set(['127.0.0.1', '::1', 'localhost'])
 
 export type DaemonOptions = {
   dataDir: string
+  /**
+   * The data dir's owner lock (./data-lock.ts), when the caller took it already (main.ts does, before
+   * it opens the log). Default: createDaemon takes it, and refuses (DataDirLockedError) if another
+   * daemon owns the dir. Released on close either way.
+   */
+  lock?: DataDirLock
   host?: string
   /** 0 = pick a free port. */
   port?: number
@@ -126,6 +135,25 @@ export type DaemonOptions = {
   /** The hosted server agendas are shared on, and sync timing. Default from the environment
    *  (GNOMEOLA_SHARE_URL / _TOKEN, else GNOMEOLA_SYNC_URL / _TOKEN; GNOMEOLA_OWNER_NAME / _EMAIL). */
   share?: Partial<ShareConfig>
+  // ---- sticky daemon: restarts that wait for the recording, recordings that survive a restart
+  /**
+   * Continue a recording the previous daemon left mid-meeting (suspended by SIGTERM, or a crash) if it
+   * stopped at most this long ago. Default GNOMEOLA_RESUME_WINDOW_MS, else 2 minutes; 0 = never resume.
+   */
+  resumeWindowMs?: number
+  /** How POST /daemon/restart restarts the process (main.ts: close, exit 76). Default: refused. */
+  onRestart?: RestartHook | null
+  /** Running under a supervisor that starts the daemon again after it exits (reported on /daemon). */
+  supervised?: boolean
+}
+
+export type CloseOptions = {
+  /**
+   * Leave live recordings resumable (suspendAll) instead of stopping them: SIGTERM, restarts. Agents'
+   * leases end silently (their `live attach` re-attaches to the next daemon), not as "meeting ended".
+   */
+  suspend?: boolean
+  reason?: string
 }
 
 export type Daemon = {
@@ -133,6 +161,8 @@ export type Daemon = {
   readonly port: number
   readonly host: string
   readonly store: Store
+  /** This daemon's hold on its data dir. */
+  readonly lock: DataDirLock
   readonly bus: EventBus
   readonly logger: Logger
   readonly sessions: SessionManager
@@ -150,9 +180,13 @@ export type Daemon = {
   readonly tracker: AgendaTracker | null
   /** Team sharing: shared agendas and the ones this device follows. */
   readonly sharing: SharingService
+  /** Restarts that wait for the recording (/daemon routes). */
+  readonly restart: RestartControl
+  /** Settles once the recordings the previous daemon left (if any) have been resumed or closed out. */
+  readonly resuming: Promise<void>
   /** Open SSE connections. */
   readonly sseClients: number
-  close(): Promise<void>
+  close(o?: CloseOptions): Promise<void>
 }
 
 // --------------------------------------------------------------- handler types
@@ -182,6 +216,17 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     throw new Error(
       `refusing to listen on ${host} without pairing auth: remote requests must carry a token (start with --remote)`,
     )
+  // One owner per data dir, before anything touches it: the log, the database, recovery.
+  const lock = o.lock ?? acquireDataDirLock(o.dataDir)
+  try {
+    return await compose(o, host, lock)
+  } catch (err) {
+    lock.release()
+    throw err
+  }
+}
+
+async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promise<Daemon> {
   mkdirSync(o.dataDir, { recursive: true, mode: 0o700 })
   const env = o.env ?? process.env
   const logger = o.logger ?? new Logger({ file: join(o.dataDir, 'logs', 'gnomeolad.log'), echo: o.echoLogs })
@@ -278,12 +323,34 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
   const startedAt = Date.now()
   const sse = new Set<SseWriter>()
 
-  const recovered = sessions.recover()
+  const resumeWindowMs =
+    o.resumeWindowMs ??
+    (env.GNOMEOLA_RESUME_WINDOW_MS !== undefined && env.GNOMEOLA_RESUME_WINDOW_MS !== ''
+      ? Math.max(0, Number(env.GNOMEOLA_RESUME_WINDOW_MS) || 0)
+      : DEFAULT_RESUME_WINDOW_MS)
+  const plan = sessions.recover(lock, {
+    resumeWindowMs,
+    lastAliveAt: lock.takenOverFrom?.lastAliveAt ?? null,
+  })
   logger.info('daemon starting', {
     version: VERSION,
     dataDir: o.dataDir,
     lastSeq: store.lastSeq(),
-    recovered: recovered.length,
+    recovered: plan.recovered.length,
+    closed: plan.closed.length,
+    resuming: plan.resumable.map((r) => ({ id: r.id, how: r.how, gapMs: r.gapMs })),
+    ...(lock.takenOverFrom ? { staleLockFrom: lock.takenOverFrom.owner?.pid ?? null } : {}),
+  })
+  const restart = new RestartControl({
+    store,
+    bus,
+    sessions,
+    logger,
+    dataDir: o.dataDir,
+    version: VERSION,
+    startedAt: new Date(startedAt),
+    onRestart: o.onRestart ?? null,
+    supervised: o.supervised ?? false,
   })
 
   // Private sessions (X-7): every read path — list, get, transcript, Q&A history, search, ask — treats
@@ -464,6 +531,10 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     ...sharingHandlers(sharing, agents, (id) => {
       if (!agendas.agendas.get(id)) throw new DaemonError('not_found', `no agenda ${id}`)
     }),
+    // ---- sticky daemon: who owns the dir, what is live, restarts that wait for the recording
+    daemonInfo: () => restart.info(),
+    requestRestart: ({ body }) => restart.request(body),
+    cancelRestart: () => restart.cancel(),
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))
@@ -567,20 +638,39 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
   })
   server.keepAliveTimeout = 5_000
 
-  await new Promise<void>((resolve, reject) => {
-    server.once('error', reject)
-    server.listen(o.port ?? DEFAULT_PORT, host, () => {
-      server.off('error', reject)
-      resolve()
+  try {
+    await new Promise<void>((resolve, reject) => {
+      server.once('error', reject)
+      server.listen(o.port ?? DEFAULT_PORT, host, () => {
+        server.off('error', reject)
+        resolve()
+      })
     })
-  })
+  } catch (err) {
+    // e.g. EADDRINUSE: nothing else of ours is running yet; leave the dir as we found it
+    tracker?.stop()
+    await sharing.stop()
+    agendas.stop()
+    agents.stop()
+    store.close()
+    logger.error('could not listen', { host, port: o.port ?? DEFAULT_PORT, err: (err as Error).message })
+    logger.close()
+    throw err
+  }
   const port = (server.address() as AddressInfo).port
   logger.info('listening', { host, port })
+  lock.setAddress(host, port)
+  // the "last alive" mark a successor reads after a crash (see data-lock.ts)
+  const heartbeat = setInterval(() => lock.heartbeat(), 5_000)
+  heartbeat.unref()
   // The URL local clients (the harness, D-Bus bridge, `listening` line) should use: a wildcard bind is
   // reached over loopback, where the owner needs no token.
   const localHost = host === '0.0.0.0' ? '127.0.0.1' : host === '::' ? '::1' : host
   const url = `http://${localHost.includes(':') ? `[${localHost}]` : localHost}:${port}`
 
+  // the recordings the previous daemon left mid-meeting carry on (before auto-record looks for work: a
+  // session waiting to resume is live in the database, so nothing else starts in its place)
+  const resuming = Promise.all(plan.resumable.map((r) => sessions.continueAfterRestart(r))).then(() => {})
   calendar.start()
   autoRecord.start()
   const dbus = o.dbus
@@ -602,21 +692,26 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
   dbus?.start()
 
   let closing: Promise<void> | null = null
-  const close = () => {
+  const close = (co: CloseOptions = {}) => {
     closing ??= (async () => {
-      logger.info('shutting down')
+      logger.info('shutting down', co.suspend ? { suspend: true, reason: co.reason } : {})
       server.close()
+      restart.stop()
       autoRecord.stop()
       tracker?.stop()
       await sharing.stop()
       agendas.stop()
-      agents.stop()
+      agents.stop({ silent: co.suspend })
       await dbus?.stop()
       await calendar.stop()
-      await sessions.stopAll()
+      await resuming
+      if (co.suspend) await sessions.suspendAll(co.reason ?? 'shutdown')
+      else await sessions.stopAll()
       for (const w of [...sse]) w.end()
       server.closeAllConnections()
       store.close()
+      clearInterval(heartbeat)
+      lock.release()
       logger.info('stopped')
       logger.close()
     })()
@@ -628,6 +723,7 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     port,
     host,
     store,
+    lock,
     bus,
     logger,
     sessions,
@@ -641,6 +737,8 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
     agents,
     tracker,
     sharing,
+    restart,
+    resuming,
     get sseClients() {
       return sse.size
     },

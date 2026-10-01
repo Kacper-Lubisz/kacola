@@ -291,6 +291,9 @@ describe('hosted contract: every route', () => {
         notHere(c.call('setAgentAccess', { params: { id: s.id }, body: { allowAgents: true } })),
       draftAgenda: () => notHere(c.stream('draftAgenda', { params: { id: 'agd_x' }, body: {} }).next()),
       getAgendaTracker: () => notHere(c.call('getAgendaTracker', { params: { id: 'agd_x' } })),
+      daemonInfo: () => notHere(c.call('daemonInfo')),
+      requestRestart: () => notHere(c.call('requestRestart', { body: {} })),
+      cancelRestart: () => notHere(c.call('cancelRestart')),
       // ---- team sharing (in this order: each step uses the previous one)
       createShare: async () => {
         const r = await c.call('createShare', {
