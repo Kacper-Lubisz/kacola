@@ -106,6 +106,8 @@ describe('gnomeola mcp — the same tools over MCP', () => {
       'add_agenda_items',
       'add_context_card',
       'agenda_invite_block',
+      'agenda_share_history',
+      'agenda_share_status',
       'ask_meetings',
       'calendar_meetings',
       'create_agenda',
