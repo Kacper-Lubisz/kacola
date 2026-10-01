@@ -195,6 +195,12 @@ export function stageNatives(outDir: string, targets: Target[]): void {
   for (const t of targets) {
     const [platform, arch] = t.split('-')
     const bin = join('bin', 'napi-v6', platform!, arch!)
+    // onnxruntime-node 1.30 ships no darwin-x64 binary: that build goes without the on-device embedder
+    // (it is optional; the decisions layer then picks another provider or none)
+    if (!existsSync(join(ort, bin))) {
+      console.warn(`onnxruntime-node has no ${t} binary: the ${t} runtime ships without the local embedder`)
+      continue
+    }
     cpSync(join(ort, bin), join(ortOut, bin), { recursive: true, dereference: true })
   }
   cpSync(join(dirname(ort), 'onnxruntime-common'), join(nm, 'onnxruntime-common'), {
