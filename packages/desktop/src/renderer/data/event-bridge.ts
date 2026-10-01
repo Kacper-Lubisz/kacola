@@ -171,6 +171,11 @@ export class EventBridge {
       ephemeral: true,
       reconnectDelayMs: this.o.reconnectDelayMs,
       onConnect: () => {
+        // State that only ever arrives as EPHEMERAL events (share sync status, the tracker's status,
+        // agent presence) is never replayed: one sent before this stream connected would leave a stale
+        // value until the next. Refetch what is on screen on every (re)connect.
+        for (const queryKey of [['agendaShare'], ['agendaTracker'], ['leases']])
+          void this.qc.invalidateQueries({ queryKey, refetchType: 'active' })
         if (!lost) return
         lost = false
         // a daemon that came back with a cursor behind ours is a different log (reinstalled, new data

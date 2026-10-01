@@ -293,6 +293,21 @@ describe('connection, gaps and reconnects', () => {
     expect(bridge.stats.resnapshots).toBe(0) // same log: the client resumes from its cursor
   })
 
+  it('refetches state that only arrives as ephemeral events (share, tracker, presence) on every reconnect', async () => {
+    const { daemon, bridge, qc } = setup({ sessions: [], lastSeq: 1 })
+    bridge.start()
+    await bridge.ready
+    for (const k of [keys.agendaShare('agd_1'), keys.agendaTracker('agd_1'), keys.leases('ses_1')])
+      qc.setQueryData(k, { stale: true })
+    daemon.drop()
+    daemon.connect()
+    await until(() =>
+      [keys.agendaShare('agd_1'), keys.agendaTracker('agd_1'), keys.leases('ses_1')].every(
+        (k) => qc.getQueryState(k)?.isInvalidated,
+      ),
+    )
+  })
+
   it('resnapshots and invalidates everything on a reported gap', async () => {
     const { daemon, bridge, qc, titles } = setup({ sessions: [session('a')], lastSeq: 3 })
     bridge.start()
