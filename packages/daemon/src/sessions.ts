@@ -41,6 +41,11 @@ export type SuspendMarker = {
   durationMs: number
   reason: string
   pid: number
+  /**
+   * false: the user's session was ending (logout, shutdown): capture was finalised the same way, but the
+   * next daemon closes the recording out instead of turning the microphone back on by itself.
+   */
+  resume?: boolean
 }
 
 export const SUSPEND_FILE = 'suspended.json'
@@ -407,7 +412,7 @@ export class SessionManager {
       if (marker) {
         const stoppedAt = Date.parse(marker.at)
         const offsetMs = Math.max(audioEnd, marker.durationMs)
-        if (now - stoppedAt <= windowMs) {
+        if (marker.resume !== false && now - stoppedAt <= windowMs) {
           plan.resumable.push({
             id: s.id,
             was: marker.was,
@@ -426,9 +431,11 @@ export class SessionManager {
             endedAt: marker.at,
             durationMs: offsetMs,
             error:
-              windowMs > 0
-                ? `the recording stopped when the daemon restarted, and the daemon was not back within ${fmtSpan(windowMs)} to resume it`
-                : 'the recording stopped when the daemon restarted',
+              marker.resume === false
+                ? 'the recording stopped when the session ended (logout or shutdown)'
+                : windowMs > 0
+                  ? `the recording stopped when the daemon restarted, and the daemon was not back within ${fmtSpan(windowMs)} to resume it`
+                  : 'the recording stopped when the daemon restarted',
           })),
         )
         this.d.logger.warn('suspended session closed out', { sessionId: s.id, suspendedAt: marker.at })
@@ -593,7 +600,7 @@ export class SessionManager {
    * flush that overruns `flushMs` (or a SIGKILL after it) still leaves a resumable session; the flush
    * itself is bounded so shutdown and logout stay fast.
    */
-  async suspendAll(reason: string, flushMs = 6_000): Promise<string[]> {
+  async suspendAll(reason: string, flushMs = 6_000, o: { resume?: boolean } = {}): Promise<string[]> {
     const ids = [...this.active.keys()]
     await Promise.all(
       ids.map((id) =>
@@ -608,6 +615,7 @@ export class SessionManager {
             durationMs,
             reason,
             pid: process.pid,
+            ...(o.resume === false ? { resume: false } : {}),
           }
           const path = this.suspendPath(id)
           mkdirSync(this.sessionDir(id), { recursive: true })

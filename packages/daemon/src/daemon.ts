@@ -153,6 +153,8 @@ export type CloseOptions = {
    * leases end silently (their `live attach` re-attaches to the next daemon), not as "meeting ended".
    */
   suspend?: boolean
+  /** With `suspend`: false when the user's session is ending — the next daemon closes the recording out. */
+  resume?: boolean
   reason?: string
 }
 
@@ -705,7 +707,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
       await dbus?.stop()
       await calendar.stop()
       await resuming
-      if (co.suspend) await sessions.suspendAll(co.reason ?? 'shutdown')
+      if (co.suspend) await sessions.suspendAll(co.reason ?? 'shutdown', undefined, { resume: co.resume })
       else await sessions.stopAll()
       for (const w of [...sse]) w.end()
       server.closeAllConnections()

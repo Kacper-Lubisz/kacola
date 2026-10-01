@@ -194,14 +194,24 @@ async function main(): Promise<void> {
   let stopping = false
   // The suspend path writes its markers first and bounds the audio flush (6 s), so this stays well inside
   // systemd's stop timeout and a logout is never held up; past 10 s we exit anyway.
-  function shutdown(why: string, recordings: 'suspend' | 'stop', code = 0) {
+  /**
+   * Under systemd, a SIGTERM while the user manager itself is stopping is a logout or a shutdown, not a
+   * restart: the recording is finalised the same way, but the next daemon will not turn the microphone
+   * back on by itself (a login a minute later is not a request to keep recording).
+   */
+  const sessionEnding = (): boolean => {
+    if (!process.env.INVOCATION_ID) return false
+    const r = spawnSync('systemctl', ['--user', 'is-system-running'], { encoding: 'utf8', timeout: 1000 })
+    return (r.stdout ?? '').trim() === 'stopping'
+  }
+  function shutdown(why: string, recordings: 'suspend' | 'stop', code = 0, resume = true) {
     if (stopping) return
     stopping = true
     sync.abort()
     daemon.logger.info(code === DAEMON_EXIT.RESTART ? 'restart' : 'signal received', { why, recordings })
     const force = setTimeout(() => process.exit(code || 1), 10_000)
     force.unref()
-    daemon.close({ suspend: recordings === 'suspend', reason: why }).then(
+    daemon.close({ suspend: recordings === 'suspend', resume, reason: why }).then(
       () => process.exit(code),
       (err) => {
         process.stderr.write(`shutdown failed: ${(err as Error).message}\n`)
@@ -211,7 +221,10 @@ async function main(): Promise<void> {
   }
   // SIGTERM (systemctl stop/restart, logout, shutdown) and Ctrl-C: a live recording is suspended, not
   // stopped, so the next daemon resumes it if it comes back within the resume window
-  process.on('SIGTERM', () => shutdown('SIGTERM', 'suspend'))
+  process.on('SIGTERM', () => {
+    const ending = sessionEnding()
+    shutdown(ending ? 'SIGTERM (session ending)' : 'SIGTERM', 'suspend', 0, !ending)
+  })
   process.on('SIGINT', () => shutdown('SIGINT', 'suspend'))
   // SIGHUP (systemctl reload): restart once nothing is recording
   process.on('SIGHUP', () => {
