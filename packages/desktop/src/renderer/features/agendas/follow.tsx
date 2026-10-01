@@ -135,7 +135,7 @@ function FollowDialog({ initialLink }: { initialLink: string }) {
       <div className="flex flex-col gap-3">
         {sent ? (
           <>
-            <p className="m-0 type-body text-text-primary">
+            <p className="m-0 type-body text-text-primary" data-share-time>
               {fmt(
                 _('If {email} may follow this agenda, a code is on its way there. It works until {time}.'),
                 {
@@ -148,7 +148,10 @@ function FollowDialog({ initialLink }: { initialLink: string }) {
               label={_('Code')}
               placeholder="ABCD-EFGH"
               value={code}
-              onChange={setCode}
+              onChange={(c) => {
+                setCode(c)
+                setError(null)
+              }}
               autoFocus
               autoComplete="one-time-code"
               onKeyDown={(e) => {

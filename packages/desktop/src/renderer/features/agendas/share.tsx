@@ -318,7 +318,7 @@ function ShareDialog({
               value={ownerName}
               onChange={setOwnerName}
             />
-            <Switch isSelected={allowInvitees} onChange={setAllowInvitees}>
+            <Switch isSelected={allowInvitees} onChange={setAllowInvitees} className="w-full justify-between">
               <span className="flex flex-col">
                 <span className="type-body">{_('Invitees may add items and comment')}</span>
                 <span className="type-caption text-text-secondary">
@@ -326,7 +326,7 @@ function ShareDialog({
                 </span>
               </span>
             </Switch>
-            <Switch isSelected={shareGoals} onChange={setShareGoals}>
+            <Switch isSelected={shareGoals} onChange={setShareGoals} className="w-full justify-between">
               <span className="flex flex-col">
                 <span className="type-body">{_('Share the goals too')}</span>
                 <span className="type-caption text-text-secondary">{_('Goals are often personal.')}</span>
@@ -496,7 +496,7 @@ function HistoryList({
             {c.auto ? ` · ${_('auto')}` : ''}
           </span>
           {c.reason ? <span className="type-caption text-text-secondary">{c.reason}</span> : null}
-          <span className="font-mono text-[13px] text-text-tertiary tabular-nums" data-share-time>
+          <span className="self-start font-mono text-[13px] text-text-tertiary tabular-nums" data-share-time>
             {formatClockTime(c.at)}
           </span>
         </li>
@@ -608,6 +608,7 @@ export function ShareRecapSwitch({ view, status }: { view: AgendaView; status: S
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-md border border-border-subtle bg-bg-surface px-3 py-2">
       <Switch
+        className="w-full justify-between"
         isSelected={status.recapShared}
         onChange={(shared) => set.mutate({ agendaId: view.agenda.id, shared })}
       >
