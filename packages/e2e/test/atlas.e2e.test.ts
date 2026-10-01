@@ -1401,7 +1401,7 @@ describe('atlas: the live tracker (a replayed meeting, on-device decisions)', ()
       async () => {
         const tr = (await daemon.client.call('getAgendaTracker', { params: { id: agenda.agenda.id } }))
           .tracker
-        return tr && tr.lastRoundAt && Date.now() - Date.parse(tr.lastRoundAt) > 3_000
+        return tr?.lastRoundAt && Date.now() - Date.parse(tr.lastRoundAt) > 3_000
       },
       30_000,
       'the tracker to settle',
