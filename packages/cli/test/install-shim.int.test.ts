@@ -52,6 +52,13 @@ function sh(
   })
 }
 
+/**
+ * A loopback daemon URL nothing can answer: an unprivileged process cannot bind port 1. A port from
+ * freePort() is only free until another test file running in parallel binds it, which once made the
+ * "unreachable" daemon answer (exit 0 instead of 3) in the full release gate.
+ */
+const DEAD = 'http://127.0.0.1:1'
+
 async function setup(launch: (port: number, dir: string) => string | null) {
   const home = mkdtempSync(join(tmpdir(), 'gnomeola-shim-'))
   const port = await freePort()
@@ -95,7 +102,7 @@ describe('the install-cli shim', () => {
 
   it('does not autostart when told not to, for a remote daemon, or without a launch command', async () => {
     const s = await setup(() => 'touch /nonexistent/should-not-run')
-    const off = await sh(s.shim, ['status'], { GNOMEOLA_URL: s.url, GNOMEOLA_NO_AUTOSTART: '1' })
+    const off = await sh(s.shim, ['status'], { GNOMEOLA_URL: DEAD, GNOMEOLA_NO_AUTOSTART: '1' })
     expect(off.code).toBe(3)
     expect(off.stderr).not.toMatch(/starting/)
     const remote = await sh(s.shim, ['status'], {
@@ -105,14 +112,14 @@ describe('the install-cli shim', () => {
     expect(remote.code).toBe(3)
     expect(remote.stderr).not.toMatch(/starting/)
     const none = await setup(() => null)
-    const r = await sh(none.shim, ['status'], { GNOMEOLA_URL: none.url })
+    const r = await sh(none.shim, ['status'], { GNOMEOLA_URL: DEAD })
     expect(r.code).toBe(3)
     expect(r.stderr).not.toMatch(/starting/)
   }, 30_000)
 
   it('gives up after GNOMEOLA_START_TIMEOUT when the app never brings the daemon up', async () => {
     const s = await setup(() => 'true')
-    const r = await sh(s.shim, ['status'], { GNOMEOLA_URL: s.url, GNOMEOLA_START_TIMEOUT: '2' })
+    const r = await sh(s.shim, ['status'], { GNOMEOLA_URL: DEAD, GNOMEOLA_START_TIMEOUT: '2' })
     expect(r.code).toBe(3)
     expect(r.stderr).toMatch(/did not start its daemon within 2s/)
   }, 30_000)
