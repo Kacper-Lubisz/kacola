@@ -20,6 +20,7 @@ import {
   nextTalkingPoint,
   notCoveredYet,
   parseRecapOutcome,
+  personName,
   reorderItems,
   statusCounts,
 } from '../src/agendas.ts'
@@ -273,6 +274,33 @@ describe('live panel logic', () => {
     expect(attributionOf('tracker')).toEqual({ kind: 'tracker', name: null })
     expect(attributionOf('invitee:a@b.c')).toEqual({ kind: 'invitee', name: 'a@b.c' })
     expect(attributionOf('user')).toEqual({ kind: 'you', name: null })
+  })
+
+  it('reads peer attributions (team sharing) and names people', () => {
+    expect(attributionOf('peer:ben@x.com')).toEqual({
+      kind: 'peer',
+      name: 'ben@x.com',
+      via: { kind: 'person' },
+    })
+    expect(attributionOf('peer:ben@x.com/tracker')).toEqual({
+      kind: 'peer',
+      name: 'ben@x.com',
+      via: { kind: 'tracker' },
+    })
+    expect(attributionOf('peer:ben@x.com/agent:claude')).toEqual({
+      kind: 'peer',
+      name: 'ben@x.com',
+      via: { kind: 'agent', name: 'claude' },
+    })
+    expect(attributionOf('peer:handle/odd')).toEqual({
+      kind: 'peer',
+      name: 'handle',
+      via: { kind: 'person' },
+    })
+    expect(personName('ben@x.com')).toBe('Ben')
+    expect(personName('ana.maria@x.com')).toBe('Ana')
+    expect(personName('owner')).toBe('owner')
+    expect(personName('Ivy@X.com', new Map([['ivy@x.com', 'Ivy Chen']]))).toBe('Ivy Chen')
   })
 
   it('counts, carry-over and active suggestions', () => {

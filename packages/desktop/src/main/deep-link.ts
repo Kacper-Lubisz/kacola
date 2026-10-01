@@ -1,5 +1,12 @@
 import { resolve } from 'node:path'
-import { formatAgendaLink, formatMeetingLink, KACOLA_SCHEME, parseKacolaLink } from '@gnomeola/protocol'
+import {
+  formatAgendaLink,
+  formatMeetingLink,
+  formatShareLink,
+  KACOLA_SCHEME,
+  parseKacolaLink,
+  parseShareLink,
+} from '@gnomeola/protocol'
 
 // kacola:// deep links, main's half (docs/desktop-app.md, "Deep links"): which argument is a link, when
 // to register as the scheme's handler, and the queue that holds a link until the window can take it.
@@ -8,12 +15,22 @@ import { formatAgendaLink, formatMeetingLink, KACOLA_SCHEME, parseKacolaLink } f
 /** Longer than any link we write; anything longer is not ours. */
 export const MAX_DEEP_LINK = 4000
 
+/** Plain http is only for a share host on this machine (a local server in development and tests). */
+const LOOPBACK = /^http:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?(\/|$)/i
+
 /**
- * A valid `kacola://agenda/<id>` or `kacola://meeting/<uid>[?start=]`, in its canonical form (the form
- * formatAgendaLink / formatMeetingLink write), or null. The renderer only ever sees this form.
+ * A valid `kacola://agenda/<id>` or `kacola://meeting/<uid>[?start=]`, or a shared agenda's web link
+ * (`https://<host>/a/<token>`, team sharing: the window offers to follow it), in its canonical form (the
+ * form formatAgendaLink / formatMeetingLink / formatShareLink write), or null. The renderer only ever
+ * sees this form.
  */
 export function normalizeDeepLink(raw: unknown): string | null {
   if (typeof raw !== 'string' || raw.length > MAX_DEEP_LINK) return null
+  const trimmed = raw.trim()
+  if (/^https:\/\//i.test(trimmed) || LOOPBACK.test(trimmed)) {
+    const share = parseShareLink(trimmed)
+    return share ? formatShareLink(share.base, share.token) : null
+  }
   const link = parseKacolaLink(raw)
   if (!link) return null
   return link.kind === 'agenda'

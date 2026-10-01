@@ -7,8 +7,9 @@ import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { keys } from '../../data/keys.ts'
 import { useServices } from '../../data/services.tsx'
-import { Button, useToast } from '../../design/primitives/index.ts'
+import { Button, IconButton, useToast } from '../../design/primitives/index.ts'
 import { refusal } from './agenda-data.ts'
+import { useFollow } from './follow.tsx'
 
 // The sidebar's "Coming up": the next few calendar meetings, each with its agenda — "Plan" makes one
 // (the daemon's resolveAgendaLink with create: one agenda per occurrence, seeded by carry-over for a
@@ -58,9 +59,18 @@ export function ComingUp() {
   }
   return (
     <section aria-labelledby="coming-up" className="flex flex-col gap-1 px-3 pb-2">
-      <h2 id="coming-up" className="m-0 px-1 type-overline text-text-secondary">
-        {_('Coming up')}
-      </h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 id="coming-up" className="m-0 px-1 type-overline text-text-secondary">
+          {_('Coming up')}
+        </h2>
+        <IconButton
+          icon="speakers"
+          size="sm"
+          label={_('Follow a shared agenda')}
+          tooltip={_('Follow a shared agenda')}
+          onPress={() => useFollow.getState().show()}
+        />
+      </div>
       <ul className="m-0 flex list-none flex-col gap-1 p-0">
         {meetings.map((m) => {
           const a = agendaOf(m)

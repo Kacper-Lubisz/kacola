@@ -529,4 +529,43 @@ describe('agendas (kacola wave 2)', () => {
     await flush()
     expect(qc.getQueryState(keys.leases('s1'))?.isInvalidated).toBe(true)
   })
+
+  it('agenda.share replaces the agenda’s ShareStatus (nothing refetched) and refreshes a merge history on screen', async () => {
+    const { daemon, bridge, qc } = setup({ lastSeq: 1 })
+    bridge.start()
+    await bridge.ready
+    const status = (state: 'ok' | 'syncing' | 'revoked') => ({
+      agendaId: 'agd_1',
+      shared: state !== 'revoked',
+      role: 'owner' as const,
+      shareId: 'shr_1',
+      link: 'https://share.example/a/AbCdEfGhIjKlMnOpQrStUvWxYz012345',
+      host: 'https://share.example',
+      ownerName: 'Kacper',
+      shareGoals: false,
+      allowInvitees: true,
+      members: [],
+      recapShared: false,
+      state,
+      error: null,
+      lastSyncAt: T,
+      pending: 0,
+      refused: 0,
+      comments: [],
+      participants: [],
+    })
+    qc.setQueryData(keys.agendaShareHistory('agd_1'), [])
+    const calls = daemon.calls.length
+    daemon.emit(ephemeral({ type: 'agenda.share', agendaId: 'agd_1', status: status('syncing') }))
+    expect(qc.getQueryData(keys.agendaShare('agd_1'))).toMatchObject({ state: 'syncing' })
+    daemon.emit(ephemeral({ type: 'agenda.share', agendaId: 'agd_1', status: status('ok') }))
+    expect(qc.getQueryData(keys.agendaShare('agd_1'))).toMatchObject({ state: 'ok', shared: true })
+    await flush()
+    expect(qc.getQueryState(keys.agendaShareHistory('agd_1'))?.isInvalidated).toBe(true)
+    // the status itself is never refetched: the event carried it
+    expect(daemon.calls.slice(calls)).not.toContain('getAgendaShare')
+    // a deleted agenda takes its sharing queries with it
+    daemon.emit(durable(2, { type: 'agenda.deleted', agendaId: 'agd_1' }))
+    expect(qc.getQueryData(keys.agendaShare('agd_1'))).toBeUndefined()
+  })
 })

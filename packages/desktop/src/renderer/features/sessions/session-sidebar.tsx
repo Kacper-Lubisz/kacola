@@ -24,6 +24,7 @@ import {
   SearchField,
   useSplitView,
 } from '../../design/primitives/index.ts'
+import { useFollow } from '../agendas/follow.tsx'
 import { ComingUp } from '../agendas/upcoming.tsx'
 import { useDialogs } from '../shell/dialogs.tsx'
 import { useRecorder } from './recorder.ts'
@@ -41,6 +42,9 @@ export function PrimaryMenu() {
     >
       <MenuItem icon="settings" shortcut="Ctrl+," onAction={() => dialogs.open('preferences')}>
         {_('Preferences')}
+      </MenuItem>
+      <MenuItem icon="speakers" onAction={() => useFollow.getState().show()}>
+        {_('Follow a Shared Agenda…')}
       </MenuItem>
       <MenuItem icon="download" onAction={() => dialogs.open('onboarding')}>
         {_('Set Up Speech Models…')}

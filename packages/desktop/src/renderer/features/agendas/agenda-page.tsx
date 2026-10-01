@@ -24,13 +24,15 @@ import { GoalsEditor, ItemsEditor } from './agenda-editor.tsx'
 import { ContextTab } from './context-cards.tsx'
 import { updateAgendaMutation } from './mutations.ts'
 import { PlanWithClaudeDialog } from './plan-with-claude.tsx'
+import { ShareBanner, ShareButton, SharingTab } from './share.tsx'
+import { useAgendaShare } from './share-data.ts'
 
 // One agenda (#/agendas/<id>): for a calendar meeting before it happens, or for a recording. The title,
 // when the meeting is, "Join and record" while it is on, the Items tab (goals, items) and the Context tab
 // (private / shared cards), Plan with Claude, Add link to invite, markdown in and out.
 
-export type AgendaTab = 'items' | 'context'
-export const AGENDA_TABS: readonly AgendaTab[] = ['items', 'context']
+export type AgendaTab = 'items' | 'context' | 'sharing'
+export const AGENDA_TABS: readonly AgendaTab[] = ['items', 'context', 'sharing']
 
 /** "10:00–10:30" today, "12 Mar, 10:00–10:30" otherwise. */
 export function meetingWhen(m: AgendaMeeting): string {
@@ -140,6 +142,7 @@ function LiveMeetingBanner({ view }: { view: AgendaView }) {
 
 export function AgendaPage({ agendaId, tab = 'items' }: { agendaId: string; tab?: AgendaTab }) {
   const { data: view } = useAgenda(agendaId)
+  const { data: share } = useAgendaShare(agendaId)
   const navigate = useNavigate()
   const { collapsed, showSidebar } = useSplitView()
   const [planning, setPlanning] = useState(false)
@@ -147,6 +150,9 @@ export function AgendaPage({ agendaId, tab = 'items' }: { agendaId: string; tab?
   if (!view) return null
   const m = view.agenda.meeting
   const carried = view.items.filter((i) => i.carriedFrom).length
+  // the Sharing tab exists while the agenda is shared or followed (and for a copy whose owner stopped)
+  const sharing = Boolean(share && (share.shared || share.state === 'revoked'))
+  const current: AgendaTab = tab === 'sharing' && !sharing ? 'items' : tab
   const setTab = (t: AgendaTab) =>
     void navigate({ to: '/agendas/$agendaId', params: { agendaId }, search: { tab: t }, replace: true })
   return (
@@ -160,7 +166,7 @@ export function AgendaPage({ agendaId, tab = 'items' }: { agendaId: string; tab?
         }
         title={collapsed ? view.agenda.title : undefined}
       />
-      <Tabs selectedKey={tab} onSelectionChange={setTab} className="min-h-0 flex-1">
+      <Tabs selectedKey={current} onSelectionChange={setTab} className="min-h-0 flex-1">
         <div className="mx-auto flex w-full max-w-[860px] flex-col gap-3 px-4 pt-2 pb-3 sm:px-6">
           <div className="flex flex-col gap-1">
             <p className="m-0 type-overline text-text-secondary">{_('Agenda')}</p>
@@ -179,6 +185,7 @@ export function AgendaPage({ agendaId, tab = 'items' }: { agendaId: string; tab?
             </p>
           </div>
           <LiveMeetingBanner view={view} />
+          <ShareBanner view={view} status={share} />
           {carried ? (
             <p className="m-0 flex items-center gap-1 type-callout text-text-secondary">
               <Chip icon="carry">
@@ -192,6 +199,7 @@ export function AgendaPage({ agendaId, tab = 'items' }: { agendaId: string; tab?
               {_('Plan with Claude')}
             </Button>
             <InviteButton view={view} />
+            <ShareButton view={view} status={share} />
             {view.agenda.sessionId && !meetingLive(view, Date.now()) ? (
               <Button
                 icon="transcript"
@@ -214,6 +222,9 @@ export function AgendaPage({ agendaId, tab = 'items' }: { agendaId: string; tab?
             tabs={[
               { id: 'items', label: _('Items'), icon: 'agenda' },
               { id: 'context', label: _('Context'), icon: 'document' },
+              ...(sharing
+                ? [{ id: 'sharing' as const, label: _('Sharing'), icon: 'speakers' as const }]
+                : []),
             ]}
           />
         </div>
@@ -228,6 +239,13 @@ export function AgendaPage({ agendaId, tab = 'items' }: { agendaId: string; tab?
             <ContextTab view={view} />
           </div>
         </TabPanel>
+        {sharing && share ? (
+          <TabPanel id="sharing" className="overflow-y-auto">
+            <div className="mx-auto w-full max-w-[860px] px-4 pb-8 sm:px-6">
+              <SharingTab view={view} status={share} />
+            </div>
+          </TabPanel>
+        ) : null}
       </Tabs>
       {planning ? <PlanWithClaudeDialog view={view} onClose={() => setPlanning(false)} /> : null}
       {importing ? <ImportMarkdownDialog view={view} onClose={() => setImporting(false)} /> : null}

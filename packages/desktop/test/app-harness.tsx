@@ -1,4 +1,4 @@
-import type { ModelInfo, Session, Settings } from '@gnomeola/protocol'
+import type { ModelInfo, Session, Settings, ShareStatus } from '@gnomeola/protocol'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router'
 import { render } from '@testing-library/react'
@@ -147,8 +147,33 @@ export function shellHandlers(
       ],
     }),
     calendarStatus: () => ({ state: 'off', provider: 'eds', detail: null, calendars: [], updatedAt: null }),
+    // team sharing: every agenda is unshared unless a test says otherwise
+    getAgendaShare: ({ params }) => shareStatus({ agendaId: params!.id! }),
   }
 }
+
+/** An agenda's ShareStatus (default: not shared, a host configured). */
+export const shareStatus = (over: Partial<ShareStatus> = {}): ShareStatus => ({
+  agendaId: 'agd_1',
+  shared: false,
+  role: null,
+  shareId: null,
+  link: null,
+  host: 'https://share.example',
+  ownerName: null,
+  shareGoals: false,
+  allowInvitees: true,
+  members: [],
+  recapShared: false,
+  state: 'off',
+  error: null,
+  lastSyncAt: null,
+  pending: 0,
+  refused: 0,
+  comments: [],
+  participants: [],
+  ...over,
+})
 
 export function renderApp(
   o: {
