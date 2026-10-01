@@ -135,25 +135,29 @@ export async function randomShareHistory(
       await push(as, [op])
       pushed.push({ actor: who, key: op.key })
     } else if (r < 0.82) {
-      await store
-        .shareWrite({ shareId }, { participantTokenHash: sha('token-ivy@example.com') }, (s, now) =>
-          rnd() < 0.5
-            ? shares.planAddItem(s, { text: `Invitee idea ${step}`, kind: 'topic', itemId: id('itm'), now })
-            : shares.planAddComment(s, {
-                itemId: rnd() < 0.5 ? pick(items) : null,
-                text: `comment ${step}`,
-                commentId: id('scm'),
-                now,
-              }),
-        )
-        .then(
-          (x) => {
-            if ('status' in x) items.push(x.id)
-          },
-          (err) => {
-            if (!(err instanceof shares.ShareRateLimited) && !String(err).includes('no item')) throw err
-          },
-        )
+      const ivy = { participantTokenHash: sha('token-ivy@example.com') }
+      const tolerate = (err: unknown) => {
+        if (!(err instanceof shares.ShareRateLimited) && !String(err).includes('no item')) throw err
+      }
+      if (rnd() < 0.5)
+        await store
+          .shareWrite({ shareId }, ivy, (s, now) =>
+            shares.planAddItem(s, { text: `Invitee idea ${step}`, kind: 'topic', itemId: id('itm'), now }),
+          )
+          .then((x) => {
+            items.push(x.id)
+          }, tolerate)
+      else
+        await store
+          .shareWrite({ shareId }, ivy, (s, now) =>
+            shares.planAddComment(s, {
+              itemId: rnd() < 0.5 ? pick(items) : null,
+              text: `comment ${step}`,
+              commentId: id('scm'),
+              now,
+            }),
+          )
+          .catch(tolerate)
     } else if (r < 0.87) {
       const shared = rnd() < 0.6
       await push('owner', [
