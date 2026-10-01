@@ -326,6 +326,7 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     listLiveSessions: 'unsupported',
     getAgentAccess: 'unsupported',
     setAgentAccess: 'unsupported',
+    draftAgenda: 'unsupported',
     // ---- Agendas wave 2: the live tracker runs in the device's daemon
     getAgendaTracker: 'unsupported',
   }

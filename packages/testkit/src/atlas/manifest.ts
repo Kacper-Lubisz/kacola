@@ -153,13 +153,13 @@ export const ATLAS: AtlasEntry[] = [
   cli('agent-record', 'cli', 'record-status', '`gnomeola record status` while that recording runs', {
     cli: { argv: ['record', 'status'] },
   }),
-  planned(
+  win(
     'deep-link',
     'open',
     'meeting-link',
     'kacola://meeting/<eventUid>: the app opens that meeting (creates its agenda)',
   ),
-  planned('deep-link', 'live', 'join-offer', 'The meeting is under way: "Join and record" offered'),
+  win('deep-link', 'live', 'join-offer', 'The meeting is under way: "Join and record" offered'),
   planned('deep-link', 'open', 'agenda-link', 'kacola://agenda/<id>: the agenda opens'),
 
   // ---- During the meeting
@@ -363,55 +363,51 @@ export const ATLAS: AtlasEntry[] = [
     'Onboarding / Preferences: calendar not available',
   ),
 
-  // ---- Agendas, live intelligence and BYO agent (planned: being built now)
-  planned('agenda-plan', 'window', 'plan-with-claude', 'The meeting’s "Plan with Claude" entry'),
+  // ---- Agendas, live intelligence and BYO agent (the window's states built; the rest planned)
+  win('agenda-plan', 'window', 'plan-with-claude', 'The meeting’s "Plan with Claude" entry'),
   plannedCli(
     'agenda-plan',
     'skill',
     'interview',
     'Claude Code + skill: goals interview, past sessions with the attendees, draft items',
   ),
-  planned('agenda-plan', 'saved', 'agenda', 'The agenda saved in kacola, linked to the calendar event'),
-  planned('agenda-plan', 'edit', 'items', 'Editing items: kind, owner, timebox, order'),
-  planned(
-    'agenda-plan',
-    'context',
-    'share-or-keep',
-    'Context cards: private by default, shared only when asked',
-  ),
+  win('agenda-plan', 'saved', 'agenda', 'The agenda saved in kacola, linked to the calendar event'),
+  win('agenda-plan', 'edit', 'items', 'Editing items: kind, owner, timebox, order'),
+  win('agenda-plan', 'context', 'share-or-keep', 'Context cards: private by default, shared only when asked'),
   planned(
     'agenda-invite',
     'write',
     'invite-block',
     '"Agenda: kacola://… · web: https://…" written into the invite (opt-in)',
   ),
-  planned('agenda-invite', 'fallback', 'copy-link', 'Read-only calendar: copy the link instead'),
-  planned('agenda-live', 'panel', 'items', 'Live agenda panel: open / in progress / covered'),
-  planned(
+  win('agenda-invite', 'fallback', 'copy-link', 'Read-only calendar: copy the link instead'),
+  win('agenda-live', 'panel', 'items', 'Live agenda panel: open / in progress / covered'),
+  win(
     'agenda-live',
     'check-off',
     'auto-covered',
     'An item checked off from what was said (undoable), with its evidence',
   ),
-  planned('agenda-live', 'suggest', 'looks-covered', '"Looks covered?" when the tracker is unsure'),
-  planned('agenda-live', 'next-point', 'card', 'The one "next talking point" card with a bridge line'),
-  planned('agenda-live', 'time', 'not-covered', 'Five minutes before the end: what is not covered yet'),
-  planned(
+  win(
     'agenda-live',
-    'context',
-    'panel',
-    'The context panel: cards from the agenda and the connected agent',
+    'presence',
+    'agent',
+    'The connected Claude in the header: reading, its mode, its activity, Disconnect',
   ),
-  planned(
+  win('agenda-live', 'suggest', 'looks-covered', '"Looks covered?" when the tracker is unsure'),
+  win('agenda-live', 'next-point', 'card', 'The one "next talking point" card with a bridge line'),
+  win('agenda-live', 'time', 'not-covered', 'Five minutes before the end: what is not covered yet'),
+  win('agenda-live', 'context', 'panel', 'The context panel: cards from the agenda and the connected agent'),
+  win(
     'interview-mode',
     'panel',
     'told-not-told',
     'Interview: Told / Not told yet, with the answer heard and a quote',
   ),
   planned('interview-mode', 'nudge', 'not-covered', 'The five-minute "not covered" nudge'),
-  planned('interview-mode', 'interviewer', 'competencies', 'Interviewer: competencies covered'),
-  planned('agenda-recap', 'per-item', 'outcomes', 'The recap: outcome, decisions and actions per item'),
-  planned('agenda-recap', 'carry-over', 'next-occurrence', 'Open items rolled to the next occurrence'),
+  win('interview-mode', 'interviewer', 'competencies', 'Interviewer: competencies covered'),
+  win('agenda-recap', 'per-item', 'outcomes', 'The recap: outcome, decisions and actions per item'),
+  win('agenda-recap', 'carry-over', 'next-occurrence', 'Open items rolled to the next occurrence'),
   planned(
     'agenda-team',
     'shared',

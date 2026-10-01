@@ -1,4 +1,12 @@
-import type { CalendarStatus, QaMessage, Settings } from '@gnomeola/protocol'
+import type {
+  Agenda,
+  AgendaItem,
+  AgendaView,
+  CalendarStatus,
+  QaMessage,
+  Settings,
+  StatusChange,
+} from '@gnomeola/protocol'
 import { fromHistory, type QaState } from '@gnomeola/ui-core/qa'
 import type { SessionsState } from '@gnomeola/ui-core/sessions'
 import { fromSummaries, type SpeakersState } from '@gnomeola/ui-core/speakers'
@@ -360,5 +368,165 @@ describe('status reports into queries (models, calendar)', () => {
     }
     daemon.emit(ephemeral({ type: 'calendar.updated', calendar: cal }))
     expect(qc.getQueryData(keys.calendar())).toEqual(cal)
+  })
+})
+
+describe('agendas (kacola wave 2)', () => {
+  const T = '2026-09-30T10:00:00.000Z'
+  const agenda = (over: Partial<Agenda> = {}): Agenda => ({
+    id: 'agd_1',
+    title: 'Plan',
+    meeting: null,
+    sessionId: 's1',
+    owner: 'me',
+    goals: [],
+    private: false,
+    carriedFrom: null,
+    version: 3,
+    createdAt: T,
+    updatedAt: T,
+    ...over,
+  })
+  const item = (id: string, over: Partial<AgendaItem> = {}): AgendaItem => ({
+    id,
+    agendaId: 'agd_1',
+    text: id,
+    kind: 'topic',
+    owner: null,
+    timeboxMin: null,
+    order: 0,
+    status: 'open',
+    evidence: [],
+    outcome: null,
+    changedBy: 'user',
+    createdBy: 'user',
+    carriedFrom: null,
+    createdAt: T,
+    updatedAt: T,
+    ...over,
+  })
+  const change: StatusChange = {
+    itemId: 'a',
+    from: 'open',
+    to: 'covered',
+    by: 'tracker',
+    at: T,
+    note: null,
+    evidence: [],
+    override: false,
+    auto: true,
+    confidence: 0.9,
+  }
+
+  it('folds agenda events into the view and history (duplicates dropped), links the session, drops a deleted agenda', async () => {
+    const { daemon, bridge, qc } = setup({ lastSeq: 1 })
+    bridge.start()
+    await bridge.ready
+    const view: AgendaView = { agenda: agenda(), items: [item('a')], context: [], suggestions: [] }
+    qc.setQueryData(keys.agenda('agd_1'), view)
+    qc.setQueryData(keys.agendaHistory('agd_1'), [])
+    const status = durable(
+      2,
+      {
+        type: 'agenda.item.status',
+        agendaId: 'agd_1',
+        version: 4,
+        at: T,
+        item: item('a', { status: 'covered' }),
+        change,
+      },
+      's1',
+    )
+    daemon.emit(status)
+    daemon.emit(status) // duplicate
+    daemon.emit(
+      durable(3, {
+        type: 'agenda.item.upserted',
+        agendaId: 'agd_1',
+        version: 5,
+        at: T,
+        item: item('b', { order: 1 }),
+      }),
+    )
+    daemon.emit(durable(4, { type: 'agenda.upserted', agenda: agenda({ version: 6, sessionId: 's2' }) }))
+    const v = qc.getQueryData<AgendaView>(keys.agenda('agd_1'))!
+    expect(v.agenda.version).toBe(6)
+    expect(v.items.map((i) => [i.id, i.status])).toEqual([
+      ['a', 'covered'],
+      ['b', 'open'],
+    ])
+    expect(qc.getQueryData(keys.agendaHistory('agd_1'))).toEqual([change])
+    expect(qc.getQueryData(keys.sessionAgenda('s2'))).toBe('agd_1')
+    daemon.emit(durable(5, { type: 'agenda.deleted', agendaId: 'agd_1' }))
+    expect(qc.getQueryData(keys.agenda('agd_1'))).toBeUndefined()
+    expect(qc.getQueryData(keys.agendaHistory('agd_1'))).toBeUndefined()
+  })
+
+  it('an add’s echo arriving before its response replaces the optimistic tmp_ row at once', async () => {
+    const { daemon, bridge, qc } = setup({ lastSeq: 1 })
+    bridge.start()
+    await bridge.ready
+    qc.setQueryData(keys.agenda('agd_1'), {
+      agenda: agenda(),
+      items: [item('a'), item('tmp_x_0', { text: 'New one', order: 1 })],
+      context: [],
+      suggestions: [],
+    } satisfies AgendaView)
+    daemon.emit(
+      durable(2, {
+        type: 'agenda.item.upserted',
+        agendaId: 'agd_1',
+        version: 4,
+        at: T,
+        item: item('itm_real', { text: 'New one', order: 1 }),
+      }),
+    )
+    expect(qc.getQueryData<AgendaView>(keys.agenda('agd_1'))!.items.map((i) => i.id)).toEqual([
+      'a',
+      'itm_real',
+    ])
+  })
+
+  it('re-folds agenda events a late fetch missed; presence goes to the store and refetches the leases', async () => {
+    const { daemon, bridge, qc, store } = setup({
+      lastSeq: 1,
+      handlers: {
+        getAgenda: () => ({ agenda: agenda(), items: [item('a')], context: [], suggestions: [] }),
+        listAgentLeases: () => ({ leases: [] }),
+      },
+    })
+    bridge.start()
+    await bridge.ready
+    daemon.emit(
+      durable(2, {
+        type: 'agenda.item.status',
+        agendaId: 'agd_1',
+        version: 4,
+        at: T,
+        item: item('a', { status: 'covered' }),
+        change,
+      }),
+    )
+    // fetched after the event, with the pre-event state (version 3): the bridge re-folds it
+    await qc.fetchQuery({
+      queryKey: keys.agenda('agd_1'),
+      queryFn: () => daemon.client.call('getAgenda', { params: { id: 'agd_1' } } as never),
+    })
+    await until(() => qc.getQueryData<AgendaView>(keys.agenda('agd_1'))?.items[0]?.status === 'covered')
+
+    qc.setQueryData(keys.leases('s1'), [])
+    daemon.emit(
+      ephemeral(
+        { type: 'agent.presence', leaseId: 'lse_1', name: 'claude', mode: 'act', state: 'reading' },
+        's1',
+      ),
+    )
+    expect(store.getState().presence.s1?.lse_1).toMatchObject({
+      name: 'claude',
+      state: 'reading',
+      mode: 'act',
+    })
+    await flush()
+    expect(qc.getQueryState(keys.leases('s1'))?.isInvalidated).toBe(true)
   })
 })

@@ -51,6 +51,8 @@ const bridge: GnomeolaBridge = {
   installExtension: () => ipcRenderer.invoke(IPC.extensionInstall),
   getAutostart: () => ipcRenderer.invoke(IPC.autostartGet),
   setAutostart: (enabled: boolean) => ipcRenderer.invoke(IPC.autostartSet, enabled === true),
+  onDeepLink: (cb) => listen<string>(IPC.deepLink, cb),
+  takeDeepLink: () => ipcRenderer.invoke(IPC.deepLinkTake),
 }
 
 contextBridge.exposeInMainWorld('gnomeola', bridge)

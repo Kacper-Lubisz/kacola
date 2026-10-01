@@ -10,5 +10,5 @@ import type { Session } from '@gnomeola/protocol'
  */
 export type PaneProps = { session: Session }
 
-export type SessionTab = 'transcript' | 'ask' | 'notes' | 'details'
-export const SESSION_TABS: readonly SessionTab[] = ['transcript', 'ask', 'notes', 'details']
+export type SessionTab = 'transcript' | 'ask' | 'notes' | 'agenda' | 'details'
+export const SESSION_TABS: readonly SessionTab[] = ['transcript', 'ask', 'notes', 'agenda', 'details']

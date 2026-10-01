@@ -13,6 +13,7 @@ import {
   useSplitView,
 } from '../design/primitives/index.ts'
 import { AboutDialog } from '../features/about/about-dialog.tsx'
+import { DeepLinkHandler } from '../features/agendas/deep-links.tsx'
 import { OnboardingDialog } from '../features/onboarding/onboarding-dialog.tsx'
 import { useOnboarding } from '../features/onboarding/onboarding-state.ts'
 import { PreferencesDialog } from '../features/preferences/preferences-dialog.tsx'
@@ -84,19 +85,20 @@ function Window() {
     <>
       <Split missing={onboarding.missing.length} />
       {live ? <DialogHost onOnboardingDone={onboarding.done} /> : null}
+      {everLive ? <DeepLinkHandler /> : null}
       <Shortcuts />
     </>
   )
 }
 
 function Split({ missing }: { missing: number }) {
-  const params = useParams({ strict: false }) as { sessionId?: string }
+  const params = useParams({ strict: false }) as { sessionId?: string; agendaId?: string }
   const navigate = useNavigate()
   return (
     <SplitView
       sidebarLabel={_('Sessions')}
       contentLabel={_('Session')}
-      showContent={params.sessionId !== undefined}
+      showContent={params.sessionId !== undefined || params.agendaId !== undefined}
       onShowContentChange={(show) => {
         if (!show) void navigate({ to: '/' })
       }}

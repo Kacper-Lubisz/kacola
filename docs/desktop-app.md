@@ -27,6 +27,7 @@ packages/desktop/
     extension.ts            "Install top-bar extension" (a copy into the user's extensions dir, never enabled)
     autostart.ts tray.ts    background mode: autostart entry / Background portal; the macOS Tray menu model
     capture.ts              in-app capture: CaptureController (daemon's waiting list → capture window → ingest)
+    deep-link.ts            kacola:// links: argv parsing, scheme registration rule, DeepLinkQueue (pure)
   src/preload/index.ts      contextBridge.exposeInMainWorld('gnomeola', …) — one function per capability
   src/preload/capture.ts    the capture window's bridge only (start/stop in, frames and state out)
   src/renderer/capture.html + capture/   the hidden capture window: getUserMedia / getDisplayMedia, AudioWorklet
@@ -157,6 +158,36 @@ Desktop Integration → "Start in the background at login" (`src/main/autostart.
   `${XDG_DATA_HOME:-~/.local/share}/gnome-shell/extensions/` — in the Flatpak the host's
   (`HOST_XDG_DATA_HOME`, else `~/.local/share`, via `--filesystem=xdg-data/gnome-shell/extensions:create`).
   Never enabled: that stays the user's call, and on Wayland the Shell sees it after the next login.
+
+## Deep links
+
+`kacola://agenda/<id>` and `kacola://meeting/<uid>[?start=<iso>]` (docs/agendas.md, "Deep links") open the
+app (`src/main/deep-link.ts`, pure and unit-tested; wired in `index.ts`):
+
+- **Registered**: macOS — `CFBundleURLTypes` in Info.plist (electron-builder `protocols` in
+  `packaging/macos/electron-builder.yml`) and `app.setAsDefaultProtocolClient('kacola')` when packaged.
+  Flatpak — `MimeType=x-scheme-handler/kacola;` + `Exec=gnomeola-app %U` in
+  `packaging/flatpak/org.gnome.Gnomeola.desktop` (the wrapper forwards `"$@"`). `build-desktop.ts` passes
+  the same `protocols`, so any desktop entry electron-builder writes carries the MimeType (the `dir`
+  target writes none). Packaged Linux never calls `setAsDefaultProtocolClient`: the desktop file is the
+  registration. Dev (unpackaged) registers Electron + the main script on macOS (unless
+  `GNOMEOLA_REGISTER_SCHEME=0`) and on Linux **only** with `GNOMEOLA_REGISTER_SCHEME=1` — there it runs
+  `xdg-settings` and changes the user's real default handler, which tests and CI must never do.
+- **Arrival**: the first argv entry that `parseKacolaLink` accepts (≤ 4000 chars, any case of the
+  scheme; anything else is ignored) on a cold start; a second launch's argv via `'second-instance'` (a
+  link shows the window even with `--background`); macOS `'open-url'`, registered before ready. Links are
+  normalised to the canonical `formatAgendaLink` / `formatMeetingLink` form — the renderer never sees
+  anything else.
+- **Handshake**: `DeepLinkQueue` holds one pending link (a newer one replaces it; the same link twice
+  within 1 s counts once). The renderer subscribes with `gnomeola.onDeepLink(cb)` and then calls
+  `gnomeola.takeDeepLink()` (`IPC.deepLinkTake`, trusted senders only), which returns and clears the
+  pending link and marks that webContents ready. Only a ready window gets links pushed
+  (`IPC.deepLink`); a reload (main-frame navigation) or a new window must take again, so a link is never
+  pushed before anyone listens.
+- **Logs** (main's stdout): `{"event":"deep-link","url":…}` when a link is accepted,
+  `{"event":"deep-link-delivered","url":…}` when the renderer has it (take or push). Tests:
+  `test/deep-link.test.ts`, `desktop-deeplink.e2e` (cold argv, a second instance —
+  `launchSecondInstance()` in the testkit —, invalid arguments, a closed window re-opened by a link).
 
 ## Packaging
 
@@ -356,6 +387,57 @@ the literal msgid as the first argument (never a variable). Catalogues are JSON 
 - Timestamps use text.tertiary, as the spec says (the corrected tertiary is 4.5:1 on every background).
   The selected line is the exception: on its bg.selected tint tertiary is 4.2:1 (light) / 4.3:1 (dark),
   so that one line's time uses text.secondary.
+
+## Agendas (kacola wave 2)
+
+Contracts: docs/agendas.md (agenda core, drafting) and the agent channel's owner routes in
+`packages/protocol/src/agendas.ts`. Code: `features/agendas/`, folds in `@gnomeola/ui-core/agendas`.
+
+- **Data.** `['agenda', id]` holds an `AgendaView`, `['agendaHistory', id]` its `StatusChange`s — both
+  folded by `EventBridge.foldAgenda` with ui-core's `applyAgendaEvent` / `applyHistoryEvent`
+  (version-checked: an event not newer than the view is a replay; suggestions upsert by id). `['agendas']`
+  (summaries) and `['sessionAgenda', sessionId]` (the linked agenda's id) are refetched when an agenda
+  appears, changes its header or goes. `['leases', sessionId]` / `['agentAccess', sessionId]` are the
+  agent channel's; `agent.presence` lands in the ephemeral store (`presence[sessionId][leaseId]`) and
+  invalidates the leases; `settings.updated` invalidates the access (it rides `agents.allowPrivate`).
+- **Mutations** (`features/agendas/mutations.ts`) write the optimistic value WITHOUT bumping the view's
+  version, so the echo always folds over it. An add shows `tmp_…` rows until the response (folded only if
+  the echo has not already brought that version); the temporary ids live in a module-wide WeakMap keyed
+  by the call's variables (a hook rebuilds its options every render).
+- **Screens.** `#/agendas/<id>` (`agenda-page.tsx`): title, meeting line, "This meeting is happening now"
+  → Join and Record (`joinMeeting`, opens the join URL, goes to the session's Agenda tab), Plan with
+  Claude (the draft route; proposals are the dialog's own state), Add Link to Invite (written, or the
+  calendar's reason + the block to copy), the actions menu (export through the save dialog, copy, import
+  with `baseVersion`, delete), Items (goals, `SortableList` of items: status menu, edit dialog, history
+  popover, Move Up / Down) and Context (private by default, "Shared with attendees"). The session page's
+  **Agenda** tab (`agenda-pane.tsx` → `live-panel.tsx`): counts, "Not covered yet" from T-5 min, one
+  Next talking point card, suggestions (Accept for looks-covered / agent proposals, Turn into Item,
+  Dismiss), items with attribution ("auto", "checked by Claude") + Undo (an override) and evidence chips
+  (→ `?tab=transcript&segment=`), the Interview view (Told / Not told yet), compact mode, the context
+  panel (cards, agents' first; search past meetings → Add as Card); after the recording the recap
+  (`recap.tsx`: outcome / decisions / actions parsed from the item's outcome, evidence, carry-over + Open
+  Next Agenda). The header's **presence chip** (`presence.tsx`): "Claude · connected|reading", the
+  record-pulse ring while reading (none under reduced motion), recent actions in its tooltip, a popover
+  with the mode (observe / suggest / act), activity, Disconnect, and the private-meeting allow switch.
+  The sidebar's **Coming up** (`upcoming.tsx`, calendar on only): the next three meetings, Plan / Agenda.
+- **Deep links** (`deep-links.tsx`): subscribe to `onDeepLink`, then `takeDeepLink()` once;
+  `resolveAgendaLink {link, create: true, includePrivate: true}` → navigate to the agenda.
+- **Tests.** `test/agendas.test.tsx` (screens over a one-agenda fake daemon that echoes every write),
+  `test/event-bridge.test.ts` (folds, late fetch, presence), `packages/ui-core/test/agendas.test.ts`;
+  `packages/e2e/test/desktop-agenda.e2e.test.ts` against the real daemon + calendar file + fake Anthropic,
+  and the real agent channel (a lease for "Claude" in act mode whose writes carry its token; presence from
+  its heartbeats; mode change and Disconnect through the owner routes), the live tracker off for
+  determinism; baselines `agenda-{editor,planning,live,live-items,interview,presence-popover,recap}-{light,dark}`
+  and `agenda-presence-{connected,reading}-light` (the popover's activity times masked).
+  `desktop-tracker.e2e` follows the REAL tracker (`src/tracker-daemon.ts`: the manager-1on1 fixture
+  replayed, on-device decisions, a scripted text LLM): its status line, auto check-offs with evidence, its
+  next-point card, the T-5 list, then the recap per item — behaviour, not pixels.
+  `desktop-deeplink.e2e` asserts the agenda screen.
+- **Tracker status** (`tracker-status.tsx`): `['agendaTracker', id]` from `GET /agendas/:id/tracker`,
+  replaced by each ephemeral `agenda.tracker` event. Running: "Following the meeting · decisions <provider>";
+  degraded: a warning banner with the reason; after the recording: "Writing the recap…", or why there is
+  none / it failed. A next-point card the tracker replaced arrives dismissed by `tracker` and is simply
+  hidden (only open cards show); it is never treated as the user's dismissal.
 
 ## Headless test display
 

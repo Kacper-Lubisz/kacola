@@ -40,6 +40,7 @@ import { CAPTURE_IPC, type CaptureState, type CaptureTrack } from '../shared/cap
 import { autostartStatus, requestBackground, setAutostart } from './autostart.ts'
 import { CaptureController, type CaptureWindowLike, captureTracks } from './capture.ts'
 import { readDesktopConfig } from './config.ts'
+import { DeepLinkQueue, deepLinkFromArgv, normalizeDeepLink, schemeRegistration } from './deep-link.ts'
 import { extensionSource, extensionStatus, installExtension } from './extension.ts'
 import { checkClipboardText, checkSaveRequest, type SaveDialogOptions, saveText } from './files.ts'
 import { cliEntry, Integration, runCli, shq } from './integration.ts'
@@ -293,8 +294,41 @@ function createTray(): void {
   refreshActive()
 }
 
+// ---- kacola:// deep links (deep-link.ts): argv, a second launch, macOS open-url → the window ------------
+
+const deepLinks = new DeepLinkQueue()
+/** The link this process was started with; received once the app is ready. */
+const coldDeepLink = deepLinkFromArgv(process.argv)
+
+/** A link wants the window: show it, and push the link if its renderer is listening (else it waits). */
+function receiveDeepLink(url: string): void {
+  if (!deepLinks.push(url)) return
+  logLine({ event: 'deep-link', url })
+  showWindow()
+  deliverDeepLink()
+}
+
+function deliverDeepLink(): void {
+  const w = mainWindow
+  if (!w || w.isDestroyed()) return
+  const url = deepLinks.deliverTo(w.webContents.id)
+  if (!url) return
+  w.webContents.send(IPC.deepLink, url)
+  logLine({ event: 'deep-link-delivered', url })
+}
+
 app.on('second-instance', (_e, argv) => {
-  if (!argv.includes('--background')) showWindow()
+  const url = deepLinkFromArgv(argv)
+  // a link means the user wants the window, --background or not
+  if (url) receiveDeepLink(url)
+  else if (!argv.includes('--background')) showWindow()
+})
+
+// macOS hands links over as an event, possibly before ready (showWindow waits for ready; the link queues)
+app.on('open-url', (e, raw) => {
+  e.preventDefault()
+  const url = normalizeDeepLink(raw)
+  if (url) receiveDeepLink(url)
 })
 
 // ---- security: every webContents, every request -----------------------------------------------------
@@ -457,6 +491,11 @@ function wireIpc(): void {
   handle(IPC.cliUninstall, () => integration.uninstallCli())
   handle(IPC.extensionStatus, () => integration.extensionStatus())
   handle(IPC.extensionInstall, () => integration.installExtension())
+  handle(IPC.deepLinkTake, (e) => {
+    const url = deepLinks.take(e.sender.id)
+    if (url) logLine({ event: 'deep-link-delivered', url })
+    return url
+  })
   handle(IPC.autostartGet, (): AutostartState => {
     if (process.platform === 'darwin') return { enabled: app.getLoginItemSettings().openAtLogin }
     return autostartStatus(autostartDeps)
@@ -542,10 +581,16 @@ function createWindow(): BrowserWindow {
     w.show()
     idleGc.settle()
   })
+  const id = w.webContents.id
   w.on('closed', () => {
+    deepLinks.reset(id)
     if (mainWindow === w) mainWindow = null
     idleGc.settle()
     mainWindowClosed()
+  })
+  // a reload is a new renderer: it takes again before links are pushed to it
+  w.webContents.on('did-start-navigation', (d) => {
+    if (d.isMainFrame && !d.isSameDocument) deepLinks.reset(id)
   })
   w.webContents.on('before-input-event', (ev, input) => {
     if (input.type === 'keyDown' && (input.control || input.meta) && input.key.toLowerCase() === 'q') {
@@ -618,6 +663,20 @@ void app.whenReady().then(async () => {
   })
   if (process.platform === 'darwin') createTray()
   void supervisor.start()
+  const reg = schemeRegistration({
+    packaged: app.isPackaged,
+    platform: process.platform,
+    env: process.env,
+    execPath: process.execPath,
+    argv: process.argv,
+  })
+  if (reg) {
+    const ok = reg.path
+      ? app.setAsDefaultProtocolClient(reg.scheme, reg.path, reg.args ?? [])
+      : app.setAsDefaultProtocolClient(reg.scheme)
+    if (!ok) logLine({ event: 'deep-link-scheme', kind: 'error', scheme: reg.scheme })
+  }
   idleGc.start().settle()
-  if (!config.background) showWindow()
+  if (coldDeepLink) receiveDeepLink(coldDeepLink)
+  if (!config.background || deepLinks.hasPending) showWindow()
 })

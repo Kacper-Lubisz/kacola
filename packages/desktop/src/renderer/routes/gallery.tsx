@@ -7,6 +7,9 @@ import {
   type ButtonVariant,
   buttonClass,
   Card,
+  Checkbox,
+  Chip,
+  ChipButton,
   Dialog,
   EmptyState,
   HeaderBar,
@@ -31,6 +34,7 @@ import {
   SearchField,
   SegmentedControl,
   Select,
+  SortableList,
   Spinner,
   SplitView,
   Switch,
@@ -91,6 +95,7 @@ export function Gallery() {
   const toast = useToast()
   const [selected, setSelected] = useState<string | null>('b')
   const [on, setOn] = useState(true)
+  const [order, setOrder] = useState(['Promo timeline', 'Hiring plan', 'Offsite dates'])
   const [seg, setSeg] = useState<'all' | 'mine'>('all')
   const [choice, setChoice] = useState<'anthropic' | 'openai' | 'ollama'>('anthropic')
   const [days, setDays] = useState(30)
@@ -227,6 +232,16 @@ export function Gallery() {
             </Switch>
           </Section>
 
+          <Section title="Checkboxes">
+            <Checkbox isSelected={on} onChange={setOn}>
+              Promo criteria
+            </Checkbox>
+            <Checkbox defaultSelected={false}>Next review date</Checkbox>
+            <Checkbox isSelected isDisabled>
+              Disabled on
+            </Checkbox>
+          </Section>
+
           <Section title="Segmented control and tabs" wide>
             <SegmentedControl
               label="Filter"
@@ -277,6 +292,47 @@ export function Gallery() {
                   textValue: r.title,
                   content: <ListRow title={r.title} meta={r.meta} live={r.live} liveLabel="Recording" />,
                 }))}
+              />
+            </div>
+          </Section>
+
+          <Section title="Chips" wide>
+            <div className="flex flex-wrap gap-2">
+              <Chip>Must cover</Chip>
+              <Chip icon="clock">10 min</Chip>
+              <Chip icon="covered" tone="success">
+                Covered
+              </Chip>
+              <Chip icon="inProgress" tone="info">
+                In progress
+              </Chip>
+              <Chip icon="parked" tone="warning">
+                Parked
+              </Chip>
+              <Chip icon="suggestion" tone="record">
+                Question to ask
+              </Chip>
+              <Chip icon="agent" tone="info">
+                checked by Claude
+              </Chip>
+              <Chip icon="lock">Private</Chip>
+              <ChipButton icon="quote" label="Show in transcript: so March it is" onPress={() => {}}>
+                so March it is
+              </ChipButton>
+            </div>
+          </Section>
+
+          <Section title="Sortable list" wide>
+            <div className="max-w-[480px]">
+              <SortableList
+                label="Example agenda"
+                dragLabel="Drag to reorder"
+                items={order.map((t) => ({
+                  id: t,
+                  textValue: t,
+                  content: <span className="type-body text-text-primary">{t}</span>,
+                }))}
+                onReorder={setOrder}
               />
             </div>
           </Section>

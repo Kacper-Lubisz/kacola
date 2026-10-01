@@ -1,5 +1,6 @@
 // @gnomeola/daemon — gnomeolad. The entry point is ./main.ts; this module is for composing a daemon in
 // process (tests, or an alternative entry point) and for implementing the injectable interfaces.
+export { DRAFT_SYSTEM_PROMPT } from './agendas/draft.ts'
 // ---- agent channel: leases, the live stream, the SpeechGuard seam
 
 // ---- Agendas wave 2: the live tracker, its SpeechGuard, the recap, and eval runners over them

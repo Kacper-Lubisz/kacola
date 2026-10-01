@@ -1,4 +1,4 @@
-import type { AudioDevice, Settings, SettingsPatch } from '@gnomeola/protocol'
+import type { AudioDevice, DecisionsProvider, Settings, SettingsPatch } from '@gnomeola/protocol'
 import { _, fmt } from '@gnomeola/ui-core/i18n'
 import { deviceChoices, finalPasses, providers, retentions } from '@gnomeola/ui-core/settings'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -72,13 +72,22 @@ function ApplyField({
   )
 }
 
-function ApiKeyRows({ configured, title }: { configured: boolean; title: string }) {
+function ApiKeyRows({
+  configured,
+  title,
+  provider,
+}: {
+  configured: boolean
+  title: string
+  /** Which keyring account (default: the text LLM's current provider). */
+  provider?: 'anthropic' | 'openai' | 'typesafe'
+}) {
   const { api, queryClient } = useServices()
   const toast = useToast()
   const setKey = useMutation(setApiKeyMutation(api, queryClient))
   const [key, setKeyText] = useState('')
   const save = (value: string | null) =>
-    setKey.mutate(value, {
+    setKey.mutate(provider ? { key: value, provider } : value, {
       onSuccess: (r) => {
         setKeyText('')
         toast(
@@ -183,6 +192,74 @@ function SelectRow<T extends string>({
   )
 }
 
+const decisionProviders = (): { value: DecisionsProvider; label: string }[] => [
+  { value: 'local', label: _('On this computer') },
+  { value: 'jev', label: _('TypeSafe Jev') },
+  { value: 'openai', label: _('OpenAI') },
+  { value: 'anthropic', label: _('Anthropic') },
+  { value: 'ollama', label: _('Ollama') },
+]
+
+/**
+ * The live decisions (agendas: is this item covered? which point next? did they answer?): a typed-decision
+ * provider of its own, separate from the language model above. /health says whether it can answer, and
+ * why not ("on-device model not downloaded").
+ */
+function DecisionsGroup({ settings, patch }: { settings: Settings; patch: (p: SettingsPatch) => void }) {
+  const { queries } = useServices()
+  const health = useQuery({ ...queries.health(), refetchOnMount: 'always' })
+  const d = settings.decisions ?? { provider: 'local' as const, model: '', apiKeyConfigured: false }
+  const status = health.data?.decisions
+  const ready =
+    status && status.provider === d.provider
+      ? status.ready
+        ? (status.detail ?? _('Ready'))
+        : (status.detail ?? _('Not ready'))
+      : undefined
+  return (
+    <RowGroup
+      title={_('Live decisions')}
+      description={_(
+        'Checks agenda items off, picks the next talking point and hears answers during a meeting.',
+      )}
+    >
+      <SelectRow
+        title={_('Decisions provider')}
+        subtitle={ready}
+        options={decisionProviders()}
+        value={d.provider}
+        onChange={(provider) => patch({ decisions: { provider } })}
+      />
+      {d.provider !== 'local' ? (
+        <Row title={_('Decision model')} subtitle={d.model ? undefined : _('The provider’s default')} stacked>
+          <ApplyField
+            label={_('Decision model')}
+            value={d.model}
+            onApply={(model) => patch({ decisions: { model } })}
+          />
+        </Row>
+      ) : null}
+      {d.provider === 'jev' ? (
+        <ApiKeyRows
+          key="typesafe"
+          provider="typesafe"
+          configured={d.apiKeyConfigured}
+          title={_('TypeSafe API key')}
+        />
+      ) : d.provider === 'openai' || d.provider === 'anthropic' ? (
+        <Row
+          title={d.provider === 'openai' ? _('OpenAI API key') : _('Anthropic API key')}
+          subtitle={
+            d.apiKeyConfigured
+              ? _('Shared with the language model (configured)')
+              : _('Not configured: set it above, under Questions and Answers')
+          }
+        />
+      ) : null}
+    </RowGroup>
+  )
+}
+
 function General({
   settings,
   devices,
@@ -231,6 +308,7 @@ function General({
           />
         ) : null}
       </RowGroup>
+      <DecisionsGroup settings={settings} patch={patch} />
       <RowGroup
         title={_('Transcription')}
         description={_('A second, more accurate pass replaces the live transcript line by line.')}

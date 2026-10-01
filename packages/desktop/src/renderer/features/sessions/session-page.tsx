@@ -15,6 +15,8 @@ import {
   Tabs,
   useSplitView,
 } from '../../design/primitives/index.ts'
+import { AgendaPane } from '../agendas/agenda-pane.tsx'
+import { PresenceChip } from '../agendas/presence.tsx'
 import { AskPane } from '../ask/ask-pane.tsx'
 import { NotesPane } from '../notes/notes-pane.tsx'
 import { SpeakersButton } from '../speakers/speakers-dialog.tsx'
@@ -73,7 +75,12 @@ export function SessionPage({ sessionId, tab = 'transcript' }: { sessionId: stri
           ) : undefined
         }
         title={collapsed ? displayTitle(session) : undefined}
-        end={<SpeakersButton sessionId={session.id} />}
+        end={
+          <>
+            <PresenceChip session={session} />
+            <SpeakersButton sessionId={session.id} />
+          </>
+        }
       />
       <Tabs selectedKey={tab} onSelectionChange={setTab} className="min-h-0 flex-1">
         <div className="mx-auto flex w-full max-w-[860px] flex-col gap-3 px-4 pt-2 pb-3 sm:px-6">
@@ -89,6 +96,7 @@ export function SessionPage({ sessionId, tab = 'transcript' }: { sessionId: stri
               { id: 'transcript', label: _('Transcript'), icon: 'transcript' },
               { id: 'ask', label: _('Ask'), icon: 'ask' },
               { id: 'notes', label: _('Notes'), icon: 'notes' },
+              { id: 'agenda', label: _('Agenda'), icon: 'agenda' },
               { id: 'details', label: _('Details'), icon: 'details' },
             ]}
           />
@@ -101,6 +109,9 @@ export function SessionPage({ sessionId, tab = 'transcript' }: { sessionId: stri
         </TabPanel>
         <TabPanel id="notes" className="flex flex-col">
           <NotesPane session={session} />
+        </TabPanel>
+        <TabPanel id="agenda" className="flex flex-col">
+          <AgendaPane session={session} />
         </TabPanel>
         <TabPanel id="details" className="overflow-y-auto">
           <SessionDetails session={session} />

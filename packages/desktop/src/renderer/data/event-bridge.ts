@@ -1,4 +1,5 @@
 import type {
+  AgendaView,
   AnyEvent,
   DurableEvent,
   GnomeolaClient,
@@ -7,8 +8,16 @@ import type {
   NoteVersion,
   Session,
   Settings,
+  StatusChange,
 } from '@gnomeola/protocol'
 import { isDurable } from '@gnomeola/protocol'
+import {
+  type AgendaEventData,
+  agendaIdOf,
+  applyAgendaEvent,
+  applyHistoryEvent,
+  isAgendaEvent,
+} from '@gnomeola/ui-core/agendas'
 import { applyNotesEvent, applyVersionEvent } from '@gnomeola/ui-core/notes'
 import { applyQaEvent, type QaState } from '@gnomeola/ui-core/qa'
 import { applyEvent, fromSnapshot, type SessionsState } from '@gnomeola/ui-core/sessions'
@@ -224,7 +233,15 @@ export class EventBridge {
       this.qc.setQueryData<ModelInfo[]>(keys.models(), (cur) =>
         cur?.map((m) => (m.id === d.model.id ? d.model : m)),
       )
-    else if (d.type === 'calendar.updated') this.qc.setQueryData(keys.calendar(), d.calendar)
+    else if (d.type === 'calendar.updated') {
+      this.qc.setQueryData(keys.calendar(), d.calendar)
+      void this.qc.invalidateQueries({ queryKey: keys.upcoming() })
+    } else if (d.type === 'agenda.tracker')
+      // how the live tracker is doing (degraded, the recap's state): the event carries the whole status
+      this.qc.setQueryData(keys.agendaTracker(d.status.agendaId), d.status)
+    else if (d.type === 'agent.presence' && e.sessionId)
+      // the presence chip's lease list (states, modes, the activity history) is the daemon's: refetch
+      void this.qc.invalidateQueries({ queryKey: keys.leases(e.sessionId), exact: true })
   }
 
   private foldDurable(e: DurableEvent): void {
@@ -235,11 +252,20 @@ export class EventBridge {
       return
     }
     if (d.type === 'session.upserted') {
+      const prev = this.qc.getQueryData<Session>(keys.session(d.session.id))
       this.qc.setQueryData<Session>(keys.session(d.session.id), (cur) => (cur ? d.session : cur))
+      // a session made private (or public) changes whether agents may attach
+      if (prev && prev.private !== d.session.private)
+        void this.qc.invalidateQueries({ queryKey: keys.agentAccess(d.session.id), exact: true })
     }
     if (d.type === 'settings.updated') {
       this.qc.setQueryData<Settings>(keys.settings(), (cur) => (cur ? withStored(cur, d.settings) : cur))
+      // the private-session agent allow list rides the settings (agents.allowPrivate); the decisions
+      // provider's readiness is on /health
+      void this.qc.invalidateQueries({ queryKey: ['agentAccess'] })
+      void this.qc.invalidateQueries({ queryKey: keys.health(), exact: true, refetchType: 'active' })
     }
+    if (isAgendaEvent(d)) this.foldAgenda(d)
     if (d.type === 'template.upserted' || d.type === 'template.deleted') {
       void this.qc.invalidateQueries({ queryKey: ['templates'] })
     }
@@ -262,10 +288,54 @@ export class EventBridge {
     this.qc.setQueryData<NoteVersion[]>(keys.noteVersions(id), (v) => (v ? applyVersionEvent(v, id, e) : v))
   }
 
+  /**
+   * Fold one agenda event: the agenda's view and history (ui-core's folds: version-checked, so replays
+   * and duplicates are no-ops); the agenda list and the session → agenda links are refetched when an
+   * agenda appears, changes its header or goes.
+   */
+  private foldAgenda(d: AgendaEventData): void {
+    const id = agendaIdOf(d)
+    if (d.type === 'agenda.deleted') {
+      this.qc.removeQueries({ queryKey: keys.agenda(id), exact: true })
+      this.qc.removeQueries({ queryKey: keys.agendaHistory(id), exact: true })
+      this.qc.removeQueries({ queryKey: keys.agendaTracker(id), exact: true })
+    } else {
+      const cur = this.qc.getQueryData<AgendaView>(keys.agenda(id))
+      if (cur) {
+        let next = applyAgendaEvent(cur, d)
+        // an add's echo can beat its response: the optimistic `tmp_…` row with the same text goes now
+        // (features/agendas/mutations.ts drops the rest when the response lands)
+        if (next && d.type === 'agenda.item.upserted' && !cur.items.some((i) => i.id === d.item.id)) {
+          const tmp = next.items.find((i) => i.id.startsWith('tmp_') && i.text === d.item.text)
+          if (tmp) next = { ...next, items: next.items.filter((i) => i !== tmp) }
+        }
+        if (next && next !== cur) this.qc.setQueryData(keys.agenda(id), next)
+      }
+      this.qc.setQueryData<StatusChange[]>(keys.agendaHistory(id), (h) => (h ? applyHistoryEvent(h, d) : h))
+    }
+    if (d.type === 'agenda.upserted' || d.type === 'agenda.deleted') {
+      void this.qc.invalidateQueries({ queryKey: keys.agendas(), exact: true })
+      if (d.type === 'agenda.upserted' && d.agenda.sessionId)
+        this.qc.setQueryData(keys.sessionAgenda(d.agenda.sessionId), d.agenda.id)
+      else void this.qc.invalidateQueries({ queryKey: ['sessionAgenda'] })
+    } else if (d.type !== 'agenda.suggestion.upserted') {
+      // item counts on the list's summaries
+      void this.qc.invalidateQueries({ queryKey: keys.agendas(), exact: true })
+    }
+  }
+
   /** A per-session query just fetched: re-fold the recent events it may have missed. */
   private onCacheEvent(ev: QueryCacheNotifyEvent): void {
     if (ev.type !== 'updated' || ev.action.type !== 'success' || ev.action.manual) return
     const [kind, id] = ev.query.queryKey
+    if ((kind === 'agenda' || kind === 'agendaHistory') && typeof id === 'string') {
+      const missed = this.recent.filter((e) => isAgendaEvent(e.data) && agendaIdOf(e.data) === id)
+      if (missed.length)
+        queueMicrotask(() => {
+          for (const e of missed) this.foldAgenda(e.data as AgendaEventData)
+        })
+      return
+    }
     if (
       typeof id !== 'string' ||
       !['transcript', 'qa', 'speakers', 'notes', 'noteVersions'].includes(kind as string)

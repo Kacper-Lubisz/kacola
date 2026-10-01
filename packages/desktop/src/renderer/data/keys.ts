@@ -20,6 +20,20 @@ export const keys = {
   calendar: () => ['calendar'] as const,
   meetings: (range: { from?: string; to?: string } = {}) => ['meetings', range] as const,
   search: (q: string) => ['search', q] as const,
+  // ---- agendas (kacola wave 2): one AgendaView per agenda, folded from the agenda.* events
+  agenda: (id: string) => ['agenda', id] as const,
+  agendaHistory: (id: string) => ['agendaHistory', id] as const,
+  /** The live tracker's status for an agenda's recording (agenda.tracker events keep it current). */
+  agendaTracker: (id: string) => ['agendaTracker', id] as const,
+  /** Every agenda (summaries), for matching calendar meetings to their agendas. */
+  agendas: () => ['agendas'] as const,
+  /** The agenda linked to a recorded session (its id, or null). */
+  sessionAgenda: (sessionId: string) => ['sessionAgenda', sessionId] as const,
+  /** The next week of calendar meetings (the sidebar's Coming up). */
+  upcoming: () => ['upcoming'] as const,
+  /** Connected agents' leases on a session (the presence chip) and its private-session access. */
+  leases: (sessionId: string) => ['leases', sessionId] as const,
+  agentAccess: (sessionId: string) => ['agentAccess', sessionId] as const,
 }
 
 /** Resources that hang off one session: all of them go when it is deleted. */
@@ -31,6 +45,9 @@ export const SESSION_SCOPED = [
   'speakers',
   'qa',
   'templates',
+  'sessionAgenda',
+  'leases',
+  'agentAccess',
 ] as const
 
 export function isSessionScoped(key: readonly unknown[], id: string): boolean {

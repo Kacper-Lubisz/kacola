@@ -34,6 +34,11 @@ extraResources:
     to: tray.png
   - from: tray@2x.png
     to: tray@2x.png
+# kacola:// deep links: Info.plist CFBundleURLTypes (the app also calls setAsDefaultProtocolClient)
+protocols:
+  - name: kacola
+    schemes:
+      - kacola
 # Electron fuses: packages/desktop/fuses.config.ts (one source for Linux and macOS), flipped by
 # scripts/build-macos.ts in afterPack. RunAsNode stays on: one binary runs the window, daemon and CLI.
 mac:
