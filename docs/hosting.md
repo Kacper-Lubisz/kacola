@@ -162,6 +162,8 @@ Nothing in this repository deploys or logs in on its own. To deploy:
    | `GNOMEOLA_ADMIN_TOKEN` | required in practice; ≥ 16 characters; the owner credential that approves the first device |
    | `DEEPGRAM_API_KEY` | optional; enables full-offload transcription |
    | `GNOMEOLA_POLL_MS` | optional; event-stream poll interval (default 1000) |
+   | `GNOMEOLA_MAIL_WEBHOOK` | optional; team sharing: where magic-link codes are POSTed (`{to, subject, text}`); without it shared pages are read-only |
+   | `GNOMEOLA_PUBLIC_URL` | optional; base of the links in those emails (default the request's origin) |
 
 4. Deploy: push to the connected Git repository, or from a checkout:
    ```sh
@@ -187,6 +189,15 @@ Migrations run on the first request of a cold instance, under a Postgres advisor
 `GNOMEOLA_AUTH_SECRET` (it refuses a non-loopback host without it). `--db sqlite:/path` works for a
 single box.
 
+## Team sharing
+
+The hosted server also holds shared agendas (only agendas — never transcripts): the organiser's daemon
+pushes a strict projection, attendees' daemons follow with a magic-link code, invitees use the page at
+`/a/<token>`. Everything — privacy model, merge rules, routes, limits — is in [docs/sharing.md](sharing.md).
+On Vercel set `GNOMEOLA_MAIL_WEBHOOK` (a relay that sends `{to, subject, text}`; optional
+`GNOMEOLA_MAIL_WEBHOOK_SECRET`) to let invitees contribute, and `GNOMEOLA_PUBLIC_URL` if links in emails
+should not use the request's origin. Without a mailer shared pages are read-only.
+
 ## Known limits
 
 - `/pair/start` is necessarily anonymous and writes a row per call (expired rows are purged on the next
@@ -200,4 +211,4 @@ single box.
 
 Start/stop recording, devices, models, settings, the API key, Q&A (`/ask`), notes enhancement and
 edits, templates and calendars answer a typed **501** (`calendarStatus` reports `off`): those belong to
-the device that records. The viewer is read-only.
+the device that records. The viewer is read-only (a shared agenda page takes invitee items and comments — docs/sharing.md).

@@ -113,6 +113,8 @@ for (const dialect of dialects) {
     let a: GnomeolaClient
     let b: GnomeolaClient
     const s = { agenda: '', link: '', bAgenda: '', next: '', bNext: '', session: '' }
+    /** `agenda.share` states the organiser's window was told about (ephemeral events). */
+    const shareEvents: string[] = []
 
     const daemon = async (o: { share?: boolean }) => {
       const dir = mkdtempSync(join(tmpdir(), 'gnomeola-share-'))
@@ -159,6 +161,9 @@ for (const dialect of dialects) {
       proxy = await recordingProxy(hosted.url)
       A = await daemon({ share: true })
       B = await daemon({})
+      A.bus.subscribe((e) => {
+        if (e.seq === null && e.data.type === 'agenda.share') shareEvents.push(e.data.status.state)
+      })
       a = createClient({ baseUrl: A.url, timeoutMs: 20_000 })
       b = createClient({ baseUrl: B.url, timeoutMs: 20_000 })
     }, 180_000)
@@ -522,6 +527,39 @@ for (const dialect of dialects) {
       const serverLog = JSON.stringify(await hostedStore.eventsAfter(0))
       for (const secret of Object.values(SECRETS)) expect(serverLog, secret).not.toContain(secret)
       expect(serverLog).not.toContain(s.session)
+    })
+
+    it('privacy follows the agenda: made private, it is unshared on the next sync (the link answers 410)', async () => {
+      const v = await a.call('createAgenda', {
+        body: { title: 'Side project', items: [{ text: 'Pricing' }] },
+      })
+      const st = await a.call('shareAgenda', { params: { id: v.agenda.id }, body: {} })
+      const token = st.link!.split('/a/')[1]!
+      const web = createClient({ baseUrl: hosted.url })
+      expect((await web.call('getSharedPage', { params: { token } })).items.map((i) => i.text)).toEqual([
+        'Pricing',
+      ])
+      await a.call('updateAgenda', { params: { id: v.agenda.id }, body: { private: true } })
+      await waitFor(
+        async () =>
+          (await web.call('getSharedPage', { params: { token } }).then(
+            () => 200,
+            (e) => e.status,
+          )) === 410,
+        5_000,
+        'the private agenda to be unshared',
+      )
+      expect(await a.call('getAgendaShare', { params: { id: v.agenda.id } })).toMatchObject({
+        shared: false,
+        state: 'off',
+      })
+      // and a private agenda cannot be shared at all
+      await expect(a.call('shareAgenda', { params: { id: v.agenda.id }, body: {} })).rejects.toMatchObject({
+        status: 409,
+      })
+      // the window heard about every change of sharing state
+      expect(shareEvents).toContain('ok')
+      expect(shareEvents).toContain('off')
     })
 
     it('unsharing: 410 for the link, the attendee’s copy detached, nothing left on the server', async () => {
