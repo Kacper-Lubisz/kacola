@@ -46,6 +46,7 @@ export { CalendarService } from './calendar/service.ts'
 export { defaultDataDir, type MainConfig, parseConfig, UsageError } from './config.ts'
 export { RecordingControl } from './control.ts'
 export {
+  type CloseOptions,
   type Ctx,
   createDaemon,
   type Daemon,
@@ -56,6 +57,15 @@ export {
   type SseHandler,
   VERSION,
 } from './daemon.ts'
+// ---- sticky daemon: one owner per data dir, restarts that wait for the recording
+export {
+  acquireDataDirLock,
+  type DataDirLock,
+  DataDirLockedError,
+  LOCK_FILE,
+  type LockOwner,
+  lockOwner,
+} from './data-lock.ts'
 export { LlmNotesEngine } from './engines/enhance.ts'
 export { type ApiErrorCode, DaemonError, STATUS, toDaemonError } from './errors.ts'
 export { FakeNotesEngine } from './fakes/notes.ts'
@@ -88,5 +98,12 @@ export {
   keywordMatches,
   suggestTemplate,
 } from './notes/templates.ts'
-export { SessionManager } from './sessions.ts'
+export { RestartControl, type RestartHook } from './restart.ts'
+export {
+  type RecoveryPlan,
+  type Resumable,
+  SessionManager,
+  SUSPEND_FILE,
+  SUSPENDED_NOTE,
+} from './sessions.ts'
 export { DEFAULT_SETTINGS, mergeSettings, SettingsService } from './settings.ts'

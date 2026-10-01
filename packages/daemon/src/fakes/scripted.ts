@@ -57,6 +57,7 @@ export class ScriptedRecording implements RecordingHandle {
   stopped = false
 
   constructor(opts: PipelineStartOptions, sink: PipelineSink, o: ScriptedOptions) {
+    if (opts.continueAt) throw new Error('a scripted recording cannot continue after a restart')
     this.sink = sink
     this.o = o
     const kinds = new Set(opts.tracks.map((t) => t.kind))

@@ -59,8 +59,19 @@ export type GapReason =
   | 'injected' // FileCaptureSource fault injection
   | 'disconnected' // ExternalCaptureSource: the app's stream went away (or never came)
   | 'client-drop' // ExternalCaptureSource: the app skipped samples (its sample index jumped ahead)
+  | 'restart' // the daemon restarted mid-recording; the recording was resumed into the same WAVs
 
 export type GapEvent = { track: TrackKind; atMs: number; durationMs: number; reason: GapReason }
+
+/**
+ * Continue a recording whose WAVs are already in the session dir (the daemon restarted mid-meeting):
+ * each track appends to its WAV, first padding it with silence up to `offsetMs + gapMs` and reporting
+ * that as a `restart` gap, so the timeline stays wall-clock-true and both tracks stay aligned. The
+ * session timeline (elapsedMs, frame atMs) carries on from there.
+ */
+export type ContinueAt = { offsetMs: number; gapMs: number }
+
+export type StartOptions = { continueAt?: ContinueAt }
 
 export type CaptureErrorEvent = {
   track: TrackKind | null
@@ -94,7 +105,7 @@ export interface CaptureSource {
   readonly backend: 'pipewire' | 'file' | 'external'
   readonly state: CaptureState
   /** Starts every track and writes `<sessionDir>/<kind>.wav`. Rejects if a track cannot start at all. */
-  start(sessionDir: string, tracks: readonly TrackSpec[]): Promise<void>
+  start(sessionDir: string, tracks: readonly TrackSpec[], opts?: StartOptions): Promise<void>
   pause(): Promise<void>
   resume(): Promise<void>
   /** Stops, finalises the WAVs, and reports the tracks. Idempotent. */

@@ -6,7 +6,7 @@ import { defineConfig } from 'vitest/config'
 //   e2e   — T3: real PipeWire rig, real models, real UI via AT-SPI. Slow.
 //   eval  — T4: accuracy baselines and live-LLM evals. Opt-in, tracked against baselines.
 const common = { exclude: ['**/node_modules/**', '**/dist/**'] }
-/** Strips live-provider keys from the hermetic tiers (not eval). */
+/** The hermetic tiers (not eval): live-provider keys stripped, XDG data/config/state in a temp home. */
 const hermetic = { setupFiles: ['scripts/test-env.ts'] }
 
 export default defineConfig({

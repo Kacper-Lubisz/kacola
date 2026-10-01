@@ -27,6 +27,7 @@ import {
 } from './commands/agenda-share.ts'
 import { ask } from './commands/ask.ts'
 import { bugReport } from './commands/bugreport.ts'
+import { daemonIdle, daemonRestart, daemonRestartCancel, daemonStatus } from './commands/daemon.ts'
 import { installCliCommand, uninstallCliCommand } from './commands/install-cli.ts'
 import { liveAttach, liveWait } from './commands/live.ts'
 import { meetingsNext, meetingsToday } from './commands/meetings.ts'
@@ -65,6 +66,12 @@ usage: gnomeola <command> [options]
   record start [--title T] | stop [id] | status
   meetings [--next | --today]                 your calendar: what is on now / next, or today
   status                                      daemon, models and LLM health
+  daemon status | idle                        what the daemon is recording right now (idle: exit 0
+                                              when nothing is, 5 when something is)
+  daemon restart [--when-idle | --now [--force]] [--no-wait] [--timeout D] | --cancel
+                                              restart once nothing is recording (default; prints what
+                                              it waits for); --now --force suspends a recording, which
+                                              the next daemon resumes after a short gap
 
  agendas (the owner's write verbs; <agenda>: agd_… | next | latest, default next;
           <item>: its position, id or text):
@@ -516,6 +523,48 @@ export async function run(argv: string[], io: Io): Promise<number> {
         const { values: v } = parse(rest, {})
         if (helpOr(v)) return EXIT.OK
         await status(ctxFor(v))
+        break
+      }
+      case 'daemon': {
+        const { values: v, positionals: p } = parse(rest, {
+          'when-idle': { type: 'boolean' },
+          now: { type: 'boolean' },
+          force: { type: 'boolean' },
+          'no-wait': { type: 'boolean' },
+          timeout: { type: 'string' },
+          cancel: { type: 'boolean' },
+          'only-supervised': { type: 'boolean' },
+        })
+        if (helpOr(v)) return EXIT.OK
+        const sub = p[0] ?? 'status'
+        if (sub === 'status') await daemonStatus(ctxFor(v))
+        else if (sub === 'idle') await daemonIdle(ctxFor(v))
+        else if (sub === 'restart') {
+          if (v.cancel) await daemonRestartCancel(ctxFor(v))
+          else {
+            if (v.now && v['when-idle']) throw usage('--now and --when-idle are exclusive')
+            if (v.force && !v.now)
+              throw usage('--force goes with --now (a --when-idle restart never interrupts)')
+            await daemonRestart(ctxFor(v), {
+              mode: v.now ? 'now' : 'when-idle',
+              force: Boolean(v.force),
+              wait: !v['no-wait'],
+              onlySupervised: Boolean(v['only-supervised']),
+              timeoutMs: v.timeout
+                ? (() => {
+                    try {
+                      return parseDuration(/^\d+$/.test(v.timeout) ? `${v.timeout}s` : v.timeout)
+                    } catch {
+                      throw usage('--timeout must be a duration like 90s or 2h')
+                    }
+                  })()
+                : null,
+            })
+          }
+        } else
+          throw usage(
+            'usage: gnomeola daemon status | idle | restart [--when-idle | --now [--force]] [--no-wait] [--timeout D] | restart --cancel',
+          )
         break
       }
       case 'skill': {

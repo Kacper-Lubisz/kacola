@@ -16,6 +16,7 @@ import {
   type GapReason,
   SAMPLE_RATE,
   SAMPLES_PER_MS,
+  type StartOptions,
   type TrackSpec,
 } from './types.ts'
 
@@ -156,7 +157,7 @@ export class PipeWireCaptureSource implements CaptureSource {
     }))
   }
 
-  async start(sessionDir: string, specs: readonly TrackSpec[]): Promise<void> {
+  async start(sessionDir: string, specs: readonly TrackSpec[], startOpts: StartOptions = {}): Promise<void> {
     if (this._state !== 'idle') throw new Error(`cannot start from state ${this._state}`)
     const kinds = new Set(specs.map((s) => s.kind))
     if (!specs.length || kinds.size !== specs.length) throw new Error('need one spec per track kind')
@@ -185,6 +186,7 @@ export class PipeWireCaptureSource implements CaptureSource {
             device: target,
             flushIntervalMs: this.opts.flushIntervalMs,
             fileOps: this.fileOps,
+            append: startOpts.continueAt !== undefined,
             emit: (e, ...a) => this.ev.emit(e, ...a),
           }),
         )
@@ -214,6 +216,14 @@ export class PipeWireCaptureSource implements CaptureSource {
       outageReported: false,
     }))
     if (this.watcher) this.unwatch = this.watcher.onChange((d) => this.onDefaultsChanged(d))
+    const at = startOpts.continueAt
+    if (at) {
+      // resumed after a daemon restart: the timeline carries on after the audio already on disk, and
+      // the time the daemon was away is silence, reported as a gap (both tracks padded to one point)
+      const resumeAt = Math.round((at.offsetMs + at.gapMs) * SAMPLES_PER_MS)
+      for (const t of this.tracks) t.rec.padTo(resumeAt, 'restart')
+      this.activeMsBefore = Math.max(...this.tracks.map((t) => t.rec.positionMs))
+    }
     this.activeSince = performance.now()
     this.setState('recording')
     for (const t of this.tracks) this.spawnChild(t, graph)

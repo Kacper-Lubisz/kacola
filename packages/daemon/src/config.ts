@@ -71,6 +71,13 @@ export type MainConfig = {
    * streams audio to the ingest route; the daemon never looks for PipeWire, gjs, D-Bus or EDS.
    */
   capture: 'pipewire' | 'external'
+  // ---- sticky daemon
+  /**
+   * Started by something that starts it again after it exits: systemd (INVOCATION_ID is set for every
+   * unit process) or the desktop window's supervisor (GNOMEOLA_SUPERVISED=1). Reported on /daemon so
+   * `gnomeola daemon restart` can tell whether the daemon will come back by itself.
+   */
+  supervised: boolean
 }
 
 const USAGE = `usage: gnomeolad [--port N] [--host HOST] [--remote] [--data-dir DIR] [--fake]
@@ -115,6 +122,12 @@ environment:
   GNOMEOLA_OWNER_EMAIL     your label on shared changes (others see peer:<it>)
   GNOMEOLA_AGENDA_WEB_BASE base of the shared page link (<base>/a/<token>; default the sharing host)
   GNOMEOLA_SHARE_POLL_MS   pull shared agendas this often (default 15000; 0 = only on demand)
+  GNOMEOLA_RESUME_WINDOW_MS resume a recording the previous daemon left mid-meeting if it stopped at
+                           most this long ago (default 120000; 0 = never)
+  GNOMEOLA_SUPERVISED=1    something restarts this daemon when it exits (set by the desktop window)
+
+exit codes: 0 stopped · 1 failed · 2 usage · 75 another daemon owns the data dir · 76 restart requested
+signals: TERM/INT stop, suspending a live recording for the next daemon to resume · HUP restart once idle
 `
 
 export class UsageError extends Error {
@@ -253,5 +266,6 @@ export function parseConfig(
     syncToken: env.GNOMEOLA_SYNC_TOKEN || null,
     platform,
     capture,
+    supervised: env.INVOCATION_ID !== undefined || env.GNOMEOLA_SUPERVISED === '1',
   }
 }

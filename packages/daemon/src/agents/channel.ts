@@ -183,12 +183,17 @@ export class AgentChannel {
     this.sweeper.unref()
   }
 
-  stop(): void {
+  /**
+   * `silent` (the daemon is restarting, its recordings resume in the next one): leases are dropped
+   * without telling agents the meeting ended — their streams just close, and `live attach` re-attaches
+   * to the next daemon (a 401 for the old token → a new lease, same cursor).
+   */
+  stop(o: { silent?: boolean } = {}): void {
     this.unsubscribe?.()
     this.unsubscribe = null
     if (this.sweeper) clearInterval(this.sweeper)
     this.sweeper = null
-    for (const r of this.recs.values()) if (!r.endedAt) this.end(r, 'meeting-ended')
+    if (!o.silent) for (const r of this.recs.values()) if (!r.endedAt) this.end(r, 'meeting-ended')
     for (const w of [...this.liveWaiters]) w()
   }
 

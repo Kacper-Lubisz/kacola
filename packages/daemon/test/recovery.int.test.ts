@@ -10,6 +10,8 @@ import { durable, readEvents } from './helpers.ts'
 // Chaos: the recorder must never silently lose a meeting. SIGKILL the daemon mid-session and restart it
 // on the same data dir: interrupted sessions are closed out as `recovered`, everything that was
 // committed is still there, the log continues gap-free, and the tables still equal a replay of the log.
+// These run with the resume window off (GNOMEOLA_RESUME_WINDOW_MS=0): resuming a recording across a
+// restart is restart-resume.int.test.ts.
 
 const PIPE = JSON.stringify({
   segmentEveryMs: 50,
@@ -45,7 +47,7 @@ function assertReplayEqualsState(dataDir: string): void {
 
 describe('crash recovery', () => {
   it('SIGKILL mid-recording: sessions recovered, segments intact, log gap-free, replay == state', async () => {
-    d = await startDaemon({ env: { GNOMEOLA_FAKE_PIPELINE: PIPE } })
+    d = await startDaemon({ env: { GNOMEOLA_FAKE_PIPELINE: PIPE, GNOMEOLA_RESUME_WINDOW_MS: '0' } })
     const c = d.client
     const recording = await c.call('createSession', { body: { title: 'recording when killed' } })
     const paused = await c.call('createSession', { body: { title: 'paused when killed' } })
@@ -132,8 +134,8 @@ describe('crash recovery', () => {
     disk2.close()
   })
 
-  it('SIGTERM is a clean shutdown: running sessions are stopped and flushed, not recovered', async () => {
-    d = await startDaemon({ env: { GNOMEOLA_FAKE_PIPELINE: PIPE } })
+  it('SIGTERM is a clean shutdown: running sessions are flushed and suspended, never recovered', async () => {
+    d = await startDaemon({ env: { GNOMEOLA_FAKE_PIPELINE: PIPE, GNOMEOLA_RESUME_WINDOW_MS: '0' } })
     const c = d.client
     const s = await c.call('createSession', {})
     await c.call('startSession', { params: { id: s.id } })
@@ -150,10 +152,12 @@ describe('crash recovery', () => {
     expect(log).toMatch(/"signal received".*"SIGTERM"/)
     expect(log).toMatch(/"msg":"stopped"/)
 
+    // suspended for a restart; with no resume window the next daemon closes it out as stopped, saying why
     await d.restart()
     const after = await d.client.call('getSession', { params: { id: s.id } })
     expect(after.status).toBe('stopped')
-    expect(after.error).toBeNull()
+    expect(after.error).toMatch(/stopped when the daemon restarted/)
+    expect(after.error).not.toMatch(/interrupt|crash/)
     const t = await d.client.call('getTranscript', { params: { id: s.id } })
     assertNoViolations(
       checkSegments(t.segments, { durationMs: after.durationMs, requireFinal: true }),

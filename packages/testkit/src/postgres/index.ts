@@ -4,7 +4,24 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 
-const run = promisify(execFile)
+const exec = promisify(execFile)
+
+/**
+ * podman keeps its image store and config under XDG_DATA_HOME / XDG_CONFIG_HOME. The hermetic tiers
+ * point those at a temp dir (scripts/test-env.ts) and keep the real ones in GNOMEOLA_TEST_REAL_XDG_*:
+ * podman gets the real ones back, or every run would pull Postgres into an empty store.
+ */
+function podmanEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env }
+  for (const k of ['DATA', 'CONFIG', 'STATE']) {
+    const realDir = process.env[`GNOMEOLA_TEST_REAL_XDG_${k}_HOME`]
+    if (realDir) env[`XDG_${k}_HOME`] = realDir
+  }
+  return env
+}
+
+const run = (cmd: string, args: string[], o: { timeout?: number } = {}) =>
+  exec(cmd, args, { ...o, env: podmanEnv() })
 
 export const POSTGRES_IMAGE = process.env.GNOMEOLA_TEST_PG_IMAGE ?? 'docker.io/library/postgres:17'
 

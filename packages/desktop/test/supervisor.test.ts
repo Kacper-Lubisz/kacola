@@ -34,9 +34,11 @@ afterEach(async () => {
   await Promise.all(sups.splice(0).map((s) => s.stop(50)))
 })
 
-function world(o: Partial<SupervisorOptions> & { up?: boolean; healthyAfterSpawn?: boolean } = {}) {
+function world(o: Partial<SupervisorOptions> & { up?: boolean | 'busy'; healthyAfterSpawn?: boolean } = {}) {
   const w = {
-    up: o.up ?? false,
+    up: (o.up ?? false) as boolean | 'busy',
+    isRecording: false,
+    askedToExitWhenIdle: 0,
     healthyAfterSpawn: o.healthyAfterSpawn ?? true,
     children: [] as FakeChild[],
     spawns: [] as { cmd: string; args: string[]; env: NodeJS.ProcessEnv }[],
@@ -55,6 +57,11 @@ function world(o: Partial<SupervisorOptions> & { up?: boolean; healthyAfterSpawn
     watchMs: 10,
     startTimeoutMs: 300,
     health: async () => w.up,
+    recording: async () => w.isRecording,
+    exitWhenIdle: async () => {
+      w.askedToExitWhenIdle++
+      return true
+    },
     spawn: (cmd, args, env) => {
       w.spawns.push({ cmd, args, env })
       const c = new FakeChild(1000 + w.children.length)
@@ -86,7 +93,7 @@ describe('DaemonSupervisor', () => {
     expect(w.spawns[0]).toEqual({
       cmd: '/app/electron',
       args: ['/app/daemon.mjs', '--host', '127.0.0.1', '--port', '8787', '--data-dir', '/tmp/d'],
-      env: { HOME: '/home/u', ELECTRON_RUN_AS_NODE: '1' },
+      env: { HOME: '/home/u', ELECTRON_RUN_AS_NODE: '1', GNOMEOLA_SUPERVISED: '1' },
     })
     expect(w.statuses.map((x) => x.kind)).toEqual(['starting', 'spawned'])
   })
@@ -143,6 +150,50 @@ describe('DaemonSupervisor', () => {
       kind: 'unreachable',
       error: expect.stringContaining('no daemon to start'),
     })
+  })
+
+  it('a busy daemon (slow /health) is attached to, never replaced', async () => {
+    const { w, sup } = world({ up: 'busy' })
+    expect(await sup.start()).toEqual({ kind: 'attached' })
+    // it stays busy for many watch periods: still attached, still nothing spawned
+    await new Promise((r) => setTimeout(r, 100))
+    expect(sup.status).toEqual({ kind: 'attached' })
+    expect(w.spawns).toHaveLength(0)
+  })
+
+  it('a child that exits for a requested restart (76) is started again at once, not as a crash', async () => {
+    const { w, sup } = world()
+    await sup.start()
+    w.children[0]!.exit(76)
+    await until(() => w.statuses.some((s) => s.kind === 'spawned' && s.pid === 1001))
+    expect(w.statuses.find((s) => s.kind === 'restarting')).toEqual({
+      kind: 'restarting',
+      attempt: 0,
+      inMs: 0,
+      lastError: 'restart requested',
+    })
+  })
+
+  it('a child refused the data dir (75: another daemon owns it) says so', async () => {
+    const { w, sup } = world({ healthyAfterSpawn: false })
+    void sup.start()
+    await until(() => w.children.length >= 1)
+    w.children[0]!.exit(75)
+    await until(() => w.statuses.some((s) => s.kind === 'restarting'))
+    expect(w.statuses.find((s) => s.kind === 'restarting')).toMatchObject({
+      lastError: expect.stringContaining('another gnomeola daemon owns the data dir'),
+    })
+  })
+
+  it('quitting while our daemon records leaves it running, asked to exit once the recording ends', async () => {
+    const { w, sup } = world()
+    await sup.start()
+    w.isRecording = true
+    await sup.stop(50)
+    expect(w.children[0]!.killed).toEqual([])
+    expect(w.askedToExitWhenIdle).toBe(1)
+    expect(sup.left).toEqual({ pid: 1000, asked: true })
+    expect(sup.status).toEqual({ kind: 'stopped' })
   })
 
   it('stop() terminates the daemon it started, and only that', async () => {

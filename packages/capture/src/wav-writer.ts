@@ -1,5 +1,5 @@
-import { closeSync, fdatasyncSync, ftruncateSync, openSync, writeSync } from 'node:fs'
-import { encodeWavHeader, WAV_HEADER_BYTES, WAVE_FORMAT_PCM } from './wav.ts'
+import { closeSync, fdatasyncSync, fstatSync, ftruncateSync, openSync, readSync, writeSync } from 'node:fs'
+import { encodeWavHeader, parseWavHeader, WAV_HEADER_BYTES, WAVE_FORMAT_PCM } from './wav.ts'
 
 // Crash-safe incremental WAV writer.
 //
@@ -19,6 +19,11 @@ export type FileOps = {
   datasync(fd: number): void
   truncate(fd: number, length: number): void
   close(fd: number): void
+  /**
+   * Open an existing file for appending (`append: true`): its descriptor, size and first bytes (enough
+   * to check the header). Optional so test doubles that never append need not implement it.
+   */
+  openExisting?(path: string): { fd: number; size: number; head: Buffer }
 }
 
 export const nodeFileOps: FileOps = {
@@ -27,6 +32,12 @@ export const nodeFileOps: FileOps = {
   datasync: (fd) => fdatasyncSync(fd),
   truncate: (fd, len) => ftruncateSync(fd, len),
   close: (fd) => closeSync(fd),
+  openExisting: (p) => {
+    const fd = openSync(p, 'r+')
+    const head = Buffer.alloc(WAV_HEADER_BYTES)
+    const n = readSync(fd, head, 0, head.length, 0)
+    return { fd, size: fstatSync(fd).size, head: head.subarray(0, n) }
+  },
 }
 
 export type WavWriterOptions = {
@@ -36,6 +47,12 @@ export type WavWriterOptions = {
   ops?: FileOps
   /** Monotonic clock in ms (injectable for tests). */
   now?: () => number
+  /**
+   * Continue an existing WAV of ours (a recording resumed after a daemon restart): new samples go after
+   * the audio already there. The file must be 16-bit mono at `sampleRate` with the canonical 44-byte
+   * header this writer produces (run recoverWav() first after a crash). A missing file starts fresh.
+   */
+  append?: boolean
 }
 
 export class WavWriteError extends Error {
@@ -66,8 +83,17 @@ export class WavWriter {
     this.ops = opts.ops ?? nodeFileOps
     this.now = opts.now ?? (() => performance.now())
     this.flushIntervalMs = opts.flushIntervalMs ?? 1000
-    this.fd = this.ops.open(path)
     this.lastFlush = this.now()
+    if (opts.append) {
+      const existing = this.openExisting(path)
+      if (existing) {
+        this.fd = existing.fd
+        this.dataBytes = existing.dataBytes
+        this.flushedBytes = existing.dataBytes
+        return
+      }
+    }
+    this.fd = this.ops.open(path)
     const header = this.header()
     try {
       this.writeAll(header, 0)
@@ -77,6 +103,39 @@ export class WavWriter {
       this.fd = null
       throw toWriteError(e)
     }
+  }
+
+  /** For `append`: the open descriptor and the whole samples already in the file, or null if it is missing. */
+  private openExisting(path: string): { fd: number; dataBytes: number } | null {
+    if (!this.ops.openExisting)
+      throw new WavWriteError('unsupported', `${path}: these file ops cannot append`)
+    let opened: { fd: number; size: number; head: Buffer }
+    try {
+      opened = this.ops.openExisting(path)
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null
+      throw toWriteError(e)
+    }
+    const { fd, size, head } = opened
+    try {
+      const info = parseWavHeader(head)
+      if (
+        info.dataOffset !== WAV_HEADER_BYTES ||
+        info.audioFormat !== WAVE_FORMAT_PCM ||
+        info.channels !== 1 ||
+        info.bitsPerSample !== 16 ||
+        info.sampleRate !== this.sampleRate
+      )
+        throw new Error(
+          `not a ${this.sampleRate} Hz mono 16-bit WAV with a 44-byte header (${info.sampleRate} Hz, ${info.channels} ch, ${info.bitsPerSample} bit, data at ${info.dataOffset})`,
+        )
+    } catch (e) {
+      this.ops.close(fd)
+      throw new WavWriteError('format', `cannot append to ${path}: ${(e as Error).message}`, e)
+    }
+    // everything after the header is audio (whole samples; a torn trailing byte is overwritten)
+    const available = Math.max(0, size - WAV_HEADER_BYTES)
+    return { fd, dataBytes: available - (available % 2) }
   }
 
   get samplesWritten(): number {

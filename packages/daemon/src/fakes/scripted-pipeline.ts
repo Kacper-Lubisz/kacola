@@ -27,6 +27,7 @@ export class ScriptedPipeline implements TranscriptionPipeline {
     return { available: true, backend: 'scripted', detail: null }
   }
   async start(o: PipelineStartOptions, sink: PipelineSink): Promise<RecordingHandle> {
+    if (o.continueAt) throw new Error('a scripted recording cannot continue after a restart')
     const r = new ScriptedRecording(o, sink, this.#lines, this.#speed)
     this.recordings.push(r)
     return r

@@ -89,6 +89,7 @@ type OptionalOpts =
   | 'scriptFile'
 
 export class FakePipeline implements TranscriptionPipeline {
+  readonly canContinue = true
   readonly opts: Required<Omit<FakePipelineOptions, OptionalOpts>> & Pick<FakePipelineOptions, OptionalOpts>
   /** Every recording this pipeline started, for assertions. */
   readonly recordings: FakeRecording[] = []
@@ -146,6 +147,8 @@ export class FakeRecording implements RecordingHandle {
   private readonly finalDue = new Map<string, number>()
   private released = false
   private heldTicks = 0
+  /** Audio time this recording started at: 0, or after the audio of the run it continues (a restart). */
+  private readonly base: number
   private activeWallMs = 0
   private lastTick = 0
   private lastLevelAt = 0
@@ -170,9 +173,11 @@ export class FakeRecording implements RecordingHandle {
     this.diarize = Boolean(o.diarize) && (opts.settings.speakers?.diarize ?? true)
     this.known = (opts.voices ?? []).filter((v) => v.model === FAKE_EMBEDDING_MODEL)
     mkdirSync(opts.sessionDir, { recursive: true })
+    const at = opts.continueAt
+    this.base = at ? at.offsetMs + at.gapMs : 0
     this.tracks = opts.tracks.map((t) => {
       const audioPath = join(opts.sessionDir, `${t.kind}.wav`)
-      writeFileSync(audioPath, '')
+      if (!at || !existsSync(audioPath)) writeFileSync(audioPath, '')
       return {
         kind: t.kind,
         device: t.device === 'default' ? `fake.${t.kind}` : t.device,
@@ -185,18 +190,23 @@ export class FakeRecording implements RecordingHandle {
     // stagger the tracks so segments on mic and system do not close in lock-step
     this.tracks.forEach((t, i) => {
       this.open.set(t.kind, {
-        startMs: 0,
+        startMs: this.base,
         words: [],
-        nextCloseAt: o.segmentEveryMs * (1 + i * 0.5),
-        lastPartialAt: 0,
+        nextCloseAt: this.base + o.segmentEveryMs * (1 + i * 0.5),
+        lastPartialAt: this.base,
       })
     })
+    this.lastLevelAt = this.base
+    // continuing after a restart: the time nobody was capturing is a gap on every track, like the real one
+    if (at && at.gapMs > 0)
+      for (const t of this.tracks)
+        sink.gap({ track: t.kind, atMs: at.offsetMs, durationMs: at.gapMs, reason: 'restart' })
     this.lastTick = Date.now()
     this.timer = setInterval(() => this.tick(), o.tickMs)
   }
 
   private audioMs(): number {
-    return Math.floor(this.activeWallMs * this.o.speed)
+    return this.base + Math.floor(this.activeWallMs * this.o.speed)
   }
 
   private tick(): void {

@@ -107,6 +107,47 @@ describe.skipIf(!existsSync(ELECTRON))('desktop daemon supervision (real daemon 
     expect((await d.client.call('health')).lastSeq).toBeGreaterThanOrEqual(0)
   }, 60_000)
 
+  it('quitting while the spawned daemon records leaves it recording; it exits once the meeting ends', async () => {
+    const t = await supervised()
+    const s = await t.sup.start()
+    if (s.kind !== 'spawned') throw new Error(`expected spawned, got ${s.kind}`)
+    const rec = await t.client.call('createSession', { body: { title: 'still in the meeting' } })
+    await t.client.call('startSession', { params: { id: rec.id } })
+    await t.sup.stop()
+    expect(t.sup.left).toEqual({ pid: s.pid, asked: true })
+    // the window is gone; the meeting is not
+    expect((await t.client.call('getSession', { params: { id: rec.id } })).status).toBe('recording')
+    expect((await t.client.call('daemonInfo')).restart).toMatchObject({
+      mode: 'when-idle',
+      by: 'desktop quit',
+    })
+    await t.client.call('stopSession', { params: { id: rec.id } })
+    await waitFor(
+      async () => {
+        try {
+          await t.client.call('health')
+          return false
+        } catch {
+          return true
+        }
+      },
+      15_000,
+      'the daemon to exit after the meeting',
+    )
+    await waitFor(
+      () => {
+        try {
+          process.kill(s.pid, 0)
+          return false
+        } catch {
+          return true
+        }
+      },
+      15_000,
+      'the daemon process to be gone',
+    )
+  }, 60_000)
+
   it('stop() (explicit quit) shuts the spawned daemon down cleanly', async () => {
     const t = await supervised()
     const s = await t.sup.start()

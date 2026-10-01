@@ -37,7 +37,12 @@ beforeAll(async () => {
   api = await startFakeAnthropic()
   d = await startDaemon({
     fake: false,
-    env: { ANTHROPIC_API_KEY: 'sk-ant-e2e-real-audio', ANTHROPIC_BASE_URL: api.url },
+    // the chaos case below is crash RECOVERY; resuming across a restart is restart-real.e2e.test.ts
+    env: {
+      ANTHROPIC_API_KEY: 'sk-ant-e2e-real-audio',
+      ANTHROPIC_BASE_URL: api.url,
+      GNOMEOLA_RESUME_WINDOW_MS: '0',
+    },
   })
   await d.client.call('updateSettings', {
     body: { capture: { micDevice: rig.mic.captureTarget, systemDevice: rig.system.captureTarget } },
