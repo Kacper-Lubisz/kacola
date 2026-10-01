@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process'
+import { execFile, execFileSync } from 'node:child_process'
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -149,6 +149,16 @@ describe('install.sh and a meeting being recorded', () => {
     const unit = readFileSync(join(HOME, '.config', 'systemd', 'user', 'gnomeolad.service'), 'utf8')
     expect(unit).toContain('ExecReload=/bin/kill -HUP $MAINPID')
     expect(unit).toMatch(/^RestartForceExitStatus=76$/m)
+    expect(unit).toMatch(/^KillMode=mixed$/m)
+    // systemd's own validator accepts it (non-zero on errors; needs ExecStart to exist)
+    execFileSync(
+      'systemd-analyze',
+      ['verify', '--user', join(HOME, '.config', 'systemd', 'user', 'gnomeolad.service')],
+      {
+        env: { ...process.env, HOME },
+        stdio: 'pipe',
+      },
+    )
     // the meeting carries on; the daemon goes when it ends
     expect((await d.client.call('daemonInfo')).restart).toMatchObject({ mode: 'when-idle' })
     await new Promise((res) => setTimeout(res, 1000))

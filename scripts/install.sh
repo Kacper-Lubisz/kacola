@@ -249,8 +249,10 @@ Restart=on-failure
 RestartSec=2
 RestartForceExitStatus=76
 SuccessExitStatus=76
-# stop/restart suspends a live recording (the next daemon resumes it) within a few seconds; never hold up a logout
+# stop/restart suspends a live recording (the next daemon resumes it) within a few seconds; never hold up a logout.
+# SIGTERM goes to the daemon only: it stops its own capture children in order, flushing the audio first.
 TimeoutStopSec=15
+KillMode=mixed
 # The daemon binds loopback only (and refuses anything else); no network exposure to configure.
 
 [Install]
