@@ -223,6 +223,10 @@ async function main(): Promise<void> {
     }
   })
 
+  // a supervisor that went away (the window quit while we were recording) leaves our stdout/stderr pipes
+  // without a reader: a write must not take the daemon down with it
+  process.stdout.on('error', () => {})
+  process.stderr.on('error', () => {})
   process.on('uncaughtException', (err) => {
     daemon.logger.error('uncaught exception', { err: `${err.name}: ${err.message}` })
   })

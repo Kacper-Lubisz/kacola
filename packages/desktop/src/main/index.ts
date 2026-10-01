@@ -646,6 +646,10 @@ app.on('before-quit', (e) => {
   void Promise.resolve(capture?.stop())
     .catch(() => {})
     .then(() => supervisor.stop())
+    .then(() => {
+      // our daemon was recording: it keeps going, and exits by itself once the recording ends
+      if (supervisor.left) logLine({ event: 'daemon', kind: 'left-recording', ...supervisor.left })
+    })
     .finally(() => app.exit(0))
 })
 for (const sig of ['SIGTERM', 'SIGINT'] as const) process.on(sig, () => app.quit())
