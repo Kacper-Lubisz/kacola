@@ -22,20 +22,6 @@ tree; do not edit it by hand.
 | @codemirror/state | 6.7.6 | MIT |  |
 | @codemirror/view | 6.43.13 | MIT |  |
 | @electric-sql/pglite | 0.5.8 | Apache-2.0 | https://pglite.dev |
-| @emotion/hash | 0.9.2 | MIT | https://github.com/emotion-js/emotion/tree/main#readme |
-| @emotion/memoize | 0.9.0 | MIT | https://github.com/emotion-js/emotion/tree/main#readme |
-| @emotion/serialize | 1.3.3 | MIT | https://github.com/emotion-js/emotion/tree/main#readme |
-| @emotion/unitless | 0.10.0 | MIT | https://github.com/emotion-js/emotion/tree/main#readme |
-| @emotion/utils | 1.4.2 | MIT | https://github.com/emotion-js/emotion/tree/main#readme |
-| @esbuild/linux-x64 | 0.28.2 | MIT | https://github.com/evanw/esbuild#readme |
-| @gtkx/cairo | 1.6.0 | MPL-2.0 | https://gtkx.dev |
-| @gtkx/config | 1.6.0 | MPL-2.0 | https://gtkx.dev |
-| @gtkx/css | 1.6.0 | MPL-2.0 | https://gtkx.dev |
-| @gtkx/native | 1.6.0 | MPL-2.0 | https://gtkx.dev |
-| @gtkx/native-linux-x64-gnu | 1.6.0 | MPL-2.0 | https://gtkx.dev |
-| @gtkx/react | 1.6.0 | MPL-2.0 | https://gtkx.dev |
-| @gtkx/runtime | 1.6.0 | MPL-2.0 | https://gtkx.dev |
-| @gtkx/utils | 1.6.0 | MPL-2.0 | https://gtkx.dev |
 | @hono/node-server | 2.1.1 | MIT | https://github.com/honojs/node-server |
 | @internationalized/date | 3.12.4 | Apache-2.0 | https://github.com/adobe/react-spectrum/tree/main#readme |
 | @internationalized/number | 3.6.8 | Apache-2.0 | https://github.com/adobe/react-spectrum#readme |
@@ -49,11 +35,7 @@ tree; do not edit it by hand.
 | @lezer/markdown | 1.7.2 | MIT |  |
 | @marijn/find-cluster-break | 1.0.4 | MIT | https://code.haverbeke.berlin/marijn/find-cluster-break |
 | @modelcontextprotocol/sdk | 1.30.1 | MIT | https://modelcontextprotocol.io |
-| @oxc-project/types | 0.151.0 | MIT | https://oxc.rs |
 | @react-types/shared | 3.36.1 | Apache-2.0 | https://github.com/adobe/react-spectrum#readme |
-| @rolldown/binding-linux-x64-gnu | 1.2.11 | MIT | https://rolldown.rs/ |
-| @rolldown/binding-linux-x64-musl | 1.2.11 | MIT | https://rolldown.rs/ |
-| @rolldown/pluginutils | 1.0.1 | MIT | https://github.com/rolldown/plugins/tree/main/packages/pluginutils#readme |
 | @stablelib/base64 | 1.0.1 | MIT | https://github.com/StableLib/stablelib/tree/master/packages/base64 |
 | @swc/helpers | 0.5.23 | Apache-2.0 | https://swc.rs |
 | @tanstack/history | 1.162.4 | MIT | https://tanstack.com/router |
@@ -65,7 +47,7 @@ tree; do not edit it by hand.
 | @tanstack/router-core | 1.171.33 | MIT | https://tanstack.com/router |
 | @tanstack/store | 0.11.2 | MIT | https://tanstack.com/store |
 | @tanstack/virtual-core | 3.17.11 | MIT | https://tanstack.com/virtual |
-| @types/node | 18.19.130, 26.6.3 | MIT | https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node |
+| @types/node | 18.19.130 | MIT | https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node |
 | @types/react | 19.3.0 | MIT | https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react |
 | @typesafe-ai/sdk | 0.6.0 | MIT | https://docs.typesafe.ai/sdk/javascript |
 | @vercel/blob | 2.8.0 | Apache-2.0 | https://vercel.com/storage/blob |
@@ -81,13 +63,10 @@ tree; do not edit it by hand.
 | better-sqlite3 | 13.0.3 | MIT | http://github.com/WiseLibs/better-sqlite3 |
 | body-parser | 2.3.0 | MIT | https://github.com/expressjs/body-parser#readme |
 | bytes | 3.1.2 | MIT | https://github.com/visionmedia/bytes.js#readme |
-| c12 | 3.3.4 | MIT | https://github.com/unjs/c12#readme |
 | call-bind-apply-helpers | 1.0.2 | MIT | https://github.com/ljharb/call-bind-apply-helpers#readme |
 | call-bound | 1.0.4 | MIT | https://github.com/ljharb/call-bound#readme |
-| chokidar | 5.0.0 | MIT | https://github.com/paulmillr/chokidar |
 | client-only | 0.0.1 | MIT | https://reactjs.org/ |
 | clsx | 2.1.1 | MIT | https://github.com/lukeed/clsx#readme |
-| confbox | 0.2.4, 0.3.1 | MIT | https://github.com/unjs/confbox#readme |
 | content-disposition | 1.1.0 | MIT | https://github.com/jshttp/content-disposition#readme |
 | content-type | 1.0.5, 2.1.0 | MIT | https://github.com/jshttp/content-type#readme |
 | cookie | 0.7.2 | MIT | https://github.com/jshttp/cookie#readme |
@@ -100,18 +79,13 @@ tree; do not edit it by hand.
 | debug | 4.4.3 | MIT | https://github.com/debug-js/debug#readme |
 | define-data-property | 1.1.4 | MIT | https://github.com/ljharb/define-data-property#readme |
 | define-properties | 1.2.1 | MIT | https://github.com/ljharb/define-properties#readme |
-| defu | 6.1.7 | MIT | https://github.com/unjs/defu#readme |
 | depd | 2.0.0 | MIT | https://github.com/dougwilson/nodejs-depd#readme |
-| destr | 2.0.5 | MIT | https://github.com/unjs/destr#readme |
-| detect-libc | 2.1.2 | Apache-2.0 | https://github.com/lovell/detect-libc#readme |
-| dotenv | 17.4.2 | BSD-2-Clause | https://github.com/motdotla/dotenv#readme |
 | dunder-proto | 1.0.1 | MIT | https://github.com/es-shims/dunder-proto#readme |
 | ee-first | 1.1.1 | MIT | https://github.com/jonathanong/ee-first#readme |
 | encodeurl | 2.0.0 | MIT | https://github.com/pillarjs/encodeurl#readme |
 | es-define-property | 1.0.1 | MIT | https://github.com/ljharb/es-define-property#readme |
 | es-errors | 1.3.0 | MIT | https://github.com/ljharb/es-errors#readme |
 | es-object-atoms | 1.1.2 | MIT | https://github.com/ljharb/es-object-atoms#readme |
-| esbuild | 0.28.2 | MIT | https://github.com/evanw/esbuild#readme |
 | escape-html | 1.0.3 | MIT | https://github.com/component/escape-html#readme |
 | escape-string-regexp | 4.0.0 | MIT | https://github.com/sindresorhus/escape-string-regexp#readme |
 | etag | 1.8.1 | MIT | https://github.com/jshttp/etag#readme |
@@ -120,11 +94,9 @@ tree; do not edit it by hand.
 | execa | 5.1.1 | MIT | https://github.com/sindresorhus/execa#readme |
 | express | 5.2.1 | MIT | https://expressjs.com/ |
 | express-rate-limit | 8.7.0 | MIT | https://github.com/express-rate-limit/express-rate-limit |
-| exsolve | 1.1.1 | MIT | https://github.com/unjs/exsolve#readme |
 | fast-deep-equal | 3.1.3 | MIT | https://github.com/epoberezkin/fast-deep-equal#readme |
 | fast-sha256 | 1.3.0 | Unlicense | https://github.com/dchest/fast-sha256-js#readme |
 | fast-uri | 3.1.8 | BSD-3-Clause | https://github.com/fastify/fast-uri |
-| fdir | 6.5.0 | MIT | https://github.com/thecodrr/fdir#readme |
 | finalhandler | 2.1.1 | MIT | https://github.com/pillarjs/finalhandler#readme |
 | forwarded | 0.2.0 | MIT | https://github.com/jshttp/forwarded#readme |
 | fresh | 2.0.0 | MIT | https://github.com/jshttp/fresh#readme |
@@ -132,7 +104,6 @@ tree; do not edit it by hand.
 | get-intrinsic | 1.3.0 | MIT | https://github.com/ljharb/get-intrinsic#readme |
 | get-proto | 1.0.1 | MIT | https://github.com/ljharb/get-proto#readme |
 | get-stream | 6.0.1 | MIT | https://github.com/sindresorhus/get-stream#readme |
-| giget | 3.3.1 | MIT | https://github.com/unjs/giget#readme |
 | global-agent | 4.1.3 | BSD-3-Clause | https://github.com/gajus/global-agent#readme |
 | globalthis | 1.0.4 | MIT | https://github.com/ljharb/System.global#readme |
 | gopd | 1.2.0 | MIT | https://github.com/ljharb/gopd#readme |
@@ -153,15 +124,11 @@ tree; do not edit it by hand.
 | is-stream | 2.0.1 | MIT | https://github.com/sindresorhus/is-stream#readme |
 | isbot | 5.2.2 | Unlicense | https://isbot.js.org |
 | isexe | 2.0.0 | ISC | https://github.com/isaacs/isexe#readme |
-| jiti | 2.7.0 | MIT | https://github.com/unjs/jiti#readme |
 | jose | 5.10.0, 6.2.12 | MIT | https://github.com/panva/jose |
 | json-schema-to-ts | 3.1.1 | MIT | https://github.com/ThomasAribart/json-schema-to-ts#readme |
 | json-schema-traverse | 1.0.0 | MIT | https://github.com/epoberezkin/json-schema-traverse#readme |
 | json-schema-typed | 8.0.2 | BSD-2-Clause | https://github.com/RemyRylan/json-schema-typed/tree/main/dist/node |
 | kysely | 0.29.6 | MIT | https://kysely.dev |
-| lightningcss | 1.33.0 | MPL-2.0 | https://github.com/parcel-bundler/lightningcss#readme |
-| lightningcss-linux-x64-gnu | 1.33.0 | MPL-2.0 | https://github.com/parcel-bundler/lightningcss#readme |
-| lightningcss-linux-x64-musl | 1.33.0 | MPL-2.0 | https://github.com/parcel-bundler/lightningcss#readme |
 | lucide-react | 1.49.0 | ISC | https://lucide.dev |
 | matcher | 4.0.0 | MIT | https://github.com/sindresorhus/matcher#readme |
 | math-intrinsics | 1.1.0 | MIT | https://github.com/es-shims/math-intrinsics#readme |
@@ -172,14 +139,12 @@ tree; do not edit it by hand.
 | mime-types | 3.0.2 | MIT | https://github.com/jshttp/mime-types#readme |
 | mimic-fn | 2.1.0 | MIT | https://github.com/sindresorhus/mimic-fn#readme |
 | ms | 2.1.3 | MIT | https://github.com/vercel/ms#readme |
-| nanoid | 3.3.19 | MIT | https://github.com/ai/nanoid#readme |
 | negotiator | 1.1.0 | MIT | https://github.com/jshttp/negotiator#readme |
 | node-addon-api | 8.9.2 | MIT | https://github.com/nodejs/node-addon-api |
 | npm-run-path | 4.0.1 | MIT | https://github.com/sindresorhus/npm-run-path#readme |
 | object-assign | 4.1.1 | MIT | https://github.com/sindresorhus/object-assign#readme |
 | object-inspect | 1.13.4 | MIT | https://github.com/inspect-js/object-inspect |
 | object-keys | 1.1.1 | MIT | https://github.com/ljharb/object-keys#readme |
-| ohash | 2.0.12 | MIT | https://github.com/unjs/ohash#readme |
 | on-finished | 2.4.1 | MIT | https://github.com/jshttp/on-finished#readme |
 | once | 1.4.0 | ISC | https://github.com/isaacs/once#readme |
 | onetime | 5.1.2 | MIT | https://github.com/sindresorhus/onetime#readme |
@@ -189,8 +154,6 @@ tree; do not edit it by hand.
 | parseurl | 1.3.3 | MIT | https://github.com/pillarjs/parseurl#readme |
 | path-key | 3.1.1 | MIT | https://github.com/sindresorhus/path-key#readme |
 | path-to-regexp | 8.4.2 | MIT | https://github.com/pillarjs/path-to-regexp#readme |
-| pathe | 2.0.3 | MIT | https://github.com/unjs/pathe#readme |
-| perfect-debounce | 2.1.0 | MIT | https://github.com/unjs/perfect-debounce#readme |
 | pg | 8.23.0 | MIT | https://github.com/brianc/node-postgres |
 | pg-cloudflare | 1.4.0 | MIT | https://github.com/brianc/node-postgres#readme |
 | pg-connection-string | 2.14.0 | MIT | https://github.com/brianc/node-postgres/tree/master/packages/pg-connection-string |
@@ -199,11 +162,7 @@ tree; do not edit it by hand.
 | pg-protocol | 1.16.0 | MIT | https://github.com/brianc/node-postgres#readme |
 | pg-types | 2.2.0 | MIT | https://github.com/brianc/node-pg-types |
 | pgpass | 1.0.5 | MIT | https://github.com/hoegaarden/pgpass#readme |
-| picocolors | 1.1.1 | ISC | https://github.com/alexeyraspopov/picocolors#readme |
-| picomatch | 4.0.7 | MIT | https://github.com/micromatch/picomatch |
 | pkce-challenge | 5.0.1 | MIT | https://github.com/crouchcd/pkce-challenge#readme |
-| pkg-types | 2.3.3 | MIT | https://github.com/unjs/pkg-types#readme |
-| postcss | 8.5.28 | MIT | https://postcss.org/ |
 | postgres-array | 2.0.0 | MIT | https://github.com/bendrucker/postgres-array#readme |
 | postgres-bytea | 1.0.1 | MIT | https://github.com/bendrucker/postgres-bytea#readme |
 | postgres-date | 1.0.7 | MIT | https://github.com/bendrucker/postgres-date#readme |
@@ -212,20 +171,16 @@ tree; do not edit it by hand.
 | qs | 6.16.0 | BSD-3-Clause | https://github.com/ljharb/qs |
 | range-parser | 1.3.0 | MIT | https://github.com/jshttp/range-parser#readme |
 | raw-body | 3.0.2 | MIT | https://github.com/stream-utils/raw-body#readme |
-| rc9 | 3.1.0 | MIT | https://github.com/unjs/rc9#readme |
 | react | 19.3.0 | MIT | https://react.dev/ |
 | react-aria | 3.52.1 | Apache-2.0 | https://github.com/adobe/react-spectrum#readme |
 | react-aria-components | 1.21.1 | Apache-2.0 | https://github.com/adobe/react-spectrum#readme |
 | react-dom | 19.3.0 | MIT | https://react.dev/ |
-| react-reconciler | 0.33.0 | MIT | https://react.dev/ |
 | react-stately | 3.50.0 | Apache-2.0 | https://github.com/adobe/react-spectrum#readme |
-| readdirp | 5.1.1 | MIT | https://github.com/paulmillr/readdirp |
 | require-from-string | 2.0.2 | MIT | https://github.com/floatdrop/require-from-string#readme |
 | retry | 0.13.1 | MIT | https://github.com/tim-kos/node-retry |
-| rolldown | 1.2.11 | MIT | https://rolldown.rs/ |
 | router | 2.2.0 | MIT | https://github.com/pillarjs/router#readme |
 | safer-buffer | 2.1.2 | MIT | https://github.com/ChALkeR/safer-buffer#readme |
-| scheduler | 0.27.0, 0.28.0 | MIT | https://react.dev/ |
+| scheduler | 0.28.0 | MIT | https://react.dev/ |
 | semver | 7.8.5 | ISC | https://github.com/npm/node-semver#readme |
 | send | 1.2.1 | MIT | https://github.com/pillarjs/send#readme |
 | serialize-error | 8.1.0 | MIT | https://github.com/sindresorhus/serialize-error#readme |
@@ -242,34 +197,29 @@ tree; do not edit it by hand.
 | side-channel-map | 1.0.1 | MIT | https://github.com/ljharb/side-channel-map#readme |
 | side-channel-weakmap | 1.0.2 | MIT | https://github.com/ljharb/side-channel-weakmap#readme |
 | signal-exit | 3.0.7 | ISC | https://github.com/tapjs/signal-exit |
-| source-map-js | 1.2.1 | BSD-3-Clause | https://github.com/7rulnik/source-map-js |
 | split2 | 4.2.0 | ISC | https://github.com/mcollina/split2#readme |
 | standardwebhooks | 1.1.1 | MIT | https://github.com/standard-webhooks/standard-webhooks/tree/main/libraries/javascript |
 | statuses | 2.0.2 | MIT | https://github.com/jshttp/statuses#readme |
 | strip-final-newline | 2.0.0 | MIT | https://github.com/sindresorhus/strip-final-newline#readme |
 | style-mod | 4.1.4 | MIT | https://code.haverbeke.berlin/marijn/style-mod |
-| stylis | 4.4.0 | MIT | https://github.com/thysultan/stylis.js |
 | throttleit | 2.1.0 | MIT | https://github.com/sindresorhus/throttleit#readme |
 | tiktoken | 1.0.22 | MIT | https://github.com/dqbd/tiktoken#readme |
-| tinyglobby | 0.2.17 | MIT | https://superchupu.dev/tinyglobby |
 | toidentifier | 1.0.1 | MIT | https://github.com/component/toidentifier#readme |
 | ts-algebra | 2.0.0 | MIT | https://github.com/ThomasAribart/ts-algebra#readme |
 | tslib | 2.8.1 | 0BSD | https://www.typescriptlang.org/ |
 | type-fest | 0.20.2 | (MIT OR CC0-1.0) | https://github.com/sindresorhus/type-fest#readme |
 | type-is | 2.1.0 | MIT | https://github.com/jshttp/type-is#readme |
 | undici | 6.29.0 | MIT | https://undici.nodejs.org |
-| undici-types | 5.26.5, 8.9.0 | MIT | https://undici.nodejs.org |
+| undici-types | 5.26.5 | MIT | https://undici.nodejs.org |
 | unpipe | 1.0.0 | MIT | https://github.com/stream-utils/unpipe#readme |
 | use-sync-external-store | 1.7.0 | MIT | https://github.com/react/react#readme |
 | vary | 1.1.2 | MIT | https://github.com/jshttp/vary#readme |
-| vite | 8.3.1 | MIT | https://vite.dev |
 | w3c-keyname | 2.2.8 | MIT | https://github.com/marijnh/w3c-keyname#readme |
 | which | 2.0.2 | ISC | https://github.com/isaacs/node-which#readme |
 | wrappy | 1.0.2 | ISC | https://github.com/npm/wrappy |
 | xdg-app-paths | 5.5.1 | MIT | https://github.com/rivy/js.xdg-app-paths#readme |
 | xdg-portable | 7.3.0 | MIT | https://github.com/rivy/js.xdg-portable#readme |
 | xtend | 4.0.2 | MIT | https://github.com/Raynos/xtend |
-| yaml | 2.9.1 | ISC | https://eemeli.org/yaml/ |
 | zod | 4.1.11, 4.6.5 | MIT | https://zod.dev |
 | zod-to-json-schema | 3.25.2 | ISC | https://github.com/StefanTerdell/zod-to-json-schema#readme |
 | zustand | 5.0.15 | MIT | https://github.com/pmndrs/zustand |

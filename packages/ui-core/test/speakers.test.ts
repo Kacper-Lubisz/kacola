@@ -1,6 +1,5 @@
 import type { AnyEvent, DurableEventData, Segment, Speaker, SpeakerSummary } from '@gnomeola/protocol'
 import { describe, expect, it } from 'vitest'
-import { createDemoSource } from '../src/demo-source.ts'
 import {
   applySpeakerEvent,
   emptySpeakers,
@@ -253,45 +252,5 @@ describe('SpeakersFeed', () => {
     expect(feed.getSnapshot().speakers.byId.get('spk_a')!.segments).toBe(2)
     feed.dispose()
     expect(listeners.size).toBe(0)
-  })
-})
-
-describe('demo source speakers', () => {
-  it('seeds diarized far-end speakers and follows the daemon rules for rename, merge and split', async () => {
-    const src = createDemoSource({ setInterval: () => 0, clearInterval: () => {} })
-    const events: AnyEvent[] = []
-    const ac = new AbortController()
-    const snap = await src.load(ac.signal)
-    void src.subscribe({
-      since: snap.seq,
-      signal: ac.signal,
-      onEvent: (e) => events.push(e),
-      onConnect() {},
-      onDisconnect() {},
-    })
-    const id = snap.sessions.find((s) => s.status === 'stopped')!.id
-    const list = await src.listSpeakers(id)
-    expect(list.map((s) => s.label)).toEqual(['me', 'Speaker 1', 'Speaker 2'])
-    const [, a, b] = list
-    await expect(src.renameSpeaker(id, a!.id, 'Me')).rejects.toThrow(/reserved/)
-    await src.renameSpeaker(id, a!.id, 'Ana')
-    await expect(src.renameSpeaker(id, b!.id, 'ana')).rejects.toThrow(/merge them instead/)
-    const t = await src.transcript(id)
-    const mine = t.segments.filter((g) => g.speakerId === a!.id)
-    expect(mine.every((g) => g.speaker === 'Ana')).toBe(true)
-    const split = await src.splitSpeaker(id, a!.id, [mine[0]!.id])
-    expect(split.colour).toBe(2)
-    await src.mergeSpeaker(id, split.id, b!.id)
-    expect((await src.listSpeakers(id)).map((s) => s.label)).toEqual(['me', 'Ana', 'Speaker 2'])
-    const mic = (await src.transcript(id)).segments.find((g) => g.track === 'mic')!
-    await expect(src.splitSpeaker(id, 'me', [mic.id])).rejects.toThrow()
-    expect(events.map((e) => e.data.type)).toEqual([
-      'speaker.upserted',
-      'speaker.upserted',
-      'segments.attributed',
-      'speaker.merged',
-    ])
-    ac.abort()
-    src.dispose()
   })
 })

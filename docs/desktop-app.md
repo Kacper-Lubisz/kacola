@@ -1,14 +1,14 @@
 # The Electron window (packages/desktop)
 
-The window is moving from GTK (`packages/ui`, GTKX) to Electron. Both run until the cut-over (E-12): the
-GTK app and the Electron app share `packages/ui-core`. This page is the contract for everyone building
-screens in `packages/desktop`.
+The window is Electron. It replaced the GTK 4 / libadwaita app (`packages/ui`, GTKX), which was deleted
+at the cut-over (E-12) once every behaviour of its suites was asserted here (the checklist at the end).
+This page is the contract for everyone building screens in `packages/desktop`.
 
 ```
-packages/ui-core/          the data layer, GTK-free, DOM-free, Node-free (moved from packages/ui/src/data)
-  src/{sessions,transcript,qa,notes,speakers,settings,format,follow,list-diff}.ts   pure folds + view logic
-  src/{store,hooks,source,daemon-source,demo-source}.ts                            the GTK app's store/feeds
-  src/i18n.ts                                                                      _(), ngettext(), fmt()
+packages/ui-core/          the data layer, DOM-free, Node-free (moved from the GTK app's src/data)
+  src/{sessions,transcript,qa,notes,speakers,settings,format}.ts   pure folds, feeds + view logic
+  src/hooks.ts                                                     useNow()
+  src/i18n.ts                                                      _(), ngettext(), fmt()
   import as '@gnomeola/ui-core/<file>' (subpath exports, no barrel)
 
 packages/desktop/
@@ -46,6 +46,7 @@ packages/desktop/
     features/onboarding/    first run: models, capture, calendar, CLI + skill
     features/about/         About (Granola credit, licence, notices)
   test/                     unit + jsdom component tests (vitest `unit` project)
+  translations/             gnomeola.pot + LINGUAS (scripts/i18n-pot.ts; see "Translations")
 packages/testkit/src/desktop/   Playwright-for-Electron harness + footprint probes
 packages/e2e/test/desktop-*.{int,e2e}.test.ts   tunnel/supervisor against the real daemon; window e2e
 ```
@@ -321,8 +322,8 @@ full height) and runs axe over it in light, dark and high contrast. Icons: impor
 Dialogs: `useDialogs().open('preferences')`; toasts: `useToast()(text, { tone: 'error' })`.
 
 **Strings.** Every user-visible string through `_()` / `ngettext()` from `@gnomeola/ui-core/i18n`,
-reusing the GTK app's msgids where the meaning is the same. Catalogues are JSON from main
-(`gnomeola.catalogue()`); compiling `translations/*.po` to JSON is E-10.
+the literal msgid as the first argument (never a variable). Catalogues are JSON from main
+(`gnomeola.catalogue()`); see "Translations".
 
 **Tests.**
 - Pure logic, data layer: `packages/desktop/test/*.test.ts` (unit project, Node).
@@ -438,6 +439,51 @@ Contracts: docs/agendas.md (agenda core, drafting) and the agent channel's owner
   none / it failed. A next-point card the tracker replaced arrives dismissed by `tracker` and is simply
   hidden (only open cards show); it is never treated as the user's dismissal.
 
+## Headless test display
+
+Every window e2e runs inside a throwaway GNOME session from `@gnomeola/testkit/ui`
+(`startHeadlessDisplay()`), never on the developer's desktop:
+
+| process | why |
+| --- | --- |
+| `dbus-daemon` ×3 | private **session**, **system** and **accessibility** buses. The private system bus keeps the Shell away from the real logind / GDM. No service activation is configured, so nothing is spawned behind our back. |
+| `at-spi2-registryd` | the AT-SPI registry, started explicitly (Fedora's bus launcher would activate it through systemd, which fails here). |
+| `gnome-shell --headless --virtual-monitor WxH --wayland --no-x11` | the compositor, in a custom session mode without the overview. Chosen over bare mutter for `org.gnome.Shell.Screenshot` and `RemoteDesktop` (real keyboard input). No GPU: Chromium falls back to SwiftShader. |
+| `python3 atspi-driver.py` | AT-SPI client (`gi.repository.Atspi`), JSON lines over stdio — what `desktop-atspi` reads Chromium's tree with. |
+
+Host requirements: `gnome-shell` 50, `dbus-daemon` (the reference implementation), `at-spi2-core`,
+`python3` with PyGObject and the `Atspi-2.0` typelib, and `setpriv` (util-linux). A missing piece fails
+`startHeadlessDisplay()` loudly with every process's log — tests never skip.
+
+Isolation: `XDG_RUNTIME_DIR`, `HOME` and every `XDG_*_HOME` point into a fresh `/tmp/gnomeola-ui-*` dir;
+`GSETTINGS_BACKEND=keyfile` with a seeded keyfile (no welcome dialog, animations, lock or notification
+banners); the environment is built from scratch, so `DISPLAY` / `WAYLAND_DISPLAY` / the session bus
+cannot leak in. Every child runs under `setpriv --pdeathsig SIGKILL` and carries
+`GNOMEOLA_HEADLESS_ID=<id>`; `close()` stops them in reverse order, then kills anything in `/proc` still
+carrying the marker (`markedPids(id)` → `[]` is how suites assert a clean teardown).
+`startHeadlessDisplay({ extensions: [dir] })` installs and enables Shell extensions in that session only
+(the extension suites and `install.e2e`). The harness's own e2e (`packages/testkit/src/ui/e2e/
+harness.e2e.test.ts`) drives a 60-line PyGObject app (`fixture-app.py`).
+
+## Translations
+
+Every user-visible string goes through `_()` / `ngettext()` from `@gnomeola/ui-core/i18n`, with `fmt()` for
+named placeholders *after* translation (`fmt(_('{speaker} at {time}: {text}'), {…})`, so translators can
+reorder). Module-level label tables are functions (`providers()`, `statusLabel()`), so they translate
+when used, not at import time.
+
+- `packages/desktop/translations/gnomeola.pot` is generated by `pnpm --filter @gnomeola/desktop i18n:pot`
+  (GNU xgettext ≥ 0.23 reads TSX) from `src/renderer` and `packages/ui-core/src`, deterministically (no
+  creation date). `test/i18n.test.ts` (unit, no xgettext) fails when a wrapped string is missing from the
+  template, when the template has stale entries, or when `_()` is called with a non-literal.
+- At run time main loads `<lang>.json` for the first preferred language (`LANGUAGE`, then `LC_ALL` /
+  `LC_MESSAGES` / `LANG`, then the system's) from `resources/locale` (packaged) or `GNOMEOLA_LOCALE_DIR`,
+  and the renderer installs it with `setTranslator` before the first paint; English is the source strings.
+  Asserted by desktop-shell's translation test with a catalogue in a temp dir.
+- Only English exists. Adding a language: `msginit -i translations/gnomeola.pot -l de -o
+  translations/de.po`, list it in `translations/LINGUAS`; compiling `.po` → `<lang>.json` into the
+  packaged `resources/locale` is not wired yet (E-10).
+
 ## Footprint (E-1 gate, 2026-09-30)
 
 Measured inside the headless GNOME Shell 50.4 (Wayland, `--virtual-monitor 1280x800`,
@@ -477,6 +523,56 @@ headless Shell, where the GPU process runs SwiftShader; `--in-process-gpu` (347)
 still not applied; the renderer grew 19 MB and main 9 MB since phase 1). Cold start still beats GTK:
 first pixels 779–913 ms against 1021–1033 ms.
 
+### Memory investigation (E-12, 2026-09-30)
+
+A/B in the same session, `desktop-perf.e2e` 3 runs each (PSS, MB):
+
+| | total | main | GPU | renderer | network | broker | zygotes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| before | 402–405 | 120–123 | 115–116 | 88 | 29 | 20 | 12+12+5 |
+| after | **392–393** | 115–116 | 115–116 | 83 | 29 | 20 | 12+12+5 |
+
+(Absolute figures move by a few MB with whatever else is running on the machine; a separate copy of the
+tree, run alone, measured 397–399 → 386–387, with main 123 → 115–116 and the renderer 85–87 → 81–82.)
+
+What main holds, from its smaps and V8 heap snapshots (via `--inspect`): about 50 MB is its share of the
+Electron binary's pages and 40–56 MB is anonymous memory. Its V8 heap is small, about 13 MB committed and
+10 MB used. A bare Electron window's main (a sandboxed `data:` page) sits at 101 MB, and 108 MB once it
+uses Node's `fetch` (undici's JS and llhttp wasm: +7 MB). The app's main has no big dependency: its
+bundle is 282 kB (zod + the protocol route table included), and Node's built-ins dominate its strings.
+The extra ~10 MB was **garbage**. At start-up the app:// handler streams the renderer bundle and fonts
+through JS `Response` bodies, and V8 collects on allocation, never on idleness: the main isolate gets
+no idle-time GC. So after start-up about 7 MB of dead buffers (V8 `external` 11.7 → 4.4 MB) plus dead
+heap objects stayed resident indefinitely. One forced full GC took main from 123 to 113 MB.
+
+Changes:
+- `src/main/memory.ts` `IdleCollector`: a full GC of main (a few ms on a ~10 MB heap, `gc` exposed at
+  runtime) 10 s after the first paint, after the window closes (background mode) and every 5 minutes, so
+  the garbage from the tunnel's streams doesn't pile up to V8's external-memory trigger (~64 MB) either.
+  Main: −5 to −7 MB. `--js-flags=--max-semi-space-size=1` had the same effect on the command line.
+  Setting it from main with `v8.setFlagsFromString` does nothing (the heap is already configured), and
+  every launcher would have to pass it, so the GC was chosen instead.
+- The renderer bundle is minified, and the renderer, main and preload bundles are ASCII-only
+  (`asciiOnly()` in `electron.vite.config.ts` escapes every non-ASCII unit). V8 keeps a script's
+  source for as long as it runs. Unminified, with a few em-dashes and CLDR symbols in it, the 3.1 MB
+  renderer bundle was a two-byte 6 MB string. It is now 1.4 MB of one-byte source. esbuild's
+  `charset: 'ascii'` leaves regex literals alone (protocol's action-item regexes carry `—–`), hence the
+  plugin. Renderer: −5 MB; its V8 heap went from 13.8 to 12.4 MB used.
+
+What remains (392 against the 350 gate, all measured, none cheap):
+- **GPU process, 115 MB**: SwiftShader / the GL stack in the headless Shell, the same as a bare window
+  (112). Only GPU flags move it (see above), and those are out of scope here.
+- **Chromium's fixed processes**: zygotes, broker and the network service come to about 77 MB. A bare
+  window has the same.
+- **Main, ~115 MB**: about 101 MB is what any Electron main costs, plus undici for Node `fetch`
+  (+7 MB). Moving main's HTTP (the supervisor's health checks, the tunnel, main's protocol client) to
+  Electron's `net.fetch` would drop undici. But it changes the tunnel's request semantics (Chromium's
+  stack may add `Origin`, which the daemon's CSRF guard reads), so it wasn't done as a cheap win.
+- **Renderer, ~83 MB against 42 for a bare page**: +13 MB of Electron binary pages (Blink paths a
+  data: page never touches), about 12 MB of V8 heap for React + React Aria + TanStack + CodeMirror, and
+  Blink's style/layout for the screens. Code-splitting CodeMirror or the `#/gallery` route would save
+  1–2 MB at most.
+
 Reproduce: `node packages/testkit/src/desktop/e1-spike/measure.ts` (`RUNS=n`, `ONLY=1` for Electron only,
 `EXTRA="--flags"`). The real app is tracked by the non-blocking perf e2e
 (`packages/e2e/test/desktop-perf.e2e.test.ts`): it writes `__artifacts__/desktop-perf.json` and warns
@@ -505,8 +601,8 @@ run as an unprivileged user (Chromium's sandbox refuses root).
 
 ### GTK → desktop checklist
 
-Every behavioural assertion of the GTK window's suites and where the Electron window asserts it, so
-nothing is dropped when `packages/ui` goes (E-12). ✓ = asserted by a desktop e2e against the real daemon
+Every behavioural assertion of the GTK window's suites (deleted with `packages/ui` at the cut-over, E-12)
+and where the Electron window asserts it, so nothing was dropped. ✓ = asserted by a desktop e2e against the real daemon
 (or the protocol stub where the GTK test used one); n/a = GTK plumbing with no Electron meaning.
 
 | GTK test (file › test) | desktop equivalent | status |

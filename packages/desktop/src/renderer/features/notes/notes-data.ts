@@ -9,7 +9,7 @@ import type { Api, Queries } from '../../data/queries.ts'
 import { useServices } from '../../data/services.tsx'
 
 // The notes pane's data: ui-core's NotesFeed (draft + 800 ms autosave + optimistic concurrency +
-// enhance + merge + restore — the same tested controller the GTK window runs) wired to this window's
+// enhance + merge + restore — the controller the GTK window ran, unit-tested in ui-core) wired to this window's
 // services. Its reads go through React Query (so `['notes', id]`, `['templates', id]` are the cache
 // every screen shares and the EventBridge keeps folded), its events come from the one EventBridge, its
 // writes are the protocol routes. What only the editor knows (the unsaved draft, streaming tokens) stays

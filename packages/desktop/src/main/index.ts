@@ -44,6 +44,7 @@ import { DeepLinkQueue, deepLinkFromArgv, normalizeDeepLink, schemeRegistration 
 import { extensionSource, extensionStatus, installExtension } from './extension.ts'
 import { checkClipboardText, checkSaveRequest, type SaveDialogOptions, saveText } from './files.ts'
 import { cliEntry, Integration, runCli, shq } from './integration.ts'
+import { IdleCollector } from './memory.ts'
 import { loadCatalogue, preferredLanguages, readNotices, readUiState, writeUiState } from './resources.ts'
 import {
   APP_ORIGIN,
@@ -102,6 +103,8 @@ let theme: Theme = { scheme: 'light', contrast: 'normal', accent: null }
 let buttonLayout = 'appmenu:close'
 /** webContents ids allowed to capture audio (macOS in-app capture, later). The main window never is. */
 const captureWindows = new Set<number>()
+/** Main's own garbage, collected after start-up and window bursts (memory.ts). */
+const idleGc = new IdleCollector({ settleMs: 10_000, periodMs: 5 * 60_000 })
 
 const config = readDesktopConfig(process.env, process.argv, {
   resourcesPath: app.isPackaged ? process.resourcesPath : undefined,
@@ -451,7 +454,7 @@ function wireIpc(): void {
   )
   handle(IPC.i18n, () =>
     loadCatalogue(
-      // GNOMEOLA_LOCALE_DIR: a directory of <lang>.json catalogues (tests; the GTK app honours it too)
+      // GNOMEOLA_LOCALE_DIR: a directory of <lang>.json catalogues (tests)
       process.env.GNOMEOLA_LOCALE_DIR ||
         (app.isPackaged ? join(process.resourcesPath, 'locale') : join(HERE, '..', 'locale')),
       preferredLanguages(process.env, app.getPreferredSystemLanguages()),
@@ -576,11 +579,13 @@ function createWindow(): BrowserWindow {
   w.once('ready-to-show', () => {
     process.stdout.write(`${JSON.stringify({ event: 'window-ready' })}\n`)
     w.show()
+    idleGc.settle()
   })
   const id = w.webContents.id
   w.on('closed', () => {
     deepLinks.reset(id)
     if (mainWindow === w) mainWindow = null
+    idleGc.settle()
     mainWindowClosed()
   })
   // a reload is a new renderer: it takes again before links are pushed to it
@@ -671,6 +676,7 @@ void app.whenReady().then(async () => {
       : app.setAsDefaultProtocolClient(reg.scheme)
     if (!ok) logLine({ event: 'deep-link-scheme', kind: 'error', scheme: reg.scheme })
   }
+  idleGc.start().settle()
   if (coldDeepLink) receiveDeepLink(coldDeepLink)
   if (!config.background || deepLinks.hasPending) showWindow()
 })

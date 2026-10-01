@@ -1,6 +1,5 @@
 // THIRD_PARTY_NOTICES.md (served by main: the copy shipped in resources/, or the checkout's) → the About
-// dialog's component list. The same parser as the GTK app's packages/ui/src/data/notices.ts, which
-// the Electron window replaces at cut-over.
+// dialog's component list (the parser the GTK app's About used).
 
 export type Notice = { name: string; version: string; licence: string; homepage: string }
 

@@ -1,6 +1,6 @@
 import { type AnyEvent, ME, SPEAKER_COLOURS, type SpeakerSummary, THEM } from '@gnomeola/protocol'
 
-// M3 — who speaks in one session, as the UI sees it, and the pure fold that keeps it current. No GTK.
+// M3 — who speaks in one session, as the UI sees it, and the pure fold that keeps it current. Pure.
 //
 // The list comes from listSpeakers (`me`, each far-end speaker, `them` while anything is unattributed)
 // and follows the durable events the daemon's store applies:

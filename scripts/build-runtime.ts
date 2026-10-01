@@ -195,6 +195,12 @@ export function stageNatives(outDir: string, targets: Target[]): void {
   for (const t of targets) {
     const [platform, arch] = t.split('-')
     const bin = join('bin', 'napi-v6', platform!, arch!)
+    // onnxruntime-node 1.30 ships no darwin-x64 binary (Intel Macs). The daemon then falls back to the
+    // model-free hashing embedder (DecisionsService#localEmbedder), so a missing target is a warning.
+    if (!existsSync(join(ort, bin))) {
+      console.warn(`build-runtime: onnxruntime-node has no ${t} binary; that build uses the hashing embedder`)
+      continue
+    }
     cpSync(join(ort, bin), join(ortOut, bin), { recursive: true, dereference: true })
   }
   cpSync(join(dirname(ort), 'onnxruntime-common'), join(nm, 'onnxruntime-common'), {

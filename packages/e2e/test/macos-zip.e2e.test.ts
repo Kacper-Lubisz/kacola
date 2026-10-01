@@ -125,8 +125,19 @@ describe.each(ARCHS)('gnomeola.app (%s)', (arch) => {
     expect(cpuOf(exe)).toBe(CPU[arch])
     const natives = walk(res()).filter((p) => /\.(node|dylib)$/.test(p))
     const names = natives.map((p) => p.slice(res().length + 1)).sort()
+    // onnxruntime-node (the on-device decisions embedder) ships only an arm64 macOS build; Intel Macs
+    // fall back to the hashing embedder, so their bundle has no onnxruntime binaries at all
+    const ort =
+      arch === 'arm64'
+        ? [
+            'runtime/node_modules/onnxruntime-node/bin/napi-v6/darwin/arm64/libonnxruntime.1.30.0.dylib',
+            'runtime/node_modules/onnxruntime-node/bin/napi-v6/darwin/arm64/libonnxruntime.1.dylib',
+            'runtime/node_modules/onnxruntime-node/bin/napi-v6/darwin/arm64/onnxruntime_binding.node',
+          ]
+        : []
     expect(names).toEqual([
       `runtime/node_modules/better-sqlite3/prebuilds/darwin-${arch}.node`,
+      ...ort,
       `runtime/node_modules/sherpa-onnx-darwin-${arch}/libonnxruntime.dylib`,
       `runtime/node_modules/sherpa-onnx-darwin-${arch}/libsherpa-onnx-c-api.dylib`,
       `runtime/node_modules/sherpa-onnx-darwin-${arch}/libsherpa-onnx-cxx-api.dylib`,

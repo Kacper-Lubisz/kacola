@@ -41,8 +41,8 @@ describe('boundary rule', () => {
 
   it('flags a client that imports around its manifest', () => {
     const root = fixtureRepo({
-      'packages/ui/package.json': JSON.stringify({ dependencies: { '@gnomeola/protocol': 'workspace:*' } }),
-      'packages/ui/src/app.tsx': `import { db } from '../../store/src/index.ts'`,
+      'packages/web/package.json': JSON.stringify({ dependencies: { '@gnomeola/protocol': 'workspace:*' } }),
+      'packages/web/src/app.tsx': `import { db } from '../../store/src/index.ts'`,
     })
     const v = checkBoundaries(root)
     expect(v).toHaveLength(1)
@@ -61,7 +61,7 @@ describe('boundary rule', () => {
 })
 
 describe('window clients (Electron split)', () => {
-  it('lets the two window apps import ui-core, and nobody else', () => {
+  it('lets the window import ui-core, and nobody else', () => {
     const root = fixtureRepo({
       'packages/desktop/package.json': JSON.stringify({
         dependencies: { '@gnomeola/protocol': 'workspace:*', '@gnomeola/ui-core': 'workspace:*' },

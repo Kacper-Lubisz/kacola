@@ -8,7 +8,7 @@ export const meta = {
   title: 'gnomeola — architecture & delivery plan',
   owner: 'kacper',
   created: '2026-09-28',
-  status: 'all milestones M0–M9 built — release gate green; T5 manual, live LLM eval and a real Vercel deploy pending',
+  status: 'all milestones M0–M9 built; the window moved from GTK to Electron (kacola brand; GTK app deleted, installer ships the Electron app, Flatpak + macOS zips) — T5 manual, live LLM eval and a real Vercel deploy pending',
   icon: '🎙️',
 }
 
@@ -35,9 +35,9 @@ function ArchDiagram() {
       <text x="34" y="95" fontSize="11" fill="#64748b">top-bar indicator</text>
 
       <rect x="20" y="120" width="200" height="70" {...NEW} />
-      <text x="34" y="141" fontSize="13" fontWeight="700" fill="#0f172a">gnomeola UI</text>
-      <text x="34" y="159" fontSize="11" fill="#64748b">GTKX · React 19 · TS</text>
-      <text x="34" y="177" fontSize="11" fill="#64748b">real libadwaita widgets</text>
+      <text x="34" y="141" fontSize="13" fontWeight="700" fill="#0f172a">gnomeola window</text>
+      <text x="34" y="159" fontSize="11" fill="#64748b">Electron · React 19 · TS</text>
+      <text x="34" y="177" fontSize="11" fill="#64748b">kacola brand (was GTKX)</text>
 
       <rect x="20" y="202" width="200" height="82" fill="#eff6ff" stroke="#2563eb" strokeWidth="2.5" rx="7" />
       <text x="34" y="223" fontSize="13" fontWeight="700" fill="#0f172a">CLI + Claude skill</text>
@@ -420,7 +420,7 @@ export default function GnomeolaArchitecture() {
     <Page
       approved
       title="gnomeola — architecture & delivery plan"
-      subtitle="A GNOME-native Granola: dual-track recording, live speaker-attributed transcripts, a top-bar meeting indicator, and Q&A over what was said — reachable from a window, from the shell, and from Claude. React + libadwaita on a local backend that can move to the cloud, verified end to end at every milestone."
+      subtitle="A GNOME-native Granola: dual-track recording, live speaker-attributed transcripts, a top-bar meeting indicator, and Q&A over what was said — reachable from a window, from the shell, and from Claude. React (an Electron window, formerly libadwaita via GTKX) on a local backend that can move to the cloud, verified end to end at every milestone."
       meta={meta}
     >
       <Section title="What we are building">
@@ -433,7 +433,7 @@ export default function GnomeolaArchitecture() {
           Four things must be true, and they are what the whole design is organised around:
         </P>
         <UL>
-          <li><strong>It looks and feels like a GNOME app</strong> — real libadwaita widgets, not a web view in a window.</li>
+          <li><strong>It looks and feels like a GNOME app</strong> — real libadwaita widgets, not a web view in a window. <em>(Superseded 2026-09-30: the user moved the window to Electron for Flatpak + macOS builds and a brand of its own — kacola; GNOME integration stays through the top-bar extension, portals and the Linux header bar. See docs/desktop-app.md.)</em></li>
           <li><strong>It is written in TypeScript React</strong> — including the UI layer.</li>
           <li><strong>Every UI is a client, never the owner of state</strong> — every byte shown came over a wire protocol.</li>
           <li><strong>Transcripts say who spoke</strong> — attribution is a first-class column, not a post-hoc guess.</li>
@@ -480,7 +480,8 @@ export default function GnomeolaArchitecture() {
     store/         kysely schema, migrations, sqlite | postgres dialects
     llm/           LlmProvider: Claude client, prompt assembly, cache strategy
     calendar/      CalendarProvider: cal-agent driver | CalDAV driver
-    ui/            GTKX app — React 19, libadwaita                 (protocol only)
+    desktop/       Electron window — React 19 renderer, main supervises the daemon (protocol + ui-core)
+    ui-core/       the window's data layer: folds, view logic, i18n    (protocol only)
     shell-ext/     GNOME Shell 50 extension — GJS, no React
     cli/           gnomeola(1) — agent-facing, --json everywhere     (protocol only)
   skills/
@@ -491,6 +492,12 @@ export default function GnomeolaArchitecture() {
       </Section>
 
       <Section title="Decision 1 — how React reaches libadwaita">
+        <Callout tone="warn">
+          <strong>Superseded — the window is Electron now.</strong> GTKX carried the window through M0–M9. On 2026-09-30 it moved to Electron (packages/desktop: React 19,
+          TanStack Router/Query, React Aria, Tailwind over brand tokens), so one codebase also ships as a Flatpak
+          and a macOS app; every behaviour of the GTK suites is asserted by the Electron e2e suites, and
+          packages/ui was deleted (E-12). The decision below is kept as the record of why GTKX was chosen then.
+        </Callout>
         <P>
           You offered to build the React interface for GNOME ourselves. We should check whether we need to
           first: <strong>we do not</strong>. <a href="https://github.com/gtkx-org/gtkx">GTKX</a> is exactly this
@@ -843,7 +850,7 @@ No spinners, no colour, no prompts when piped.`}</Pre>
             ['T0 unit', 'reducers, parsers, window maths, prompt assembly', 'every commit', 'under 10 s', <Pill tone="bad">blocking</Pill>],
             ['T1 contract', 'protocol schemas, client/server drift, D-Bus signature', 'every commit', 'under 10 s', <Pill tone="bad">blocking</Pill>],
             ['T2 integration', 'daemon + real SQLite + fake capture + LLM cassettes', 'every commit', 'under 90 s', <Pill tone="bad">blocking</Pill>],
-            ['T3 e2e', 'real PipeWire rig, real models, GTK via AT-SPI, nested Shell', 'pre-merge + nightly', '~15 min', <Pill tone="bad">blocking on merge</Pill>],
+            ['T3 e2e', 'real PipeWire rig, real models, the Electron window (Playwright + AT-SPI), nested Shell', 'pre-merge + nightly', '~15 min', <Pill tone="bad">blocking on merge</Pill>],
             ['T4 evals', 'WER, DER, answer quality, agent behaviour', 'nightly + pre-release', '~30 min, cents', <Pill tone="warn">baseline band</Pill>],
             ['T5 manual', 'real calls, Bluetooth, suspend, thermals', 'pre-release', '~30 min human', <Pill tone="neutral">checklist</Pill>],
           ]}
@@ -898,7 +905,8 @@ for the retrieval surface:
             plus screenshot comparison under <code>mutter --headless --virtual-monitor</code> to catch layout
             breakage. <strong>This makes accessibility a testability requirement, not just an ethical one</strong>
             — an unlabelled widget is now a failing test, which is a much better incentive than S-5 alone.
-            GTKX&apos;s testing-library APIs cover component logic below that.
+            GTKX&apos;s testing-library APIs cover component logic below that. <em>Now: the Electron window is
+            driven with Playwright inside the same headless Shell, and AT-SPI checks what Orca sees.</em>
           </Card>
           <Card rank="2" title="A client that lives inside gnome-shell" pills={<><Pill tone="primary">nested shell</Pill><Pill>T3</Pill></>}>
             We boot a throwaway Shell — <code>dbus-run-session gnome-shell --headless --virtual-monitor</code> —
@@ -1157,6 +1165,7 @@ for the retrieval surface:
             render what we need, the fallback is writing our own host config — two to three weeks, and the plan
             absorbs it badly. <strong>Mitigation:</strong> G-1 is a spike before any other work, and it must put a
             real <code>AdwNavigationSplitView</code> with a live-updating list on screen, not just a label.
+            <em>Retired: GTKX held up through M9, and the window has since moved to Electron.</em>
           </Card>
           <Card rank="2" title="System audio under Flatpak" pills={<><Pill tone="warn">medium</Pill><Pill>M9</Pill></>}>
             Unsandboxed, recording the sink monitor needs no portal and works today. Inside Flatpak it needs
@@ -1212,7 +1221,7 @@ for the retrieval surface:
           clarity measure — it also makes plain that this is not affiliated with or endorsed by them.
         </P>
         <KvTable rows={[
-          { from: 'gtkx (@gtkx/*)', to: 'MPL-2.0', note: 'file-level copyleft; we consume, do not fork — no obligation on our own sources' },
+          { from: 'Electron / Chromium', to: 'MIT + Chromium licences', note: 'LICENSES.chromium.html ships with every packaged build (GTKX, MPL-2.0, left with the GTK app)' },
           { from: 'whisper.cpp', to: 'MIT', note: 'attribution in third-party notices' },
           { from: 'sherpa-onnx', to: 'Apache-2.0', note: 'attribution + NOTICE file' },
           { from: 'pyannote segmentation', to: 'MIT (model)', note: 'verify the exact ONNX export we ship; some upstream weights are gated' },

@@ -45,10 +45,15 @@ export class DecisionsService {
     return { ...DEFAULT_DECISIONS, ...this.#d.settings.get().decisions }
   }
 
+  #failedDir: string | null = null
+
   async #localEmbedder(): Promise<Embedder> {
     const dir = (await this.#d.embedderDir?.().catch(() => null)) ?? null
     if (!dir) return this.#hashing
     if (this.#embedder?.dir === dir) return this.#embedder.embedder
+    // a model that failed to load (e.g. no onnxruntime binary for this platform) stays failed until the
+    // model directory changes, instead of retrying the import on every decision
+    if (this.#failedDir === dir) return this.#hashing
     try {
       const embedder = await OnnxEmbedder.create(dir)
       this.#embedder = { dir, embedder }
@@ -57,6 +62,7 @@ export class DecisionsService {
       this.#d.logger.warn('text embedder failed to load; using the hashing fallback', {
         err: err instanceof Error ? err.message : String(err),
       })
+      this.#failedDir = dir
       return this.#hashing
     }
   }

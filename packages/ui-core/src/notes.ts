@@ -18,7 +18,7 @@ import {
 
 // M7 — one session's notes in the window: the editor's draft with debounced autosave (optimistic
 // concurrency against the daemon's head), enhancement streaming, and the block-by-block review of an
-// enhanced version. Pure TS (no GTK) so it is unit-tested under plain vitest.
+// enhanced version. Pure TS (no DOM) so it is unit-tested under plain vitest.
 //
 // Nothing here can lose what the user typed: every save is a new version on the daemon, a conflict
 // re-saves the draft on top of the newer head (whose text stays in history), an enhancement never
