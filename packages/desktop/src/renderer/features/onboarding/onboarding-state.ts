@@ -9,7 +9,7 @@ import { useServices } from '../../data/services.tsx'
  * Open onboarding by itself? On first run, and afterwards whenever a required model is missing that
  * was not already missing when the user skipped (a newly required model, or one that went corrupt).
  * `missing` is null when the model list could not be fetched (an older daemon): then the flow has
- * nothing to offer and does not open by itself. (The GTK app's rule, packages/ui/src/data/ui-state.ts.)
+ * nothing to offer and does not open by itself. (The GTK app's rule, kept at the cut-over.)
  */
 export function shouldOnboard(state: UiState, missing: readonly ModelInfo[] | null): boolean {
   if (!missing) return false

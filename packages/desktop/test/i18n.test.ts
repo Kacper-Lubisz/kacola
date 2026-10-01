@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 // Checked here without needing xgettext, by reading the string literals directly.
 
 const PKG = join(import.meta.dirname, '..')
-const SRC = join(PKG, 'src')
+const SRC = join(PKG, 'src', 'renderer')
 /** The shared data layer's strings (format, settings…) ship in this app's catalogue too. */
 const CORE_SRC = join(PKG, '..', 'ui-core', 'src')
 
@@ -85,7 +85,7 @@ describe('translation template', () => {
     expect(src.nonLiteral).toEqual([])
   })
 
-  it('has every source message, and nothing stale (run `pnpm --filter @gnomeola/ui i18n:pot`)', () => {
+  it('has every source message, and nothing stale (run `pnpm --filter @gnomeola/desktop i18n:pot`)', () => {
     const missing = [...src.messages].filter((m) => !pot.has(m))
     const stale = [...pot].filter((m) => !src.messages.has(m))
     expect({ missing, stale }).toEqual({ missing: [], stale: [] })

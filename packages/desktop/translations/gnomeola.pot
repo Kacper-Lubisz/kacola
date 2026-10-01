@@ -1,0 +1,1790 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the gnomeola package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: gnomeola 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: src/renderer/design/primitives/dialog.tsx:61
+#: src/renderer/design/primitives/window-controls.tsx:31
+msgid "Close"
+msgstr ""
+
+#: src/renderer/design/primitives/dialog.tsx:108
+msgid "Cancel"
+msgstr ""
+
+#: src/renderer/design/primitives/fields.tsx:157
+msgid "Clear"
+msgstr ""
+
+#: src/renderer/design/primitives/record-button.tsx:48
+msgid "Start recording a new session"
+msgstr ""
+
+#: src/renderer/design/primitives/record-button.tsx:52
+msgid "Starting…"
+msgstr ""
+
+#: src/renderer/design/primitives/record-button.tsx:52
+msgid "Record"
+msgstr ""
+
+#: src/renderer/design/primitives/record-button.tsx:63
+msgid "Recording, {time}"
+msgstr ""
+
+#: src/renderer/design/primitives/record-button.tsx:63
+msgid "Paused, {time}"
+msgstr ""
+
+#: src/renderer/design/primitives/record-button.tsx:73
+#: src/renderer/features/transcript/transcript-pane.tsx:177
+#: ../ui-core/src/format.ts:62
+msgid "Paused"
+msgstr ""
+
+#: src/renderer/design/primitives/record-button.tsx:76
+msgid "Pause"
+msgstr ""
+
+#: src/renderer/design/primitives/record-button.tsx:76
+msgid "Pause recording"
+msgstr ""
+
+#: src/renderer/design/primitives/record-button.tsx:79
+msgid "Resume"
+msgstr ""
+
+#: src/renderer/design/primitives/record-button.tsx:79
+msgid "Resume recording"
+msgstr ""
+
+#: src/renderer/design/primitives/record-button.tsx:84
+#: src/renderer/design/primitives/record-button.tsx:89
+msgid "Stopping…"
+msgstr ""
+
+#: src/renderer/design/primitives/record-button.tsx:84
+#: src/renderer/design/primitives/record-button.tsx:89
+#: src/renderer/features/ask/ask-pane.tsx:287
+msgid "Stop"
+msgstr ""
+
+#: src/renderer/design/primitives/record-button.tsx:85
+msgid "Stop recording the current session"
+msgstr ""
+
+#: src/renderer/design/primitives/toast.tsx:52
+msgid "Notifications"
+msgstr ""
+
+#: src/renderer/design/primitives/toast.tsx:97
+#: src/renderer/features/notes/notes-pane.tsx:141
+msgid "Dismiss"
+msgstr ""
+
+#: src/renderer/design/primitives/window-controls.tsx:29
+msgid "Minimize"
+msgstr ""
+
+#: src/renderer/design/primitives/window-controls.tsx:30
+msgid "Maximize"
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:18
+msgid ""
+"gnomeola is an independent clean-room project inspired by Granola. It is not "
+"affiliated with or endorsed by Granola."
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:32
+msgid "translator-credits"
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:35
+#: src/renderer/features/sessions/session-sidebar.tsx:52
+msgid "About gnomeola"
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:43
+msgid "About pages"
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:48
+msgid "About"
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:49
+msgid "Legal"
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:56
+msgid ""
+"Record meetings, read live speaker-labelled transcripts, and ask questions "
+"about what was said."
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:60
+msgid "The gnomeola contributors"
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:63
+msgid "Translated by"
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:68
+msgid "Inspired by Granola"
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:75
+msgid ""
+"This program comes with absolutely no warranty. It is licensed under the"
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:77
+msgid "GNU General Public License, version 3 or later"
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:81
+msgid "Third-Party Components"
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:84
+msgid ""
+"gnomeola includes the following components under their own licences. The "
+"full list, with homepages, is in THIRD_PARTY_NOTICES.md."
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:88
+msgid "Loading"
+msgstr ""
+
+#: src/renderer/features/about/about-dialog.tsx:93
+msgid "Third-Party Notices"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:36
+msgid "Citation {n}: {speaker} at {time}"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:47
+msgid "Show this line in the transcript"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:96
+msgid "The provider account has no credits left"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:96
+msgid "Questions aren’t available right now"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:102
+msgid ""
+"Add credits with your language model provider, or switch provider in "
+"Preferences, then ask again."
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:104
+msgid ""
+"{reason}. Choose a language model provider and add an API key in Preferences."
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:109
+#: src/renderer/features/notes/notes-pane.tsx:131
+msgid "Open Preferences"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:114
+msgid "Stopped"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:116
+msgid "The question could not be answered"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:134
+msgid "Answering"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:139
+msgid "Thinking…"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:157
+msgid "No answer"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:159
+msgid ""
+"The model declined to answer this question. Nothing it wrote before "
+"declining is shown."
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:165
+msgid "No answer was recorded."
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:231
+#: src/renderer/features/ask/ask-pane.tsx:296
+#: src/renderer/features/sessions/session-page.tsx:90
+#: src/renderer/features/shell/shortcuts.tsx:38
+msgid "Ask"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:237
+msgid "Ask About This Meeting"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:240
+msgid "Earlier questions could not be loaded: {reason}"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:241
+msgid ""
+"Answers come from this transcript, with citations you can follow back to the "
+"line."
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:255
+msgid "Questions and answers"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:268
+msgid "Question"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:272
+msgid "Ask a question about this meeting"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:273
+msgid "Ask across your recent meetings"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:302
+msgid "Scope"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:306
+msgid "This meeting"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:307
+msgid "Last 30 days"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:311
+msgid "Effort"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:315
+msgid "Quick"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:316
+msgid "Balanced"
+msgstr ""
+
+#: src/renderer/features/ask/ask-pane.tsx:317
+msgid "Thorough"
+msgstr ""
+
+#: src/renderer/features/notes/action-items.tsx:14
+msgid "owner: {owner}"
+msgstr ""
+
+#: src/renderer/features/notes/action-items.tsx:14
+msgid "due: {due}"
+msgstr ""
+
+#: src/renderer/features/notes/action-items.tsx:29
+msgid "Action Items"
+msgstr ""
+
+#: src/renderer/features/notes/action-items.tsx:33
+msgid "Copy Action Items"
+msgstr ""
+
+#: src/renderer/features/notes/action-items.tsx:37
+msgid "Action items"
+msgstr ""
+
+#: src/renderer/features/notes/action-items.tsx:40
+msgid "Owner: {owner}"
+msgstr ""
+
+#: src/renderer/features/notes/action-items.tsx:41
+msgid "Due: {due}"
+msgstr ""
+
+#: src/renderer/features/notes/action-items.tsx:48
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:177
+msgid "Done"
+msgstr ""
+
+#: src/renderer/features/notes/action-items.tsx:48
+msgid "Open"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:40
+#: src/renderer/features/notes/notes-pane.tsx:169
+#: src/renderer/features/notes/version-history.tsx:129
+msgid "Loading…"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:41
+msgid "Notes could not be loaded: {reason}"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:42
+msgid "Not saved: {reason}"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:43
+msgid "Saving…"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:44
+#: src/renderer/features/notes/version-history.tsx:136
+msgid "Nothing written yet"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:45
+msgid "Saved"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:50
+msgid "{template} template, suggested by the calendar event (\"{keyword}\")"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:55
+msgid "{template} template, suggested by the meeting title (\"{keyword}\")"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:59
+msgid "{template} template"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:69
+msgid "Enhancing"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:72
+msgid "Enhancing your notes with the {template} template…"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:75
+msgid "Reading the transcript…"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:75
+msgid "{count} words written so far"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:84
+msgid "Enhanced notes so far"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:109
+msgid ""
+"Nothing was changed. You can try another template, or keep writing yourself."
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:111
+msgid ""
+"The language model provider is limiting requests right now. Try again in a "
+"minute."
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:113
+msgid "Enhancing needs a language model provider. Set one up in Preferences."
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:115
+msgid "Your notes were not enhanced: {reason}"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:136
+#: src/renderer/routes/main-layout.tsx:76
+msgid "Try Again"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:194
+msgid "Could not copy: {reason}"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:200
+#: src/renderer/features/notes/notes-pane.tsx:287
+msgid "Export Notes"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:204
+msgid "Notes exported to {path}"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:206
+msgid "The notes could not be exported: {reason}"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:213
+msgid "Version {n} restored"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:223
+#: src/renderer/features/notes/notes-pane.tsx:321
+#: src/renderer/features/sessions/session-page.tsx:91
+#: src/renderer/features/shell/shortcuts.tsx:39
+msgid "Notes"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:230
+msgid "Enhance Notes"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:235
+msgid "Enhance"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:238
+#: src/renderer/features/notes/template-editor.tsx:105
+msgid "Templates"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:244
+msgid "Choose a Template"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:255
+msgid "Enhance as {template} (suggested)"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:256
+msgid "Enhance as {template}"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:258
+#: src/renderer/features/notes/template-editor.tsx:91
+msgid "Custom"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:264
+msgid "Manage Templates…"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:274
+msgid ""
+"Saved on top of a newer version from elsewhere; that one is in Version "
+"History."
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:278
+#: src/renderer/features/notes/version-history.tsx:101
+msgid "Version History"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:281
+msgid "Copy Notes as Markdown"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:283
+msgid "Notes copied as Markdown"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:288
+msgid "Export Notes to a Markdown File"
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:323
+msgid ""
+"Write your notes here. Enhance turns them into structured notes using the "
+"transcript."
+msgstr ""
+
+#: src/renderer/features/notes/notes-pane.tsx:331
+msgid "Action items copied"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:14
+msgid "Added"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:15
+msgid "Rewritten"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:16
+msgid "Left out"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:28
+msgid "kept"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:35
+msgid "(nothing)"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:55
+msgid "Change {n} · {kind}"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:66
+msgid "Use enhanced text for change {n}"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:69
+msgid "Use enhanced"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:74
+msgid "Your notes"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:75
+#: src/renderer/features/notes/version-history.tsx:21
+msgid "Enhanced"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:100
+msgid "Review Enhanced Notes"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:104
+msgid ""
+"{template} template · {count} change · {accepted} using the enhanced text"
+msgid_plural ""
+"{template} template · {count} changes · {accepted} using the enhanced text"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/renderer/features/notes/notes-review.tsx:113
+msgid "Use All Enhanced"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:116
+msgid "Keep All Mine"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:125
+msgid "Discard"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:133
+#: src/renderer/features/preferences/preferences-dialog.tsx:69
+msgid "Apply"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:136
+msgid "Close the review and keep your notes exactly as they are"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:139
+msgid ""
+"Replace your notes with the reviewed version; the original stays in history"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:145
+msgid "Changes"
+msgstr ""
+
+#: src/renderer/features/notes/notes-review.tsx:150
+msgid "The enhanced notes are the same as yours."
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:56
+msgid "{name} (copy)"
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:82
+msgid "New template"
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:91
+msgid "Not saved yet"
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:91
+msgid "Built-in"
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:98
+msgid "Notes Templates"
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:102
+msgid "New Template"
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:121
+msgid ""
+"Built-in templates cannot be changed. Duplicate one to make it your own."
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:125
+msgid "Name"
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:131
+msgid "Keywords"
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:133
+msgid ""
+"Comma-separated. A meeting whose title (or calendar event) contains one gets "
+"this template."
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:140
+msgid "Template"
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:141
+msgid "The structure and guidance the notes should follow, in Markdown."
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:149
+msgid "The template could not be saved: {reason}"
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:155
+msgid "Delete Template"
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:159
+msgid "Duplicate"
+msgstr ""
+
+#: src/renderer/features/notes/template-editor.tsx:164
+msgid "Save Template"
+msgstr ""
+
+#: src/renderer/features/notes/version-history.tsx:17
+msgid "Typed"
+msgstr ""
+
+#: src/renderer/features/notes/version-history.tsx:21
+msgid "Enhanced ({template})"
+msgstr ""
+
+#: src/renderer/features/notes/version-history.tsx:24
+msgid "Review applied"
+msgstr ""
+
+#: src/renderer/features/notes/version-history.tsx:26
+msgid "Restored version {n}"
+msgstr ""
+
+#: src/renderer/features/notes/version-history.tsx:71
+#: src/renderer/features/notes/version-history.tsx:157
+msgid "Version {n}"
+msgstr ""
+
+#: src/renderer/features/notes/version-history.tsx:81
+msgid "Current"
+msgstr ""
+
+#: src/renderer/features/notes/version-history.tsx:107
+msgid "The version could not be restored: {reason}"
+msgstr ""
+
+#: src/renderer/features/notes/version-history.tsx:111
+msgid "Restoring adds a new version; nothing in this list is ever removed."
+msgstr ""
+
+#: src/renderer/features/notes/version-history.tsx:120
+msgid "Restore This Version"
+msgstr ""
+
+#: src/renderer/features/notes/version-history.tsx:140
+msgid "Versions"
+msgstr ""
+
+#: src/renderer/features/notes/version-history.tsx:150
+msgid "Text of version {n}"
+msgstr ""
+
+#: src/renderer/features/notes/version-history.tsx:160
+msgid "(empty)"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:32
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:222
+msgid "Ready"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:34
+msgid "Downloading… {percent}"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:36
+msgid "Damaged: download again"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:38
+msgid "Not downloaded"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:80
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:89
+#: src/renderer/features/preferences/integration-rows.tsx:20
+#: src/renderer/features/preferences/integration-rows.tsx:146
+msgid "Checking…"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:82
+msgid "Available ({backend})"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:83
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:103
+msgid "Not available: {detail}"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:94
+msgid "Reading {calendars}"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:97
+msgid "No calendars found. Add one in GNOME Calendar or Online Accounts."
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:99
+msgid "Connecting to your calendars…"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:101
+msgid "Calendar reading is turned off"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:148
+#: src/renderer/features/preferences/integration-rows.tsx:88
+#: src/renderer/features/preferences/integration-rows.tsx:121
+msgid "Command-line tool installed"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:150
+#: src/renderer/features/preferences/integration-rows.tsx:77
+msgid "Could not install the command-line tool: {reason}"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:170
+msgid "Welcome to gnomeola"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:181
+msgid "Skip for Now"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:184
+msgid "Download all models"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:191
+msgid "Download {size}"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:194
+msgid "Downloading…"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:204
+msgid ""
+"gnomeola transcribes on this computer. It needs a few speech models first, "
+"and access to your microphone and system audio."
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:208
+msgid "Speech Models"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:208
+msgid "Speech models"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:211
+msgid "Loading models"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:227
+msgid "{model} download progress"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:233
+msgid "Download {model}"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:236
+msgid "Download"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:246
+msgid "Something went wrong: {reason}"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:249
+msgid "Audio Capture"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:249
+msgid "Audio capture"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:250
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:251
+msgid "Microphone and system audio"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:254
+msgid "Capture available"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:255
+msgid "Capture not available"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:256
+msgid "Checking audio capture"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:261
+msgid "Meetings"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:261
+msgid "Calendar access"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:262
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:263
+msgid "Calendar"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:266
+msgid "Calendar available"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:267
+msgid "Calendar not available"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:268
+msgid "Checking calendar access"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:273
+msgid "For Agents"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:273
+msgid "Command-line tool"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:274
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:276
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:289
+msgid "Install command-line tool and Claude skill"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:280
+#: src/renderer/features/preferences/integration-rows.tsx:34
+msgid ""
+"Lets agents like Claude Code read your meetings through the gnomeola command"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:285
+msgid "Installed"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:23
+msgid "Installed at {path}"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:25
+msgid "Another gnomeola at {path} comes first on your PATH."
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:27
+msgid "{dir} needed administrator rights."
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:28
+msgid "That folder is not on your PATH yet."
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:32
+msgid "An older version is installed at {path}"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:37
+msgid "A different gnomeola is already installed at {path}"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:82
+msgid "Command-line tool and Claude skill"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:83
+msgid "Working…"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:90
+msgid "Update"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:90
+#: src/renderer/features/preferences/integration-rows.tsx:166
+msgid "Install"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:97
+msgid "Command-line tool reinstalled"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:99
+msgid "Reinstall"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:104
+msgid "Command-line tool removed"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:106
+#: src/renderer/features/preferences/preferences-dialog.tsx:110
+msgid "Remove"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:112
+msgid "Replace…"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:116
+msgid "Replace the Other gnomeola?"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:119
+msgid "Replace"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:126
+msgid ""
+"{path} was not installed by this app. Replacing it points the gnomeola "
+"command at this app instead."
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:148
+msgid "Installed. Enable it in GNOME Extensions if it is not showing."
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:150
+msgid "Shows the recording state and the next meeting in the GNOME top bar"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:155
+msgid "Top-bar extension"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:162
+msgid "Top-bar extension installed"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:178
+msgid "Start in the background at login"
+msgstr ""
+
+#: src/renderer/features/preferences/integration-rows.tsx:182
+msgid ""
+"Record from the top bar and the command line without opening this window"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:68
+msgid "Apply {setting}"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:86
+msgid "API key removed"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:88
+msgid "API key saved"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:89
+msgid "The API key was not stored"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:93
+msgid "Could not store the API key: {reason}"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:95
+msgid "Replace API key"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:95
+msgid "API key"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:100
+msgid "Configured (kept in the keyring, never shown)"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:100
+msgid "Not configured"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:107
+msgid "Remove the stored API key"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:127
+msgid "Paste a key"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:133
+msgid "Save"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:201
+msgid "Questions and Answers"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:202
+msgid "The language model that answers questions about your meetings."
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:205
+msgid "Provider"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:211
+#: src/renderer/features/preferences/preferences-dialog.tsx:212
+msgid "Model"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:211
+msgid "The provider’s default"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:216
+#: src/renderer/features/preferences/preferences-dialog.tsx:218
+msgid "Ollama URL"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:230
+msgid "Anthropic API key"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:230
+msgid "OpenAI API key"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:235
+msgid "Transcription"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:236
+msgid "A second, more accurate pass replaces the live transcript line by line."
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:239
+msgid "Accurate pass"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:246
+#: src/renderer/features/speakers/speakers-dialog.tsx:207
+#: src/renderer/features/speakers/speakers-dialog.tsx:234
+#: src/renderer/features/speakers/speakers-dialog.tsx:257
+msgid "Speakers"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:247
+msgid ""
+"Your microphone is always you. These decide what happens to the other side."
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:250
+msgid "Tell far-end speakers apart"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:251
+msgid "Label each voice on the other side as its own speaker"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:256
+msgid "Recognise people across meetings"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:258
+msgid ""
+"Remember the voices of people you name, so they are named in later meetings. "
+"Voices are stored only on this computer; turning this off forgets them all."
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:264
+msgid "Capture"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:264
+msgid "Used for recordings started from now on."
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:266
+#: src/renderer/features/sessions/session-details.tsx:19
+msgid "Microphone"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:272
+#: src/renderer/features/sessions/session-details.tsx:20
+msgid "System audio"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:273
+msgid "What the other people in the call sound like"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:280
+msgid "Auto-record"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:282
+msgid ""
+"Start recording on its own. A recording that is already running is never "
+"interrupted."
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:286
+msgid "When a Calendar Meeting Starts"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:287
+msgid "Meetings you declined, and all-day events, are skipped"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:292
+msgid "When Another App Uses the Microphone"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:293
+msgid "Stops again once the call has ended"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:306
+msgid "Recorded Audio"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:307
+msgid ""
+"Transcripts are always kept. This only decides what happens to the audio."
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:310
+msgid "Audio"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:316
+#: src/renderer/features/preferences/preferences-dialog.tsx:318
+msgid "Days to keep audio"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:331
+msgid "Archive audio"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:332
+msgid "Keep a compressed copy (Opus) of each recording"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:343
+msgid "Desktop Integration"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:344
+msgid "Make gnomeola available outside this window."
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:364
+msgid "Could not save the setting: {reason}"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:388
+msgid "Settings Unavailable"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:389
+msgid "The daemon did not return its settings."
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:395
+msgid "Loading settings"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:401
+#: src/renderer/features/sessions/session-sidebar.tsx:42
+#: src/renderer/features/shell/shortcuts.tsx:29
+msgid "Preferences"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:404
+msgid "Preferences pages"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:407
+#: src/renderer/features/shell/shortcuts.tsx:24
+msgid "General"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:408
+msgid "Storage"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:409
+msgid "Integration"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:53
+msgid "Could not rename the session: {reason}"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:62
+#: src/renderer/features/sessions/session-details.tsx:65
+msgid "Title"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:76
+#: src/renderer/features/speakers/speakers-dialog.tsx:149
+msgid "Rename"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:90
+#: src/renderer/features/sessions/session-page.tsx:92
+#: src/renderer/features/shell/shortcuts.tsx:40
+msgid "Details"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:91
+msgid "Status"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:93
+msgid "Started"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:94
+#: ../ui-core/src/format.ts:60
+msgid "Not started"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:96
+msgid "Duration"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:98
+msgid "Tracks"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:99
+msgid "None"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:101
+msgid "Error"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:103
+#: src/renderer/features/shell/shortcuts.tsx:26
+#: src/renderer/routes/main-layout.tsx:98
+msgid "Session"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:106
+#: src/renderer/features/sessions/session-details.tsx:111
+#: src/renderer/features/sessions/session-sidebar.tsx:87
+msgid "Private"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:107
+msgid "Hidden from the command-line tool and the Claude skill"
+msgstr ""
+
+#: src/renderer/features/sessions/session-details.tsx:119
+msgid "Could not change the session: {reason}"
+msgstr ""
+
+#: src/renderer/features/sessions/session-page.tsx:35
+msgid "Levels"
+msgstr ""
+
+#: src/renderer/features/sessions/session-page.tsx:42
+msgid "level"
+msgstr ""
+
+#: src/renderer/features/sessions/session-page.tsx:72
+msgid "Back"
+msgstr ""
+
+#: src/renderer/features/sessions/session-page.tsx:86
+msgid "Session views"
+msgstr ""
+
+#: src/renderer/features/sessions/session-page.tsx:89
+#: src/renderer/features/shell/shortcuts.tsx:37
+#: src/renderer/features/transcript/transcript-list.tsx:278
+#: src/renderer/features/transcript/transcript-pane.tsx:172
+msgid "Transcript"
+msgstr ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:38
+#: src/renderer/features/sessions/session-sidebar.tsx:39
+#: src/renderer/features/shell/shortcuts.tsx:31
+msgid "Main menu"
+msgstr ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:45
+msgid "Set Up Speech Models…"
+msgstr ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:48
+#: src/renderer/features/shell/shortcuts.tsx:83
+msgid "Keyboard Shortcuts"
+msgstr ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:83
+#: src/renderer/features/shell/shortcuts.tsx:25 ../ui-core/src/format.ts:61
+msgid "Recording"
+msgstr ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:116
+msgid "Lost the connection to the daemon. Reconnecting…"
+msgstr ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:121
+msgid "A speech model is not downloaded yet"
+msgid_plural "Speech models are not downloaded yet"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:127
+msgid "Set Up"
+msgstr ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:132
+#: src/renderer/features/shell/shortcuts.tsx:32
+msgid "Search sessions"
+msgstr ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:139
+msgid "No Matching Sessions"
+msgstr ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:139
+msgid "No Sessions Yet"
+msgstr ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:141
+msgid "Try a different search."
+msgstr ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:141
+msgid "Press Record to capture your first meeting."
+msgstr ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:145
+msgid "Session list"
+msgstr ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:147
+#: src/renderer/routes/main-layout.tsx:97
+msgid "Sessions"
+msgstr ""
+
+#: src/renderer/features/shell/shortcuts.tsx:30
+msgid "Keyboard shortcuts"
+msgstr ""
+
+#: src/renderer/features/shell/shortcuts.tsx:33
+msgid "Close window"
+msgstr ""
+
+#: src/renderer/features/shell/shortcuts.tsx:34
+msgid "Quit"
+msgstr ""
+
+#: src/renderer/features/shell/shortcuts.tsx:35
+msgid "Start or stop recording"
+msgstr ""
+
+#: src/renderer/features/shell/shortcuts.tsx:36
+msgid "Pause or resume recording"
+msgstr ""
+
+#: src/renderer/features/speakers/line-actions.tsx:27
+msgid "{speaker} at {time}"
+msgstr ""
+
+#: src/renderer/features/speakers/line-actions.tsx:34
+msgid "Selected line"
+msgstr ""
+
+#: src/renderer/features/speakers/line-actions.tsx:37
+msgid "{line} — your microphone is always you"
+msgstr ""
+
+#: src/renderer/features/speakers/line-actions.tsx:51
+msgid "Someone Else Said This"
+msgstr ""
+
+#: src/renderer/features/speakers/speaker-chip.tsx:22
+msgid "your colour"
+msgstr ""
+
+#: src/renderer/features/speakers/speaker-chip.tsx:24
+msgid "no colour"
+msgstr ""
+
+#: src/renderer/features/speakers/speaker-chip.tsx:25
+msgid "colour {n}"
+msgstr ""
+
+#: src/renderer/features/speakers/speaker-chip.tsx:54
+msgid "{speaker}, {colour}"
+msgstr ""
+
+#: src/renderer/features/speakers/speakers-dialog.tsx:73
+msgid "New name for {speaker}"
+msgstr ""
+
+#: src/renderer/features/speakers/speakers-dialog.tsx:110
+msgid "{n} line · {time}"
+msgid_plural "{n} lines · {time}"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/renderer/features/speakers/speakers-dialog.tsx:114
+msgid "No lines yet"
+msgstr ""
+
+#: src/renderer/features/speakers/speakers-dialog.tsx:115
+msgid "You (microphone)"
+msgstr ""
+
+#: src/renderer/features/speakers/speakers-dialog.tsx:115
+msgid "Far end, not yet told apart"
+msgstr ""
+
+#: src/renderer/features/speakers/speakers-dialog.tsx:128
+msgid "Recognised from an earlier meeting"
+msgstr ""
+
+#: src/renderer/features/speakers/speakers-dialog.tsx:148
+msgid "Rename {speaker}"
+msgstr ""
+
+#: src/renderer/features/speakers/speakers-dialog.tsx:155
+#: src/renderer/features/speakers/speakers-dialog.tsx:159
+msgid "Merge {speaker} into…"
+msgstr ""
+
+#: src/renderer/features/speakers/speakers-dialog.tsx:160
+msgid "Merge into another speaker"
+msgstr ""
+
+#: src/renderer/features/speakers/speakers-dialog.tsx:164
+msgid "Same person as…"
+msgstr ""
+
+#: src/renderer/features/speakers/speakers-dialog.tsx:178
+msgid "Merge {speaker} into"
+msgstr ""
+
+#: src/renderer/features/speakers/speakers-dialog.tsx:217
+msgid ""
+"Your microphone is always you. The other side is told apart by voice: name "
+"people, merge two that are the same person, or split a line off from the "
+"transcript."
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-list.tsx:69
+msgid "Recording gap"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-list.tsx:330
+msgid "Scroll to the newest line and keep following"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-list.tsx:336
+msgid "Jump to Live"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:123
+msgid "Loading Transcript…"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:132
+msgid "Could Not Load the Transcript"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:142
+msgid "Listening…"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:143
+msgid "Lines appear here as people speak."
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:150
+msgid "No Transcript"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:151
+msgid "Nothing was transcribed in this session."
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:177
+msgid "Live"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:184
+#: src/renderer/features/transcript/transcript-pane.tsx:186
+msgid "Search the transcript"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:204
+msgid "{n} of {total}"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:208
+msgid "No matches"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:214
+msgid "Previous Match"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:221
+msgid "Next Match"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:225
+msgid "Close Search"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:231
+msgid "Search the Transcript"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:232
+msgid "Search the transcript (Ctrl+F)"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:243
+msgid ""
+"gnomeola stopped unexpectedly while recording this session. Everything up to "
+"then was kept."
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:250
+msgid "Recording failed: {reason}"
+msgstr ""
+
+#: src/renderer/features/transcript/transcript-pane.tsx:259
+msgid "Could not change the speaker: {reason}"
+msgstr ""
+
+#: src/renderer/routes/main-layout.tsx:57
+#: src/renderer/routes/main-layout.tsx:60
+msgid "Connecting…"
+msgstr ""
+
+#: src/renderer/routes/main-layout.tsx:58
+msgid "Reaching gnomeola at {origin}"
+msgstr ""
+
+#: src/renderer/routes/main-layout.tsx:70
+msgid "Can’t Reach gnomeola"
+msgstr ""
+
+#: src/renderer/routes/main-layout.tsx:71
+msgid "The gnomeola daemon is not answering at {origin}."
+msgstr ""
+
+#: src/renderer/routes/main-layout.tsx:192
+msgid "No Session Selected"
+msgstr ""
+
+#: src/renderer/routes/main-layout.tsx:193
+msgid "Pick a session in the sidebar, or press Record to start one."
+msgstr ""
+
+#: src/renderer/routes/router.tsx:61
+msgid "Session Not Found"
+msgstr ""
+
+#: src/renderer/routes/router.tsx:62
+msgid "It may have been deleted."
+msgstr ""
+
+#: src/renderer/features/sessions/recorder.ts:80
+msgid "Could not start recording: {reason}"
+msgstr ""
+
+#: src/renderer/features/sessions/recorder.ts:88
+msgid "Could not stop recording: {reason}"
+msgstr ""
+
+#: src/renderer/features/sessions/recorder.ts:94
+msgid "Could not pause recording: {reason}"
+msgstr ""
+
+#: src/renderer/features/sessions/recorder.ts:100
+msgid "Could not resume recording: {reason}"
+msgstr ""
+
+#: src/renderer/features/speakers/mutations.ts:103
+msgid "New speaker"
+msgstr ""
+
+#: src/renderer/features/transcript/rows.ts:38
+msgid "Me"
+msgstr ""
+
+#: src/renderer/features/transcript/rows.ts:38
+msgid "Them"
+msgstr ""
+
+#: src/renderer/features/transcript/rows.ts:98
+msgid "Recording gap at {time}, {duration}: {reason}"
+msgstr ""
+
+#: src/renderer/features/transcript/rows.ts:104
+msgid "in progress"
+msgstr ""
+
+#: src/renderer/features/transcript/rows.ts:104
+msgid "provisional"
+msgstr ""
+
+#: src/renderer/features/transcript/rows.ts:105
+msgid "{speaker} at {time}: {text}"
+msgstr ""
+
+#: ../ui-core/src/format.ts:27
+msgid "just now"
+msgstr ""
+
+#: ../ui-core/src/format.ts:28
+msgid "{n} min ago"
+msgstr ""
+
+#: ../ui-core/src/format.ts:30
+msgid "{n} h ago"
+msgstr ""
+
+#: ../ui-core/src/format.ts:31
+msgid "Yesterday"
+msgstr ""
+
+#: ../ui-core/src/format.ts:63
+msgid "Finished"
+msgstr ""
+
+#: ../ui-core/src/format.ts:64
+msgid "Recovered"
+msgstr ""
+
+#: ../ui-core/src/format.ts:65
+msgid "Failed"
+msgstr ""
+
+#: ../ui-core/src/format.ts:110
+msgid "Untitled session"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:10
+msgid "Anthropic (Claude)"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:11
+msgid "OpenAI (GPT)"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:12
+msgid "Ollama (on this computer)"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:13
+msgid "None (questions off)"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:17
+msgid "During the recording"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:18
+msgid "After the recording"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:19
+msgid "Off (live transcript only)"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:23
+msgid "Keep"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:24
+msgid "Delete once transcribed"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:25
+msgid "Delete after some days"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:47
+msgid "Default"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:52
+msgid "{device} (default)"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:56
+msgid "{device} (not connected)"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:102
+msgid "Live transcription"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:103
+msgid "Accurate transcription"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:104
+msgid "Voice detection"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:105
+msgid "Speaker turns"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:106
+msgid "Speaker recognition"
+msgstr ""
+
+#: ../ui-core/src/settings.ts:107
+msgid "Offline decisions"
+msgstr ""

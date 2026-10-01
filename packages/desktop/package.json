@@ -10,7 +10,8 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "start": "electron-vite preview",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.web.json"
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.web.json",
+    "i18n:pot": "node scripts/i18n-pot.ts"
   },
   "desktopName": "org.gnome.Gnomeola.desktop",
   "dependencies": {

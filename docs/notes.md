@@ -98,7 +98,7 @@ Calendar integration (M4) only has to pass the event's title; nothing here depen
 ## Export and action items (N-5)
 
 - Window: **Copy Notes as Markdown** (`# Title`, the date, then the notes exactly), **Export Notes**
-  (GtkFileDialog, starts in `~/Documents`), and an **Action Items** list parsed live from the notes, with
+  (the native save dialog through main, starting in `~/Documents`), and an **Action Items** list parsed live from the notes, with
   its own copy button.
 - `extractActionItems()` (`packages/protocol/src/notes-actions.ts`) is deterministic: task-list items
   anywhere, list items under an action-items heading; owner from `owner:`, `@name`, `**Name**:`,
@@ -117,7 +117,7 @@ Calendar integration (M4) only has to pass the event's title; nothing here depen
   no auto-closed brackets), so what is typed is what is saved. It lives in a **shadow root**: CodeMirror
   styles itself through style-mod, which injects a `<style>` element into a document and our CSP
   refuses that; in a shadow root it uses a constructable stylesheet instead.
-- `notes-data.ts`: ui-core's `NotesFeed` (the same controller as the GTK window: 800 ms autosave, flush
+- `notes-data.ts`: ui-core's `NotesFeed` (800 ms autosave, flush
   on leaving, 409 → re-read and save on top, enhance, merge, **restore**) wired to the window: reads via
   React Query (`['notes', id]`, `['templates', id]`), events from `EventBridge.listen`, writes over the
   protocol routes. The EventBridge folds `note.version` into `['notes', id]` and `['noteVersions', id]`
@@ -135,9 +135,6 @@ Calendar integration (M4) only has to pass the event's title; nothing here depen
 - Built only from `design/primitives` (Button, IconButton, Switch, Menu, Dialog, Banner, Spinner,
   NavigationList, TextField / TextArea, `useToast`) and `design/icon.tsx`; Open Preferences via `useDialogs()`.
 
-**GTK** (until the cut-over): `packages/ui/src/components/notes-pane.tsx`, the GtkSourceView 5 editor
-(`notes-editor.tsx`, see docs/gtkx.md §3), and `notes-review.tsx` with the same review model.
-
 ## Tests
 
 | tier | file | proves |
@@ -146,15 +143,13 @@ Calendar integration (M4) only has to pass the event's title; nothing here depen
 | unit | `packages/protocol/test/notes-actions.test.ts` | action-item parsing |
 | unit | `packages/store/test/notes.test.ts` | concurrency, pending/merge/restore, replay == state, every user version recoverable over random histories, history append-only |
 | unit | `packages/llm/test/enhance.test.ts` | request layout, cache prefix stable across notes/templates, citations, refusal, fence unwrapping, the eval scorer |
-| unit | `packages/ui/test/notes.test.ts` | autosave, typing during a save, conflict → re-save on top, external heads, enhancement, merge |
 | unit | `packages/daemon/test/templates.test.ts` | template choice by keyword / calendar title |
 | int | `packages/daemon/test/notes.int.test.ts` | every route through the real daemon process, privacy, refusal/failure store nothing |
 | int | `packages/llm/test/enhance.cassettes.int.test.ts` | the real SDK on two fixture meetings, scored against reference notes; Ollama |
 | int | `packages/e2e/test/notes-chain.int.test.ts` | CLI → daemon → LlmNotesEngine → SDK → replayed API; refusal / 429 leave notes untouched |
 | unit | `packages/ui-core/test/notes.test.ts` | the feed (incl. restore), the query-cache folds, enhance error classes |
 | unit | `packages/desktop/test/notes.test.tsx`, `notes-files.test.ts` | review choices in/out, action items, template helpers + optimistic mutation; main's clipboard / save-dialog checks |
-| e2e | `packages/e2e/test/desktop-notes.e2e.test.ts` | Playwright port of the GTK suite below (every assertion) + rate limiting, history restore, custom templates; axe in light / dark / high contrast; screenshot baselines (`test/__screenshots__/desktop-notes/`, `GNOMEOLA_UPDATE_SCREENSHOTS=1` to refresh) |
-| e2e | `packages/e2e/test/ui-notes.e2e.test.ts` | AT-SPI: type into the editor, autosave, enhance against the fake Anthropic server, revert some blocks and accept others, apply, and the stored merge equals the choices; every typed version recoverable; clipboard (wl-paste), file export through the real file dialog, refusal, flush on leaving |
+| e2e | `packages/e2e/test/desktop-notes.e2e.test.ts` | Playwright port of the former GTK suite (every assertion) + rate limiting, history restore, custom templates; axe in light / dark / high contrast; screenshot baselines (`test/__screenshots__/desktop-notes/`, `GNOMEOLA_UPDATE_SCREENSHOTS=1` to refresh) |
 | eval | `packages/llm/test/enhance.eval.test.ts` | live (needs `ANTHROPIC_API_KEY`): user lines kept verbatim (hard), fact / action recall vs reference notes (soft), injection not obeyed, cache read on re-enhance |
 
 The committed enhancement cassettes are hand-authored (no key was available); regenerate their requests

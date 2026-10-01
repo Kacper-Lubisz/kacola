@@ -1,15 +1,13 @@
-// E-1 footprint spike (docs/desktop-app.md): idle memory of the whole process tree + cold start, the GTK
-// window (`node packages/ui/dist/bundle.mjs`, build it first) vs a minimal sandboxed Electron window
-// (./main.mjs), inside the headless GNOME Shell on Wayland.
+// E-1 footprint spike (docs/desktop-app.md): idle memory of the whole process tree + cold start of a
+// minimal sandboxed Electron window (./main.mjs), inside the headless GNOME Shell on Wayland. (Until the
+// cut-over it also measured the GTK window; the real app is measured by desktop-perf.e2e.)
 //
-//   node packages/testkit/src/desktop/e1-spike/measure.ts        RUNS=n  ONLY=1 (Electron only)  EXTRA="--flags"
+//   node packages/testkit/src/desktop/e1-spike/measure.ts        RUNS=n  EXTRA="--flags"
 import { join } from 'node:path'
-import { startDaemon } from '../../daemon/index.ts'
 import { type AppHandle, type HeadlessDisplay, startHeadlessDisplay } from '../../ui/index.ts'
 import { type Footprint, firstPixelsProbe, footprint, processTree } from '../footprint.ts'
 import { ELECTRON_BIN } from '../index.ts'
 
-const ROOT = join(import.meta.dirname, '../../../../..')
 const OUT = process.env.OUT ?? join(import.meta.dirname, '__artifacts__')
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -37,23 +35,8 @@ async function run(
   }
 }
 
-const daemon = await startDaemon()
 const results: Result[] = []
 for (let i = 0; i < Number(process.env.RUNS ?? 3); i++) {
-  if (!process.env.ONLY)
-    results.push(
-      await run(
-        `gtk${i}`,
-        (d) =>
-          d.launchApp({
-            command: process.execPath,
-            args: [join(ROOT, 'packages/ui/dist/bundle.mjs')],
-            cwd: join(ROOT, 'packages/ui'),
-            env: { GNOMEOLA_URL: daemon.baseUrl },
-          }),
-        (d) => d.findOne({ app: 'gnomeola', role: 'label', name: 'No Session Selected' }, 30_000),
-      ),
-    )
   results.push(
     await run(
       `electron${i}`,
@@ -75,7 +58,6 @@ for (let i = 0; i < Number(process.env.RUNS ?? 3); i++) {
     ),
   )
 }
-await daemon.stop()
 for (const r of results) {
   const { rssMb, pssMb, ussMb, processes } = r.idle
   console.log(

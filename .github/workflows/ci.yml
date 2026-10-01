@@ -15,11 +15,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
 
-  # T3: real PipeWire graph, real models, headless compositor for the UI. Needs a runner image with
-  # PipeWire, mutter and GTK 4.20+/libadwaita 1.8+ — ubuntu-24.04 is too old, hence the Fedora container.
-  # The Electron window's suites (packages/e2e/test/desktop-*.e2e.test.ts) run here too, headless: each
+  # T3: real PipeWire graph, real models, headless GNOME Shell 50 for the window and the top-bar extension
+  # — ubuntu-24.04 is too old, hence the Fedora container. The Electron window's suites
+  # (packages/e2e/test/desktop-*.e2e.test.ts) run headless: each
   # window opens inside a private headless GNOME Shell (testkit startHeadlessDisplay: no DISPLAY, no GPU,
-  # Chromium falls back to SwiftShader). Electron needs Chromium's shared libraries (the second dnf line),
+  # Chromium falls back to SwiftShader; python3-gobject + at-spi2-core drive the AT-SPI checks). Electron
+  # needs Chromium's shared libraries (the second dnf line),
   # tesseract reads screenshots back (the "an API key never shows on screen" check), and Chromium's
   # sandbox refuses to run as root — so everything after the checkout runs as an unprivileged user.
   e2e:
@@ -27,7 +28,7 @@ jobs:
     container: { image: 'registry.fedoraproject.org/fedora:44', options: '--privileged' }
     needs: check
     steps:
-      - run: dnf install -y nodejs24 pnpm git pipewire pipewire-utils wireplumber gnome-shell mutter gtk4-devel libadwaita-devel glib2-devel gtksourceview5 wl-clipboard ffmpeg-free python3-gobject at-spi2-core dbus-daemon tar bzip2 util-linux coreutils desktop-file-utils systemd gjs evolution-data-server unzip
+      - run: dnf install -y nodejs24 pnpm git pipewire pipewire-utils wireplumber gnome-shell mutter glib2 wl-clipboard ffmpeg-free python3-gobject at-spi2-core dbus-daemon tar bzip2 util-linux coreutils desktop-file-utils systemd gjs evolution-data-server unzip
       - run: dnf install -y nss nspr atk at-spi2-atk cups-libs libdrm mesa-libgbm mesa-dri-drivers libxkbcommon libXcomposite libXdamage libXrandr libXfixes libxshmfence alsa-lib gtk3 pango cairo tesseract tesseract-langpack-eng
       - uses: actions/checkout@v4
       - run: |
