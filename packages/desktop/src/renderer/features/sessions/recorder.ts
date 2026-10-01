@@ -10,6 +10,7 @@ import { keys } from '../../data/keys.ts'
 import { patchSessionIn } from '../../data/mutations.ts'
 import { useServices } from '../../data/services.tsx'
 import { type RecordState, useToast } from '../../design/primitives/index.ts'
+import { createRequestGate, type RequestKind } from './request-gate.ts'
 
 // The record flow: one hook the sidebar header, the session page and the keyboard shortcuts share.
 //
@@ -18,7 +19,7 @@ import { type RecordState, useToast } from '../../design/primitives/index.ts'
 //
 // Status changes come back as session.upserted through the EventBridge (the list and the page update
 // from the echo); the only local state is "a request is in flight", which draws starting / stopping.
-// A failure is a toast with the daemon's reason.
+// A failure is a toast with the daemon's reason. Overlapping presses: ./request-gate.ts.
 
 const reason = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -39,20 +40,16 @@ export function useRecorder(): Recorder {
   const navigate = useNavigate()
   const { data } = useQuery({ ...queries.sessions(), enabled: false })
   const active = activeSession(data?.ordered ?? [])
-  const [busy, setBusy] = useState<null | 'starting' | 'stopping' | 'pausing'>(null)
+  const [busy, setBusy] = useState<RequestKind | null>(null)
+  const [gate] = useState(() => createRequestGate(setBusy))
   const now = useNow(active?.status === 'recording' ? 1000 : 60_000)
 
-  const run = async (kind: NonNullable<typeof busy>, failure: string, fn: () => Promise<void>) => {
-    if (busy) return
-    setBusy(kind)
-    try {
-      await fn()
-    } catch (e) {
-      toast(fmt(failure, { reason: reason(e) }), { tone: 'error' })
-    } finally {
-      setBusy(null)
-    }
-  }
+  const run = (kind: RequestKind, failure: string, fn: () => Promise<void>) =>
+    gate.run(kind, () =>
+      fn().catch((e: unknown) => {
+        toast(fmt(failure, { reason: reason(e) }), { tone: 'error' })
+      }),
+    )
 
   /** Put the daemon's answer in the cache at once (its event will say the same, and wins if newer). */
   const settle = (s: Session) => {
