@@ -61,6 +61,11 @@ export class RecordingPipeline implements TranscriptionPipeline {
   private readonly captureFactory: (opts: PipelineStartOptions) => CaptureSource
   private readonly backend: 'pipewire' | 'external'
 
+  /** PipeWire capture appends to the session's WAVs; the app-fed external capture cannot (yet). */
+  get canContinue(): boolean {
+    return this.backend === 'pipewire'
+  }
+
   constructor(opts: RecordingPipelineOptions) {
     this.models = opts.models
     this.backend = opts.backend ?? 'pipewire'

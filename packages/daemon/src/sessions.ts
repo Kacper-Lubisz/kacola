@@ -400,7 +400,8 @@ export class SessionManager {
   recover(lock: DataDirLock, o: RecoverOptions = {}): RecoveryPlan {
     if (!lock.held || resolve(lock.dataDir) !== resolve(this.d.dataDir))
       throw new Error(`recover() needs the lock on ${this.d.dataDir}`)
-    const windowMs = o.resumeWindowMs ?? 0
+    // a pipeline that cannot continue a recording never gets the chance: close those out right away
+    const windowMs = this.d.pipeline.canContinue ? (o.resumeWindowMs ?? 0) : 0
     const now = this.now()
     const plan: RecoveryPlan = { recovered: [], closed: [], resumable: [] }
     for (const s of this.d.store.sessionsWithStatus(['recording', 'paused'])) {

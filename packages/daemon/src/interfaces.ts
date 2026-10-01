@@ -103,6 +103,11 @@ export interface RecordingHandle {
 
 /** Capture + live/final STT composed: one recording per session. */
 export interface TranscriptionPipeline {
+  /**
+   * Whether start() honours `continueAt` (resuming a recording after a daemon restart). Without it the
+   * daemon never tries: a recording left by the previous daemon is closed out instead.
+   */
+  readonly canContinue?: boolean
   health(): Promise<{ available: boolean; backend: string; detail: string | null }>
   start(opts: PipelineStartOptions, sink: PipelineSink): Promise<RecordingHandle>
 }

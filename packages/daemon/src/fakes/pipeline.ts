@@ -89,6 +89,7 @@ type OptionalOpts =
   | 'scriptFile'
 
 export class FakePipeline implements TranscriptionPipeline {
+  readonly canContinue = true
   readonly opts: Required<Omit<FakePipelineOptions, OptionalOpts>> & Pick<FakePipelineOptions, OptionalOpts>
   /** Every recording this pipeline started, for assertions. */
   readonly recordings: FakeRecording[] = []
