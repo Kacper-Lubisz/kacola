@@ -239,7 +239,16 @@ export class EventBridge {
     } else if (d.type === 'agenda.tracker')
       // how the live tracker is doing (degraded, the recap's state): the event carries the whole status
       this.qc.setQueryData(keys.agendaTracker(d.status.agendaId), d.status)
-    else if (d.type === 'agent.presence' && e.sessionId)
+    else if (d.type === 'agenda.share') {
+      // a sync finished or the sharing changed: the event carries the whole status — render it; the merge
+      // history may have grown, so a history on screen refetches
+      this.qc.setQueryData(keys.agendaShare(d.agendaId), d.status)
+      void this.qc.invalidateQueries({
+        queryKey: keys.agendaShareHistory(d.agendaId),
+        exact: true,
+        refetchType: 'active',
+      })
+    } else if (d.type === 'agent.presence' && e.sessionId)
       // the presence chip's lease list (states, modes, the activity history) is the daemon's: refetch
       void this.qc.invalidateQueries({ queryKey: keys.leases(e.sessionId), exact: true })
   }
@@ -299,6 +308,8 @@ export class EventBridge {
       this.qc.removeQueries({ queryKey: keys.agenda(id), exact: true })
       this.qc.removeQueries({ queryKey: keys.agendaHistory(id), exact: true })
       this.qc.removeQueries({ queryKey: keys.agendaTracker(id), exact: true })
+      this.qc.removeQueries({ queryKey: keys.agendaShare(id), exact: true })
+      this.qc.removeQueries({ queryKey: keys.agendaShareHistory(id), exact: true })
     } else {
       const cur = this.qc.getQueryData<AgendaView>(keys.agenda(id))
       if (cur) {

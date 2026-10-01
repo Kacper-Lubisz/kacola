@@ -14,8 +14,9 @@ light and dark, taken by an e2e suite that drives the real app. We use it to ite
 - **Generator:** `scripts/build-atlas.ts` turns this file, the manifest and the screenshots into one page.
 
 Status words: **built** means it ships and the atlas captures it. **Planned** means it is designed and
-not built yet. The agenda, live intelligence and BYO-agent stories are planned and being built now. Their
-screens are gaps in the atlas until they land.
+not built yet. Most agenda, live-intelligence, BYO-agent and team-sharing screens are built and captured;
+the few that are not (the top bar's next point, the invite block written through EDS, the decisions
+provider page, some BYO-agent frames) show as gaps in the atlas until they land.
 
 ## Regenerate and republish
 
@@ -73,7 +74,7 @@ flowchart TB
   end
   subgraph Web
     PHONE([Browser / phone]) --> WV[Hosted web viewer]
-    GUEST([Invitee without kacola]) -.planned.-> WA[Agenda on the web]
+    GUEST([Invitee without kacola]) --> WA[Agenda on the web]
   end
   DL -.planned.-> AG[Agenda]
   NOTE --> AR
@@ -100,6 +101,7 @@ flowchart TB
   %% shot: CLI = cli-skill__search__hits
   %% shot: MCP = mcp__tools__list
   %% shot: WV = web-viewer__list__sessions
+  %% shot: WA = agenda-invitee__web__agenda
 ```
 
 ## Get started
@@ -825,7 +827,7 @@ flowchart LR
   %% shot: D = calendar-offline__onboarding__calendar-status
 ```
 
-## Agendas, live intelligence and BYO agent (planned, being built now)
+## Agendas, live intelligence and BYO agent
 
 ### agenda-plan — Plan a meeting with Claude
 - **Status:** built in the window (kacola wave 2); some states still planned
@@ -933,22 +935,59 @@ flowchart LR
 ```
 
 ### agenda-team — A recurring team meeting
-- **Status:** planned
-- **Steps:** One agenda per occurrence, seeded from the last; teammates add items; each person's agent can
-  check items off.
+- **Status:** built (team sharing, kacola phase 5)
+- **Steps:** One agenda per occurrence, seeded from the last; the organiser shares it; teammates who run
+  kacola follow it and add items; each person's status changes — and their own agent's check-offs —
+  merge into one agenda, attributed ("marked by Ben", "checked by Ben's Claude", "added by Ivy").
 - **States:** `agenda-team__shared__teammate-items`.
 
 ```mermaid
 flowchart LR
   A([Recurring meeting]) --> B[Agenda seeded from the last]
-  B --> C[Teammates add items; agents check off]
+  B --> S[Shared with the team]
+  S --> C[Teammates add items; agents check off]
+  %% shot: S = agenda-share__shared__link
   %% shot: C = agenda-team__shared__teammate-items
 ```
 
+### agenda-share — Share an agenda with the team
+- **Status:** built (team sharing, kacola phase 5)
+- **Entry points:** the agenda editor's **Share…** button (window); `gnomeola agenda share` (CLI, only on
+  the user's say-so); for an attendee: the sidebar's Coming up → **Follow a shared agenda**, the main menu,
+  or a `https://…/a/<token>` link handed to the app; `gnomeola agenda follow`.
+- **Steps:** 1. The organiser shares: their name, whether invitees may add items and comment, goals kept
+  private unless chosen, the attendees who follow it in their own kacola. 2. The web link to copy (and in
+  the invitation). 3. An attendee follows with their email and the code the host sends; their copy stays
+  in step. 4. Everyone's changes merge by the rules (the organiser's own changes win, then each
+  attendee's, then trackers and agents, forward only); the Sharing tab shows comments, people and every
+  change with its outcome and why. 5. After the meeting, **Share recap** lets people with the link see the
+  outcomes. 6. **Unshare** (confirmed): the link stops working; followers keep their copy, marked no
+  longer shared.
+- **States:** `agenda-share__share__dialog`, `agenda-share__shared__link`, `agenda-share__follow__code`,
+  `agenda-share__history__merge`, `agenda-share__recap__shared`, `agenda-share__revoked__banner`.
+
+```mermaid
+flowchart TD
+  A([Agenda editor: Share…]) --> B[Name, invitees, goals, attendees]
+  B --> C[Shared: the link to copy]
+  C --> I([Invitation: web link])
+  C --> F([Attendee: Follow, email → code])
+  F --> M[Changes merge: comments, people, history]
+  M --> R[After the meeting: Share recap]
+  R --> U[Unshare: link gone, copies kept]
+  %% shot: B = agenda-share__share__dialog
+  %% shot: C = agenda-share__shared__link
+  %% shot: F = agenda-share__follow__code
+  %% shot: M = agenda-share__history__merge
+  %% shot: R = agenda-share__recap__shared
+  %% shot: U = agenda-share__revoked__banner
+```
+
 ### agenda-invitee — An invitee without kacola
-- **Status:** planned
-- **Steps:** The web link shows the agenda; the invitee adds an item with their email; afterwards they see
-  the outcome recap, never private notes.
+- **Status:** built (the shared agenda page, kacola phase 5)
+- **Steps:** The web link shows the agenda; the invitee adds an item (or a comment) after confirming
+  their email with a one-time code; afterwards they see the outcome recap once the organiser shares it,
+  never private notes.
 - **States:** `agenda-invitee__web__agenda`, `agenda-invitee__web__add-item`, `agenda-invitee__web__recap`.
 
 ```mermaid

@@ -1,5 +1,5 @@
 import type { AgendaItemKind, AgendaItemStatus, AgentMode, StatusChange } from '@gnomeola/protocol'
-import { attributionOf } from '@gnomeola/ui-core/agendas'
+import { attributionOf, personName } from '@gnomeola/ui-core/agendas'
 import { _, fmt } from '@gnomeola/ui-core/i18n'
 import type { ChipTone, IconName } from '../../design/primitives/index.ts'
 
@@ -89,8 +89,11 @@ export function modeDescription(m: AgentMode): string {
   }
 }
 
-/** "you", "the tracker", "Claude", "ana@example.com". */
-export function whoLabel(by: string): string {
+/**
+ * "you", "the live tracker", "Claude", "ana@example.com" (an invitee), and on a shared agenda another
+ * attendee's device: "Ben", "Ben's tracker", "Ben's Claude". `names`: display names by email.
+ */
+export function whoLabel(by: string, names?: ReadonlyMap<string, string>): string {
   const a = attributionOf(by)
   switch (a.kind) {
     case 'you':
@@ -100,8 +103,27 @@ export function whoLabel(by: string): string {
     case 'agent':
       return displayAgent(a.name ?? '')
     case 'invitee':
-      return a.name ?? ''
+      return inviteeLabel(a.name ?? '', names)
+    case 'peer':
+      return peerLabel(a.name ?? '', a.via, names)
   }
+}
+
+/** An invitee by the name they gave, with the address the owner knows them by. */
+const inviteeLabel = (email: string, names?: ReadonlyMap<string, string>) => {
+  const n = names?.get(email.toLowerCase())
+  return n ? `${n} (${email})` : email
+}
+
+function peerLabel(
+  label: string,
+  via: ReturnType<typeof attributionOf>['via'],
+  names?: ReadonlyMap<string, string>,
+) {
+  const who = personName(label, names)
+  if (via?.kind === 'tracker') return fmt(_('{name}’s tracker'), { name: who })
+  if (via?.kind === 'agent') return fmt(_('{name}’s {agent}'), { name: who, agent: displayAgent(via.name) })
+  return who
 }
 
 /** An agent's name as people say it ("claude" → "Claude"). */
@@ -110,13 +132,39 @@ export const displayAgent = (name: string): string =>
 
 /**
  * The attribution on a status: "auto" (the tracker at high confidence), "checked by Claude" (an agent),
- * "marked by ana@…" (an invitee), or null for the user's own change.
+ * "marked by ana@…" (an invitee), "marked by Ben" / "by Ben's tracker" / "checked by Ben's Claude"
+ * (another attendee's device on a shared agenda), or null for the user's own change.
  */
-export function attributionText(c: Pick<StatusChange, 'by' | 'auto'> | null): string | null {
+export function attributionText(
+  c: Pick<StatusChange, 'by' | 'auto'> | null,
+  names?: ReadonlyMap<string, string>,
+): string | null {
   if (!c) return null
   const a = attributionOf(c.by)
   if (a.kind === 'you') return null
   if (a.kind === 'tracker') return c.auto ? _('auto') : _('by the live tracker')
   if (a.kind === 'agent') return fmt(_('checked by {name}'), { name: displayAgent(a.name ?? '') })
-  return fmt(_('marked by {name}'), { name: a.name ?? '' })
+  if (a.kind === 'peer') {
+    const who = peerLabel(a.name ?? '', a.via, names)
+    if (a.via?.kind === 'tracker') return fmt(_('by {name}'), { name: who })
+    if (a.via?.kind === 'agent') return fmt(_('checked by {name}'), { name: who })
+    return fmt(_('marked by {name}'), { name: who })
+  }
+  return fmt(_('marked by {name}'), { name: inviteeLabel(a.name ?? '', names) })
+}
+
+/** The icon of an attribution chip: an agent's (anyone's), a person's (another attendee, an invitee), else the tracker's. */
+export function attributionIcon(by: string): IconName {
+  const a = attributionOf(by)
+  if (a.kind === 'agent' || (a.kind === 'peer' && a.via?.kind === 'agent')) return 'agent'
+  if (a.kind === 'invitee' || (a.kind === 'peer' && a.via?.kind === 'person')) return 'person'
+  return 'enhance'
+}
+
+/** "added by Ivy" for an item someone else put on the agenda (an invitee, another attendee), else null. */
+export function addedByText(createdBy: string, names?: ReadonlyMap<string, string>): string | null {
+  const a = attributionOf(createdBy)
+  if (a.kind === 'invitee') return fmt(_('added by {name}'), { name: inviteeLabel(a.name ?? '', names) })
+  if (a.kind === 'peer') return fmt(_('added by {name}'), { name: peerLabel(a.name ?? '', a.via, names) })
+  return null
 }

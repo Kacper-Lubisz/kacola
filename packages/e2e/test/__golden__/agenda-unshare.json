@@ -1,0 +1,18 @@
+{
+  "agendaId": "<agd:1>",
+  "shared": false,
+  "role": "owner",
+  "link": null,
+  "state": "off",
+  "lastSyncAt": "<iso>",
+  "pending": 0,
+  "refused": 0,
+  "ownerName": "Kacper",
+  "shareGoals": false,
+  "allowInvitees": true,
+  "members": [
+    "ben@example.com"
+  ],
+  "recapShared": false,
+  "comments": []
+}

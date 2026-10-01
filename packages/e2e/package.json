@@ -12,6 +12,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@gnomeola/cli": "workspace:*",
     "@gnomeola/daemon": "workspace:*",
     "@gnomeola/protocol": "workspace:*",

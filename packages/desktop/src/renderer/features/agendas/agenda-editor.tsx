@@ -3,7 +3,7 @@ import { MAX_TIMEBOX_MIN } from '@gnomeola/protocol'
 import { itemHistory, lastChange } from '@gnomeola/ui-core/agendas'
 import { formatClockTime } from '@gnomeola/ui-core/format'
 import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
-import { useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import {
   Button,
   Chip,
@@ -23,6 +23,8 @@ import {
 } from '../../design/primitives/index.ts'
 import { useAgendaHistory, useAgendaMutation } from './agenda-data.ts'
 import {
+  addedByText,
+  attributionIcon,
   attributionText,
   KINDS,
   kindLabel,
@@ -41,6 +43,8 @@ import {
   updateAgendaMutation,
   updateItemMutation,
 } from './mutations.ts'
+import { CommentList, commentsOn } from './share.tsx'
+import { useAgendaShare, usePeopleNames } from './share-data.ts'
 
 // The agenda editor: goals, then the items — drag to reorder (or Move up / Move down from an item's
 // menu, the keyboard path), a status menu per item, kind / owner / timebox / outcome in an Edit dialog,
@@ -115,6 +119,8 @@ export function ItemsEditor({ view, readOnly = false }: { view: AgendaView; read
   const [kind, setKind] = useState<AgendaItemKind>('topic')
   const [editing, setEditing] = useState<AgendaItem | null>(null)
   const history = useAgendaHistory(agendaId)
+  const share = useAgendaShare(agendaId).data
+  const names = usePeopleNames(agendaId)
   const items = useMemo(() => [...view.items].sort((a, b) => a.order - b.order), [view.items])
   const move = (from: number, to: number) => {
     const ids = items.map((i) => i.id)
@@ -139,6 +145,15 @@ export function ItemsEditor({ view, readOnly = false }: { view: AgendaView; read
         count={items.length}
         change={lastChange(history.data ?? [], item.id)}
         history={history.data ?? []}
+        names={names}
+        comments={
+          <CommentList
+            comments={commentsOn(share, item.id)}
+            status={share}
+            names={names}
+            label={fmt(_('Comments on “{item}”'), { item: item.text })}
+          />
+        }
         onEdit={() => setEditing(item)}
         onMove={move}
       />
@@ -196,8 +211,17 @@ export function ItemsEditor({ view, readOnly = false }: { view: AgendaView; read
 }
 
 /** "10 min", "@ana", kind, carried over, and who last changed it. */
-export function ItemMeta({ item, change }: { item: AgendaItem; change: StatusChange | null }) {
-  const by = change && change.to === item.status ? attributionText(change) : null
+export function ItemMeta({
+  item,
+  change,
+  names,
+}: {
+  item: AgendaItem
+  change: StatusChange | null
+  names?: ReadonlyMap<string, string>
+}) {
+  const by = change && change.to === item.status ? attributionText(change, names) : null
+  const added = addedByText(item.createdBy, names)
   return (
     <div className="flex flex-wrap items-center gap-1">
       {item.kind !== 'topic' ? <Chip>{kindLabel(item.kind)}</Chip> : null}
@@ -208,8 +232,9 @@ export function ItemMeta({ item, change }: { item: AgendaItem; change: StatusCha
           {_('carried over')}
         </Chip>
       ) : null}
+      {added ? <Chip icon="person">{added}</Chip> : null}
       {by ? (
-        <Chip icon={change?.by.startsWith('agent:') ? 'agent' : 'enhance'} tone="info">
+        <Chip icon={attributionIcon(change?.by ?? '')} tone="info">
           {by}
         </Chip>
       ) : null}
@@ -224,6 +249,8 @@ function ItemRow({
   count,
   change,
   history,
+  names,
+  comments,
   onEdit,
   onMove,
 }: {
@@ -233,6 +260,8 @@ function ItemRow({
   count: number
   change: StatusChange | null
   history: StatusChange[]
+  names: ReadonlyMap<string, string>
+  comments: ReactNode
   onEdit: () => void
   onMove: (from: number, to: number) => void
 }) {
@@ -247,13 +276,14 @@ function ItemRow({
         >
           {item.text}
         </span>
-        <ItemMeta item={item} change={change} />
+        <ItemMeta item={item} change={change} names={names} />
         {item.outcome ? (
           <p className="m-0 type-callout break-words text-text-secondary">{item.outcome}</p>
         ) : null}
+        {comments}
       </div>
       <div className="flex shrink-0 items-center">
-        <ItemHistory item={item} history={history} />
+        <ItemHistory item={item} history={history} names={names} />
         <IconButton
           icon="edit"
           size="sm"
@@ -343,7 +373,15 @@ const STATUS_CLASS: Record<string, string> = {
 }
 
 /** An item's status history: who moved it where, when, and why. */
-export function ItemHistory({ item, history }: { item: AgendaItem; history: readonly StatusChange[] }) {
+export function ItemHistory({
+  item,
+  history,
+  names,
+}: {
+  item: AgendaItem
+  history: readonly StatusChange[]
+  names?: ReadonlyMap<string, string>
+}) {
   const mine = itemHistory(history, item.id)
   return (
     <Popover
@@ -369,7 +407,7 @@ export function ItemHistory({ item, history }: { item: AgendaItem; history: read
                 {fmt(_('{from} → {to} by {who}'), {
                   from: statusLabel(c.from),
                   to: statusLabel(c.to),
-                  who: whoLabel(c.by),
+                  who: whoLabel(c.by, names),
                 })}
                 {c.auto ? ` · ${_('auto')}` : ''}
                 {c.override ? ` · ${_('override')}` : ''}

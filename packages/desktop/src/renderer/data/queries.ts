@@ -199,6 +199,21 @@ export function createQueries(api: Api) {
           ).leases,
         ...live,
       }),
+    /** An agenda's sharing (team sharing): agenda.share events carry the whole status (EventBridge.foldStatus). */
+    agendaShare: (id: string) =>
+      queryOptions({
+        queryKey: keys.agendaShare(id),
+        queryFn: ({ signal }) => api.call('getAgendaShare', { params: { id }, signal }),
+        ...live,
+      }),
+    /** The merge history of a shared agenda; refetched (while shown) when a sync finishes. */
+    agendaShareHistory: (id: string) =>
+      queryOptions({
+        queryKey: keys.agendaShareHistory(id),
+        queryFn: async ({ signal }) =>
+          (await api.call('getAgendaShareHistory', { params: { id }, signal })).changes,
+        ...live,
+      }),
     agentAccess: (sessionId: string) =>
       queryOptions({
         queryKey: keys.agentAccess(sessionId),

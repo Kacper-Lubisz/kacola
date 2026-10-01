@@ -439,6 +439,36 @@ Contracts: docs/agendas.md (agenda core, drafting) and the agent channel's owner
   none / it failed. A next-point card the tracker replaced arrives dismissed by `tracker` and is simply
   hidden (only open cards show); it is never treated as the user's dismissal.
 
+## Team sharing (kacola phase 5)
+
+Contracts: docs/sharing.md ("What the window needs"). Code: `features/agendas/share.tsx` (button, dialog,
+banner, Sharing tab, recap switch), `share-data.ts` (queries + mutations), `follow.tsx` (the Follow dialog and
+its tiny Zustand store `useFollow`), attribution in `labels.ts` over ui-core's `attributionOf` / `personName`.
+
+- **Data.** `['agendaShare', id]` holds the agenda's `ShareStatus`; each ephemeral `agenda.share` event
+  replaces it (`EventBridge.foldStatus`: nothing refetched) and marks `['agendaShareHistory', id]` stale
+  (refetched only while shown). Deleting the agenda drops both. Display names come from the status's
+  participants and comment authors (`usePeopleNames`), else an email's local part ("ben@x.com" → "Ben").
+- **Mutations** (share / unshare / recap / sync) are optimistic on the status (`syncing`, `off`,
+  `recapShared`); sharing is not in the durable log, so the route's response — the daemon's status after
+  the act — replaces the optimistic value, and the `agenda.share` event that follows carries the same or newer.
+- **Screens.** The editor's action row gets **Share…** / **Shared** / **Following** (its accessible name
+  carries the state). The Share dialog: name, two switches, attendee emails (validated), the link (a
+  read-only field) + Copy Link, the state chip + sync time, the error, Sync Now, Unshare… (AlertDialog);
+  without a host configured it says what to set and offers no Share. The page banner: sync failed (Try
+  Again) or "<owner> stopped sharing this agenda. Your copy stays on this computer." The **Sharing** tab
+  (only while shared, followed or revoked): comments, people (owner), the merge history newest first,
+  each entry named "<item>: <from> → <to> by <who>, <outcome>" with the reason. Items show "added by …",
+  their comments under them, and peer attributions in the chips and the history popover.
+- **Follow.** Coming up's header has a Follow button, the main menu "Follow a Shared Agenda…", and a
+  share link handed to the app opens the dialog prefilled (`deep-link.ts` accepts `https://…/a/<token>`
+  — plain http only on loopback — in its canonical form). Link + email → Send Code → the code → Follow →
+  the local copy.
+- **Tests.** `test/agendas.test.tsx` (team sharing), `test/event-bridge.test.ts`, `test/deep-link.test.ts`;
+  `packages/e2e/test/desktop-sharing.e2e.test.ts` (two real daemons + a local hosted server on PGlite,
+  `packages/e2e/src/share-host.ts`), baselines `sharing-{dialog,dialog-shared,editor,follow,follow-code,
+  history,recap,revoked}-{light,dark}`; the atlas's team-sharing block.
+
 ## Headless test display
 
 Every window e2e runs inside a throwaway GNOME session from `@gnomeola/testkit/ui`

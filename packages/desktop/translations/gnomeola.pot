@@ -25,8 +25,10 @@ msgstr ""
 
 #: src/renderer/design/primitives/dialog.tsx:108
 #: src/renderer/features/agendas/agenda-actions.tsx:212
-#: src/renderer/features/agendas/agenda-editor.tsx:432
+#: src/renderer/features/agendas/agenda-editor.tsx:470
+#: src/renderer/features/agendas/follow.tsx:122
 #: src/renderer/features/agendas/plan-with-claude.tsx:105
+#: src/renderer/features/agendas/share.tsx:247
 msgid "Cancel"
 msgstr ""
 
@@ -96,8 +98,8 @@ msgid "Notifications"
 msgstr ""
 
 #: src/renderer/design/primitives/toast.tsx:97
-#: src/renderer/features/agendas/live-panel.tsx:168
-#: src/renderer/features/agendas/live-panel.tsx:283
+#: src/renderer/features/agendas/live-panel.tsx:171
+#: src/renderer/features/agendas/live-panel.tsx:286
 #: src/renderer/features/notes/notes-pane.tsx:141
 msgid "Dismiss"
 msgstr ""
@@ -121,7 +123,7 @@ msgid "translator-credits"
 msgstr ""
 
 #: src/renderer/features/about/about-dialog.tsx:35
-#: src/renderer/features/sessions/session-sidebar.tsx:53
+#: src/renderer/features/sessions/session-sidebar.tsx:57
 msgid "About gnomeola"
 msgstr ""
 
@@ -320,319 +322,332 @@ msgstr ""
 msgid "Remove them"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:54
+#: src/renderer/features/agendas/agenda-editor.tsx:58
 msgid "Could not change the goals"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:67
-#: src/renderer/features/agendas/agenda-editor.tsx:70
+#: src/renderer/features/agendas/agenda-editor.tsx:71
+#: src/renderer/features/agendas/agenda-editor.tsx:74
 msgid "Goals"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:78
+#: src/renderer/features/agendas/agenda-editor.tsx:82
 msgid "Remove goal “{goal}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:79
+#: src/renderer/features/agendas/agenda-editor.tsx:83
 msgid "Remove goal"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:87
+#: src/renderer/features/agendas/agenda-editor.tsx:91
 msgid "What should this meeting achieve? Goals help Claude plan the items."
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:92
+#: src/renderer/features/agendas/agenda-editor.tsx:96
 msgid "Add a goal"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:94
+#: src/renderer/features/agendas/agenda-editor.tsx:98
 msgid "Add a goal…"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:103
+#: src/renderer/features/agendas/agenda-editor.tsx:107
 msgid "Add Goal"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:112
+#: src/renderer/features/agendas/agenda-editor.tsx:116
 msgid "Could not reorder the items"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:113
-#: src/renderer/features/agendas/live-panel.tsx:232
+#: src/renderer/features/agendas/agenda-editor.tsx:117
+#: src/renderer/features/agendas/live-panel.tsx:235
 msgid "Could not add the item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:151
-#: src/renderer/features/agendas/agenda-page.tsx:215
-#: src/renderer/features/agendas/live-panel.tsx:412
+#: src/renderer/features/agendas/agenda-editor.tsx:154
+msgid "Comments on “{item}”"
+msgstr ""
+
+#: src/renderer/features/agendas/agenda-editor.tsx:166
+#: src/renderer/features/agendas/agenda-page.tsx:223
+#: src/renderer/features/agendas/live-panel.tsx:415
 msgid "Items"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:154
-#: src/renderer/features/agendas/upcoming.tsx:75
+#: src/renderer/features/agendas/agenda-editor.tsx:169
+#: src/renderer/features/agendas/upcoming.tsx:85
 msgid "{n} item"
 msgid_plural "{n} items"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:158
-#: src/renderer/features/agendas/live-panel.tsx:421
+#: src/renderer/features/agendas/agenda-editor.tsx:173
+#: src/renderer/features/agendas/live-panel.tsx:424
 msgid "Agenda items"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:159
+#: src/renderer/features/agendas/agenda-editor.tsx:174
 msgid "Drag to reorder"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:164
+#: src/renderer/features/agendas/agenda-editor.tsx:179
 msgid "No items yet. Add one below, or plan them with Claude."
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:171
-#: src/renderer/features/agendas/live-panel.tsx:226
+#: src/renderer/features/agendas/agenda-editor.tsx:186
+#: src/renderer/features/agendas/live-panel.tsx:229
 msgid "New item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:173
+#: src/renderer/features/agendas/agenda-editor.tsx:188
 msgid "Add an item…"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:181
-#: src/renderer/features/agendas/agenda-editor.tsx:442
+#: src/renderer/features/agendas/agenda-editor.tsx:196
+#: src/renderer/features/agendas/agenda-editor.tsx:480
 msgid "Kind"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:183
+#: src/renderer/features/agendas/agenda-editor.tsx:198
 msgid "Add Item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:204
+#: src/renderer/features/agendas/agenda-editor.tsx:228
 msgid "me"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:205
-#: src/renderer/features/agendas/live-panel.tsx:104
+#: src/renderer/features/agendas/agenda-editor.tsx:229
+#: src/renderer/features/agendas/live-panel.tsx:107
 #: src/renderer/features/agendas/plan-with-claude.tsx:181
 msgid "{n} min"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:207
+#: src/renderer/features/agendas/agenda-editor.tsx:231
 msgid "Carried over from the last meeting"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:208
+#: src/renderer/features/agendas/agenda-editor.tsx:232
 msgid "carried over"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:239
+#: src/renderer/features/agendas/agenda-editor.tsx:268
 msgid "Could not remove the item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:260
+#: src/renderer/features/agendas/agenda-editor.tsx:290
 msgid "Edit “{item}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:261
+#: src/renderer/features/agendas/agenda-editor.tsx:291
 msgid "Edit"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:266
-#: src/renderer/features/agendas/agenda-editor.tsx:271
+#: src/renderer/features/agendas/agenda-editor.tsx:296
+#: src/renderer/features/agendas/agenda-editor.tsx:301
 msgid "More for “{item}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:272
+#: src/renderer/features/agendas/agenda-editor.tsx:302
 msgid "More"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:278
+#: src/renderer/features/agendas/agenda-editor.tsx:308
 msgid "Move Up"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:285
+#: src/renderer/features/agendas/agenda-editor.tsx:315
 msgid "Move Down"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:289
+#: src/renderer/features/agendas/agenda-editor.tsx:319
 #: src/renderer/features/agendas/context-cards.tsx:73
 #: src/renderer/features/preferences/integration-rows.tsx:106
 #: src/renderer/features/preferences/preferences-dialog.tsx:119
 msgid "Remove"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:307
-#: src/renderer/features/agendas/live-panel.tsx:131
+#: src/renderer/features/agendas/agenda-editor.tsx:337
+#: src/renderer/features/agendas/live-panel.tsx:134
 msgid "Could not change the status"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:308
+#: src/renderer/features/agendas/agenda-editor.tsx:338
 msgid "Status of “{item}”: {status}"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:311
+#: src/renderer/features/agendas/agenda-editor.tsx:341
 msgid "Set the status of “{item}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:350
-#: src/renderer/features/agendas/agenda-editor.tsx:356
+#: src/renderer/features/agendas/agenda-editor.tsx:388
+#: src/renderer/features/agendas/agenda-editor.tsx:394
 msgid "History of “{item}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:357
-#: src/renderer/features/agendas/agenda-editor.tsx:361
+#: src/renderer/features/agendas/agenda-editor.tsx:395
+#: src/renderer/features/agendas/agenda-editor.tsx:399
 msgid "History"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:363
+#: src/renderer/features/agendas/agenda-editor.tsx:401
+#: src/renderer/features/agendas/share.tsx:471
 msgid "No status changes yet."
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:365
+#: src/renderer/features/agendas/agenda-editor.tsx:403
 msgid "Status changes"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:369
+#: src/renderer/features/agendas/agenda-editor.tsx:407
+#: src/renderer/features/agendas/share.tsx:491
 msgid "{from} → {to} by {who}"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:374
+#: src/renderer/features/agendas/agenda-editor.tsx:412
+#: src/renderer/features/agendas/share.tsx:496
 #: src/renderer/features/agendas/tracker-status.tsx:66
-#: src/renderer/features/agendas/labels.ts:119
+#: src/renderer/features/agendas/labels.ts:145
 msgid "auto"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:375
+#: src/renderer/features/agendas/agenda-editor.tsx:413
 msgid "override"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:403
+#: src/renderer/features/agendas/agenda-editor.tsx:441
 msgid "Could not save the item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:425
+#: src/renderer/features/agendas/agenda-editor.tsx:463
 msgid "Edit Item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:434
+#: src/renderer/features/agendas/agenda-editor.tsx:472
+#: src/renderer/features/agendas/share.tsx:242
 #: src/renderer/features/preferences/preferences-dialog.tsx:142
 msgid "Save"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:440
+#: src/renderer/features/agendas/agenda-editor.tsx:478
 msgid "Item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:444
+#: src/renderer/features/agendas/agenda-editor.tsx:482
 msgid "Owner"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:445
+#: src/renderer/features/agendas/agenda-editor.tsx:483
 msgid "me, them, or a name"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:451
+#: src/renderer/features/agendas/agenda-editor.tsx:489
 msgid "Timebox (minutes)"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:452
+#: src/renderer/features/agendas/agenda-editor.tsx:490
 msgid "0 for none"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:460
+#: src/renderer/features/agendas/agenda-editor.tsx:498
 msgid "Answer heard"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:460
+#: src/renderer/features/agendas/agenda-editor.tsx:498
 msgid "Outcome"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:45
+#: src/renderer/features/agendas/agenda-page.tsx:47
 msgid "Could not rename the agenda"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:55
+#: src/renderer/features/agendas/agenda-page.tsx:57
 msgid "Agenda title"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:70
+#: src/renderer/features/agendas/agenda-page.tsx:72
 msgid "Rename agenda"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:88
+#: src/renderer/features/agendas/agenda-page.tsx:90
 msgid "This meeting is being recorded"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:100
+#: src/renderer/features/agendas/agenda-page.tsx:102
 msgid "Open Live Agenda"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:117
+#: src/renderer/features/agendas/agenda-page.tsx:119
 #: src/renderer/features/sessions/recorder.ts:80
 msgid "Could not start recording: {reason}"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:125
+#: src/renderer/features/agendas/agenda-page.tsx:127
 msgid "This meeting is happening now"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:134
+#: src/renderer/features/agendas/agenda-page.tsx:136
 msgid "Join and Record"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:158
+#: src/renderer/features/agendas/agenda-page.tsx:164
+#: src/renderer/features/agendas/follow.tsx:110
 #: src/renderer/features/sessions/session-page.tsx:74
 msgid "Back"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:166
-#: src/renderer/features/agendas/live-panel.tsx:369
-#: src/renderer/features/agendas/upcoming.tsx:90
+#: src/renderer/features/agendas/agenda-page.tsx:172
+#: src/renderer/features/agendas/live-panel.tsx:372
+#: src/renderer/features/agendas/upcoming.tsx:100
 #: src/renderer/features/sessions/session-page.tsx:99
 msgid "Agenda"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:173
+#: src/renderer/features/agendas/agenda-page.tsx:179
 msgid "Repeats"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:176
+#: src/renderer/features/agendas/agenda-page.tsx:182
 msgid "Not linked to a calendar meeting"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:178
+#: src/renderer/features/agendas/agenda-page.tsx:184
 #: src/renderer/features/agendas/context-cards.tsx:62
 #: src/renderer/features/sessions/session-details.tsx:106
 #: src/renderer/features/sessions/session-details.tsx:111
-#: src/renderer/features/sessions/session-sidebar.tsx:88
+#: src/renderer/features/sessions/session-sidebar.tsx:92
 msgid "Private"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:185
+#: src/renderer/features/agendas/agenda-page.tsx:192
 msgid "{n} item carried over"
 msgid_plural "{n} items carried over"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:187
+#: src/renderer/features/agendas/agenda-page.tsx:194
 msgid "from the last meeting"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:192
+#: src/renderer/features/agendas/agenda-page.tsx:199
 #: src/renderer/features/agendas/plan-with-claude.tsx:97
 msgid "Plan with Claude"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:206
+#: src/renderer/features/agendas/agenda-page.tsx:214
 msgid "Open Recording"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:213
+#: src/renderer/features/agendas/agenda-page.tsx:221
 msgid "Agenda views"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-page.tsx:216
+#: src/renderer/features/agendas/agenda-page.tsx:224
 #: src/renderer/features/agendas/context-panel.tsx:89
 msgid "Context"
+msgstr ""
+
+#: src/renderer/features/agendas/agenda-page.tsx:226
+msgid "Sharing"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-pane.tsx:25
@@ -699,6 +714,7 @@ msgid "Could not remove the card"
 msgstr ""
 
 #: src/renderer/features/agendas/context-cards.tsx:62
+#: src/renderer/features/agendas/share.tsx:138
 msgid "Shared"
 msgstr ""
 
@@ -797,11 +813,11 @@ msgstr ""
 msgid "Search results"
 msgstr ""
 
-#: src/renderer/features/agendas/deep-links.tsx:29
+#: src/renderer/features/agendas/deep-links.tsx:37
 msgid "That meeting is not in your calendar, so there is no agenda to open."
 msgstr ""
 
-#: src/renderer/features/agendas/deep-links.tsx:32
+#: src/renderer/features/agendas/deep-links.tsx:40
 msgid "Could not open the link: {reason}"
 msgstr ""
 
@@ -813,170 +829,230 @@ msgstr ""
 msgid "Show in transcript: “{quote}”"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:53
+#: src/renderer/features/agendas/follow.tsx:78
+msgid "Following “{title}”"
+msgstr ""
+
+#: src/renderer/features/agendas/follow.tsx:85
+msgid ""
+"That code is wrong or has expired, or this address may not follow the agenda."
+msgstr ""
+
+#: src/renderer/features/agendas/follow.tsx:94
+msgid "Follow a Shared Agenda"
+msgstr ""
+
+#: src/renderer/features/agendas/follow.tsx:117
+msgid "Follow"
+msgstr ""
+
+#: src/renderer/features/agendas/follow.tsx:129
+msgid "Send Code"
+msgstr ""
+
+#: src/renderer/features/agendas/follow.tsx:140
+msgid ""
+"If {email} may follow this agenda, a code is on its way there. It works "
+"until {time}."
+msgstr ""
+
+#: src/renderer/features/agendas/follow.tsx:148
+msgid "Code"
+msgstr ""
+
+#: src/renderer/features/agendas/follow.tsx:163
+msgid ""
+"Someone shared a meeting’s agenda with you. Your kacola keeps a copy in step "
+"with theirs: your status changes and the items you add go to everyone "
+"following it."
+msgstr ""
+
+#: src/renderer/features/agendas/follow.tsx:167
+#: src/renderer/features/agendas/share.tsx:262
+msgid "Link"
+msgstr ""
+
+#: src/renderer/features/agendas/follow.tsx:175
+msgid "That is not a shared agenda link ({example})."
+msgstr ""
+
+#: src/renderer/features/agendas/follow.tsx:180
+msgid "Your email"
+msgstr ""
+
+#: src/renderer/features/agendas/follow.tsx:182
+msgid "The address the organizer invited."
+msgstr ""
+
+#: src/renderer/features/agendas/follow.tsx:187
+msgid "Your name (optional)"
+msgstr ""
+
+#: src/renderer/features/agendas/live-panel.tsx:54
 msgid "Could not undo"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:66
+#: src/renderer/features/agendas/live-panel.tsx:68
 msgid "undone in the window"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:69
+#: src/renderer/features/agendas/live-panel.tsx:71
 msgid "Undo"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:130
+#: src/renderer/features/agendas/live-panel.tsx:133
 msgid "Could not dismiss the suggestion"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:138
 #: src/renderer/features/agendas/live-panel.tsx:141
+#: src/renderer/features/agendas/live-panel.tsx:144
 msgid "Next talking point"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:144
+#: src/renderer/features/agendas/live-panel.tsx:147
 msgid "from {who}"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:157
+#: src/renderer/features/agendas/live-panel.tsx:160
 msgid "Start This"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:184
-#: src/renderer/features/agendas/live-panel.tsx:189
+#: src/renderer/features/agendas/live-panel.tsx:187
+#: src/renderer/features/agendas/live-panel.tsx:192
 msgid "Not covered yet"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:191
+#: src/renderer/features/agendas/live-panel.tsx:194
 msgid "{n} min left"
 msgid_plural "{n} min left"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/agendas/live-panel.tsx:191
+#: src/renderer/features/agendas/live-panel.tsx:194
 msgid "time’s up"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:214
+#: src/renderer/features/agendas/live-panel.tsx:217
 msgid "Next point"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:216
+#: src/renderer/features/agendas/live-panel.tsx:219
 msgid "Question to ask"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:218
+#: src/renderer/features/agendas/live-panel.tsx:221
 msgid "Missed"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:220
+#: src/renderer/features/agendas/live-panel.tsx:223
 msgid "Fact check"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:222
+#: src/renderer/features/agendas/live-panel.tsx:225
 msgid "Looks covered?"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:224
+#: src/renderer/features/agendas/live-panel.tsx:227
 msgid "Status change"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:231
+#: src/renderer/features/agendas/live-panel.tsx:234
 msgid "Could not resolve the suggestion"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:238
+#: src/renderer/features/agendas/live-panel.tsx:241
 msgid "Suggestion: {text}"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:246
+#: src/renderer/features/agendas/live-panel.tsx:249
+#: src/renderer/features/agendas/labels.ts:149
 msgid "by {name}"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:247
-#: src/renderer/features/agendas/labels.ts:119
+#: src/renderer/features/agendas/live-panel.tsx:250
+#: src/renderer/features/agendas/labels.ts:145
 msgid "by the live tracker"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:260
+#: src/renderer/features/agendas/live-panel.tsx:263
 msgid "Accept"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:275
+#: src/renderer/features/agendas/live-panel.tsx:278
 msgid "Turn into Item"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:297
+#: src/renderer/features/agendas/live-panel.tsx:300
 msgid "Told ({n})"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:300
+#: src/renderer/features/agendas/live-panel.tsx:303
 #: src/renderer/features/agendas/presence.tsx:53
 msgid "Nothing yet."
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:308
+#: src/renderer/features/agendas/live-panel.tsx:311
 msgid "(answer not recorded)"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:323
+#: src/renderer/features/agendas/live-panel.tsx:326
 msgid "Not told yet ({n})"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:327
+#: src/renderer/features/agendas/live-panel.tsx:330
 msgid "Everything asked for has been answered."
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:362
+#: src/renderer/features/agendas/live-panel.tsx:365
 msgid "{covered} of {total} covered"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:363
+#: src/renderer/features/agendas/live-panel.tsx:366
 msgid "{n} in progress"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:367
+#: src/renderer/features/agendas/live-panel.tsx:370
 msgid "Agenda view"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:370
+#: src/renderer/features/agendas/live-panel.tsx:373
 msgid "Interview"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:378
+#: src/renderer/features/agendas/live-panel.tsx:381
 msgid "Full view"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:378
+#: src/renderer/features/agendas/live-panel.tsx:381
 msgid "Compact view"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:387
+#: src/renderer/features/agendas/live-panel.tsx:390
 msgid "Edit Agenda"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:397
+#: src/renderer/features/agendas/live-panel.tsx:400
 msgid "Suggestions"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:412
-#: src/renderer/features/agendas/upcoming.tsx:73
+#: src/renderer/features/agendas/live-panel.tsx:415
+#: src/renderer/features/agendas/upcoming.tsx:83
 msgid "Now"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:416
+#: src/renderer/features/agendas/live-panel.tsx:419
 msgid "Show less"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:416
+#: src/renderer/features/agendas/live-panel.tsx:419
 msgid "Show all {n}"
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:435
+#: src/renderer/features/agendas/live-panel.tsx:438
 msgid "Nothing in progress right now."
 msgstr ""
 
-#: src/renderer/features/agendas/live-panel.tsx:435
+#: src/renderer/features/agendas/live-panel.tsx:438
 msgid "This agenda has no items."
 msgstr ""
 
@@ -1165,38 +1241,391 @@ msgstr ""
 msgid "{label}. Show agent"
 msgstr ""
 
-#: src/renderer/features/agendas/recap.tsx:29
+#: src/renderer/features/agendas/recap.tsx:31
 msgid "{n} open item carries over to the next meeting"
 msgid_plural "{n} open items carry over to the next meeting"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/agendas/recap.tsx:41
+#: src/renderer/features/agendas/recap.tsx:43
 msgid "Open Next Agenda"
 msgstr ""
 
-#: src/renderer/features/agendas/recap.tsx:56
+#: src/renderer/features/agendas/recap.tsx:59
 msgid "Recap"
 msgstr ""
 
-#: src/renderer/features/agendas/recap.tsx:59
+#: src/renderer/features/agendas/recap.tsx:62
 msgid "{covered} covered · {skipped} skipped · {open} still open"
 msgstr ""
 
-#: src/renderer/features/agendas/recap.tsx:67
+#: src/renderer/features/agendas/recap.tsx:71
 msgid "Recap per item"
 msgstr ""
 
-#: src/renderer/features/agendas/recap.tsx:82
+#: src/renderer/features/agendas/recap.tsx:86
 msgid "No outcome recorded."
 msgstr ""
 
-#: src/renderer/features/agendas/recap.tsx:86
+#: src/renderer/features/agendas/recap.tsx:90
 msgid "Decisions"
 msgstr ""
 
-#: src/renderer/features/agendas/recap.tsx:98
+#: src/renderer/features/agendas/recap.tsx:102
 msgid "Actions"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:51
+msgid "Not shared"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:53
+msgid "Up to date"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:55
+msgid "Syncing…"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:57
+msgid "Sync failed"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:59
+msgid "No longer shared"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:81
+msgid "Applied"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:83
+msgid "Agreed"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:85
+msgid "Refused"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:87
+msgid "Superseded"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:101
+#: src/renderer/features/agendas/labels.ts:100
+msgid "you"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:105
+msgid "your tracker"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:105
+#: src/renderer/features/agendas/labels.ts:124
+msgid "{name}’s tracker"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:108
+msgid "your {agent}"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:108
+#: src/renderer/features/agendas/labels.ts:125
+msgid "{name}’s {agent}"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:138
+msgid "Following"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:138
+#: src/renderer/features/agendas/share.tsx:148
+msgid "Share…"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:147
+msgid "{label}: {state}"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:172
+msgid "Could not share the agenda"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:173
+#: src/renderer/features/agendas/share.tsx:393
+msgid "Could not sync"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:174
+msgid "Could not stop sharing"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:200
+msgid "The agenda is shared"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:208
+msgid "Copied the link"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:210
+msgid "Shared Agenda"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:210
+msgid "Share Agenda"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:222
+msgid "Remove Sharing Details"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:222
+msgid "Stop Following…"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:226
+#: src/renderer/features/agendas/share.tsx:239
+msgid "Sync Now"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:230
+#: src/renderer/features/notes/action-items.tsx:48
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:177
+msgid "Done"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:236
+msgid "Unshare…"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:254
+msgid "Share"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:267
+msgid "synced {time}"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:272
+msgid "{n} change waiting"
+msgid_plural "{n} changes waiting"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/renderer/features/agendas/share.tsx:282
+msgid "Web link"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:290
+msgid "Copy Link"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:298
+msgid ""
+"{owner} shares this agenda with you. Your status changes and the items you "
+"add go to everyone following it."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:300
+#: src/renderer/features/agendas/share.tsx:400
+msgid "The organizer"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:308
+msgid ""
+"Anyone with the link can read the items and the context cards you marked "
+"shared. Transcripts, notes, evidence and private cards never leave this "
+"computer."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:315
+msgid "Your name"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:316
+msgid "How you appear to the people you share with."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:317
+msgid "Organizer"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:323
+msgid "Invitees may add items and comment"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:325
+msgid "After confirming their email address."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:331
+msgid "Share the goals too"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:332
+msgid "Goals are often personal."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:336
+msgid "Attendees who use kacola"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:338
+msgid ""
+"Email addresses, one per line. They can follow this agenda in their own "
+"kacola and check items off."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:346
+msgid "Not an email address: {list}"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:355
+msgid ""
+"Sharing needs a hosted kacola server. Pair with one (gnomeola pair --url …), "
+"or set GNOMEOLA_SHARE_URL and GNOMEOLA_SHARE_TOKEN."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:364
+msgid "Stop following this agenda?"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:364
+msgid "Stop sharing this agenda?"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:365
+msgid "Stop Following"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:365
+msgid "Unshare"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:372
+msgid "Stopped following the agenda"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:372
+msgid "The agenda is no longer shared"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:380
+msgid "Your copy stays on this computer; it stops receiving changes."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:382
+msgid ""
+"The link stops working, and everything on the server goes: the items people "
+"added, their comments and the merge history. Your agenda stays as it is."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:399
+msgid "{owner} stopped sharing this agenda. Your copy stays on this computer."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:408
+msgid "Sharing could not sync: {reason}"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:408
+msgid "unknown error"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:411
+#: src/renderer/features/notes/notes-pane.tsx:136
+#: src/renderer/routes/main-layout.tsx:78
+msgid "Try Again"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:446
+#: src/renderer/features/agendas/share.tsx:531
+msgid "invitee"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:469
+msgid "A removed item"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:473
+#: src/renderer/features/agendas/share.tsx:572
+msgid "Merge history"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:477
+msgid "{item}: {from} → {to} by {who}, {outcome}"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:517
+#: src/renderer/features/agendas/share.tsx:520
+msgid "Comments"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:527
+msgid "{who} on “{about}”"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:529
+msgid "the agenda"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:539
+msgid "No comments yet. Invitees comment from the web link."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:546
+#: src/renderer/features/agendas/share.tsx:549
+msgid "People"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:557
+msgid "Removed"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:557
+msgid "Follows in kacola"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:557
+msgid "Invitee"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:564
+msgid "Nobody has confirmed an email address on the link yet."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:578
+msgid "{n} change was refused or superseded"
+msgid_plural "{n} changes were refused or superseded"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/renderer/features/agendas/share.tsx:589
+msgid ""
+"Every status change from every device, and what became of it: the "
+"organizer’s own changes win, then each attendee’s, then trackers and agents "
+"(forward only)."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:593
+msgid "The history went with the share."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:606
+msgid "Could not change the recap’s sharing"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:615
+msgid "Share recap"
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:618
+msgid "People with the link see each item’s outcome."
+msgstr ""
+
+#: src/renderer/features/agendas/share.tsx:619
+msgid "Outcomes stay on this computer until you share them."
 msgstr ""
 
 #: src/renderer/features/agendas/tracker-status.tsx:13
@@ -1235,27 +1664,32 @@ msgstr ""
 msgid "Following the meeting · decisions {provider}"
 msgstr ""
 
-#: src/renderer/features/agendas/upcoming.tsx:54
+#: src/renderer/features/agendas/upcoming.tsx:55
 msgid "Could not open the agenda: {reason}"
 msgstr ""
 
-#: src/renderer/features/agendas/upcoming.tsx:62
+#: src/renderer/features/agendas/upcoming.tsx:64
 msgid "Coming up"
 msgstr ""
 
-#: src/renderer/features/agendas/upcoming.tsx:85
+#: src/renderer/features/agendas/upcoming.tsx:69
+#: src/renderer/features/agendas/upcoming.tsx:70
+msgid "Follow a shared agenda"
+msgstr ""
+
+#: src/renderer/features/agendas/upcoming.tsx:95
 msgid "Agenda for {title}, {when}"
 msgstr ""
 
-#: src/renderer/features/agendas/upcoming.tsx:85
+#: src/renderer/features/agendas/upcoming.tsx:95
 msgid "Plan {title}, {when}"
 msgstr ""
 
-#: src/renderer/features/agendas/upcoming.tsx:87
+#: src/renderer/features/agendas/upcoming.tsx:97
 msgid "now"
 msgstr ""
 
-#: src/renderer/features/agendas/upcoming.tsx:90
+#: src/renderer/features/agendas/upcoming.tsx:100
 msgid "Plan"
 msgstr ""
 
@@ -1410,11 +1844,6 @@ msgstr ""
 msgid "Due: {due}"
 msgstr ""
 
-#: src/renderer/features/notes/action-items.tsx:48
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:177
-msgid "Done"
-msgstr ""
-
 #: src/renderer/features/notes/notes-pane.tsx:40
 #: src/renderer/features/notes/notes-pane.tsx:169
 #: src/renderer/features/notes/version-history.tsx:129
@@ -1491,11 +1920,6 @@ msgstr ""
 
 #: src/renderer/features/notes/notes-pane.tsx:115
 msgid "Your notes were not enhanced: {reason}"
-msgstr ""
-
-#: src/renderer/features/notes/notes-pane.tsx:136
-#: src/renderer/routes/main-layout.tsx:77
-msgid "Try Again"
 msgstr ""
 
 #: src/renderer/features/notes/notes-pane.tsx:194
@@ -2354,7 +2778,7 @@ msgid "Loading settings"
 msgstr ""
 
 #: src/renderer/features/preferences/preferences-dialog.tsx:479
-#: src/renderer/features/sessions/session-sidebar.tsx:43
+#: src/renderer/features/sessions/session-sidebar.tsx:44
 #: src/renderer/features/shell/shortcuts.tsx:29
 msgid "Preferences"
 msgstr ""
@@ -2427,7 +2851,7 @@ msgstr ""
 
 #: src/renderer/features/sessions/session-details.tsx:103
 #: src/renderer/features/shell/shortcuts.tsx:26
-#: src/renderer/routes/main-layout.tsx:100
+#: src/renderer/routes/main-layout.tsx:102
 msgid "Session"
 msgstr ""
 
@@ -2458,67 +2882,71 @@ msgstr ""
 msgid "Transcript"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:39
 #: src/renderer/features/sessions/session-sidebar.tsx:40
+#: src/renderer/features/sessions/session-sidebar.tsx:41
 #: src/renderer/features/shell/shortcuts.tsx:31
 msgid "Main menu"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:46
+#: src/renderer/features/sessions/session-sidebar.tsx:47
+msgid "Follow a Shared Agenda…"
+msgstr ""
+
+#: src/renderer/features/sessions/session-sidebar.tsx:50
 msgid "Set Up Speech Models…"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:49
+#: src/renderer/features/sessions/session-sidebar.tsx:53
 #: src/renderer/features/shell/shortcuts.tsx:83
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:84
+#: src/renderer/features/sessions/session-sidebar.tsx:88
 #: src/renderer/features/shell/shortcuts.tsx:25 ../ui-core/src/format.ts:61
 msgid "Recording"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:117
+#: src/renderer/features/sessions/session-sidebar.tsx:121
 msgid "Lost the connection to the daemon. Reconnecting…"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:122
+#: src/renderer/features/sessions/session-sidebar.tsx:126
 msgid "A speech model is not downloaded yet"
 msgid_plural "Speech models are not downloaded yet"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:128
+#: src/renderer/features/sessions/session-sidebar.tsx:132
 msgid "Set Up"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:133
+#: src/renderer/features/sessions/session-sidebar.tsx:137
 #: src/renderer/features/shell/shortcuts.tsx:32
 msgid "Search sessions"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:141
+#: src/renderer/features/sessions/session-sidebar.tsx:145
 msgid "No Matching Sessions"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:141
+#: src/renderer/features/sessions/session-sidebar.tsx:145
 msgid "No Sessions Yet"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:143
+#: src/renderer/features/sessions/session-sidebar.tsx:147
 msgid "Try a different search."
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:143
+#: src/renderer/features/sessions/session-sidebar.tsx:147
 msgid "Press Record to capture your first meeting."
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:147
+#: src/renderer/features/sessions/session-sidebar.tsx:151
 msgid "Session list"
 msgstr ""
 
-#: src/renderer/features/sessions/session-sidebar.tsx:149
-#: src/renderer/routes/main-layout.tsx:99
+#: src/renderer/features/sessions/session-sidebar.tsx:153
+#: src/renderer/routes/main-layout.tsx:101
 msgid "Sessions"
 msgstr ""
 
@@ -2715,28 +3143,28 @@ msgstr ""
 msgid "Could not change the speaker: {reason}"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:58
-#: src/renderer/routes/main-layout.tsx:61
+#: src/renderer/routes/main-layout.tsx:59
+#: src/renderer/routes/main-layout.tsx:62
 msgid "Connecting…"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:59
+#: src/renderer/routes/main-layout.tsx:60
 msgid "Reaching gnomeola at {origin}"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:71
+#: src/renderer/routes/main-layout.tsx:72
 msgid "Can’t Reach gnomeola"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:72
+#: src/renderer/routes/main-layout.tsx:73
 msgid "The gnomeola daemon is not answering at {origin}."
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:194
+#: src/renderer/routes/main-layout.tsx:196
 msgid "No Session Selected"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:195
+#: src/renderer/routes/main-layout.tsx:197
 msgid "Pick a session in the sidebar, or press Record to start one."
 msgstr ""
 
@@ -2820,20 +3248,23 @@ msgstr ""
 msgid "Also checks items off (never over your own changes)."
 msgstr ""
 
-#: src/renderer/features/agendas/labels.ts:97
-msgid "you"
-msgstr ""
-
-#: src/renderer/features/agendas/labels.ts:99
+#: src/renderer/features/agendas/labels.ts:102
 msgid "the live tracker"
 msgstr ""
 
-#: src/renderer/features/agendas/labels.ts:120
+#: src/renderer/features/agendas/labels.ts:146
+#: src/renderer/features/agendas/labels.ts:150
 msgid "checked by {name}"
 msgstr ""
 
-#: src/renderer/features/agendas/labels.ts:121
+#: src/renderer/features/agendas/labels.ts:151
+#: src/renderer/features/agendas/labels.ts:153
 msgid "marked by {name}"
+msgstr ""
+
+#: src/renderer/features/agendas/labels.ts:167
+#: src/renderer/features/agendas/labels.ts:168
+msgid "added by {name}"
 msgstr ""
 
 #: src/renderer/features/sessions/recorder.ts:88

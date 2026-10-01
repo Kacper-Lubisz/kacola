@@ -7,6 +7,8 @@ import { useServices } from '../../data/services.tsx'
 import { Button, Card, Chip, Icon } from '../../design/primitives/index.ts'
 import { EvidenceChip } from './evidence.tsx'
 import { STATUS_ICON, STATUS_TONE, statusLabel } from './labels.ts'
+import { ShareRecapSwitch } from './share.tsx'
+import { useAgendaShare } from './share-data.ts'
 
 // The recap after the meeting: per item, what became of it — the outcome, decisions and actions the recap
 // hook wrote (in the recap prompt's form, read by ui-core's parseRecapOutcome), else the item's own outcome
@@ -48,6 +50,7 @@ function NextOccurrence({ view }: { view: AgendaView }) {
 export function RecapView({ view, session }: { view: AgendaView; session: Session }) {
   const items = [...view.items].sort((a, b) => a.order - b.order)
   const counts = statusCounts(items)
+  const share = useAgendaShare(view.agenda.id).data
   void session
   return (
     <section aria-labelledby="recap" className="flex flex-col gap-3">
@@ -63,6 +66,7 @@ export function RecapView({ view, session }: { view: AgendaView; session: Sessio
           })}
         </p>
       </div>
+      <ShareRecapSwitch view={view} status={share} />
       <NextOccurrence view={view} />
       <ol aria-label={_('Recap per item')} className="m-0 flex list-none flex-col gap-2 p-0">
         {items.map((i) => {

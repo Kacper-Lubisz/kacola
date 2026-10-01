@@ -1,0 +1,8 @@
+{
+  "agendaId": "<agd:1>",
+  "block": "-- kacola agenda --\nAgenda: kacola://meeting/one-on-one%40x\n-- /kacola --",
+  "appLink": "kacola://meeting/one-on-one%40x",
+  "webLink": null,
+  "written": false,
+  "reason": null
+}

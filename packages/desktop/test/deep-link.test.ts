@@ -51,6 +51,24 @@ describe('deepLinkFromArgv', () => {
     expect(normalizeDeepLink(undefined)).toBeNull()
   })
 
+  it('accepts a shared agenda’s web link (https, or http on this machine) in its canonical form', () => {
+    const token = 'AbCdEfGhIjKlMnOpQrStUvWxYz012345'
+    expect(deepLinkFromArgv([...electron, `https://share.example.com/a/${token}`])).toBe(
+      `https://share.example.com/a/${token}`,
+    )
+    expect(normalizeDeepLink(` https://share.example.com/team/a/${token}/?x=1#verify=a@b.c/CODE `)).toBe(
+      `https://share.example.com/team/a/${token}`,
+    )
+    expect(normalizeDeepLink(`http://127.0.0.1:8790/a/${token}`)).toBe(`http://127.0.0.1:8790/a/${token}`)
+    for (const a of [
+      `http://share.example.com/a/${token}`, // plain http off this machine
+      'https://share.example.com/a/short',
+      `https://share.example.com/b/${token}`,
+      `ftp://share.example.com/a/${token}`,
+    ])
+      expect(normalizeDeepLink(a), a).toBeNull()
+  })
+
   it('refuses an overlong argument', () => {
     const id = 'a'.repeat(MAX_DEEP_LINK)
     expect(deepLinkFromArgv([`kacola://agenda/${id}`])).toBeNull()

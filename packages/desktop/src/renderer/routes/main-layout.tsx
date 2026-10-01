@@ -14,6 +14,7 @@ import {
 } from '../design/primitives/index.ts'
 import { AboutDialog } from '../features/about/about-dialog.tsx'
 import { DeepLinkHandler } from '../features/agendas/deep-links.tsx'
+import { FollowDialogHost } from '../features/agendas/follow.tsx'
 import { OnboardingDialog } from '../features/onboarding/onboarding-dialog.tsx'
 import { useOnboarding } from '../features/onboarding/onboarding-state.ts'
 import { PreferencesDialog } from '../features/preferences/preferences-dialog.tsx'
@@ -86,6 +87,7 @@ function Window() {
       <Split missing={onboarding.missing.length} />
       {live ? <DialogHost onOnboardingDone={onboarding.done} /> : null}
       {everLive ? <DeepLinkHandler /> : null}
+      {live ? <FollowDialogHost /> : null}
       <Shortcuts />
     </>
   )

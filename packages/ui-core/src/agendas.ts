@@ -115,15 +115,48 @@ export function applyHistoryEvent(history: StatusChange[], d: AgendaEventData): 
 
 // ------------------------------------------------------------------------------------ view logic
 
-/** Who made a change, for the "checked by Claude" / "auto" attributions. */
-export type Attribution = { kind: 'you' | 'tracker' | 'agent' | 'invitee'; name: string | null }
+/**
+ * Who made a change, for the "checked by Claude" / "auto" attributions. `peer` is another attendee's
+ * device on a shared agenda (team sharing): `peer:<label>` the person, `peer:<label>/tracker` their
+ * tracker, `peer:<label>/agent:<name>` their agent — `name` is the label, `via` what acted for them.
+ */
+export type Attribution = {
+  kind: 'you' | 'tracker' | 'agent' | 'invitee' | 'peer'
+  name: string | null
+  via?: { kind: 'person' } | { kind: 'tracker' } | { kind: 'agent'; name: string }
+}
 
 export function attributionOf(by: string): Attribution {
   if (by === 'user') return { kind: 'you', name: null }
   if (by === 'tracker') return { kind: 'tracker', name: null }
   if (by.startsWith('agent:')) return { kind: 'agent', name: by.slice(6) }
   if (by.startsWith('invitee:')) return { kind: 'invitee', name: by.slice(8) }
+  if (by.startsWith('peer:')) {
+    const rest = by.slice(5)
+    const slash = rest.indexOf('/')
+    if (slash === -1) return { kind: 'peer', name: rest, via: { kind: 'person' } }
+    const label = rest.slice(0, slash)
+    const what = rest.slice(slash + 1)
+    if (what === 'tracker') return { kind: 'peer', name: label, via: { kind: 'tracker' } }
+    if (what.startsWith('agent:'))
+      return { kind: 'peer', name: label, via: { kind: 'agent', name: what.slice(6) } }
+    return { kind: 'peer', name: label, via: { kind: 'person' } }
+  }
   return { kind: 'you', name: null }
+}
+
+/**
+ * How the window names a person known by a `peer:` label or an invitee's email: the name they gave
+ * (`names`, from the share's participants and comments), else an email's local part capitalised
+ * ("ben@x.com" → "Ben"), else the label itself.
+ */
+export function personName(label: string, names?: ReadonlyMap<string, string>): string {
+  const known = names?.get(label.toLowerCase())
+  if (known) return known
+  const at = label.indexOf('@')
+  if (at <= 0) return label
+  const local = label.slice(0, at).split(/[._+-]/)[0] ?? ''
+  return local ? local.charAt(0).toUpperCase() + local.slice(1) : label
 }
 
 /** The latest status change of an item, from a history (oldest first). */

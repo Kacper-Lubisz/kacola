@@ -1,0 +1,39 @@
+{
+  "agendaId": "<agd:1>",
+  "shared": true,
+  "role": "owner",
+  "link": "<link>",
+  "state": "ok",
+  "lastSyncAt": "<iso>",
+  "pending": 0,
+  "refused": 0,
+  "ownerName": "Kacper",
+  "shareGoals": false,
+  "allowInvitees": true,
+  "members": [
+    "ben@example.com"
+  ],
+  "recapShared": true,
+  "comments": [
+    {
+      "itemId": "<itm:1>",
+      "item": "Offsite dates",
+      "author": "Ivy",
+      "role": "invitee",
+      "text": "Friday works for me",
+      "at": "<iso>"
+    }
+  ],
+  "participants": [
+    {
+      "email": "ivy@example.com",
+      "name": "Ivy",
+      "role": "invitee"
+    },
+    {
+      "email": "ben@example.com",
+      "name": "Ben",
+      "role": "member"
+    }
+  ]
+}

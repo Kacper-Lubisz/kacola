@@ -4,6 +4,9 @@ import type {
   AgendaView,
   DurableEvent,
   LeaseInfo,
+  SharedActor,
+  SharedChange,
+  SharedComment,
   SseMessage,
   StatusChange,
   Suggestion,
@@ -12,8 +15,9 @@ import type {
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { resetDeepLinksForTests } from '../src/renderer/features/agendas/deep-links.tsx'
+import { useFollow } from '../src/renderer/features/agendas/follow.tsx'
 import { usePanelPrefs } from '../src/renderer/features/agendas/live-panel.tsx'
-import { fakeBridge, renderApp } from './app-harness.tsx'
+import { fakeBridge, renderApp, shareStatus } from './app-harness.tsx'
 import type { Handler } from './helpers.ts'
 import { durable, ephemeral, session, until } from './helpers.ts'
 
@@ -23,6 +27,7 @@ import { durable, ephemeral, session, until } from './helpers.ts'
 afterEach(() => cleanup())
 beforeEach(() => {
   resetDeepLinksForTests()
+  useFollow.setState({ open: false, link: '' })
   usePanelPrefs.setState({ compact: false, view: 'agenda' })
 })
 
@@ -729,6 +734,354 @@ describe('deep links', () => {
       includePrivate: true,
     })
     expect(app.router.state.location.pathname).toBe('/agendas/agd_1')
+    app.stop()
+  })
+})
+
+describe('team sharing', () => {
+  const LINK = 'https://share.example/a/AbCdEfGhIjKlMnOpQrStUvWxYz012345'
+  const ivy: SharedActor = {
+    participantId: 'spt_ivy',
+    role: 'invitee',
+    label: 'ivy@example.com',
+    name: 'Ivy',
+    by: 'user',
+  }
+  const ben: SharedActor = {
+    participantId: 'spt_ben',
+    role: 'member',
+    label: 'ben@example.com',
+    name: null,
+    by: 'user',
+  }
+  const owner: SharedActor = {
+    participantId: 'owner',
+    role: 'owner',
+    label: 'kacper@example.com',
+    name: null,
+    by: 'user',
+  }
+  const comment = (text: string, itemId: string | null): SharedComment => ({
+    id: `cmt_${text.length}`,
+    occurrence: 'agd_1',
+    itemId,
+    author: ivy,
+    text,
+    at: T,
+    hidden: false,
+  })
+  const shared = shareStatus({
+    shared: true,
+    role: 'owner',
+    shareId: 'shr_1',
+    link: LINK,
+    ownerName: 'Kacper',
+    state: 'ok',
+    lastSyncAt: T,
+    members: ['ben@example.com'],
+  })
+  const change = (over: Partial<SharedChange>): SharedChange => ({
+    id: `chg_${over.key}`,
+    key: 'k',
+    itemId: 'Hiring plan',
+    occurrence: 'agd_1',
+    from: 'open',
+    to: 'covered',
+    actor: ben,
+    at: T,
+    receivedAt: T,
+    auto: false,
+    confidence: null,
+    outcome: 'applied',
+    reason: null,
+    before: 'open',
+    after: 'covered',
+    ...over,
+  })
+
+  it('shares from the editor: the options sent, the link to copy, the state; agenda.share events re-render it; unshare asks first', async () => {
+    const fb = fakeBridge()
+    let current = shareStatus()
+    const { app } = mount({
+      view: agendaView(),
+      path: '/agendas/agd_1',
+      bridge: fb,
+      handlers: {
+        getAgendaShare: () => current,
+        shareAgenda: ({ body }) => {
+          current = { ...shared, ...(body as object), members: (body as { members: string[] }).members }
+          return current
+        },
+        unshareAgenda: () => {
+          current = shareStatus()
+          return current
+        },
+        getAgendaShareHistory: () => ({ changes: [] }),
+      },
+    })
+    fireEvent.click(await screen.findByRole('button', { name: 'Share…' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Share Agenda' })
+    fireEvent.change(within(dlg).getByLabelText('Your name'), { target: { value: 'Kacper' } })
+    fireEvent.change(within(dlg).getByLabelText('Attendees who use kacola'), {
+      target: { value: 'Ben@Example.com, not-an-email' },
+    })
+    expect(within(dlg).getByText(/Not an email address: not-an-email/)).toBeTruthy()
+    expect(within(dlg).getByRole('button', { name: 'Share' }).hasAttribute('disabled')).toBe(true)
+    fireEvent.change(within(dlg).getByLabelText('Attendees who use kacola'), {
+      target: { value: 'Ben@Example.com\nana@example.com' },
+    })
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Share' }))
+    await until(() => app.daemon.calls.includes('shareAgenda'))
+    expect(app.daemon.log.find((c) => c.name === 'shareAgenda')!.opts.body).toEqual({
+      ownerName: 'Kacper',
+      shareGoals: false,
+      allowInvitees: true,
+      members: ['ben@example.com', 'ana@example.com'],
+    })
+    await within(dlg).findByLabelText('Web link')
+    expect((within(dlg).getByLabelText('Web link') as HTMLInputElement).value).toBe(LINK)
+    expect(within(dlg).getByText('Up to date')).toBeTruthy()
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Copy Link' }))
+    await until(() => fb.bridge.copyText.mock.calls.length === 1)
+    expect(fb.bridge.copyText.mock.calls[0]![0]).toBe(LINK)
+    // the daemon's sync reports arrive as agenda.share events: rendered as they come, nothing refetched
+    act(() =>
+      app.daemon.emit(
+        ephemeral({
+          type: 'agenda.share',
+          agendaId: 'agd_1',
+          status: { ...current, state: 'error', error: 'host down' },
+        }),
+      ),
+    )
+    await within(dlg).findByText('Sync failed')
+    expect(within(dlg).getByRole('status', { name: 'host down' })).toBeTruthy()
+    act(() => app.daemon.emit(ephemeral({ type: 'agenda.share', agendaId: 'agd_1', status: current })))
+    await within(dlg).findByText('Up to date')
+    // unshare: a confirmation first
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Unshare…' }))
+    const sure = await screen.findByRole('alertdialog', { name: 'Stop sharing this agenda?' })
+    expect(app.daemon.calls).not.toContain('unshareAgenda')
+    fireEvent.click(within(sure).getByRole('button', { name: 'Unshare' }))
+    await until(() => app.daemon.calls.includes('unshareAgenda'))
+    await screen.findByRole('button', { name: 'Share…' })
+    app.stop()
+  })
+
+  it('without a host: says what to set up and does not offer Share', async () => {
+    const { app } = mount({
+      view: agendaView(),
+      path: '/agendas/agd_1',
+      handlers: { getAgendaShare: () => shareStatus({ host: null }) },
+    })
+    fireEvent.click(await screen.findByRole('button', { name: 'Share…' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Share Agenda' })
+    expect(within(dlg).getByText(/Sharing needs a hosted kacola server/)).toBeTruthy()
+    expect(within(dlg).getByRole('button', { name: 'Share' }).hasAttribute('disabled')).toBe(true)
+    app.stop()
+  })
+
+  it('shows contributions attributed: invitee items and comments, peers’ status changes, the merge history', async () => {
+    const view = agendaView({}, [
+      item('Promo timeline', 0),
+      item('Hiring plan', 1, { status: 'covered', changedBy: 'peer:ben@example.com' }),
+      item('Offsite dates', 2, { createdBy: 'invitee:ivy@example.com' }),
+      item('Budget', 3, { status: 'in-progress', changedBy: 'peer:ben@example.com/tracker' }),
+    ])
+    const sc = (itemId: string, to: AgendaItem['status'], by: string): StatusChange => ({
+      itemId,
+      from: 'open',
+      to,
+      by,
+      at: T,
+      note: null,
+      evidence: [],
+      override: false,
+      auto: false,
+      confidence: null,
+    })
+    const history = [
+      sc('Hiring plan', 'covered', 'peer:ben@example.com'),
+      sc('Budget', 'in-progress', 'peer:ben@example.com/tracker'),
+    ]
+    const { app } = mount({
+      view,
+      history,
+      path: '/agendas/agd_1',
+      handlers: {
+        getAgendaShare: () => ({
+          ...shared,
+          refused: 1,
+          comments: [comment('Friday works for me', 'Offsite dates'), comment('Can we start late?', null)],
+          participants: [
+            {
+              id: 'spt_ivy',
+              shareId: 'shr_1',
+              email: 'ivy@example.com',
+              name: 'Ivy',
+              role: 'invitee',
+              createdAt: T,
+              revokedAt: null,
+            },
+            {
+              id: 'spt_ben',
+              shareId: 'shr_1',
+              email: 'ben@example.com',
+              name: null,
+              role: 'member',
+              createdAt: T,
+              revokedAt: null,
+            },
+          ],
+        }),
+        getAgendaShareHistory: () => ({
+          changes: [
+            change({ key: 'a' }),
+            change({ key: 'b', itemId: 'Budget', to: 'in-progress', actor: { ...ben, by: 'tracker' } }),
+            change({ key: 'c', to: 'open', actor: owner }),
+            change({
+              key: 'd',
+              outcome: 'refused',
+              reason: 'the owner set it to open by hand',
+              actor: { ...ben, by: 'agent:claude' },
+            }),
+          ],
+        }),
+      },
+    })
+    const list = await screen.findByRole('grid', { name: 'Agenda items' })
+    const row = (t: string) =>
+      within(list)
+        .getAllByRole('row')
+        .find((r) => r.textContent?.includes(t))!
+    await until(() => (row('Offsite dates').textContent ?? '').includes('added by Ivy (ivy@example.com)'))
+    expect(row('Offsite dates').textContent).toContain('Ivy (invitee): Friday works for me')
+    expect(row('Hiring plan').textContent).toContain('marked by Ben')
+    expect(row('Budget').textContent).toContain('by Ben’s tracker')
+    fireEvent.click(within(row('Budget')).getByRole('button', { name: 'History of “Budget”' }))
+    await screen.findByText('Open → In progress by Ben’s tracker')
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'History of “Budget”' }), { key: 'Escape' })
+    await until(() => screen.queryByRole('dialog', { name: 'History of “Budget”' }) === null)
+    // the Sharing tab: comments, people, the merge history with outcomes and reasons
+    fireEvent.click(screen.getByRole('tab', { name: 'Sharing' }))
+    const comments = await screen.findByRole('list', { name: 'Comments' })
+    expect(comments.textContent).toMatch(/Ivy on “Offsite dates”.*Friday works for me/)
+    expect(comments.textContent).toMatch(/on “the agenda”.*Can we start late\?/)
+    expect(screen.getByRole('list', { name: 'People' }).textContent).toMatch(
+      /Ivy · ivy@example.com.*Invitee.*ben@example.com.*Follows in kacola/,
+    )
+    const merged = await screen.findByRole('list', { name: 'Merge history' })
+    const entries = within(merged)
+      .getAllByRole('listitem')
+      .map((l) => l.getAttribute('aria-label'))
+    expect(entries).toEqual([
+      'Hiring plan: Open → Covered by Ben’s Claude, Refused',
+      'Hiring plan: Open → Open by you, Applied',
+      'Budget: Open → In progress by Ben’s tracker, Applied',
+      'Hiring plan: Open → Covered by Ben, Applied',
+    ])
+    expect(merged.textContent).toContain('the owner set it to open by hand')
+    expect(screen.getByText('1 change was refused or superseded')).toBeTruthy()
+    app.stop()
+  })
+
+  it('a followed copy whose owner stopped sharing: the banner, the state on the button', async () => {
+    const { app } = mount({
+      view: agendaView(),
+      path: '/agendas/agd_1',
+      handlers: {
+        getAgendaShare: () =>
+          shareStatus({
+            shared: false,
+            role: 'member',
+            shareId: 'shr_1',
+            ownerName: 'Kacper',
+            state: 'revoked',
+          }),
+      },
+    })
+    await screen.findByRole('status', {
+      name: 'Kacper stopped sharing this agenda. Your copy stays on this computer.',
+    })
+    expect(screen.getByRole('button', { name: 'Following: No longer shared' })).toBeTruthy()
+    app.stop()
+  })
+
+  it('the recap’s Share recap switch (owner, shared)', async () => {
+    const view = agendaView({ sessionId: 's1' }, [
+      item('Promo timeline', 0, { status: 'covered', outcome: 'March.' }),
+    ])
+    const stopped = session('s1', { title: '1:1 with Ana', status: 'stopped', startedAt: T, endedAt: T })
+    let current = shared
+    const { app } = mount({
+      view,
+      path: '/sessions/s1?tab=agenda',
+      sessions: [stopped],
+      handlers: {
+        getAgendaShare: () => current,
+        shareAgendaRecap: ({ body }) => {
+          current = { ...current, recapShared: (body as { shared: boolean }).shared }
+          return current
+        },
+      },
+    })
+    const sw = await screen.findByRole('switch', { name: /Share recap/ })
+    expect((sw as HTMLInputElement).checked).toBe(false)
+    fireEvent.click(sw)
+    await until(() => app.daemon.calls.includes('shareAgendaRecap'))
+    expect(app.daemon.log.find((c) => c.name === 'shareAgendaRecap')!.opts.body).toEqual({ shared: true })
+    await until(() => (screen.getByRole('switch', { name: /Share recap/ }) as HTMLInputElement).checked)
+    app.stop()
+  })
+
+  it('follows a shared agenda: link + email → code → the local copy opens; a wrong code says so', async () => {
+    const view = agendaView({ id: 'agd_copy', title: 'Team sync' })
+    const { app } = mount({
+      view,
+      path: '/',
+      handlers: {
+        followAgenda: () => ({ pending: true, expiresAt: '2026-09-30T10:15:00.000Z' }),
+        confirmFollowAgenda: ({ body }) => {
+          if ((body as { code: string }).code !== 'ABCD-EFGH')
+            throw Object.assign(new Error('wrong code'), { status: 403 })
+          return shareStatus({ agendaId: 'agd_copy', shared: true, role: 'member', state: 'ok', link: LINK })
+        },
+        getAgenda: () => view,
+      },
+    })
+    fireEvent.click(await screen.findByRole('button', { name: 'Main menu' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Follow a Shared Agenda…' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Follow a Shared Agenda' })
+    fireEvent.change(within(dlg).getByLabelText('Link'), { target: { value: 'https://share.example/x' } })
+    expect(within(dlg).getByText(/not a shared agenda link/)).toBeTruthy()
+    fireEvent.change(within(dlg).getByLabelText('Link'), { target: { value: LINK } })
+    fireEvent.change(within(dlg).getByLabelText('Your email'), { target: { value: 'ben@example.com' } })
+    fireEvent.change(within(dlg).getByLabelText('Your name (optional)'), { target: { value: 'Ben' } })
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Send Code' }))
+    await within(dlg).findByLabelText('Code')
+    expect(app.daemon.log.find((c) => c.name === 'followAgenda')!.opts.body).toEqual({
+      link: LINK,
+      email: 'ben@example.com',
+      name: 'Ben',
+    })
+    fireEvent.change(within(dlg).getByLabelText('Code'), { target: { value: 'XXXX-XXXX' } })
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Follow' }))
+    await within(dlg).findByText(/That code is wrong or has expired/)
+    fireEvent.change(within(dlg).getByLabelText('Code'), { target: { value: 'ABCD-EFGH' } })
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Follow' }))
+    await screen.findByRole('heading', { name: 'Team sync' })
+    expect(app.router.state.location.pathname).toBe('/agendas/agd_copy')
+    expect(screen.queryByRole('dialog', { name: 'Follow a Shared Agenda' })).toBeNull()
+    app.stop()
+  })
+
+  it('a shared agenda’s web link handed to the app opens Follow with the link filled in', async () => {
+    const fb = fakeBridge({ takeDeepLink: async () => LINK } as never)
+    const { app } = mount({ view: agendaView(), path: '/', bridge: fb })
+    const dlg = await screen.findByRole('dialog', { name: 'Follow a Shared Agenda' })
+    expect((within(dlg).getByLabelText('Link') as HTMLInputElement).value).toBe(LINK)
+    expect(app.daemon.calls).not.toContain('resolveAgendaLink')
+    expect(app.daemon.calls).not.toContain('followAgenda')
     app.stop()
   })
 })

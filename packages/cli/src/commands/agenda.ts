@@ -602,7 +602,8 @@ export async function agendaLink(ctx: Ctx, ref: string | undefined, o: { meeting
   await printView(ctx, await view(ctx, id))
 }
 
-export async function agendaShare(
+/** The invitation block (`Agenda: kacola://… · web: …`); `write` puts it into the calendar event. */
+export async function agendaInvite(
   ctx: Ctx,
   ref: string | undefined,
   o: { write?: boolean; remove?: boolean },

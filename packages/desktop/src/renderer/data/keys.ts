@@ -34,6 +34,10 @@ export const keys = {
   /** Connected agents' leases on a session (the presence chip) and its private-session access. */
   leases: (sessionId: string) => ['leases', sessionId] as const,
   agentAccess: (sessionId: string) => ['agentAccess', sessionId] as const,
+  // ---- team sharing (kacola phase 5): an agenda's ShareStatus — replaced by each ephemeral
+  // agenda.share event — and its merge history (every device's changes with their outcome)
+  agendaShare: (id: string) => ['agendaShare', id] as const,
+  agendaShareHistory: (id: string) => ['agendaShareHistory', id] as const,
 }
 
 /** Resources that hang off one session: all of them go when it is deleted. */

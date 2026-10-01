@@ -18,9 +18,10 @@ import { useAgendaHistory, useAgendaMutation } from './agenda-data.ts'
 import { ItemHistory, StatusMenu } from './agenda-editor.tsx'
 import { AgendaContextPanel } from './context-panel.tsx'
 import { EvidenceChip } from './evidence.tsx'
-import { attributionText, displayAgent, kindLabel, whoLabel } from './labels.ts'
+import { attributionIcon, attributionText, displayAgent, kindLabel, whoLabel } from './labels.ts'
 import { addItemsMutation, resolveSuggestionMutation, setStatusMutation } from './mutations.ts'
 import { RecapView } from './recap.tsx'
+import { usePeopleNames } from './share-data.ts'
 import { TrackerStatusLine } from './tracker-status.tsx'
 
 // The session page's Agenda tab while recording (and in review after): the items with their status as
@@ -51,11 +52,12 @@ function Attribution({
   change: StatusChange | null
 }) {
   const set = useAgendaMutation(setStatusMutation, _('Could not undo'))
-  const text = change && change.to === item.status ? attributionText(change) : null
+  const names = usePeopleNames(agendaId)
+  const text = change && change.to === item.status ? attributionText(change, names) : null
   if (!text || !change) return null
   return (
     <span className="inline-flex items-center gap-1">
-      <Chip icon={change.by.startsWith('agent:') ? 'agent' : 'enhance'} tone="info">
+      <Chip icon={attributionIcon(change.by)} tone="info">
         {text}
       </Chip>
       <Button
@@ -85,6 +87,7 @@ function LiveItem({
   history: StatusChange[]
   compact: boolean
 }) {
+  const names = usePeopleNames(view.agenda.id)
   return (
     <li
       aria-label={item.text}
@@ -121,7 +124,7 @@ function LiveItem({
           </>
         )}
       </div>
-      {compact ? null : <ItemHistory item={item} history={history} />}
+      {compact ? null : <ItemHistory item={item} history={history} names={names} />}
     </li>
   )
 }
@@ -140,7 +143,7 @@ function NextPointCard({ view, now }: { view: AgendaView; now: number }) {
         <Icon name="suggestion" size={18} className="text-accent-record-text" />
         <h2 className="m-0 flex-1 type-overline text-text-secondary">{_('Next talking point')}</h2>
         {source ? (
-          <Chip icon={source.startsWith('agent:') ? 'agent' : 'enhance'} tone="info">
+          <Chip icon={attributionIcon(source)} tone="info">
             {fmt(_('from {who}'), { who: whoLabel(source) })}
           </Chip>
         ) : null}
