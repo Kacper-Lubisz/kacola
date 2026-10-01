@@ -40,11 +40,25 @@ if (!usable.ok) console.warn(`[keyring.int] SKIPPING real-keyring tests: ${usabl
 describe.skipIf(!usable.ok)('real keyring via secret-tool', () => {
   const service = `gnomeola-test-${randomBytes(6).toString('hex')}`
   const key = `planted-keyring-${randomBytes(12).toString('hex')}`
-  const lookup = () =>
-    spawnSync('secret-tool', ['lookup', 'service', service, 'key', 'anthropic'], {
+  /** One lookup. A timed-out or failed secret-tool is an error, never an empty answer: under a loaded
+   *  full run a 10 s timeout once surfaced as stdout '' — indistinguishable from "no key". */
+  const lookupOnce = () => {
+    const r = spawnSync('secret-tool', ['lookup', 'service', service, 'key', 'anthropic'], {
       encoding: 'utf8',
-      timeout: 10_000,
+      timeout: 20_000,
     })
+    if (r.error) throw new Error(`secret-tool lookup failed: ${r.error.message}`)
+    return r
+  }
+  /** The keyring's answer, retried briefly until it equals `want` (the Secret Service can lag a write). */
+  const lookup = (want?: string) => {
+    let r = lookupOnce()
+    for (let i = 0; want !== undefined && r.stdout !== want && i < 10; i++) {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200)
+      r = lookupOnce()
+    }
+    return r
+  }
   let d: DaemonHandle | undefined
 
   afterAll(async () => {
@@ -66,13 +80,13 @@ describe.skipIf(!usable.ok)('real keyring via secret-tool', () => {
     d = await startDaemon({ env: { GNOMEOLA_KEYRING: 'secret-tool', GNOMEOLA_KEYRING_SERVICE: service } })
     expect((await d.client.call('getSettings')).llm.apiKeyConfigured).toBe(false)
     expect(await d.client.call('setApiKey', { body: { key } })).toEqual({ configured: true })
-    expect(lookup().stdout).toBe(key)
+    expect(lookup(key).stdout).toBe(key)
 
     await d.restart()
     expect((await d.client.call('getSettings')).llm.apiKeyConfigured).toBe(true)
 
     expect(await d.client.call('setApiKey', { body: { key: null } })).toEqual({ configured: false })
-    expect(lookup().stdout).toBe('')
+    expect(lookup('').stdout).toBe('')
     await d.kill('SIGTERM')
 
     const files = (dir: string): string[] =>
