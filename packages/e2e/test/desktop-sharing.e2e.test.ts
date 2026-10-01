@@ -302,7 +302,8 @@ describe('desktop: team sharing', () => {
     await dlg.getByRole('textbox', { name: 'Your email' }).fill('ben@example.com')
     await dlg.getByRole('textbox', { name: 'Your name (optional)' }).fill('Ben')
     await axeAllModes('the Follow dialog')
-    await shot('follow', dlg)
+    // the link is random (its port and token): masked
+    await shot('follow', dlg, [dlg.getByRole('textbox', { name: 'Link' })])
     await dlg.getByRole('button', { name: 'Send Code' }).click()
     const code = dlg.getByRole('textbox', { name: 'Code' })
     await code.waitFor({ timeout: 20_000 })
