@@ -1,7 +1,9 @@
 import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { createServer, type Server } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient, type DurableEvent } from '@gnomeola/protocol'
+import { createClient, type DurableEvent, type ShareOp } from '@gnomeola/protocol'
 import { SqliteStoreApi } from '@gnomeola/store'
 import { Atlas } from '@gnomeola/testkit/atlas'
 import { type Browser, chromium, type Page } from 'playwright-core'
@@ -13,7 +15,9 @@ import { built, type Harness, startHarness } from './harness.ts'
 // with its notes, search — each asserted, then captured in light and dark (prefers-color-scheme) at
 // 1280 / 800 / 360 px into dist/atlas/shots/. The hosted store keeps the time a session was first
 // synced (not the device's createdAt), so dates are masked, as are the random pairing code, its expiry
-// and the live status line.
+// and the live status line. Then the shared agenda page (team sharing, /a/<token>) as an invitee without
+// kacola meets it: the agenda, an item added after confirming an email (the code mailed through the
+// webhook mailer to a sink here), and the recap once the organiser shares it.
 
 const CHROME = [
   '/usr/bin/google-chrome',
@@ -30,9 +34,19 @@ describe.skipIf(!CHROME)('atlas: the web viewer in headless Chrome', () => {
   let page: Page
   const tmp = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-web-'))
   const atlas = new Atlas('web', (p, theme) => p.emulateMedia({ colorScheme: theme }), { height: 760 })
+  let sink: Server
+  const mails: { to: string; text: string }[] = []
 
   beforeAll(async () => {
+    sink = createServer(async (req, res) => {
+      const chunks: Buffer[] = []
+      for await (const c of req) chunks.push(c as Buffer)
+      mails.push(JSON.parse(Buffer.concat(chunks).toString()) as { to: string; text: string })
+      res.writeHead(204).end()
+    })
+    await new Promise<void>((r) => sink.listen(0, '127.0.0.1', r))
     h = await startHarness(await built({ events: 2 }), {
+      GNOMEOLA_MAIL_WEBHOOK: `http://127.0.0.1:${(sink.address() as AddressInfo).port}/mail`,
       DATABASE_URL: `sqlite:${join(tmp, 'db.sqlite')}`,
       GNOMEOLA_AUTH_SECRET: SECRET,
       GNOMEOLA_ADMIN_TOKEN: ADMIN,
@@ -48,6 +62,7 @@ describe.skipIf(!CHROME)('atlas: the web viewer in headless Chrome', () => {
   afterAll(async () => {
     await browser?.close()
     await h?.close()
+    await new Promise<void>((r) => (sink ? sink.close(() => r()) : r()))
     rmSync(tmp, { recursive: true, force: true })
   })
 
@@ -164,6 +179,128 @@ describe.skipIf(!CHROME)('atlas: the web viewer in headless Chrome', () => {
     })
     expect(errors).toEqual([])
     await dev.close()
+  })
+
+  it('the shared agenda page: an invitee reads it, adds an item with their email, then sees the recap', async () => {
+    const owner = createClient({ baseUrl: h.url, token: ADMIN })
+    // what the organiser's daemon pushes when it shares (fixed times: the page shows the meeting's)
+    const created = await owner.call('createShare', {
+      body: {
+        ownerName: 'Kacper',
+        ownerLabel: 'kacper@example.com',
+        options: { allowInvitees: true, members: ['ben@example.com'] },
+        occurrence: {
+          agendaId: 'agd_atlas_w1',
+          title: 'Platform weekly',
+          meeting: {
+            eventUid: 'weekly@x',
+            start: '2026-03-12T09:00:00.000Z',
+            end: '2026-03-12T09:30:00.000Z',
+            recurring: true,
+          },
+          goals: [],
+        },
+      },
+    })
+    const push = (ops: ShareOp[]) =>
+      owner.call('pushShare', { params: { shareId: created.share.id }, body: { ops } })
+    const item = (
+      id: string,
+      text: string,
+      order: number,
+      kind: 'topic' | 'must-cover' | 'decision' = 'topic',
+    ): ShareOp => ({
+      op: 'item',
+      item: {
+        id,
+        occurrence: 'agd_atlas_w1',
+        text,
+        kind,
+        owner: null,
+        timeboxMin: order === 0 ? 15 : null,
+        order,
+        carriedFrom: null,
+      },
+    })
+    const status = (
+      key: string,
+      itemId: string,
+      to: 'in-progress' | 'covered',
+      by: 'user' | 'tracker',
+    ): ShareOp => ({
+      op: 'status',
+      key,
+      itemId,
+      from: to === 'covered' ? 'in-progress' : 'open',
+      to,
+      by,
+      at: '2026-03-12T09:05:00.000Z',
+      auto: false,
+      confidence: by === 'tracker' ? 0.7 : null,
+    })
+    await push([
+      item('itm_atlas_w1', 'Incident review', 0, 'must-cover'),
+      item('itm_atlas_w2', 'Retry budget', 1, 'decision'),
+      item('itm_atlas_w3', 'On-call rota', 2),
+      status('k1', 'itm_atlas_w1', 'in-progress', 'tracker'),
+      {
+        op: 'card',
+        card: {
+          id: 'ctx_atlas_w1',
+          occurrence: 'agd_atlas_w1',
+          title: 'Last incident',
+          body: 'Two outages in September; both from the retry storm.',
+          pinned: true,
+          sourceUrl: 'https://status.example/sept',
+        },
+      },
+    ])
+    const web = await browser.newPage({ viewport: { width: 1280, height: 760 } })
+    const errors: string[] = []
+    web.on('pageerror', (e) => errors.push(e.message))
+    await web.emulateMedia({ reducedMotion: 'reduce' })
+    await web.goto(`${h.url}/a/${created.token}`)
+    const items = web.getByRole('list', { name: 'Agenda items' })
+    await items.waitFor({ timeout: 15_000 })
+    await atlas.shoot(web, 'agenda-invitee__web__agenda', {
+      expect: [items.getByText('Incident review'), web.getByRole('heading', { name: 'Last incident' })],
+    })
+
+    // an invitee confirms an email with the mailed code and adds an item
+    await web.getByLabel('Email').fill('ivy@example.com')
+    await web.getByLabel(/^Name/).fill('Ivy')
+    await web.getByRole('button', { name: 'Send code' }).click()
+    await web.getByLabel('Code').waitFor({ timeout: 10_000 })
+    const code = /code is ([A-Z]{4}-[A-Z]{4})/.exec(
+      mails.filter((m) => m.to === 'ivy@example.com').at(-1)!.text,
+    )![1]!
+    await web.getByLabel('Code').fill(code)
+    await web.getByRole('button', { name: 'Confirm' }).click()
+    await web.getByLabel('Item', { exact: true }).fill('Pager fatigue')
+    await web.getByRole('button', { name: 'Add item' }).click()
+    const added = web.locator('ol.items > li').filter({ hasText: 'Pager fatigue' })
+    await added.waitFor({ timeout: 10_000 })
+    await atlas.shoot(web, 'agenda-invitee__web__add-item', {
+      expect: [added.getByText(/Added by Ivy/), web.getByText('As Ivy', { exact: false })],
+    })
+
+    // after the meeting: the organiser shares the recap; outcomes appear (never private notes)
+    await push([
+      status('k2', 'itm_atlas_w1', 'covered', 'user'),
+      { op: 'recap', occurrence: 'agd_atlas_w1', shared: true },
+      {
+        op: 'outcome',
+        itemId: 'itm_atlas_w1',
+        outcome: 'Root cause: the retry storm.\nAction: cap retries at 3.',
+      },
+      { op: 'outcome', itemId: 'itm_atlas_w2', outcome: 'Three attempts, then dead-letter.' },
+    ])
+    await web.reload()
+    await web.getByRole('heading', { name: 'Agenda and outcomes' }).waitFor({ timeout: 10_000 })
+    await atlas.shoot(web, 'agenda-invitee__web__recap', {
+      expect: web.locator('ol.items > li').first().locator('.outcome'),
+    })
+    expect(errors).toEqual([])
   })
 
   it('captured every built web state', () => {

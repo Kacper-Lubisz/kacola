@@ -414,8 +414,12 @@ export const ATLAS: AtlasEntry[] = [
     'teammate-items',
     'A recurring meeting’s agenda: teammates’ items, each person’s agent checking off',
   ),
-  plannedWeb('agenda-invitee', 'web', 'agenda', 'Invitee without kacola: the agenda on the web'),
-  plannedWeb('agenda-invitee', 'web', 'add-item', 'Invitee adds an item with their email'),
-  plannedWeb('agenda-invitee', 'web', 'recap', 'Invitee sees the outcome recap, never private notes'),
+  web('agenda-invitee', 'web', 'agenda', 'Invitee without kacola: the agenda on the web', {
+    responsive: true,
+  }),
+  web('agenda-invitee', 'web', 'add-item', 'Invitee adds an item with their email (a one-time code)'),
+  web('agenda-invitee', 'web', 'recap', 'Invitee sees the outcome recap, never private notes', {
+    responsive: true,
+  }),
   plannedShell('agenda-live', 'topbar', 'next-point', 'Top bar: the next talking point while recording'),
 ]
