@@ -43,7 +43,13 @@ export function AskBar({
   }
   const onCite = (c: Citation) =>
     void (c.sessionId === sessionId
-      ? navigate({ to: '.', search: atLine(c.segmentId, c.startMs), replace: true })
+      ? // a fresh state makes following the same citation again a new navigation (it re-scrolls)
+        navigate({
+          to: '.',
+          search: atLine(c.segmentId, c.startMs),
+          replace: true,
+          state: { cite: Date.now() } as never,
+        })
       : navigate({
           to: '/sessions/$sessionId',
           params: { sessionId: c.sessionId },

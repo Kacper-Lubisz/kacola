@@ -12,8 +12,8 @@ import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fak
 import { SEED, seedMeetings } from '../src/seed.ts'
 
 // A keyboard-only walkthrough of the window against the real daemon: no pointer event at all. Record
-// and stop, find a meeting, switch tabs, ask a question, follow a citation into the transcript, enhance
-// the notes and apply the review — each step with shortcuts, Tab / Shift+Tab, arrows, Enter and Space,
+// and stop, go Back to Today, find a meeting, open Ask and the transcript, ask a question, follow a
+// citation into the transcript, enhance the notes and go back to the draft — each step with shortcuts, Tab / Shift+Tab, arrows, Enter and Space,
 // and each checked against the daemon. The focus is asserted by role and name at every stop, so a
 // control that cannot be reached (or is reached unnamed) fails here.
 
@@ -63,8 +63,6 @@ describe('keyboard-only walkthrough against the real daemon', () => {
     if (want.test(f)) return f
     throw new Error(`Tab never reached ${want}; stops: ${[...stops, f].join(' → ')}`)
   }
-  const tabSelected = async (name: string) =>
-    (await w().getByRole('tab', { name }).getAttribute('aria-selected')) === 'true'
 
   beforeAll(async () => {
     buildDesktop()
@@ -90,7 +88,7 @@ describe('keyboard-only walkthrough against the real daemon', () => {
       display,
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
     })
-    await w().getByRole('listbox', { name: 'Sessions' }).waitFor({ timeout: 20_000 })
+    await w().getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
     // from here on the tests use only keyboard.press / keyboard.type — no click, hover or mouse call
   }, 240_000)
 
@@ -114,6 +112,7 @@ describe('keyboard-only walkthrough against the real daemon', () => {
       'a recording started from the keyboard',
     )
     await w().getByRole('heading', { level: 1, name: live.title }).waitFor({ timeout: 10_000 })
+    await w().getByRole('timer', { name: /^Recording/ }).waitFor()
     await poll(
       async () =>
         (await daemon.client.call('getTranscript', { params: { id: live.id } })).segments.length >= 2,
@@ -126,45 +125,49 @@ describe('keyboard-only walkthrough against the real daemon', () => {
       10_000,
       'stopped from the keyboard',
     )
-    await w().getByRole('button', { name: 'Record', exact: true }).waitFor()
+    // the page moves on to the outcome by itself
+    await w().getByRole('region', { name: 'Outcome' }).waitFor({ timeout: 10_000 })
   })
 
-  it('finds a meeting from the search field and opens it with the arrows and Enter', async () => {
-    // Ctrl+F searches what has the focus: inside the (just recorded) transcript it is the transcript's
-    // own search; Escape closes it and Shift+Tab walks back to the sidebar's search field
+  it('goes Back to Today, finds a meeting with Ctrl+F and opens it with Tab and Enter', async () => {
+    await tabTo(/^button:Back to Today$/, { reverse: true, max: 40 })
+    await key('Enter')
+    await w().getByRole('searchbox', { name: 'Search or ask' }).waitFor()
     await key('Control+f')
-    if ((await focused()) === 'textbox:Search the transcript') {
-      await key('Escape')
-      await tabTo(/^searchbox:Search sessions$/, { reverse: true, max: 40 })
-    }
-    expect(await focused()).toBe('searchbox:Search sessions')
+    expect(await focused()).toBe('searchbox:Search or ask')
     await w().keyboard.type('Quarterly')
     trail.push('type "Quarterly"')
     await w()
-      .getByRole('listbox', { name: 'Sessions' })
-      .getByRole('option', { name: /Quarterly planning/ })
+      .getByRole('list', { name: 'Moments' })
+      .getByRole('button', { name: /^Quarterly planning/ })
+      .first()
       .waitFor()
-    expect(await tabTo(/^option:Quarterly planning/)).toMatch(/^option:Quarterly planning/)
+    expect(await tabTo(/^button:Quarterly planning/)).toMatch(/^button:Quarterly planning/)
     await key('Enter')
     await w().getByRole('heading', { level: 1, name: 'Quarterly planning' }).waitFor({ timeout: 10_000 })
     expect(w().url()).toContain(`/sessions/${SEED.long}`)
   })
 
-  it('switches tabs with Ctrl+2 and with the arrow keys on the tab list', async () => {
-    await key('Control+2')
-    await poll(() => tabSelected('Ask'), 5000, 'the Ask tab')
-    await key('Control+1')
-    await poll(() => tabSelected('Transcript'), 5000, 'the Transcript tab')
-    // Tab reaches the tab list (on the selected tab); the arrows move between tabs
-    await tabTo(/^tab:Transcript/, { reverse: true })
-    await key('ArrowRight')
-    await poll(() => tabSelected('Ask'), 5000, 'Ask by arrow')
-    expect(await focused()).toBe('tab:Ask')
+  it('opens and closes Ask (Ctrl+K) and the transcript (Ctrl+T, or its toggle with Space)', async () => {
+    await key('Control+k')
+    await poll(async () => /^textbox:Ask about this meeting/.test(await focused()), 5000, 'the Ask bar focused')
+    await key('Escape')
+    await w().getByRole('region', { name: 'Ask about this meeting' }).waitFor({ state: 'detached' })
+    await key('Control+t')
+    await w().getByRole('listbox', { name: 'Transcript' }).waitFor({ timeout: 10_000 })
+    await key('Control+t')
+    await w().getByRole('listbox', { name: 'Transcript' }).waitFor({ state: 'detached' })
+    // the header's Transcript toggle, reached with Tab
+    await tabTo(/^button:Transcript$/, { reverse: true, max: 40 })
+    await key('Space')
+    await w().getByRole('listbox', { name: 'Transcript' }).waitFor({ timeout: 10_000 })
+    await key('Space')
+    await w().getByRole('listbox', { name: 'Transcript' }).waitFor({ state: 'detached' })
   })
 
-  it('asks a question from the composer, reached with Tab, and follows a citation with Enter', async () => {
-    await w().getByRole('heading', { name: 'Ask About This Meeting' }).waitFor()
-    await tabTo(/^textbox:Question/)
+  it('asks a question from the Ask bar and follows a citation with Enter; the answer stays', async () => {
+    await key('Control+k')
+    await poll(async () => /^textbox:Ask about this meeting/.test(await focused()), 5000, 'the Ask bar focused')
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
     await w().keyboard.type('What did we decide about the retry budget?')
     trail.push('type question')
@@ -182,23 +185,25 @@ describe('keyboard-only walkthrough against the real daemon', () => {
     const cited = answer.citations.map((c) => segments.find((s) => s.id === c.segmentId)!)
     const chip2 = `Citation 2: ${speakerName(cited[1]!.speaker)} at ${formatOffset(cited[1]!.startMs)}`
     await w().getByRole('button', { name: chip2, exact: true }).waitFor({ timeout: 10_000 })
-    // back up from the composer to the answer's second chip
+    // back up from the box to the answer's second chip
     await tabTo(new RegExp(`^button:${chip2.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`), { reverse: true })
     await key('Enter')
-    await poll(() => tabSelected('Transcript'), 5000, 'the Transcript tab')
+    await w().getByRole('listbox', { name: 'Transcript' }).waitFor({ timeout: 10_000 })
     await poll(
       async () => JSON.stringify(await selectedRowNames(w())) === JSON.stringify([rowName(cited[1]!)]),
       5000,
       'the cited line selected',
     )
+    // following the citation never loses the answer
+    await w().getByRole('button', { name: chip2, exact: true }).waitFor()
+    await key('Control+k')
+    await w().getByRole('region', { name: 'Ask about this meeting' }).waitFor({ state: 'detached' })
   })
 
-  it('enhances the notes and applies the review, from the keyboard', async () => {
-    await key('Control+3')
-    await poll(() => tabSelected('Notes'), 5000, 'the Notes tab')
+  it('enhances the notes (it replaces the draft) and goes back to the draft, from the keyboard', async () => {
     await w().getByRole('textbox', { name: 'Notes' }).waitFor({ timeout: 10_000 })
     // some notes of our own first: the editor takes the keyboard
-    await tabTo(/^textbox:Notes/)
+    await tabTo(/^textbox:Notes/, { max: 60 })
     await w().keyboard.type('retry budget three attempts\nana owns the dashboard\n')
     trail.push('type notes')
     await poll(
@@ -212,28 +217,28 @@ describe('keyboard-only walkthrough against the real daemon', () => {
     api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
     await tabTo(/^button:Enhance Notes$/, { reverse: true })
     await key('Enter')
-    await w().getByRole('heading', { name: 'Review Enhanced Notes' }).waitFor({ timeout: 20_000 })
-    // choose with Space on a change's switch, then Apply
-    const first = await tabTo(/^switch:Use enhanced text for change 1$/)
-    expect(first).toBe('switch:Use enhanced text for change 1')
-    await key('Space')
-    await poll(
-      async () =>
-        !(await w().getByRole('switch', { name: 'Use enhanced text for change 1', exact: true }).isChecked()),
-      5000,
-      'change 1 kept as mine',
-    )
-    await tabTo(/^button:Apply$/, { reverse: true })
-    await key('Enter')
     const merged = await poll(
       async () =>
         (await daemon.client.call('listNoteVersions', { params: { id: SEED.long } })).versions.find(
           (v) => v.kind === 'merge',
         ),
-      10_000,
-      'the merge version',
+      20_000,
+      'the enhanced notes applied',
     )
-    expect(merged.merge?.choices).toContain('mine')
+    expect(merged.merge?.choices.every((c) => c === 'enhanced')).toBe(true)
+    // undo through the history: Back to my draft restores what was typed
+    await w().getByRole('button', { name: 'Back to my draft' }).waitFor({ timeout: 10_000 })
+    await tabTo(/^button:Back to my draft$/, { reverse: true })
+    await key('Enter')
+    const restored = await poll(
+      async () =>
+        (await daemon.client.call('listNoteVersions', { params: { id: SEED.long } })).versions.find(
+          (v) => v.kind === 'restore',
+        ),
+      10_000,
+      'the draft restored',
+    )
+    expect(restored.markdown).toContain('ana owns the dashboard')
     await w().getByRole('textbox', { name: 'Notes' }).waitFor({ timeout: 10_000 })
     expect(app.problems()).toEqual([])
     console.log(`keyboard walkthrough: ${trail.length} keyboard steps`)

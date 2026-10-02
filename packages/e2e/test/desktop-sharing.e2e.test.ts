@@ -73,7 +73,7 @@ describe('desktop: team sharing', () => {
 
   const launch = async (d: DaemonHandle) => {
     app = await launchDesktop({ display, env: { GNOMEOLA_URL: d.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' } })
-    await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 20_000 })
+    await w().getByRole('button', { name: 'Record now' }).waitFor({ timeout: 20_000 })
     await w().emulateMedia({ reducedMotion: 'reduce' })
   }
   const relaunch = async (d: DaemonHandle) => {
@@ -284,19 +284,19 @@ describe('desktop: team sharing', () => {
     await axeAllModes('the editor with contributions')
     await shot('editor', grid)
 
-    // the Sharing tab: the comment and who joined
-    await w().getByRole('tab', { name: 'Sharing' }).click()
-    const comments = w().getByRole('list', { name: 'Comments' })
+    // the Sharing section beside the agenda (no tabs): the comment and who joined
+    const sharing = w().getByRole('region', { name: 'Sharing', exact: true })
+    await sharing.scrollIntoViewIfNeeded()
+    const comments = sharing.getByRole('list', { name: 'Comments' })
     await comments.getByText('Friday works for me').waitFor()
     expect(await comments.textContent()).toContain('Ivy on “Offsite dates”')
-    await w().getByRole('list', { name: 'People' }).getByText('Ivy · ivy@example.com').waitFor()
-    await w().getByRole('tab', { name: 'Items' }).click()
+    await sharing.getByRole('list', { name: 'People' }).getByText('Ivy · ivy@example.com').waitFor()
   })
 
-  it('an attendee’s window follows from Coming up (link + email → code); a refused change shows in the merge history', async () => {
+  it('an attendee’s window follows from the main menu (link + email → code); a refused change shows in the merge history', async () => {
     await relaunch(B)
-    const coming = w().getByRole('region', { name: 'Coming up' })
-    await coming.getByRole('button', { name: 'Follow a shared agenda' }).click({ timeout: 20_000 })
+    await w().getByRole('button', { name: 'Main menu' }).click({ timeout: 20_000 })
+    await w().getByRole('menuitem', { name: 'Follow a Shared Agenda…' }).click()
     const dlg = w().getByRole('dialog', { name: 'Follow a Shared Agenda' })
     await dlg.getByRole('textbox', { name: 'Link' }).fill(s.link)
     await dlg.getByRole('textbox', { name: 'Your email' }).fill('ben@example.com')
@@ -351,8 +351,9 @@ describe('desktop: team sharing', () => {
     )
     await w().getByRole('button', { name: 'Status of “Roadmap”: In progress' }).waitFor({ timeout: 20_000 })
 
-    await w().getByRole('tab', { name: 'Sharing' }).click()
-    const merged = w().getByRole('list', { name: 'Merge history' })
+    const sharing = w().getByRole('region', { name: 'Sharing', exact: true })
+    await sharing.scrollIntoViewIfNeeded()
+    const merged = sharing.getByRole('list', { name: 'Merge history' })
     await merged
       .getByRole('listitem', { name: 'Roadmap: In progress → Covered by Ben, Refused' })
       .waitFor({ timeout: 20_000 })
@@ -366,10 +367,10 @@ describe('desktop: team sharing', () => {
     expect(await merged.textContent()).toMatch(/owner set it to in-progress by hand/)
     await w().getByText('1 change was refused or superseded').waitFor()
     await axeAllModes('the merge history')
-    await shot('history', w().getByRole('tabpanel'), [times()])
+    await shot('history', sharing, [times()])
   })
 
-  it('the organiser records, stops, and shares the recap from the recap view: the outcomes reach the link', async () => {
+  it('the organiser records, stops, and shares the recap from Share summary: the outcomes reach the link', async () => {
     await relaunch(A)
     const budget = (await view(A, s.agenda)).items.find((i) => i.text === 'Budget')!
     await A.client.call('updateAgendaItem', {
@@ -396,9 +397,11 @@ describe('desktop: team sharing', () => {
       'the agenda linked to the recording',
     )
     await A.client.call('stopSession', { params: { id: session.id } })
-    await go(`#/sessions/${session.id}?tab=agenda`)
-    const recap = w().locator('section[aria-labelledby="recap"]')
-    await recap.getByRole('list', { name: 'Recap per item' }).waitFor({ timeout: 20_000 })
+    await go(`#/sessions/${session.id}`)
+    await w().getByRole('list', { name: 'Recap per item' }).waitFor({ timeout: 20_000 })
+    // a shared agenda's Share summary also offers the recap to everyone with the link
+    await w().getByRole('button', { name: 'Share summary' }).click()
+    const recap = w().getByRole('dialog', { name: 'Share Summary' })
     const sw = recap.getByRole('switch', { name: /Share recap/ })
     expect(await sw.isChecked()).toBe(false)
     expect((await page(s.agenda)).items.find((i) => i.text === 'Budget')?.outcome).toBeNull()
@@ -409,24 +412,37 @@ describe('desktop: team sharing', () => {
       (o) => o?.includes('Approved at 40k') ?? false,
       'the shared outcome on the link',
     )
-    expect(await sw.isChecked()).toBe(true)
+    // the switch follows the daemon's agenda.share report
+    await until(
+      () => sw.isChecked(),
+      (on) => on,
+      'the switch on',
+    )
     await recap.getByText('People with the link see each item’s outcome.').waitFor()
     await axeAllModes('the recap, shared')
-    await shot('recap', recap)
+    // the preview carries the recording's wall-clock times
+    await shot('recap', recap, [recap.locator('pre')])
+    await w().keyboard.press('Escape')
+    await recap.waitFor({ state: 'detached' })
   })
 
   it('unshares (confirmed): the link answers 410; the attendee’s copy is kept, shown as no longer shared', async () => {
+    // the meeting was recorded: its page is the outcome, where a shared agenda keeps its sharing button
     await go(`#/agendas/${s.agenda}`)
+    await w().getByRole('region', { name: 'Outcome' }).waitFor({ timeout: 20_000 })
     await w().getByRole('button', { name: 'Shared: Up to date' }).click({ timeout: 20_000 })
     const dlg = w().getByRole('dialog', { name: 'Share Agenda' })
     await dlg.getByRole('button', { name: 'Unshare…' }).click()
     const sure = w().getByRole('alertdialog', { name: 'Stop sharing this agenda?' })
     await axeAllModes('the unshare confirmation')
     await sure.getByRole('button', { name: 'Unshare', exact: true }).click()
-    await w().getByRole('button', { name: 'Share…' }).waitFor({ timeout: 20_000 })
+    // unshared, the outcome page has nothing left to manage: the button goes
+    await w()
+      .getByRole('button', { name: /^Shared: / })
+      .waitFor({ state: 'detached', timeout: 20_000 })
     expect(await share(A, s.agenda)).toMatchObject({ shared: false, state: 'off', link: null })
     await expect(page()).rejects.toMatchObject({ status: 410 })
-    expect(await w().getByRole('tab', { name: 'Sharing' }).count()).toBe(0)
+    expect(await w().getByRole('region', { name: 'Sharing', exact: true }).count()).toBe(0)
 
     // the attendee's daemon learns it on its next sync (then the window renders its agenda.share report)
     await until(

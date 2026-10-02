@@ -101,6 +101,8 @@ export function HomePage() {
               }
             />
           ) : null}
+          {/* the page's title for assistive tech: the day's headings are its sections */}
+          <h1 className="sr-only">{_('Your day')}</h1>
           <SearchField
             label={_('Search or ask')}
             placeholder={_('Search or ask: a name, a decision, anything someone said')}

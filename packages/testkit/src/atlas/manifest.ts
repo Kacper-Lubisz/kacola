@@ -129,7 +129,7 @@ export const ATLAS: AtlasEntry[] = [
     'first-run',
     'skipped',
     'empty-window',
-    'Onboarding skipped: the empty window, with the missing-model banner',
+    'Onboarding skipped: home with nothing recorded yet, and the missing-model banner',
     {
       responsive: true,
     },
@@ -144,7 +144,7 @@ export const ATLAS: AtlasEntry[] = [
     'integrations',
     'sidebar',
     'extension-card',
-    'On GNOME, until the top-bar extension is on: the sidebar card with Install & Enable (dismissible)',
+    'On GNOME, until the top-bar extension is on: the card on home with Install & Enable (dismissible)',
   ),
   win(
     'integrations',
@@ -176,19 +176,25 @@ export const ATLAS: AtlasEntry[] = [
     'record-now',
     'idle',
     'record-button',
-    'The window with meetings in the sidebar and the Record button',
+    'Home: today and earlier days in time order, with Record now for a call not in the calendar',
     {
       responsive: true,
     },
   ),
-  win('record-now', 'recording', 'live-transcript', 'Recording: live lines, a partial line, level meters', {
-    responsive: true,
-    note: 'held by the fake pipeline at 30 s of audio; the elapsed timer is masked',
-  }),
-  win('record-now', 'paused', 'paused', 'Paused: the timer stops, nothing is transcribed', {
+  win(
+    'record-now',
+    'recording',
+    'live-transcript',
+    'Recording: the live page with the transcript beside it (Ctrl+T), a partial line; no level meters',
+    {
+      responsive: true,
+      note: 'held by the fake pipeline at 30 s of audio; the elapsed timer is masked',
+    },
+  ),
+  win('record-now', 'paused', 'paused', 'Paused: no red, “Paused”, Resume; nothing is transcribed', {
     note: 'the elapsed timer is masked',
   }),
-  win('record-now', 'stopped', 'finished', 'Stopped: the finished recording, every line final', {
+  win('record-now', 'stopped', 'finished', 'Stopped: the page moves on to the outcome, with Share summary', {
     responsive: true,
   }),
   shell(
@@ -215,7 +221,7 @@ export const ATLAS: AtlasEntry[] = [
     'topbar-join',
     'window',
     'joined-session',
-    'The window shows the meeting joined from the top bar, recording and linked',
+    'The meeting joined from the top bar: its live page in the window, recording',
   ),
   win(
     'auto-record-calendar',
@@ -227,7 +233,7 @@ export const ATLAS: AtlasEntry[] = [
     'auto-record-calendar',
     'begins',
     'recording-row',
-    'The meeting began: recorded, titled after the event, live in the sidebar',
+    'The meeting began: recorded, titled after the event, pinned on top of home',
   ),
   win(
     'auto-record-mic',
@@ -239,7 +245,7 @@ export const ATLAS: AtlasEntry[] = [
     'agent-record',
     'window',
     'session-appears',
-    'A recording started by the CLI / Claude appears live in the window',
+    'A recording started by the CLI / Claude appears pinned on top of home',
   ),
   cli('agent-record', 'cli', 'record-status', '`gnomeola record status` while that recording runs', {
     cli: { argv: ['record', 'status'] },
@@ -248,13 +254,13 @@ export const ATLAS: AtlasEntry[] = [
     'deep-link',
     'open',
     'meeting-link',
-    'kacola://meeting/<eventUid>: the app opens that meeting (creates its agenda)',
+    'kacola://meeting/<eventUid>: the app opens that meeting’s page in Prep (creates its agenda)',
   ),
   win('deep-link', 'live', 'join-offer', 'The meeting is under way: "Join and record" offered'),
   planned('deep-link', 'open', 'agenda-link', 'kacola://agenda/<id>: the agenda opens'),
 
   // ---- During the meeting
-  win('live-transcript', 'search', 'live', 'Searching the transcript while it grows (Ctrl+F)'),
+  win('live-transcript', 'search', 'live', 'Searching the transcript panel while it grows (Ctrl+F)'),
   win('live-transcript', 'detached', 'jump-to-live', 'Scrolled back while recording: "Jump to Live" appears'),
   win('speakers', 'transcript', 'chips', 'Who said what: speaker chips on a diarized meeting'),
   win('speakers', 'dialog', 'list', 'The Speakers dialog: everyone in the meeting and how much they said'),
@@ -267,18 +273,18 @@ export const ATLAS: AtlasEntry[] = [
     'voiceprints',
     'Preferences › Speakers: tell apart, and recognise people across meetings',
   ),
-  win('ask-live', 'during', 'empty', 'Ask while recording: the question field over the live meeting'),
   win(
     'ask-live',
     'during',
-    'answered',
-    'An answer during the meeting, with citations into the live transcript',
+    'empty',
+    'Ask while recording (Ctrl+K): a bar over the notepad, never a screen of its own',
   ),
+  win('ask-live', 'during', 'answered', 'An answer during the meeting, with citations and Pin to notes'),
   win(
     'private-session',
     'view',
     'private',
-    'A private meeting: marked, hidden from the CLI and the Claude skill',
+    'A private meeting’s outcome: marked Private, hidden from the CLI and the Claude skill',
     {
       responsive: true,
     },
@@ -287,7 +293,7 @@ export const ATLAS: AtlasEntry[] = [
     'private-session',
     'details',
     'switch',
-    'Details › Private: the switch that hides a meeting from agents',
+    'Meeting actions › Details › Private: the switch that hides a meeting from agents',
   ),
   shell(
     'private-session',
@@ -297,12 +303,35 @@ export const ATLAS: AtlasEntry[] = [
   ),
 
   // ---- After the meeting
-  win('find-meeting', 'search', 'matches', 'Searching the sidebar by title'),
-  win('find-meeting', 'search', 'no-matches', 'No matching sessions'),
-  win('find-meeting', 'open', 'transcript', 'A meeting opened: its transcript', { responsive: true }),
-  win('find-meeting', 'transcript-search', 'matches', 'Search inside the transcript (Ctrl+F): "1 of 2"'),
-  win('find-meeting', 'details', 'details', 'Details: when, how long, tracks, recording gaps'),
-  win('ask-meeting', 'open', 'empty', 'Ask About This Meeting: empty', { responsive: true }),
+  win(
+    'find-meeting',
+    'search',
+    'matches',
+    'Home’s search: titles and transcripts as moments that open at the line',
+  ),
+  win('find-meeting', 'search', 'no-matches', 'Home’s search with nothing that matches'),
+  win(
+    'find-meeting',
+    'open',
+    'transcript',
+    'A meeting opened from home: its outcome, the transcript beside it',
+    { responsive: true },
+  ),
+  win(
+    'find-meeting',
+    'transcript-search',
+    'matches',
+    'Search inside the transcript panel (Ctrl+F): "1 of 2"',
+  ),
+  win(
+    'find-meeting',
+    'details',
+    'details',
+    'Meeting actions › Details: when, how long, tracks, title, private',
+  ),
+  win('ask-meeting', 'open', 'empty', 'Ask about this meeting (Ctrl+K): the bar over the outcome', {
+    responsive: true,
+  }),
   win('ask-meeting', 'asking', 'streaming', 'The answer streaming in', {
     note: 'the provider stream is held mid-answer',
   }),
@@ -311,18 +340,33 @@ export const ATLAS: AtlasEntry[] = [
     'ask-meeting',
     'citation',
     'line-highlighted',
-    'A citation followed: the cited line selected in the transcript',
+    'A citation followed: the transcript panel opens at the line; the answer stays',
   ),
   win('ask-meeting', 'refused', 'notice', 'The model declined: the notice replaces the partial answer'),
-  win('ask-across', 'scope', 'last-30-days', 'Scope set to the last 30 days'),
-  win('ask-across', 'answered', 'cross-meeting', 'An answer across meetings: chips open the cited meeting'),
+  win(
+    'ask-across',
+    'answered',
+    'cross-meeting',
+    'Asked from home’s box, across meetings: a cited answer; private meetings left out',
+  ),
   cli('ask-across', 'cli', 'ask-since', '`gnomeola ask … --since 14d` from Claude', {
     cli: { argv: ['ask', 'What did we decide about the retry budget?', '--since', '30d'] },
   }),
-  win('notes-write', 'editor', 'notes', 'The notes editor (markdown) with this meeting’s notes', {
-    responsive: true,
-  }),
-  win('notes-write', 'actions', 'action-items', 'Action items with owner and due date'),
+  win(
+    'notes-write',
+    'editor',
+    'notes',
+    'The outcome’s notes (markdown marks drawn quietly), under the outcome block',
+    {
+      responsive: true,
+    },
+  ),
+  win(
+    'notes-write',
+    'actions',
+    'action-items',
+    'The outcome’s To do: action items from the notes with owner and due date, yours first',
+  ),
   win('notes-templates', 'menu', 'open', 'Choose a Template: enhance as standup / 1:1 / interview …'),
   win('notes-templates', 'manage', 'dialog', 'Notes Templates: built-in and custom'),
   win('notes-templates', 'new', 'form', 'A new template: name, keywords, instructions'),
@@ -330,10 +374,12 @@ export const ATLAS: AtlasEntry[] = [
   win('notes-enhance', 'enhancing', 'mid-stream', 'Enhancing: the enhanced notes streaming in', {
     note: 'the provider stream is held mid-answer',
   }),
-  win('notes-enhance', 'review', 'changes', 'Review Enhanced Notes: accept or revert each change', {
-    responsive: true,
-  }),
-  win('notes-enhance', 'applied', 'notes', 'Applied: the reviewed notes; the original stays in history'),
+  win(
+    'notes-enhance',
+    'applied',
+    'notes',
+    'Enhance replaced the draft with the tidied notes; Back to my draft undoes it',
+  ),
   win('notes-history', 'dialog', 'versions', 'Version History: every version, restorable'),
   win('notes-export', 'copied', 'toast', 'Copy Notes as Markdown: "Notes copied as Markdown"'),
   win(
@@ -377,7 +423,7 @@ export const ATLAS: AtlasEntry[] = [
   ),
   win('help-about', 'menu', 'main-menu', 'The main menu'),
   win('help-about', 'shortcuts', 'dialog', 'Keyboard Shortcuts (Ctrl+?)'),
-  win('help-about', 'about', 'dialog', 'About gnomeola: version, licence, Granola credit'),
+  win('help-about', 'about', 'dialog', 'About kacola: version, licence, Granola credit'),
   win('help-about', 'legal', 'notices', 'About › Legal: third-party notices'),
 
   // ---- Agents and other surfaces
@@ -428,13 +474,13 @@ export const ATLAS: AtlasEntry[] = [
   web('web-viewer', 'search', 'hits', 'Search with highlighted matches', { responsive: true }),
 
   // ---- When things go wrong
-  win('daemon-down', 'window', 'cant-reach', 'Can’t Reach gnomeola, with Try Again', { responsive: true }),
+  win('daemon-down', 'window', 'cant-reach', 'Can’t Reach kacola, with Try Again', { responsive: true }),
   shell('daemon-down', 'topbar', 'not-running', 'Top bar: gnomeola is not running'),
   cli('daemon-down', 'cli', 'exit-3', 'The CLI says the daemon is unreachable (exit 3)', {
     cli: { argv: ['search', 'retry budget'] },
   }),
   win('connection-lost', 'window', 'reconnecting', 'Lost the connection to the daemon: reconnecting'),
-  win('recovered-session', 'list', 'recovered', 'A recording the daemon recovered after a crash'),
+  win('recovered-session', 'list', 'recovered', 'Home: a recording recovered after a crash, labelled'),
   win('no-models', 'window', 'banner', 'A speech model is missing: the banner offers Set Up'),
   win('provider-errors', 'ask', 'no-provider', 'Questions aren’t available: no provider, Open Preferences'),
   win('provider-errors', 'enhance', 'no-provider', 'Enhancing needs a language model provider'),
@@ -455,15 +501,15 @@ export const ATLAS: AtlasEntry[] = [
   ),
 
   // ---- Agendas, live intelligence and BYO agent (the window's states built; the rest planned)
-  win('agenda-plan', 'window', 'plan-with-claude', 'The meeting’s "Plan with Claude" entry'),
+  win('agenda-plan', 'window', 'plan-with-claude', 'Prep: Plan with Claude drafting items'),
   plannedCli(
     'agenda-plan',
     'skill',
     'interview',
     'Claude Code + skill: goals interview, past sessions with the attendees, draft items',
   ),
-  win('agenda-plan', 'saved', 'agenda', 'The agenda saved in kacola, linked to the calendar event'),
-  win('agenda-plan', 'edit', 'items', 'Editing items: kind, owner, timebox, order'),
+  win('agenda-plan', 'saved', 'agenda', 'Prep: the agenda saved in kacola, linked to the calendar event'),
+  win('agenda-plan', 'edit', 'items', 'Editing an item: text, kind, owner, outcome (no timebox asked for)'),
   win('agenda-plan', 'context', 'share-or-keep', 'Context cards: private by default, shared only when asked'),
   planned(
     'agenda-invite',
@@ -472,33 +518,49 @@ export const ATLAS: AtlasEntry[] = [
     '"Agenda: kacola://… · web: https://…" written into the invite (opt-in)',
   ),
   win('agenda-invite', 'fallback', 'copy-link', 'Read-only calendar: copy the link instead'),
-  win('agenda-live', 'panel', 'items', 'Live agenda panel: open / in progress / covered'),
+  win(
+    'agenda-live',
+    'panel',
+    'items',
+    'Live: the narrow agenda checklist — covered ticked and quiet, the current one highlighted',
+  ),
   win(
     'agenda-live',
     'check-off',
     'auto-covered',
-    'An item checked off from what was said (undoable), with its evidence',
+    'An item ticked off from what was said: quietly “ticked by kacola”, with Undo',
   ),
   win(
     'agenda-live',
     'presence',
     'agent',
-    'The connected Claude in the header: reading, its mode, its activity, Disconnect',
+    'Your Claude in the live header, its permission said plainly; the popover: mode, activity, Disconnect',
   ),
-  win('agenda-live', 'suggest', 'looks-covered', '"Looks covered?" when the tracker is unsure'),
-  win('agenda-live', 'next-point', 'card', 'The one "next talking point" card with a bridge line'),
-  win('agenda-live', 'time', 'not-covered', 'Five minutes before the end: what is not covered yet'),
-  win('agenda-live', 'context', 'panel', 'The context panel: cards from the agenda and the connected agent'),
   win(
-    'interview-mode',
-    'panel',
-    'told-not-told',
-    'Interview: Told / Not told yet, with the answer heard and a quote',
+    'agenda-live',
+    'suggest',
+    'looks-covered',
+    'The one suggestion slot: “Looks covered?” with Accept / Not now',
   ),
-  planned('interview-mode', 'nudge', 'not-covered', 'The five-minute "not covered" nudge'),
-  win('interview-mode', 'interviewer', 'competencies', 'Interviewer: competencies covered'),
-  win('agenda-recap', 'per-item', 'outcomes', 'The recap: outcome, decisions and actions per item'),
-  win('agenda-recap', 'carry-over', 'next-occurrence', 'Open items rolled to the next occurrence'),
+  win('agenda-live', 'next-point', 'card', 'The one suggestion slot: “Say next” with its line'),
+  win(
+    'agenda-live',
+    'context',
+    'panel',
+    'Private context in the live rail: hidden in case you share your screen, shown on demand',
+  ),
+  win(
+    'agenda-recap',
+    'per-item',
+    'outcomes',
+    'Outcome: decided and to do from the recap, the agenda as a recap beside it',
+  ),
+  win(
+    'agenda-recap',
+    'carry-over',
+    'next-occurrence',
+    'The next meeting’s Prep: the open items carried over',
+  ),
   win(
     'agenda-share',
     'share',
@@ -516,7 +578,7 @@ export const ATLAS: AtlasEntry[] = [
     'agenda-share',
     'history',
     'merge',
-    'The Sharing tab: comments, people, and every device’s changes with their outcome',
+    'Prep › Sharing: comments, people, and every device’s changes with their outcome',
   ),
   win('agenda-share', 'recap', 'shared', 'Share recap: the outcomes reach the link'),
   win('agenda-share', 'revoked', 'banner', 'The organiser stopped sharing: the attendee keeps a copy'),

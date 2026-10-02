@@ -132,6 +132,7 @@ function OutcomePage({
   onTranscript: (open: boolean) => void
 }) {
   const data = useOutcome(session, view)
+  const { data: share } = useAgendaShare(view?.agenda.id ?? '')
   const [details, setDetails] = useState(false)
   const [speakers, setSpeakers] = useState(false)
   const askOpen = useMeetingUi((s) => s.askOpen)
@@ -188,6 +189,8 @@ function OutcomePage({
                 {_('Speakers…')}
               </MenuItem>
             </Menu>
+            {/* a shared agenda stays manageable (sync state, unshare) after the meeting */}
+            {view && share?.shared ? <ShareButton view={view} status={share} /> : null}
             <ShareSummaryButton
               session={session}
               view={view}

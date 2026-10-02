@@ -100,7 +100,7 @@ msgstr ""
 #: src/renderer/design/primitives/record-button.tsx:89
 #: src/renderer/features/home/day-view.tsx:430
 #: src/renderer/features/home/search-results.tsx:65
-#: src/renderer/features/meeting/ask-bar.tsx:102
+#: src/renderer/features/meeting/ask-bar.tsx:108
 #: src/renderer/features/meeting/header.tsx:184
 #: src/renderer/features/meeting/header.tsx:187
 msgid "Stop"
@@ -982,11 +982,12 @@ msgid "you"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:105
-msgid "your tracker"
+msgid "your kacola"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:105
-msgid "{name}’s tracker"
+#: src/renderer/features/agendas/labels.ts:125
+msgid "{name}’s kacola"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:108
@@ -1056,7 +1057,6 @@ msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:230
 #: src/renderer/features/meeting/outcome-view.tsx:89
-#: src/renderer/features/notes/action-items.tsx:48
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:182
 msgid "Done"
 msgstr ""
@@ -1499,7 +1499,6 @@ msgstr ""
 
 #: src/renderer/features/home/day-view.tsx:422
 #: src/renderer/features/meeting/outcome-view.tsx:89
-#: src/renderer/features/notes/action-items.tsx:48
 #: src/renderer/features/agendas/labels.ts:40
 msgid "Open"
 msgstr ""
@@ -1516,26 +1515,31 @@ msgstr ""
 msgid "Record now"
 msgstr ""
 
-#: src/renderer/features/home/home-page.tsx:87
+#: src/renderer/features/home/home-page.tsx:84
+#: src/renderer/features/home/home-page.tsx:106
+msgid "Your day"
+msgstr ""
+
+#: src/renderer/features/home/home-page.tsx:88
 msgid "Lost the connection to kacola’s background service. Reconnecting…"
 msgstr ""
 
-#: src/renderer/features/home/home-page.tsx:93
+#: src/renderer/features/home/home-page.tsx:94
 msgid "A speech model is not downloaded yet, so recording can’t transcribe"
 msgid_plural ""
 "Speech models are not downloaded yet, so recording can’t transcribe"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/home/home-page.tsx:99
+#: src/renderer/features/home/home-page.tsx:100
 msgid "Set Up"
 msgstr ""
 
-#: src/renderer/features/home/home-page.tsx:105
+#: src/renderer/features/home/home-page.tsx:108
 msgid "Search or ask"
 msgstr ""
 
-#: src/renderer/features/home/home-page.tsx:106
+#: src/renderer/features/home/home-page.tsx:109
 msgid "Search or ask: a name, a decision, anything someone said"
 msgstr ""
 
@@ -1713,28 +1717,28 @@ msgstr ""
 msgid "Add an agenda"
 msgstr ""
 
-#: src/renderer/features/meeting/ask-bar.tsx:71
+#: src/renderer/features/meeting/ask-bar.tsx:77
 msgid "Pinned to your notes"
 msgstr ""
 
-#: src/renderer/features/meeting/ask-bar.tsx:74
+#: src/renderer/features/meeting/ask-bar.tsx:80
 msgid "Pin to notes"
 msgstr ""
 
-#: src/renderer/features/meeting/ask-bar.tsx:106
+#: src/renderer/features/meeting/ask-bar.tsx:112
 #: src/renderer/features/meeting/live-view.tsx:86
 msgid "Ask"
 msgstr ""
 
-#: src/renderer/features/meeting/ask-bar.tsx:109
+#: src/renderer/features/meeting/ask-bar.tsx:115
 msgid "Close Ask"
 msgstr ""
 
-#: src/renderer/features/meeting/ask-bar.tsx:113
+#: src/renderer/features/meeting/ask-bar.tsx:119
 msgid "Asking sends the matching parts of this transcript to your AI provider."
 msgstr ""
 
-#: src/renderer/features/meeting/ask-bar.tsx:115
+#: src/renderer/features/meeting/ask-bar.tsx:121
 msgid ""
 "Asking sends matching parts of your past meetings to your AI provider. "
 "Private meetings are left out."
@@ -1795,8 +1799,8 @@ msgstr ""
 
 #: src/renderer/features/meeting/live-view.tsx:64
 #: src/renderer/features/meeting/meeting-page.tsx:168
-#: src/renderer/features/meeting/outcome-view.tsx:317
 #: src/renderer/features/meeting/outcome-view.tsx:318
+#: src/renderer/features/meeting/outcome-view.tsx:319
 #: src/renderer/features/shell/shortcuts.tsx:35
 msgid "Ask about this meeting"
 msgstr ""
@@ -2071,7 +2075,6 @@ msgid "To do"
 msgstr ""
 
 #: src/renderer/features/meeting/outcome-view.tsx:82
-#: src/renderer/features/notes/action-items.tsx:37
 #: src/renderer/features/meeting/outcome.ts:107
 msgid "Action items"
 msgstr ""
@@ -2140,7 +2143,7 @@ msgid_plural "{n} items carry over to the next meeting"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:304
+#: src/renderer/features/meeting/outcome-view.tsx:305
 #: src/renderer/features/transcript/transcript-pane.tsx:244
 msgid "Recording failed: {reason}"
 msgstr ""
@@ -2267,32 +2270,6 @@ msgstr[1] ""
 
 #: src/renderer/features/meeting/transcript-panel.tsx:50
 msgid "Name the voices"
-msgstr ""
-
-#: src/renderer/features/notes/action-items.tsx:14
-#: src/renderer/features/meeting/outcome.ts:111
-msgid "owner: {owner}"
-msgstr ""
-
-#: src/renderer/features/notes/action-items.tsx:14
-#: src/renderer/features/meeting/outcome.ts:112
-msgid "due: {due}"
-msgstr ""
-
-#: src/renderer/features/notes/action-items.tsx:29
-msgid "Action Items"
-msgstr ""
-
-#: src/renderer/features/notes/action-items.tsx:33
-msgid "Copy Action Items"
-msgstr ""
-
-#: src/renderer/features/notes/action-items.tsx:40
-msgid "Owner: {owner}"
-msgstr ""
-
-#: src/renderer/features/notes/action-items.tsx:41
-msgid "Due: {due}"
 msgstr ""
 
 #: src/renderer/features/notes/template-editor.tsx:56
@@ -3505,10 +3482,6 @@ msgstr ""
 msgid "kacola"
 msgstr ""
 
-#: src/renderer/features/agendas/labels.ts:125
-msgid "{name}’s kacola"
-msgstr ""
-
 #: src/renderer/features/agendas/labels.ts:146
 msgid "ticked by kacola"
 msgstr ""
@@ -3606,6 +3579,14 @@ msgstr ""
 
 #: src/renderer/features/meeting/outcome.ts:102
 msgid "Decisions"
+msgstr ""
+
+#: src/renderer/features/meeting/outcome.ts:111
+msgid "owner: {owner}"
+msgstr ""
+
+#: src/renderer/features/meeting/outcome.ts:112
+msgid "due: {due}"
 msgstr ""
 
 #: src/renderer/features/sessions/recorder.ts:87

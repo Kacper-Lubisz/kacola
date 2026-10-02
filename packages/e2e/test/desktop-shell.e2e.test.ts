@@ -10,8 +10,9 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { DESKTOP_ARTIFACTS, markOnboarded } from '../src/desktop.ts'
 import { SEED, seedMeetings } from '../src/seed.ts'
 
-// The Electron window's shell against the real daemon and the protocol stub — the port of the GTK
-// suites' session-list / record assertions (packages/testkit/src/ui/e2e/gnomeola-ui.e2e.test.ts, the
+// The Electron window's shell against the real daemon and the protocol stub — home (the day, search,
+// Record now), the meeting page and Back to Today; originally the port of the GTK suites' session-list /
+// record assertions (packages/testkit/src/ui/e2e/gnomeola-ui.e2e.test.ts, the
 // session-list and record parts of ui-transcript.e2e.test.ts) and ui-i18n.e2e.test.ts. Same
 // behaviours, role + name locators.
 
@@ -33,11 +34,24 @@ afterAll(async () => {
   expect(markedPids(markerId)).toEqual([])
 })
 
-const rows = (app: DesktopApp) => app.window.getByRole('listbox', { name: 'Sessions' }).getByRole('option')
+/** Every meeting row on home (today's and earlier days'), in screen order. */
+const rows = (app: DesktopApp) => app.window.locator('main ol[aria-label] > li button[aria-label]')
+const row = (app: DesktopApp, title: string) => rows(app).filter({ hasText: title })
+/** Row titles: the accessible name is "<title>, <time>" (or "<title>, <day> <time>"). */
 const rowNames = async (app: DesktopApp) =>
   (await rows(app).evaluateAll((els) =>
-    els.map((e) => e.querySelector('span span')?.textContent ?? ''),
+    els.map((e) => (e.getAttribute('aria-label') ?? '').replace(/, [^,]*$/, '')),
   )) as string[]
+const home = (app: DesktopApp) => app.window.getByRole('searchbox', { name: 'Search or ask' })
+const backToToday = async (app: DesktopApp) => {
+  await app.window.getByRole('button', { name: 'Back to Today' }).click()
+  await home(app).waitFor()
+}
+const openDetails = async (app: DesktopApp) => {
+  await app.window.getByRole('button', { name: 'Meeting actions' }).click()
+  await app.window.getByRole('menuitem', { name: 'Details…' }).click()
+  return app.window.getByRole('dialog', { name: 'Details' })
+}
 
 describe('the main window against the real daemon (seeded, fake capture)', () => {
   let daemon: DaemonHandle
@@ -49,7 +63,7 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
     seedMeetings(dataDir)
     daemon = await startDaemon({ dataDir })
     app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
-    await app.window.getByRole('listbox', { name: 'Sessions' }).waitFor({ timeout: 20_000 })
+    await app.window.getByRole('list', { name: 'Today’s meetings' }).waitFor({ timeout: 20_000 })
   }, 120_000)
 
   afterEach(() => {
@@ -62,80 +76,82 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
     if (dataDir) rmSync(dataDir, { recursive: true, force: true })
   })
 
-  it('shows a split view: the labelled session list beside the content, nothing selected', async () => {
-    const sidebar = app.window.getByRole('complementary', { name: 'Sessions' })
-    const content = app.window.getByRole('main', { name: 'Session' })
-    const s = (await sidebar.boundingBox())!
-    const c = (await content.boundingBox())!
-    expect(s.width).toBeGreaterThan(200)
-    expect(c.x).toBeGreaterThanOrEqual(s.x + s.width - 1)
-    expect(c.width).toBeGreaterThan(s.width)
-    // private sessions are listed in the window (marked), newest first
-    expect(await rowNames(app)).toEqual(['HR 1:1', 'Quarterly planning', 'Platform standup', 'Sprint retro'])
-    await rows(app).filter({ hasText: 'HR 1:1' }).getByRole('img', { name: 'Private' }).waitFor()
-    await app.window.getByRole('searchbox', { name: 'Search sessions' }).waitFor()
-    await app.window.getByRole('button', { name: 'Record' }).waitFor()
-    await app.window.getByRole('heading', { name: 'No Session Selected' }).waitFor()
+  it('opens on home: search-and-ask, the day’s meetings (private ones marked), Record now; no sidebar', async () => {
+    expect(await app.window.getByRole('complementary', { name: 'Sessions' }).count()).toBe(0)
+    // the seeded meetings were all recorded today, in strict time order
+    expect([...(await rowNames(app))].sort()).toEqual([
+      'HR 1:1',
+      'Platform standup',
+      'Quarterly planning',
+      'Sprint retro',
+    ])
+    await row(app, 'HR 1:1').getByText('Private').waitFor()
+    await row(app, 'Platform standup').getByText('12 min').waitFor()
+    await home(app).waitFor()
+    await app.window.getByRole('button', { name: 'Record now' }).waitFor()
     expect(await app.axe()).toEqual([])
   })
 
-  it('filters the list from real keyboard input in the search field', async () => {
-    const search = app.window.getByRole('searchbox', { name: 'Search sessions' })
-    await search.click()
+  it('searches from real keyboard input: titles and transcripts as moments; Escape brings the day back', async () => {
+    await home(app).click()
     await app.window.keyboard.type('standup')
-    await expect.poll(() => rowNames(app)).toEqual(['Platform standup'])
+    const moments = app.window.getByRole('list', { name: 'Moments' })
+    await moments
+      .getByRole('button', { name: /^Platform standup/ })
+      .first()
+      .waitFor({ timeout: 10_000 })
+    expect(await app.window.getByRole('list', { name: 'Today’s meetings' }).count()).toBe(0)
+    expect(await app.axe()).toEqual([]) // the results screen
     await app.window.keyboard.type('zzz')
-    await app.window.getByRole('heading', { name: 'No Matching Sessions' }).waitFor()
-    // Escape clears a search field
+    await app.window.getByText(/Nothing anyone said matches “standupzzz”/).waitFor({ timeout: 10_000 })
+    // Escape clears the search field: the day again
     await app.window.keyboard.press('Escape')
+    await app.window.getByRole('list', { name: 'Today’s meetings' }).waitFor()
     await expect.poll(async () => (await rowNames(app)).length).toBe(4)
   })
 
-  it('selecting a row shows that session; the Details tab has its facts; selection follows', async () => {
-    await rows(app).filter({ hasText: 'Platform standup' }).click()
+  it('opening a row shows that meeting’s outcome; Details has its facts; Back returns to Today', async () => {
+    await row(app, 'Platform standup').click()
     await app.window.getByRole('heading', { level: 1, name: 'Platform standup' }).waitFor()
-    await app.window.getByText('Finished · 12:00').first().waitFor()
-    expect(await app.window.getByRole('heading', { name: 'No Session Selected' }).count()).toBe(0)
-    expect(await rows(app).filter({ hasText: 'Platform standup' }).getAttribute('aria-selected')).toBe('true')
-    for (const t of ['Transcript', 'Ask', 'Notes', 'Details'])
-      await app.window.getByRole('tab', { name: t }).waitFor()
-    await app.window.getByRole('tab', { name: 'Details' }).click()
-    const details = app.window.getByRole('region', { name: 'Details' })
-    await details.getByText('Finished', { exact: true }).waitFor()
-    await details.getByText('12:00', { exact: true }).waitFor()
-    await details.getByText('Microphone, System audio').waitFor()
-    expect(app.window.url()).toContain(`/sessions/${SEED.standup}?tab=details`)
+    await app.window.getByRole('region', { name: 'Outcome' }).waitFor()
+    await app.window.getByText('· 12 min').first().waitFor()
+    expect(app.window.url()).toContain(`/sessions/${SEED.standup}`)
+    expect(await app.axe()).toEqual([]) // the outcome page
+    const details = await openDetails(app)
+    const facts = details.getByRole('region', { name: 'Details' })
+    await facts.getByText('Finished', { exact: true }).waitFor()
+    await facts.getByText('12:00', { exact: true }).waitFor()
+    await facts.getByText('Microphone, System audio').waitFor()
     await shot(app, 'shell-details')
     expect(await app.axe()).toEqual([])
+    await app.window.keyboard.press('Escape')
+    await details.waitFor({ state: 'detached' })
 
-    await rows(app).filter({ hasText: 'Sprint retro' }).click()
+    await backToToday(app)
+    await row(app, 'Sprint retro').click()
     await app.window.getByRole('heading', { level: 1, name: 'Sprint retro' }).waitFor()
-    await app.window
-      .getByRole('heading', { level: 1, name: 'Platform standup' })
-      .waitFor({ state: 'detached' })
-    await app.window.getByText('Finished · 20:00').first().waitFor()
+    await app.window.getByText('· 20 min').first().waitFor()
 
-    // the selection survives the list growing above it (sessions created elsewhere land on top)
+    // the page stays put while meetings are created elsewhere; home lists them
     const url = app.window.url()
     for (const title of ['Created elsewhere 1', 'Created elsewhere 2'])
       await daemon.client.call('createSession', { body: { title } })
-    await rows(app).filter({ hasText: 'Created elsewhere 2' }).waitFor({ timeout: 10_000 })
-    expect((await rowNames(app))[0]).toBe('Created elsewhere 2')
-    expect(await rows(app).filter({ hasText: 'Sprint retro' }).getAttribute('aria-selected')).toBe('true')
-    expect(await rows(app).filter({ hasText: 'Created elsewhere 2' }).getAttribute('aria-selected')).toBe(
-      'false',
-    )
+    await new Promise((r) => setTimeout(r, 500))
     await app.window.getByRole('heading', { level: 1, name: 'Sprint retro' }).waitFor()
     expect(app.window.url()).toBe(url)
+    await backToToday(app)
+    await row(app, 'Created elsewhere 2').waitFor({ timeout: 10_000 })
     for (const s of (await daemon.client.call('listSessions', { query: {} })).sessions)
       if (s.title.startsWith('Created elsewhere'))
         await daemon.client.call('deleteSession', { params: { id: s.id } })
-    await rows(app).filter({ hasText: 'Created elsewhere' }).first().waitFor({ state: 'detached' })
+    await row(app, 'Created elsewhere').first().waitFor({ state: 'detached' })
   })
 
-  it('renames a session and makes it private from Details: the daemon and the list follow', async () => {
-    await app.window.getByRole('tab', { name: 'Details' }).click()
-    const title = app.window.getByRole('textbox', { name: 'Title' })
+  it('renames a meeting and makes it private from Details: the daemon and home follow', async () => {
+    await row(app, 'Sprint retro').click()
+    await app.window.getByRole('heading', { level: 1, name: 'Sprint retro' }).waitFor()
+    const details = await openDetails(app)
+    const title = details.getByRole('textbox', { name: 'Title' })
     await title.fill('Sprint retro (Q3)')
     await title.press('Enter')
     await waitFor(
@@ -145,9 +161,8 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
       5000,
       'the rename',
     )
-    await expect.poll(() => rowNames(app)).toContain('Sprint retro (Q3)')
     await app.window.getByRole('heading', { level: 1, name: 'Sprint retro (Q3)' }).waitFor()
-    const priv = app.window.getByRole('switch', { name: 'Private' })
+    const priv = details.getByRole('switch', { name: 'Private' })
     expect(await priv.isChecked()).toBe(false)
     await priv.focus()
     await app.window.keyboard.press('Space')
@@ -162,12 +177,15 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
       5000,
       'private',
     )
-    await rows(app).filter({ hasText: 'Sprint retro (Q3)' }).getByRole('img', { name: 'Private' }).waitFor()
+    await app.window.keyboard.press('Escape')
+    await details.waitFor({ state: 'detached' })
+    await backToToday(app)
+    await expect.poll(() => rowNames(app)).toContain('Sprint retro (Q3)')
+    await row(app, 'Sprint retro (Q3)').getByText('Private').waitFor()
   })
 
-  it('records: Record starts and selects a session with live levels; pause, resume and stop drive the daemon', async () => {
-    const before = (await rowNames(app)).length
-    await app.window.getByRole('button', { name: 'Record' }).click()
+  it('records: Record now opens the live page; pause, resume and stop drive the daemon; then the outcome', async () => {
+    await app.window.getByRole('button', { name: 'Record now' }).click()
     const live = await waitFor(
       async () =>
         (await daemon.client.call('listSessions', { query: {} })).sessions.find(
@@ -177,25 +195,12 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
       'a recording session',
     )
     await app.window.getByRole('heading', { level: 1, name: live.title }).waitFor()
-    await expect.poll(async () => (await rowNames(app)).length).toBe(before + 1)
-    expect((await rowNames(app))[0]).toBe(live.title)
-    expect(await rows(app).first().getAttribute('aria-selected')).toBe('true')
-    await rows(app).first().getByRole('img', { name: 'Recording' }).waitFor() // the live red dot
     await app.window.getByRole('timer', { name: /^Recording, \d+:\d\d$/ }).waitFor()
-    // live levels, each meter named; they move (ephemeral audio.level → Zustand → the meter)
-    const mic = app.window.getByRole('progressbar', { name: 'Microphone level' })
-    await app.window.getByRole('progressbar', { name: 'System audio level' }).waitFor()
-    const seen = new Set<string>()
-    await waitFor(
-      async () => {
-        seen.add((await mic.getAttribute('aria-valuenow')) ?? '')
-        return seen.size >= 3
-      },
-      8000,
-      'the microphone meter to change',
-    )
+    // the notepad is the screen; no level meters any more
+    await app.window.getByRole('textbox', { name: 'Notes' }).waitFor()
+    expect(await app.window.getByRole('progressbar', { name: /level$/ }).count()).toBe(0)
     await shot(app, 'shell-recording')
-    expect(await app.axe()).toEqual([])
+    expect(await app.axe()).toEqual([]) // the live page
 
     await app.window.getByRole('button', { name: 'Pause' }).click()
     await waitFor(
@@ -212,17 +217,16 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
       'recording again',
     )
     await app.window.getByRole('button', { name: 'Stop' }).click()
-    await app.window.getByRole('button', { name: 'Record' }).waitFor({ timeout: 10_000 })
+    await app.window.getByRole('region', { name: 'Outcome' }).waitFor({ timeout: 10_000 })
     expect((await daemon.client.call('getSession', { params: { id: live.id } })).status).toBe('stopped')
-    await app.window
-      .getByText(/^Finished · 0:\d\d$/)
-      .first()
-      .waitFor({ timeout: 5000 })
+    await backToToday(app)
+    await app.window.getByRole('button', { name: 'Record now' }).waitFor({ timeout: 10_000 })
+    expect(await row(app, live.title).count()).toBe(1)
   })
 
-  it('is keyboard reachable: Tab lands on each control, shortcuts open the help and switch tabs', async () => {
+  it('is keyboard reachable: Tab lands on each control; shortcuts open the help, search, Ask and the transcript', async () => {
     const seen: string[] = []
-    await app.window.getByRole('searchbox', { name: 'Search sessions' }).focus()
+    await home(app).focus()
     await app.window.keyboard.press('Shift+Tab')
     await app.window.keyboard.press('Shift+Tab')
     await app.window.keyboard.press('Shift+Tab')
@@ -235,11 +239,10 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
       )
     }
     for (const want of [
-      /^button:Record$/,
+      /^button:Record now$/,
       /^button:Main menu$/,
-      /^input:Search sessions$/,
-      /^option:/,
-      /^tab:/,
+      /^input:Search or ask$/,
+      /^button:Platform standup, /,
     ])
       expect(
         seen.some((s) => want.test(s)),
@@ -253,28 +256,43 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
     await shot(app, 'shell-shortcuts')
     await app.window.keyboard.press('Escape')
     await help.waitFor({ state: 'detached' })
-    // Ctrl+2 — the Ask tab of the open session
-    await app.window.keyboard.press('Control+2')
-    await expect
-      .poll(() => app.window.getByRole('tab', { name: 'Ask' }).getAttribute('aria-selected'))
-      .toBe('true')
-    // Ctrl+F — search
+    // Ctrl+F — home's search box
     await app.window.keyboard.press('Control+f')
     expect(
       await app.window.evaluate(
         `document.activeElement.getAttribute('aria-label') ?? document.activeElement.closest('[aria-label]')?.getAttribute('aria-label')`,
       ),
-    ).toBe('Search sessions')
+    ).toBe('Search or ask')
+    // in a meeting: Ctrl+K opens the Ask bar (Escape closes it), Ctrl+T the transcript beside the page
+    await row(app, 'Platform standup').click()
+    await app.window.getByRole('heading', { level: 1, name: 'Platform standup' }).waitFor()
+    await app.window.keyboard.press('Control+k')
+    const ask = app.window.getByRole('region', { name: 'Ask about this meeting' })
+    await ask.getByRole('textbox').waitFor()
+    await app.window.keyboard.press('Escape')
+    await ask.waitFor({ state: 'detached' })
+    await app.window.keyboard.press('Control+t')
+    await app.window.getByRole('listbox', { name: 'Transcript' }).waitFor({ timeout: 10_000 })
+    expect(app.window.url()).toContain('panel=transcript')
+    await app.window.keyboard.press('Control+t')
+    await app.window.getByRole('listbox', { name: 'Transcript' }).waitFor({ state: 'detached' })
+    await backToToday(app)
   })
 
   it('shows a session started over HTTP live, through the EventBridge', async () => {
     const s = await daemon.client.call('createSession', { body: { title: 'Started from the CLI' } })
     await daemon.client.call('startSession', { params: { id: s.id } })
-    const row = rows(app).filter({ hasText: 'Started from the CLI' })
-    await row.getByRole('img', { name: 'Recording' }).waitFor({ timeout: 10_000 })
-    // the sidebar's record control follows the daemon: this session can be stopped from here
-    await app.window.getByRole('button', { name: 'Stop' }).click()
-    await row.getByText(/Finished/).waitFor({ timeout: 10_000 })
+    await row(app, 'Started from the CLI').getByText('recording now').waitFor({ timeout: 10_000 })
+    // pinned above the day, with Stop: it can be stopped from home
+    const pinned = app.window.getByRole('region', { name: 'Recording now' })
+    await pinned.getByText('Started from the CLI').waitFor()
+    await pinned.getByRole('button', { name: 'Stop' }).click()
+    await pinned.waitFor({ state: 'detached', timeout: 10_000 })
+    await waitFor(
+      async () => (await daemon.client.call('getSession', { params: { id: s.id } })).status === 'stopped',
+      10_000,
+      'stopped',
+    )
   })
 })
 
@@ -302,14 +320,14 @@ describe('the main window against the protocol stub', () => {
       env: { GNOMEOLA_URL: url, GNOMEOLA_DAEMON_ENTRY: '/nonexistent' },
     })
     try {
-      await app.window.getByRole('heading', { name: 'Can’t Reach gnomeola' }).waitFor({ timeout: 30_000 })
-      await app.window.getByText(`The gnomeola daemon is not answering at ${url}.`).waitFor()
+      await app.window.getByRole('heading', { name: 'Can’t Reach kacola' }).waitFor({ timeout: 30_000 })
+      await app.window.getByText(`it is not answering at ${url}.`, { exact: false }).waitFor()
       expect(await app.axe()).toEqual([])
       await shot(app, 'shell-unreachable')
       stub = await startStubDaemon([makeSession('Board meeting')], port)
       await app.window.getByRole('button', { name: 'Try Again' }).click()
       await expect.poll(() => rowNames(app), { timeout: 15_000 }).toContain('Board meeting')
-      expect(await app.window.getByRole('heading', { name: 'Can’t Reach gnomeola' }).count()).toBe(0)
+      expect(await app.window.getByRole('heading', { name: 'Can’t Reach kacola' }).count()).toBe(0)
     } finally {
       await app.close()
       await stub?.close()
@@ -359,15 +377,17 @@ describe('the main window against the protocol stub', () => {
       expect(stub.eventConnections.at(-1)).toBe(4)
       await banner.waitFor({ state: 'detached', timeout: 5000 })
 
-      // Record goes through the real API: create + start, and the new session is selected
-      await app.window.getByRole('button', { name: 'Record' }).click()
+      // Record now goes through the real API: create + start, and the live page opens
+      await app.window.getByRole('button', { name: 'Record now' }).click()
       await app.window.getByRole('heading', { level: 1, name: 'New recording' }).waitFor()
       expect(stub.requests.filter((r) => r.startsWith('POST'))).toEqual([
         'POST /sessions',
         expect.stringMatching(/^POST \/sessions\/ses_[^/]+\/start$/),
       ])
       await app.window.getByRole('button', { name: 'Stop' }).click()
-      await app.window.getByRole('button', { name: 'Record' }).waitFor()
+      await app.window.getByRole('region', { name: 'Outcome' }).waitFor()
+      await app.window.getByRole('button', { name: 'Back to Today' }).click()
+      await app.window.getByRole('button', { name: 'Record now' }).waitFor()
       expect(stub.requests.filter((r) => r.startsWith('POST')).at(-1)).toMatch(/\/stop$/)
       expect(await app.axe()).toEqual([])
       expect(app.problems()).toEqual([])
@@ -378,7 +398,7 @@ describe('the main window against the protocol stub', () => {
 })
 
 describe('the main window on a narrow screen', () => {
-  it('collapses the split view and navigates sidebar → detail → back', async () => {
+  it('fits home and the meeting page in 360 px and navigates home → meeting → Back to Today', async () => {
     const d = await startHeadlessDisplay({ size: '480x800' })
     markOnboarded(d)
     const daemon = await startDaemon()
@@ -386,19 +406,17 @@ describe('the main window on a narrow screen', () => {
     const app = await launchDesktop({ display: d, env: { GNOMEOLA_URL: daemon.baseUrl } })
     try {
       await app.window.setViewportSize({ width: 360, height: 760 })
-      const sidebar = app.window.getByRole('complementary', { name: 'Sessions' })
-      await sidebar.waitFor({ timeout: 20_000 })
-      // collapsed: only one pane is on screen
-      expect(await app.window.getByRole('heading', { name: 'No Session Selected' }).count()).toBe(0)
-      expect((await sidebar.boundingBox())!.width).toBeLessThanOrEqual(360)
-      await rows(app).filter({ hasText: '1:1 with Sam' }).click()
+      await home(app).waitFor({ timeout: 20_000 })
+      expect((await home(app).boundingBox())!.width).toBeLessThanOrEqual(360)
+      // no horizontal scroll
+      expect(await app.window.evaluate('document.documentElement.scrollWidth')).toBeLessThanOrEqual(360)
+      await shot(app, 'shell-narrow-list')
+      await row(app, '1:1 with Sam').click()
       await app.window.getByRole('heading', { level: 1, name: '1:1 with Sam' }).waitFor()
-      await sidebar.waitFor({ state: 'detached' })
+      await home(app).waitFor({ state: 'detached' })
       await shot(app, 'shell-narrow-detail')
       expect(await app.axe()).toEqual([])
-      await app.window.getByRole('button', { name: 'Back' }).click()
-      await sidebar.waitFor()
-      await shot(app, 'shell-narrow-list')
+      await backToToday(app)
       expect(app.problems()).toEqual([])
     } finally {
       await app.close()
@@ -415,11 +433,11 @@ describe('translations', () => {
     writeFileSync(
       join(dir, 'de.json'),
       JSON.stringify({
-        Record: 'Aufnehmen',
-        'Search sessions': 'Sitzungen durchsuchen',
-        'No Session Selected': 'Keine Sitzung ausgewählt',
+        'Record now': 'Jetzt aufnehmen',
+        'Search or ask': 'Suchen oder fragen',
+        Today: 'Heute',
         Transcript: 'Mitschrift',
-        Ask: 'Fragen',
+        'Ask about this meeting': 'Zu diesem Meeting fragen',
       }),
     )
     const daemon = await startDaemon()
@@ -435,15 +453,16 @@ describe('translations', () => {
       },
     })
     try {
-      await app.window.getByRole('button', { name: 'Aufnehmen' }).waitFor({ timeout: 20_000 })
-      await app.window.getByRole('searchbox', { name: 'Sitzungen durchsuchen' }).waitFor()
-      await app.window.getByRole('heading', { name: 'Keine Sitzung ausgewählt' }).waitFor()
+      await app.window.getByRole('button', { name: 'Jetzt aufnehmen' }).waitFor({ timeout: 20_000 })
+      await app.window.getByRole('searchbox', { name: 'Suchen oder fragen' }).waitFor()
+      await app.window.getByRole('heading', { name: /^Heute/ }).waitFor()
       expect(await app.window.evaluate('document.documentElement.lang')).toBe('de')
-      await rows(app).filter({ hasText: '1:1 with Sam' }).click()
-      await app.window.getByRole('tab', { name: 'Mitschrift' }).waitFor()
-      await app.window.getByRole('tab', { name: 'Fragen' }).waitFor()
-      await app.window.getByRole('tab', { name: 'Details' }).waitFor()
-      expect(await app.window.getByRole('button', { name: 'Record' }).count()).toBe(0)
+      expect(await app.window.getByRole('button', { name: 'Record now' }).count()).toBe(0)
+      await row(app, '1:1 with Sam').click()
+      await app.window.getByRole('button', { name: 'Mitschrift' }).waitFor()
+      await app.window.getByRole('button', { name: 'Zu diesem Meeting fragen' }).waitFor()
+      // untranslated strings fall back to English
+      await app.window.getByRole('button', { name: 'Meeting actions' }).waitFor()
       await shot(app, 'shell-i18n-de')
       expect(app.problems()).toEqual([])
     } finally {

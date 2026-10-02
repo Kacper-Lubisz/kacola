@@ -233,7 +233,12 @@ export function ShareSummaryButton({
               'This is exactly what they get: the outcome and your notes. Private context never goes in it.',
             )}
           </p>
-          <pre className="m-0 max-h-[46vh] overflow-y-auto rounded-md border border-border-subtle bg-bg-surface p-4 font-sans type-body whitespace-pre-wrap text-text-primary select-text">
+          <pre
+            // a scrolling preview must be reachable from the keyboard (axe scrollable-region-focusable)
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable preview
+            tabIndex={0}
+            className="m-0 max-h-[46vh] overflow-y-auto rounded-md border border-border-subtle bg-bg-surface p-4 font-sans type-body whitespace-pre-wrap text-text-primary select-text"
+          >
             {text}
           </pre>
           {view && share?.shared ? <ShareRecapSwitch view={view} status={share} /> : null}
@@ -298,30 +303,32 @@ export function OutcomeView({
           <PrivateContext view={view} hidden={false} />
         </aside>
       ) : null}
-      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-[780px] flex-col gap-6 px-4 py-6 sm:px-8">
-          {session.status === 'failed' && session.error ? (
-            <Banner tone="danger" title={fmt(_('Recording failed: {reason}'), { reason: session.error })} />
-          ) : null}
-          <OutcomeBlock outcome={data.outcome} sessionId={session.id} />
-          {view ? <RecapState agendaId={view.agenda.id} /> : null}
-          <OutcomeNotes session={session} feed={data.feed} state={data.state} handle={handle} />
-        </div>
-      </div>
-      {askOpen ? (
-        <div className="absolute inset-x-0 bottom-4 flex justify-center px-4 sm:px-6">
-          <div className="w-full max-w-[760px]">
-            <AskBar
-              askKey={session.id}
-              sessionId={session.id}
-              label={_('Ask about this meeting')}
-              placeholder={_('Ask about this meeting')}
-              onPin={(text) => handle.current?.append(text)}
-              onClose={() => setAsk(false)}
-            />
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto flex w-full max-w-[780px] flex-col gap-6 px-4 py-6 sm:px-8">
+            {session.status === 'failed' && session.error ? (
+              <Banner tone="danger" title={fmt(_('Recording failed: {reason}'), { reason: session.error })} />
+            ) : null}
+            <OutcomeBlock outcome={data.outcome} sessionId={session.id} />
+            {view ? <RecapState agendaId={view.agenda.id} /> : null}
+            <OutcomeNotes session={session} feed={data.feed} state={data.state} handle={handle} />
           </div>
         </div>
-      ) : null}
+        {askOpen ? (
+          <div className="absolute inset-x-0 bottom-4 z-[1] flex justify-center px-4 sm:px-6">
+            <div className="w-full max-w-[760px]">
+              <AskBar
+                askKey={session.id}
+                sessionId={session.id}
+                label={_('Ask about this meeting')}
+                placeholder={_('Ask about this meeting')}
+                onPin={(text) => handle.current?.append(text)}
+                onClose={() => setAsk(false)}
+              />
+            </div>
+          </div>
+        ) : null}
+      </div>
       {transcript ? (
         <div className="absolute inset-0 z-10 flex md:static md:z-auto">
           <TranscriptPanel session={session} onClose={() => onTranscript(false)} />

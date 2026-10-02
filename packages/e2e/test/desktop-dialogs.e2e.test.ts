@@ -59,7 +59,7 @@ describe('Preferences and About against the real daemon', () => {
     expect((await daemon.client.call('getSettings')).llm.apiKeyConfigured).toBe(false)
     markOnboarded(display)
     app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
-    await app.window.getByRole('listbox', { name: 'Sessions' }).waitFor({ timeout: 20_000 })
+    await app.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
   }, 120_000)
 
   afterEach(() => {
@@ -79,25 +79,26 @@ describe('Preferences and About against the real daemon', () => {
     await prefs().waitFor({ state: 'detached' })
   }
 
+  /** Open a meeting from home (its row on the day). */
   const openSession = async (title: string) => {
     await app.window
-      .getByRole('listbox', { name: 'Sessions' })
-      .getByRole('option', { name: new RegExp(title) })
+      .getByRole('list', { name: 'Today’s meetings' })
+      .getByRole('button', { name: new RegExp(`^${title}, `) })
       .click()
     await app.window.getByRole('heading', { level: 1, name: title }).waitFor({ timeout: 10_000 })
   }
-  const openTab = async (name: 'Transcript' | 'Ask' | 'Notes') => {
-    const tab = app.window.getByRole('tab', { name })
-    await tab.click()
-    await expect.poll(() => tab.getAttribute('aria-selected')).toBe('true')
+  const backToToday = async () => {
+    await app.window.getByRole('button', { name: 'Back to Today' }).click()
+    await app.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor()
   }
-  const askPane = () => app.window.getByRole('region', { name: 'Ask' })
+  const askPane = () => app.window.getByRole('region', { name: 'Ask about this meeting' })
   const unavailable = () => askPane().getByText('Questions aren’t available right now', { exact: true })
 
   it('explains that questions and enhancing need a provider, and Open Preferences opens Preferences', async () => {
     await openSession('Platform standup')
-    await openTab('Ask')
-    const field = app.window.getByRole('textbox', { name: 'Question' })
+    // Ask is the Ctrl+K bar over the page
+    await app.window.keyboard.press('Control+k')
+    const field = askPane().getByRole('textbox', { name: 'Ask about this meeting' })
     await field.click()
     await app.window.keyboard.type('Who owns the dashboard?')
     await app.window.keyboard.press('Enter')
@@ -115,12 +116,13 @@ describe('Preferences and About against the real daemon', () => {
     await closePrefs()
 
     // Notes: Enhance says the same, with its own way to Preferences; the notes are untouched
-    await openTab('Notes')
+    await askPane().getByRole('button', { name: 'Close Ask' }).click()
+    await askPane().waitFor({ state: 'detached' })
     const before = await daemon.client.call('listNoteVersions', { params: { id: SEED.standup } })
     await app.window.getByRole('button', { name: 'Enhance Notes' }).click()
-    const banner = app.window.getByRole('status', { name: /Your notes were not enhanced/ })
+    const banner = app.window.getByRole('status', { name: /Your notes were not changed/ })
     await banner.waitFor({ timeout: 10_000 })
-    expect(await banner.textContent()).toContain('Enhancing needs a language model provider')
+    expect(await banner.textContent()).toContain('Enhancing needs an AI provider')
     expect(api.seen).toHaveLength(0)
     expect(await daemon.client.call('listNoteVersions', { params: { id: SEED.standup } })).toEqual(before)
     expect(await app.axe()).toEqual([])
@@ -130,7 +132,7 @@ describe('Preferences and About against the real daemon', () => {
     await closePrefs()
     await banner.getByRole('button', { name: 'Dismiss' }).click()
     await banner.waitFor({ state: 'detached' })
-    await openTab('Ask')
+    await backToToday()
   })
 
   it('opening Preferences shows the daemon’s values and writes nothing back', async () => {
@@ -185,7 +187,9 @@ describe('Preferences and About against the real daemon', () => {
 
   it('asks with the Ask button once a key is stored: exactly that key reaches the provider', async () => {
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
-    await app.window.getByRole('textbox', { name: 'Question' }).fill('Who owns the dashboard?')
+    await openSession('Platform standup')
+    await app.window.keyboard.press('Control+k')
+    await askPane().getByRole('textbox', { name: 'Ask about this meeting' }).fill('Who owns the dashboard?')
     await askPane().getByRole('button', { name: 'Ask', exact: true }).click()
     await askPane()
       .getByRole('button', { name: /^Citation 1: / })
@@ -193,10 +197,12 @@ describe('Preferences and About against the real daemon', () => {
       .waitFor({ timeout: 20_000 })
     expect(api.seen).toHaveLength(1)
     expect(api.seen[0]!.headers['x-api-key']).toBe(KEY)
-    // the earlier turn is still explained, once, next to the answer
-    expect(await unavailable().count()).toBe(1)
+    // the bar shows the latest exchange only: the answer replaced the earlier explanation
+    expect(await unavailable().count()).toBe(0)
     expect(daemon.output()).not.toContain(KEY)
     expect(await pageText(app)).not.toContain(KEY)
+    await askPane().getByRole('button', { name: 'Close Ask' }).click()
+    await backToToday()
   })
 
   it('persists settings changed in Preferences (keyboard), and reflects changes made elsewhere live', async () => {
@@ -328,8 +334,8 @@ describe('Preferences and About against the real daemon', () => {
 
   it('About (from the main menu) credits Granola plainly and lists the third-party notices', async () => {
     await app.window.getByRole('button', { name: 'Main menu' }).click()
-    await app.window.getByRole('menuitem', { name: 'About gnomeola' }).click()
-    const about = app.window.getByRole('dialog', { name: 'About gnomeola' })
+    await app.window.getByRole('menuitem', { name: 'About kacola' }).click()
+    const about = app.window.getByRole('dialog', { name: 'About kacola' })
     await about.waitFor()
     await about.getByText('0.1.0').waitFor()
     const credit = about.getByText(/independent clean-room project inspired by Granola/)
@@ -386,7 +392,7 @@ describe('first-run onboarding (slow fake model downloads)', () => {
     rmSync(shim, { force: true })
     const app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
     try {
-      const welcome = app.window.getByRole('dialog', { name: 'Welcome to gnomeola' })
+      const welcome = app.window.getByRole('dialog', { name: 'Welcome to kacola' })
       await welcome.waitFor({ timeout: 20_000 })
       const models = (await daemon.client.call('listModels')).models
       for (const m of models) await welcome.getByRole('listitem', { name: m.title }).waitFor()
@@ -449,9 +455,9 @@ describe('first-run onboarding (slow fake model downloads)', () => {
     // remembered: a second launch goes straight to the window
     const again = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
     try {
-      await again.window.getByText('No Sessions Yet').waitFor({ timeout: 20_000 })
+      await again.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
       await new Promise((r) => setTimeout(r, 2000))
-      expect(await again.window.getByRole('dialog', { name: 'Welcome to gnomeola' }).count()).toBe(0)
+      expect(await again.window.getByRole('dialog', { name: 'Welcome to kacola' }).count()).toBe(0)
     } finally {
       await again.close()
     }
@@ -464,7 +470,7 @@ describe('onboarding skipped', () => {
     rmSync(uiStatePath(display), { force: true })
     const app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
     try {
-      const welcome = app.window.getByRole('dialog', { name: 'Welcome to gnomeola' })
+      const welcome = app.window.getByRole('dialog', { name: 'Welcome to kacola' })
       await welcome.waitFor({ timeout: 20_000 })
       // not installing the CLI this time
       await toggle(app, welcome.getByRole('switch', { name: 'Install command-line tool and Claude skill' }))
@@ -476,7 +482,7 @@ describe('onboarding skipped', () => {
         skippedMissing: ['whisper-small.en'],
       })
       expect(existsSync(join(display.env.HOME!, '.local', 'bin', 'gnomeola'))).toBe(false)
-      const banner = app.window.getByRole('status', { name: 'A speech model is not downloaded yet' })
+      const banner = app.window.getByRole('status', { name: 'A speech model is not downloaded yet, so recording can’t transcribe' })
       await banner.waitFor()
       await app.screenshot(join(DESKTOP_ARTIFACTS, 'onboarding-skipped-banner.png'))
       await banner.getByRole('button', { name: 'Set Up' }).click()

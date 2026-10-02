@@ -253,10 +253,7 @@ describe('the installed window', () => {
       app.stdout!.on('data', scan)
       app.stderr!.on('data', scan)
       const cdp = await connectCdp(port)
-      await cdp.window
-        .getByRole('listbox', { name: 'Sessions' })
-        .getByRole('option', { name: /Installed recording/ })
-        .waitFor({ timeout: 30_000 })
+      await cdp.window.getByRole('button', { name: /^Installed recording, / }).waitFor({ timeout: 30_000 })
       // it attached to the daemon installed above (never spawning its bundled one), and GNOME can match the
       // window to the installed desktop entry
       expect(daemonLines).toMatch(/"kind":"attached"/)

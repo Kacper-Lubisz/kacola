@@ -161,7 +161,7 @@ describe('the packaged Linux app (linux-unpacked)', () => {
     })
 
     it('maps a window in the Shell and spawns the bundled daemon from resources/runtime', async () => {
-      await cdp.window.getByRole('dialog', { name: 'Welcome to gnomeola' }).waitFor({ timeout: 30_000 })
+      await cdp.window.getByRole('dialog', { name: 'Welcome to kacola' }).waitFor({ timeout: 30_000 })
       const shot = await display.screenshot(join(display.env.HOME!, 'packaged.png'))
       expect(readFileSync(shot).length).toBeGreaterThan(20_000) // a window, not an empty desktop
       await waitFor(healthy, 30_000, 'the daemon the app spawned')
@@ -174,7 +174,7 @@ describe('the packaged Linux app (linux-unpacked)', () => {
     })
 
     it('onboarding installs the CLI + skill; the shim starts this binary in the background', async () => {
-      const welcome = cdp.window.getByRole('dialog', { name: 'Welcome to gnomeola' })
+      const welcome = cdp.window.getByRole('dialog', { name: 'Welcome to kacola' })
       expect(
         await welcome.getByRole('switch', { name: 'Install command-line tool and Claude skill' }).isChecked(),
       ).toBe(true)
@@ -188,10 +188,7 @@ describe('the packaged Linux app (linux-unpacked)', () => {
       )
       expect(text).toContain(`'${exe}' --background`)
       expect(existsSync(join(home(), '.claude', 'skills', 'meeting-context', 'SKILL.md'))).toBe(true)
-      await cdp.window
-        .getByRole('listbox', { name: 'Sessions' })
-        .getByRole('option', { name: /Packaged standup/ })
-        .waitFor({ timeout: 20_000 })
+      await cdp.window.getByRole('button', { name: /^Packaged standup, / }).waitFor({ timeout: 20_000 })
     })
 
     it('Preferences installs and enables the top-bar extension, and the autostart entry', async () => {
@@ -240,7 +237,7 @@ describe('the packaged Linux app (linux-unpacked)', () => {
       expect(await exited(second.proc)).toBe(0) // handed over to the first instance
       await cdp.disconnect()
       cdp = await connectCdp(port)
-      await cdp.window.getByRole('option', { name: /Packaged standup/ }).waitFor({ timeout: 20_000 })
+      await cdp.window.getByRole('button', { name: /^Packaged standup, / }).waitFor({ timeout: 20_000 })
     })
 
     it('quitting stops the daemon it spawned', async () => {
