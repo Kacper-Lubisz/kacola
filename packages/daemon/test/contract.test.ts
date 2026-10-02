@@ -453,7 +453,11 @@ describe('contract: every route, real server, typed client', () => {
       draftAgenda: async () => {
         // proposals only. The LLM is switched off for this call (a key was set above, and a contract test
         // must not reach a real provider), so the stream opens and reports it
-        const before = (await c.call('getAgenda', { params: { id: ag.id } })).agenda.version
+        // what drafting must not touch: the items themselves (the live tracker may still move a status or
+        // bump the version concurrently under load, which is not the draft's doing)
+        const itemsOf = async () =>
+          (await c.call('getAgenda', { params: { id: ag.id } })).items.map((i) => [i.id, i.text])
+        const before = await itemsOf()
         const { provider, model } = (await c.call('getSettings')).llm
         await c.call('updateSettings', { body: { llm: { provider: 'none' } } })
         const events = []
@@ -461,7 +465,7 @@ describe('contract: every route, real server, typed client', () => {
           events.push(e)
         expect(events.map((e) => e.type)).toEqual(['started', 'error'])
         expect(events[1]).toMatchObject({ error: { code: 'unavailable' } })
-        expect((await c.call('getAgenda', { params: { id: ag.id } })).agenda.version).toBe(before)
+        expect(await itemsOf()).toEqual(before)
         await c.call('updateSettings', { body: { llm: { provider, model } } })
         return events
       },
