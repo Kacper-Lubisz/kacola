@@ -1,0 +1,16 @@
+{
+  "sessionId": "ses_synthetic_sample",
+  "startedAt": "2026-01-05T10:00:00.000Z",
+  "durationMs": 41000,
+  "exportedAt": "2026-01-05T11:00:00.000Z",
+  "segments": [
+    { "id": "s0", "speaker": "Speaker 1", "startMs": 0, "endMs": 4000, "text": "Thanks for joining, this is a made-up example interview for the test suite." },
+    { "id": "s1", "speaker": "Speaker 1", "startMs": 5000, "endMs": 9000, "text": "We are Example Co, a fictional company that builds toy bakery robots, and we like a calm pace." },
+    { "id": "s2", "speaker": "Speaker 1", "startMs": 10000, "endMs": 15000, "text": "There are twelve engineers on the team, split into two squads." },
+    { "id": "s3", "speaker": "me", "startMs": 16000, "endMs": 20000, "text": "Great, and how do you decide what to build next?" },
+    { "id": "s4", "speaker": "Speaker 1", "startMs": 21000, "endMs": 27000, "text": "A product lead writes a one page brief and the engineers choose how to build it." },
+    { "id": "s5", "speaker": "me", "startMs": 28000, "endMs": 30000, "text": "Okay, that makes sense." },
+    { "id": "s6", "speaker": "Speaker 1", "startMs": 31000, "endMs": 36000, "text": "After this call there is a take-home exercise and then an onsite day." },
+    { "id": "s7", "speaker": "me", "startMs": 37000, "endMs": 41000, "text": "Sounds good, thank you." }
+  ]
+}

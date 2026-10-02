@@ -33,3 +33,6 @@ reports/
 
 # packaging inputs assembled by scripts/build-flatpak.ts
 packaging/flatpak/input/
+
+# real meetings exported as private eval fixtures (transcripts + labels): never committed
+packages/testkit/fixtures/evals/private/

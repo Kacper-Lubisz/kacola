@@ -128,7 +128,8 @@ export async function fakeProviders(brain: Brain = lexicalBrain): Promise<Provid
 
 export function liveProviders(env: NodeJS.ProcessEnv = process.env): ProviderSetup[] {
   const k = (name: string) => env[name]?.trim() || null
-  const ts = k('TYPESAFE_API_KEY')
+  // TYPESAFE_AI_API_KEY: another name for the same key (scripts/eval-env.ts maps it for the eval tier)
+  const ts = k('TYPESAFE_API_KEY') ?? k('TYPESAFE_AI_API_KEY')
   const oa = k('OPENAI_API_KEY')
   const an = k('ANTHROPIC_API_KEY')
   const ol = k('GNOMEOLA_EVAL_OLLAMA_URL')

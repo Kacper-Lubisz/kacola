@@ -11,10 +11,13 @@ import { join } from 'node:path'
 import {
   agendaFixtures,
   bandsFor,
+  loadRealFixture,
   offlineProviders,
+  REAL_SAMPLE_FIXTURE,
   runInjectionSuite,
   runInterviewSuite,
   runNextPointSuite,
+  runRealCoverageSuite,
   runRelevanceSuite,
   runStatusSuite,
 } from '@gnomeola/evals'
@@ -79,4 +82,22 @@ describe.each(setups.map((s) => [s.label, s] as const))('tracker evals, offline:
       )
     },
   )
+})
+
+// The real-meeting coverage suite's plumbing through the real tracker, on the synthetic sample (the real,
+// private fixtures run in run-evals.ts and the live eval tier; they are not on every machine).
+it('real-meeting coverage replays through the tracker (synthetic sample)', async () => {
+  const setup = setups[0]!
+  const fx = loadRealFixture(REAL_SAMPLE_FIXTURE)
+  const { card, outcomes } = await runRealCoverageSuite(
+    trackerStatusRunner(setup.provider!, { mode: 'offline' }),
+    fx,
+  )
+  expect(card.skipped).toBeNull()
+  expect(card.notes[0]).toBe('runner: tracker')
+  expect(outcomes.map((o) => o.itemId)).toEqual(fx.labels.items.map((i) => i.id))
+  expect(card.metrics.items).toBe(6)
+  expect(card.metrics.negativeItems).toBe(2)
+  // decisions were actually asked (gate, guard, status round, interview items)
+  expect(card.metrics.decisionCalls).toBeGreaterThan(fx.transcript.segments.length)
 })

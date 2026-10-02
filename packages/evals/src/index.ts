@@ -6,9 +6,11 @@
 //   suites.ts       dataset × runner → scorecard (graders from @gnomeola/testkit/evals)
 //   providers.ts    the offline / fake / live provider matrix
 //   run.ts          run every decision suite for one provider setup
+//   real.ts         the real-meeting coverage suite (private fixtures, skipped when absent)
 export * from './baselines.ts'
 export * from './llm-runners.ts'
 export * from './providers.ts'
+export * from './real.ts'
 export * from './run.ts'
 export * from './runners.ts'
 export * from './suites.ts'
