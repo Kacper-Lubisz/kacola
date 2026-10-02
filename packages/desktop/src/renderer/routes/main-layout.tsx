@@ -145,14 +145,11 @@ function Shortcuts() {
         else document.querySelector<HTMLInputElement>('[data-shortcut="search"] input')?.focus()
         return
       case 'transcript':
-        if (params.sessionId) {
+        // either form of the meeting's URL (by recording or by agenda); before a recording there is
+        // no transcript, and the page ignores the panel
+        if (inMeeting) {
           const open = (location.search as { panel?: string }).panel === 'transcript'
-          void navigate({
-            to: '/sessions/$sessionId',
-            params: { sessionId: params.sessionId },
-            search: open ? {} : { panel: 'transcript' },
-            replace: true,
-          })
+          void navigate({ to: '.', search: open ? {} : { panel: 'transcript' }, replace: true })
         }
         return
       case 'quit':
