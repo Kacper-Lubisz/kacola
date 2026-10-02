@@ -55,6 +55,8 @@ export function windowOptions(o: {
   dark: boolean
   /** The app icon (Linux/Windows window icon; macOS takes the bundle's). */
   icon?: string
+  /** Default `kacola`; a separate profile says which it is (`kacola · sandbox`). */
+  title?: string
 }): BrowserWindowConstructorOptions {
   return {
     width: 1100,
@@ -62,7 +64,7 @@ export function windowOptions(o: {
     minWidth: 360,
     minHeight: 400,
     show: false,
-    title: 'kacola',
+    title: o.title ?? 'kacola',
     // paint the window background before the first frame so there is no white flash in dark mode
     backgroundColor: o.dark ? '#171411' : '#f6f1e7', // brand bg.window
     ...(o.icon && o.platform !== 'darwin' ? { icon: o.icon } : {}),

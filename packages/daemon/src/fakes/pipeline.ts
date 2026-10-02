@@ -60,6 +60,11 @@ export type FakePipelineOptions = {
    */
   script?: MeetingScript
   scriptFile?: string
+  /**
+   * With `scriptFile`: every recording starts as a quiet room and speaks what is written to the file
+   * while it records (the sandbox's `pnpm sandbox play`; see ./scripted.ts `watchFile`).
+   */
+  scriptLive?: boolean
 }
 
 /** The fake far end's voices: one-hot embeddings of the `fake-embedding` model. */
@@ -87,6 +92,7 @@ type OptionalOpts =
   | 'hold'
   | 'script'
   | 'scriptFile'
+  | 'scriptLive'
 
 export class FakePipeline implements TranscriptionPipeline {
   readonly canContinue = true
@@ -116,10 +122,14 @@ export class FakePipeline implements TranscriptionPipeline {
   async start(o: PipelineStartOptions, sink: PipelineSink): Promise<RecordingHandle> {
     if (this.opts.startDelayMs) await new Promise((r) => setTimeout(r, this.opts.startDelayMs))
     if (this.opts.failStart) throw new Error(this.opts.failStart)
-    const script = this.opts.script ?? (this.opts.scriptFile ? loadScript(this.opts.scriptFile) : null)
+    const live = this.opts.scriptLive === true && this.opts.scriptFile !== undefined
+    const script = live
+      ? { utterances: [] }
+      : (this.opts.script ?? (this.opts.scriptFile ? loadScript(this.opts.scriptFile) : null))
     if (script) {
       const rec = new ScriptedRecording(o, sink, {
         script,
+        ...(live ? { watchFile: this.opts.scriptFile } : {}),
         speed: this.opts.speed,
         tickMs: this.opts.tickMs,
         partialEveryMs: this.opts.partialEveryMs,

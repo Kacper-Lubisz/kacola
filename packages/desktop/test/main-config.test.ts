@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { daemonEntry, readDesktopConfig, tokenFor } from '../src/main/config.ts'
+import { daemonEntry, profileFrom, readDesktopConfig, tokenFor } from '../src/main/config.ts'
 import {
   initialUiState,
   loadCatalogue,
@@ -16,6 +16,16 @@ import { parseAccent, parseSettingChanged, parseUint, themeFrom } from '../src/m
 const tmp = () => mkdtempSync(join(tmpdir(), 'gnomeola-desktop-'))
 
 describe('config', () => {
+  it('a separate profile (the sandbox) is a short lower-case name with its own user-data dir', () => {
+    const o = { appDir: '/nowhere' }
+    expect(readDesktopConfig({}, [], o)).toMatchObject({ profile: null, userDataDir: null })
+    expect(
+      readDesktopConfig({ GNOMEOLA_PROFILE: 'sandbox', GNOMEOLA_USER_DATA_DIR: '/tmp/x/electron' }, [], o),
+    ).toMatchObject({ profile: 'sandbox', userDataDir: '/tmp/x/electron' })
+    expect(profileFrom({ GNOMEOLA_PROFILE: ' ' })).toBeNull()
+    for (const bad of ['../real', 'Sandbox', 'a b', 'x'.repeat(40)])
+      expect(() => profileFrom({ GNOMEOLA_PROFILE: bad })).toThrow(/GNOMEOLA_PROFILE/)
+  })
   it('a packaged build spawns resources/runtime/daemon.mjs (scripts/build-desktop.ts puts it there)', () => {
     const res = tmp()
     mkdirSync(join(res, 'runtime'))
