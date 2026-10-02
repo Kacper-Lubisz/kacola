@@ -1274,7 +1274,7 @@ msgstr ""
 #: src/renderer/features/ask/ask-answer.tsx:104
 #: src/renderer/features/meeting/notepad.tsx:152
 #: src/renderer/features/preferences/extension-setup.tsx:51
-#: src/renderer/routes/main-layout.tsx:71
+#: src/renderer/routes/main-layout.tsx:94
 msgid "Try Again"
 msgstr ""
 
@@ -3438,20 +3438,24 @@ msgstr ""
 msgid "Could not change the speaker: {reason}"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:51
-#: src/renderer/routes/main-layout.tsx:54
+#: src/renderer/routes/main-layout.tsx:45
+msgid "This is the {profile} window"
+msgstr ""
+
+#: src/renderer/routes/main-layout.tsx:74
+#: src/renderer/routes/main-layout.tsx:77
 msgid "Connecting…"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:52
+#: src/renderer/routes/main-layout.tsx:75
 msgid "Reaching kacola at {origin}"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:64
+#: src/renderer/routes/main-layout.tsx:87
 msgid "Can’t Reach kacola"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:66
+#: src/renderer/routes/main-layout.tsx:89
 msgid ""
 "kacola records and transcribes in a background service, and it is not "
 "answering at {origin}."

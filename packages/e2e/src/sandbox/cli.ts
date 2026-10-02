@@ -72,7 +72,7 @@ options for every command:
 
 // --------------------------------------------------------------------------- paths, state, safety
 
-type Paths = ReturnType<typeof pathsFor>
+export type Paths = ReturnType<typeof pathsFor>
 const pathsFor = (dir: string) => ({
   dir,
   marker: join(dir, MARKER),
@@ -124,10 +124,11 @@ export function sandboxDir(flag: string | undefined, env: Env): string {
       env.KACOLA_SANDBOX_DIR ||
       join(env.XDG_DATA_HOME || join(home(env), '.local', 'share'), 'kacola-sandbox'),
   )
-  const real = resolve(realDataDir(env))
   const inside = (a: string, b: string) => a === b || !relPath(b, a).startsWith('..')
-  if (inside(dir, real) || inside(real, dir))
-    throw new SandboxError(`refusing to use ${dir}: it overlaps your real kacola data (${real})`)
+  // the default data dir, and the one this shell points a daemon at (if any)
+  for (const real of [realDataDir(env), env.GNOMEOLA_DATA_DIR].filter(Boolean).map((d) => resolve(d!)))
+    if (inside(dir, real) || inside(real, dir))
+      throw new SandboxError(`refusing to use ${dir}: it overlaps your real kacola data (${real})`)
   if (dir === resolve(home(env)) || dir === '/')
     throw new SandboxError(`refusing to use ${dir} as the sandbox`)
   return dir
@@ -332,6 +333,20 @@ function linkModels(p: Paths, env: Env): number {
 
 // --------------------------------------------------------------------------- the window
 
+/** On top of the daemon's environment: the window's separate profile, pointed at the sandbox daemon. */
+export function windowEnv(p: Paths, url: string): Env {
+  return {
+    GNOMEOLA_URL: url,
+    GNOMEOLA_PROFILE: 'sandbox',
+    GNOMEOLA_USER_DATA_DIR: p.electron,
+    GNOMEOLA_UI_STATE_FILE: p.uiState,
+    GNOMEOLA_REGISTER_SCHEME: '0',
+    // if the window ever has to start a daemon itself, it is this sandbox's
+    GNOMEOLA_DAEMON_ARGS: JSON.stringify(['--data-dir', p.data]),
+    ELECTRON_RUN_AS_NODE: undefined,
+  }
+}
+
 function electronBinary(): string | null {
   const bin = join(
     DESKTOP,
@@ -484,6 +499,18 @@ async function start(c: Ctx, o: Record<string, string | boolean | undefined>): P
     throw new SandboxError('the sandbox did not start')
   }
   await client(st).call('updateSettings', { body: settingsFor(providers) })
+  if (audio === 'scripted') {
+    // the scripted sandbox's speech models are the fake pipeline's stand-ins: "download" them (instant),
+    // so the window does not ask for models the scripted meetings never use
+    const api = client(st)
+    for (const m of (await api.call('listModels')).models)
+      if (m.state === 'missing') await api.call('downloadModel', { params: { id: m.id } })
+    await waitFor(
+      'the stand-in models',
+      async () => (await api.call('listModels')).models.every((m) => m.state === 'ready'),
+      10_000,
+    )
+  }
 
   // the window
   if (!o['no-window']) {
@@ -497,17 +524,7 @@ async function start(c: Ctx, o: Record<string, string | boolean | undefined>): P
       st.pids.window = spawnDetached(
         bin,
         [entry, `--kacola-sandbox=${p.dir}`],
-        {
-          ...denv,
-          GNOMEOLA_URL: url,
-          GNOMEOLA_PROFILE: 'sandbox',
-          GNOMEOLA_USER_DATA_DIR: p.electron,
-          GNOMEOLA_UI_STATE_FILE: p.uiState,
-          GNOMEOLA_REGISTER_SCHEME: '0',
-          // if the window ever has to start a daemon itself, it is this sandbox's
-          GNOMEOLA_DAEMON_ARGS: JSON.stringify(['--data-dir', p.data]),
-          ELECTRON_RUN_AS_NODE: undefined,
-        },
+        { ...denv, ...windowEnv(p, url) },
         join(p.logs, 'window.log'),
         DESKTOP,
       )
