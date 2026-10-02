@@ -6,6 +6,7 @@ import {
   formatClockTime,
   formatDuration,
   formatRelativeTime,
+  isDefaultTitle,
   sessionSubtitle,
   statusLabel,
   statusSummary,
@@ -108,9 +109,23 @@ describe('status text', () => {
 
 describe('text safety', () => {
   it('never shows a blank title', () => {
-    expect(displayTitle({ title: '' })).toBe('Untitled session')
-    expect(displayTitle({ title: '   ' })).toBe('Untitled session')
+    expect(displayTitle({ title: '' })).toBe('Untitled meeting')
+    expect(displayTitle({ title: '   ' })).toBe('Untitled meeting')
     expect(displayTitle({ title: 'Q&A <draft>' })).toBe('Q&A <draft>')
+  })
+  it('reads the store’s stand-in title (UTC wall clock) as untitled, but only for its own minute', () => {
+    const createdAt = '2026-10-01T16:02:34.856Z'
+    expect(displayTitle({ title: 'Meeting 2026-10-01 16:02', createdAt })).toBe('Untitled meeting')
+    expect(displayTitle({ title: 'Meeting 2026-10-01 16:02' })).toBe('Untitled meeting')
+    expect(isDefaultTitle({ title: 'Meeting 2026-10-01 16:02', createdAt })).toBe(true)
+    // someone named it that, on another day: theirs to keep
+    expect(displayTitle({ title: 'Meeting 2026-10-01 16:02', createdAt: '2026-10-05T09:00:00.000Z' })).toBe(
+      'Meeting 2026-10-01 16:02',
+    )
+    expect(displayTitle({ title: 'Meeting 2026-10-01 16:02 with Ana', createdAt })).toBe(
+      'Meeting 2026-10-01 16:02 with Ana',
+    )
+    expect(displayTitle({ title: 'Meeting', createdAt })).toBe('Meeting')
   })
   it('escapes Pango markup metacharacters', () => {
     expect(escapeMarkup(`Tom & Jerry's <b>"show"</b>`)).toBe(

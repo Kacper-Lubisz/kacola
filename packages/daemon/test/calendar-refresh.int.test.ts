@@ -24,7 +24,10 @@ class CountingProvider implements CalendarProvider {
   readonly expands = false
   reads = 0
   private l: ProviderListener | null = null
-  constructor(private readonly next: (read: number) => CalendarSnapshot | null) {}
+  private readonly next: (read: number) => CalendarSnapshot | null
+  constructor(next: (read: number) => CalendarSnapshot | null) {
+    this.next = next
+  }
   start(l: ProviderListener): void {
     this.l = l
     this.read()
@@ -60,7 +63,13 @@ describe('POST /calendar/refresh', () => {
   })
   const start = async (calendar: CalendarProvider): Promise<GnomeolaClient> => {
     dir = mkdtempSync(join(tmpdir(), 'gnomeola-cal-refresh-'))
-    daemon = await createDaemon({ dataDir: join(dir, 'data'), port: 0, keyring: new MemoryKeyring(), env: {}, calendar })
+    daemon = await createDaemon({
+      dataDir: join(dir, 'data'),
+      port: 0,
+      keyring: new MemoryKeyring(),
+      env: {},
+      calendar,
+    })
     return createClient({ baseUrl: daemon.url, timeoutMs: 20_000 })
   }
 
@@ -101,7 +110,9 @@ describe('POST /calendar/refresh', () => {
     const c = await start(p)
     const r = await c.call('refreshCalendar')
     expect(r.calendar.offline).toEqual([{ id: 'cal-team', name: 'Team', reason: 'sign-in' }])
-    expect((await c.call('calendarStatus')).offline).toEqual([{ id: 'cal-team', name: 'Team', reason: 'sign-in' }])
+    expect((await c.call('calendarStatus')).offline).toEqual([
+      { id: 'cal-team', name: 'Team', reason: 'sign-in' },
+    ])
   })
 
   it('answers refreshed: false after the wait when no snapshot comes (the old meetings stay)', async () => {
@@ -109,9 +120,10 @@ describe('POST /calendar/refresh', () => {
       read === 1 ? { calendars: [{ id: 'cal-work', name: 'Work' }], occurrences: [meeting(1)] } : null,
     )
     const c = await start(p)
-    daemon!.calendar.refresh = ((orig) => (ms?: number) => orig(ms ?? 300))(
-      daemon!.calendar.refresh.bind(daemon!.calendar),
-    )
+    daemon!.calendar.refresh = (
+      (orig) => (ms?: number) =>
+        orig(ms ?? 300)
+    )(daemon!.calendar.refresh.bind(daemon!.calendar))
     const r = await c.call('refreshCalendar')
     expect(p.reads).toBe(2)
     expect(r).toMatchObject({ refreshed: false, occurrences: 1, calendar: { state: 'ok' } })
@@ -128,7 +140,11 @@ describe('POST /calendar/refresh', () => {
       writeFileSync(file, JSON.stringify([meeting(1), meeting(2), meeting(3)]))
       utimesSync(file, mtime, mtime) // a copy that kept its timestamp: polling would never notice
       const r = await c.call('refreshCalendar')
-      expect(r).toMatchObject({ refreshed: true, occurrences: 3, calendar: { state: 'ok', provider: 'file' } })
+      expect(r).toMatchObject({
+        refreshed: true,
+        occurrences: 3,
+        calendar: { state: 'ok', provider: 'file' },
+      })
     } finally {
       rmSync(tmp, { recursive: true, force: true })
     }
@@ -153,7 +169,12 @@ describe('POST /calendar/refresh', () => {
 
   it('with calendar reading off it answers at once, refreshed: false', async () => {
     dir = mkdtempSync(join(tmpdir(), 'gnomeola-cal-refresh-'))
-    daemon = await createDaemon({ dataDir: join(dir, 'data'), port: 0, keyring: new MemoryKeyring(), env: {} })
+    daemon = await createDaemon({
+      dataDir: join(dir, 'data'),
+      port: 0,
+      keyring: new MemoryKeyring(),
+      env: {},
+    })
     const c = createClient({ baseUrl: daemon.url, timeoutMs: 5_000 })
     const r = await c.call('refreshCalendar')
     expect(r).toMatchObject({ refreshed: false, occurrences: 0, calendar: { state: 'off' } })

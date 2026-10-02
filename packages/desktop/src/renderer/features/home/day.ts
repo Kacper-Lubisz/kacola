@@ -63,13 +63,23 @@ export function dayLabel(t: number, now: number): string {
   return d.getFullYear() === new Date(now).getFullYear() ? dm : `${dm} ${d.getFullYear()}`
 }
 
-/** "in 8 min", "in 1 h 5 min", "now", "ended". */
+/**
+ * When a meeting is, said plainly: "starting in 2 min", "starting in 1 h 5 min"; "now, just started",
+ * "now, started 10 min ago" once under way; "ended".
+ */
 export function countdown(startIso: string, endIso: string, now: number): string {
   const start = Date.parse(startIso)
   const end = Date.parse(endIso)
   if (now >= end) return _('ended')
-  if (now >= start) return _('now')
-  return fmt(_('in {duration}'), { duration: durationLabel(Math.ceil((start - now) / 60_000) * 60_000) })
+  if (now >= start) {
+    const ago = Math.floor((now - start) / 60_000) * 60_000
+    return ago < 60_000
+      ? _('now, just started')
+      : fmt(_('now, started {duration} ago'), { duration: durationLabel(ago) })
+  }
+  return fmt(_('starting in {duration}'), {
+    duration: durationLabel(Math.ceil((start - now) / 60_000) * 60_000),
+  })
 }
 
 const sessionStart = (s: Session) => Date.parse(s.startedAt ?? s.createdAt)
@@ -79,22 +89,45 @@ export type DayEntry =
   | {
       kind: 'meeting'
       key: string
+      /** Where it sits on the timeline: its start (today's midnight for one that began yesterday). */
       at: number
       meeting: Meeting
       agenda: AgendaSummary | null
       /** The recording of this occurrence, once there is one. */
       session: Session | null
+      /** Under way: start ≤ now < end, or its recording is running. */
+      current: boolean
     }
-  | { kind: 'recording'; key: string; at: number; session: Session; agenda: AgendaSummary | null }
+  | {
+      kind: 'recording'
+      key: string
+      at: number
+      session: Session
+      agenda: AgendaSummary | null
+      /** Recording (or paused) right now. */
+      current: boolean
+    }
 
 export type EarlierDay = { key: string; label: string; date: string; sessions: Session[] }
 
 export type Day = {
-  /** A recording under way (recording or paused): pinned above the day. */
-  live: Session | null
+  /** Today's all-day events (a holiday, a birthday, an offsite): a quiet strip, not on the timeline. */
+  allDay: Meeting[]
+  /**
+   * Today, latest first: what is still to come at the top, down through now, to this morning. What is
+   * under way (`current`) sits in its own place and marks now.
+   */
   today: DayEntry[]
-  /** The key of the one entry drawn expanded: the next meeting that has not been recorded yet. */
+  /**
+   * Where the now line goes: before `today[nowAt]` (`today.length` = after the last). Null when
+   * something is current (it marks now itself) or the day is empty.
+   */
+  nowAt: number | null
+  /** The soonest meeting still to come, unrecorded (just above now in this order). */
+  soonest: string | null
+  /** The one entry drawn expanded: `soonest`, but only while nothing is current (two big cards never compete). */
   next: string | null
+  /** Earlier days, latest first; each day's recordings latest first, like today. */
   earlier: EarlierDay[]
 }
 
@@ -109,6 +142,36 @@ export function agendaOf(m: Meeting, agendas: readonly AgendaSummary[]): AgendaS
   )
 }
 
+const RESPONSE_RANK: Record<string, number> = { accepted: 0, tentative: 1, 'needs-action': 2, delegated: 3 }
+/** Which copy of a duplicated invitation to keep: the one with a join link, then the one I answered. */
+const better = (a: Meeting, b: Meeting) =>
+  (a.join ? 0 : 1) - (b.join ? 0 : 1) ||
+  (RESPONSE_RANK[a.response ?? ''] ?? 4) - (RESPONSE_RANK[b.response ?? ''] ?? 4) ||
+  a.id.localeCompare(b.id)
+
+/**
+ * One row per meeting: the same invitation copied into several calendars (a shared team calendar, a
+ * personal one) arrives once per calendar, sometimes under different UIDs. Same title, start and end is
+ * the same meeting. Declined and cancelled ones are not on the day at all.
+ */
+export function dedupeMeetings(meetings: readonly Meeting[]): Meeting[] {
+  const kept = new Map<string, Meeting>()
+  for (const m of meetings) {
+    if (m.status === 'cancelled' || m.response === 'declined') continue
+    const k = `${m.title.trim().toLowerCase()}|${Date.parse(m.start)}|${Date.parse(m.end)}`
+    const cur = kept.get(k)
+    if (!cur || better(m, cur) < 0) kept.set(k, m)
+  }
+  return [...kept.values()]
+}
+
+const endOf = (e: DayEntry) =>
+  e.kind === 'meeting'
+    ? Date.parse(e.meeting.end)
+    : e.current
+      ? Number.POSITIVE_INFINITY
+      : sessionStart(e.session) + (e.session.durationMs || 0)
+
 export function buildDay(
   sessions: readonly Session[],
   meetings: readonly Meeting[],
@@ -118,60 +181,87 @@ export function buildDay(
   const today = startOfDay(now)
   const tomorrow = today + DAY
   const agendaBySession = new Map(agendas.filter((a) => a.sessionId).map((a) => [a.sessionId!, a]))
-  const live = sessions.find(isLive) ?? null
   const used = new Set<string>()
   const entries: DayEntry[] = []
-  for (const m of meetings) {
+  const allDay: Meeting[] = []
+  for (const m of dedupeMeetings(meetings)) {
     const start = Date.parse(m.start)
-    if (m.allDay || m.status === 'cancelled' || start < today || start >= tomorrow) continue
+    const end = Date.parse(m.end)
+    // on today at all: overlaps [today, tomorrow) — an all-day event spanning the week, a timed one
+    // that began last night
+    if (!(start < tomorrow && Math.max(end, start + 1) > today)) continue
+    if (m.allDay) {
+      allDay.push(m)
+      continue
+    }
     const agenda = agendaOf(m, agendas)
     const session =
-      sessions.find((s) => s.meeting?.id === m.id) ??
-      (agenda?.sessionId ? sessions.find((s) => s.id === agenda.sessionId) : undefined) ??
+      sessions.find((s) => s.meeting?.id === m.id && !used.has(s.id)) ??
+      (agenda?.sessionId ? sessions.find((s) => s.id === agenda.sessionId && !used.has(s.id)) : undefined) ??
       null
     if (session) used.add(session.id)
-    entries.push({ kind: 'meeting', key: `m:${m.id}`, at: start, meeting: m, agenda, session })
+    entries.push({
+      kind: 'meeting',
+      key: `m:${m.id}`,
+      at: Math.max(start, today),
+      meeting: m,
+      agenda,
+      session,
+      current: (start <= now && now < end) || (session !== null && isLive(session)),
+    })
   }
   const earlier = new Map<number, Session[]>()
   for (const s of sessions) {
     if (used.has(s.id)) continue
     const at = sessionStart(s)
-    if (at >= today && at < tomorrow)
+    // a recording under way is today's whenever it began (one left running since last night included)
+    if (isLive(s) || (at >= today && at < tomorrow))
       entries.push({
         kind: 'recording',
         key: `s:${s.id}`,
-        at,
+        at: Math.max(at, today),
         session: s,
         agenda: agendaBySession.get(s.id) ?? null,
+        current: isLive(s),
       })
     else if (at < today) {
       const day = startOfDay(at)
       earlier.set(day, [...(earlier.get(day) ?? []), s])
     }
   }
-  entries.sort((a, b) => a.at - b.at || a.key.localeCompare(b.key))
-  const next =
-    entries.find(
-      (e) =>
-        e.kind === 'meeting' &&
-        !e.session &&
-        Date.parse(e.meeting.end) > now &&
-        e.meeting.status !== 'cancelled',
-    )?.key ?? null
+  // latest first; at the same minute, the one that ends later (or is still running) above
+  entries.sort((a, b) => b.at - a.at || endOf(b) - endOf(a) || a.key.localeCompare(b.key))
+  const anyCurrent = entries.some((e) => e.current)
+  let nowAt: number | null = null
+  if (!anyCurrent && entries.length) {
+    const i = entries.findIndex((e) => e.at <= now)
+    nowAt = i < 0 ? entries.length : i
+  }
+  // the soonest meeting still to come: the lowest one above now in this order
+  const upcoming = entries.filter(
+    (e) => e.kind === 'meeting' && !e.session && !e.current && Date.parse(e.meeting.start) > now,
+  )
   return {
-    live,
+    allDay: allDay.sort(
+      (a, b) => Date.parse(a.start) - Date.parse(b.start) || a.title.localeCompare(b.title),
+    ),
     today: entries,
-    next,
+    nowAt,
+    soonest: upcoming.at(-1)?.key ?? null,
+    next: anyCurrent ? null : (upcoming.at(-1)?.key ?? null),
     earlier: [...earlier.entries()]
       .sort((a, b) => b[0] - a[0])
       .map(([day, list]) => ({
         key: String(day),
         label: dayLabel(day, now),
         date: longDate(day),
-        sessions: [...list].sort((a, b) => sessionStart(a) - sessionStart(b)),
+        sessions: [...list].sort((a, b) => sessionStart(b) - sessionStart(a)),
       })),
   }
 }
+
+/** A recording too short to hold anything (a misclick, a test): drawn quietly. */
+export const isShortRecording = (s: Session) => !isLive(s) && (s.durationMs ?? 0) < 60_000
 
 export type Readiness = { ok: true; text: string } | { ok: false; text: string; fix: 'models' | 'daemon' }
 

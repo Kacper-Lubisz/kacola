@@ -13,7 +13,7 @@ import { type RecordState, useToast } from '../../design/primitives/index.ts'
 import { useMeetingUi } from '../meeting/meeting-ui.ts'
 import { createRequestGate, type RequestKind } from './request-gate.ts'
 
-// The record flow: one hook home's Record now, the meeting header and the keyboard shortcuts share.
+// The record flow: one hook home's New recording, the meeting header and the keyboard shortcuts share.
 //
 //   record   create a session, start it, select it (POST /sessions, POST /sessions/:id/start)
 //   pause / resume / stop  on the live session

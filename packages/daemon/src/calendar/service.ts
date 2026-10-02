@@ -93,7 +93,8 @@ export class CalendarService {
       },
       status: (state, detail) => {
         // a provider that failed will not deliver the snapshot a query or a refresh is waiting for
-        if (state === 'unavailable' || state === 'off') for (const w of this.snapshotWaiters.splice(0)) w(false)
+        if (state === 'unavailable' || state === 'off')
+          for (const w of this.snapshotWaiters.splice(0)) w(false)
         if (state === this.state && detail === this.detail) return
         this.state = state
         this.detail = detail

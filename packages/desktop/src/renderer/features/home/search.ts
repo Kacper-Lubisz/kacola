@@ -89,7 +89,7 @@ export function toMoments(
   const byId = new Map(sessions.map((s) => [s.id, s]))
   return found.map((m) => {
     const s = byId.get(m.sessionId)
-    const title = s ? displayTitle(s) : m.sessionTitle || _('Untitled session')
+    const title = s ? displayTitle(s) : m.sessionTitle || _('Untitled meeting')
     return {
       key: `${m.kind}:${m.sessionId}:${m.segmentId ?? ''}:${m.startMs ?? ''}:${m.snippet}`,
       kind: m.kind,

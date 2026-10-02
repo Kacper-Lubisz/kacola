@@ -6,18 +6,17 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useServices } from '../../data/services.tsx'
-import { Button, Chip, IconButton, TextField, useToast } from '../../design/primitives/index.ts'
+import { Chip, IconButton, TextField, useToast } from '../../design/primitives/index.ts'
 import { refusal, useAgendaMutation } from '../agendas/agenda-data.ts'
 import { GoalsEditor, ItemsEditor } from '../agendas/agenda-editor.tsx'
 import { ContextTab } from '../agendas/context-cards.tsx'
 import { addContextMutation, updateAgendaMutation } from '../agendas/mutations.ts'
-import { PlanWithClaudeDialog } from '../agendas/plan-with-claude.tsx'
 import { ShareBanner, SharingTab } from '../agendas/share.tsx'
 import { useAgendaShare } from '../agendas/share-data.ts'
 import { clock, dayLabel, durationLabel } from '../home/day.ts'
 import { AskBar } from './ask-bar.tsx'
 
-// Prep, before the meeting: the agenda (goals, items, Plan with Claude), the context (private unless
+// Prep, before the meeting: the agenda (goals, items), the context (private unless
 // shared on purpose), sharing once the agenda is shared, the earlier meetings of the same name, and Ask
 // across past meetings ("what did I promise Ana last time?") whose answer can be kept as a private
 // card. No timeboxes asked for, no slot to fill: an item's timebox, if one was set, is quiet metadata.
@@ -107,7 +106,6 @@ export function PrepView({ view }: { view: AgendaView }) {
   const { api } = useServices()
   const toast = useToast()
   const { data: share } = useAgendaShare(view.agenda.id)
-  const [planning, setPlanning] = useState(false)
   const keep = useMutation({
     ...addContextMutation(api),
     onError: (err) =>
@@ -121,14 +119,9 @@ export function PrepView({ view }: { view: AgendaView }) {
         <div className="flex min-w-0 flex-col gap-6">
           <ShareBanner view={view} status={share} />
           <section aria-labelledby="prep-agenda" className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 id="prep-agenda" className="m-0 flex-1 type-title2 text-text-primary">
-                {_('Agenda')}
-              </h2>
-              <Button icon="enhance" onPress={() => setPlanning(true)}>
-                {_('Plan with Claude')}
-              </Button>
-            </div>
+            <h2 id="prep-agenda" className="m-0 type-title2 text-text-primary">
+              {_('Agenda')}
+            </h2>
             {carried ? (
               <p className="m-0 flex items-center gap-1 type-callout text-text-secondary">
                 <Chip icon="carry">
@@ -173,7 +166,6 @@ export function PrepView({ view }: { view: AgendaView }) {
           />
         </div>
       </div>
-      {planning ? <PlanWithClaudeDialog view={view} onClose={() => setPlanning(false)} /> : null}
     </div>
   )
 }

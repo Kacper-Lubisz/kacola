@@ -372,8 +372,7 @@ function offlineList() {
     else if (c.remote && (!online || status === S.DISCONNECTED))
       out.push({ id: uid, name: c.name, reason: 'offline' })
   }
-  for (const [uid, name] of failedNames)
-    if (!clients.has(uid)) out.push({ id: uid, name, reason: 'failed' })
+  for (const [uid, name] of failedNames) if (!clients.has(uid)) out.push({ id: uid, name, reason: 'failed' })
   return out
 }
 

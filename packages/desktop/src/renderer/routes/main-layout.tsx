@@ -8,6 +8,7 @@ import { Button, EmptyState, HeaderBar, Spinner } from '../design/primitives/ind
 import { AboutDialog } from '../features/about/about-dialog.tsx'
 import { DeepLinkHandler } from '../features/agendas/deep-links.tsx'
 import { FollowDialogHost } from '../features/agendas/follow.tsx'
+import { useCalendarRefresh } from '../features/home/calendar-refresh.ts'
 import { useMeetingUi } from '../features/meeting/meeting-ui.ts'
 import { OnboardingDialog } from '../features/onboarding/onboarding-dialog.tsx'
 import { MissingModelsContext, useOnboarding } from '../features/onboarding/onboarding-state.ts'
@@ -109,7 +110,7 @@ function DialogHost({ onOnboardingDone }: { onOnboardingDone: (skipped: string[]
 }
 
 function Shortcuts() {
-  const { appInfo, bridge } = useServices()
+  const { appInfo, bridge, api, queryClient } = useServices()
   const dialogs = useDialogs()
   const recorder = useRecorder()
   const navigate = useNavigate()
@@ -151,6 +152,9 @@ function Shortcuts() {
           const open = (location.search as { panel?: string }).panel === 'transcript'
           void navigate({ to: '.', search: open ? {} : { panel: 'transcript' }, replace: true })
         }
+        return
+      case 'refresh-calendar':
+        void useCalendarRefresh.getState().refresh(api, queryClient)
         return
       case 'quit':
         return // main handles Ctrl+Q before the page sees it

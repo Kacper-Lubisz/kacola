@@ -4,6 +4,7 @@ import type {
   AgendaView,
   Meeting,
   Moment as SearchMoment,
+  Session,
   Suggestion,
 } from '@gnomeola/protocol'
 import { describe, expect, it } from 'vitest'
@@ -12,7 +13,9 @@ import {
   buildDay,
   countdown,
   dayLabel,
+  dedupeMeetings,
   durationLabel,
+  isShortRecording,
   readiness,
 } from '../src/renderer/features/home/day.ts'
 import {
@@ -265,12 +268,31 @@ describe('home: the day', () => {
     expect(dayLabel(at(9, 0, -3), now)).toBe('Monday')
     expect(dayLabel(at(9, 0, -8), now)).toBe('4 March')
     expect(dayLabel(new Date(2025, 11, 1).getTime(), now)).toBe('1 December 2025')
-    expect(countdown(iso(at(16)), iso(at(16, 30)), now)).toBe('in 30 min')
-    expect(countdown(iso(at(15)), iso(at(16)), now)).toBe('now')
+    expect(countdown(iso(at(16)), iso(at(16, 30)), now)).toBe('starting in 30 min')
+    expect(countdown(iso(at(15)), iso(at(16)), now)).toBe('now, started 30 min ago')
     expect(countdown(iso(at(14)), iso(at(15)), now)).toBe('ended')
   })
 
-  it('merges today’s meetings and recordings in strict time order and expands the next unrecorded meeting', () => {
+  const titles = (d: ReturnType<typeof buildDay>) =>
+    d.today.map((e) => (e.kind === 'meeting' ? e.meeting.title : `rec ${e.session.id}`))
+  const linked = (id: string, m: Meeting, over: Partial<Session> = {}) =>
+    session(id, {
+      status: 'stopped',
+      startedAt: iso(Date.parse(m.start) + 60_000),
+      createdAt: iso(Date.parse(m.start) + 60_000),
+      meeting: {
+        id: m.id,
+        uid: m.uid,
+        title: m.title,
+        start: m.start,
+        end: m.end,
+        join: null,
+        calendar: 'Work',
+      },
+      ...over,
+    })
+
+  it('runs today latest first, with the now line between the next meeting and the last past one', () => {
     const now = at(15, 30)
     const standup = meeting('mtg_standup', 'Platform standup', at(9, 30), 15)
     const review = meeting('mtg_review', 'Design review', at(14), 45)
@@ -279,20 +301,7 @@ describe('home: the day', () => {
     const allDay = meeting('mtg_day', 'Offsite', at(0), 24 * 60, { allDay: true })
     const cancelled = meeting('mtg_x', 'Cancelled', at(16, 15), 15, { status: 'cancelled' })
     const tomorrow = meeting('mtg_tmw', 'Tomorrow', at(9, 0, 1), 30)
-    const recStandup = session('s_standup', {
-      status: 'stopped',
-      startedAt: iso(at(9, 31)),
-      createdAt: iso(at(9, 31)),
-      meeting: {
-        id: 'mtg_standup',
-        uid: standup.uid,
-        title: standup.title,
-        start: standup.start,
-        end: standup.end,
-        join: null,
-        calendar: 'Work',
-      },
-    })
+    const recStandup = linked('s_standup', standup)
     const adhoc = session('s_adhoc', { status: 'stopped', startedAt: iso(at(11)), createdAt: iso(at(11)) })
     const yesterday = session('s_y', {
       status: 'stopped',
@@ -328,32 +337,153 @@ describe('home: the day', () => {
       [anaAgenda],
       now,
     )
-    expect(day.live).toBeNull()
-    expect(day.today.map((e) => (e.kind === 'meeting' ? e.meeting.title : `rec ${e.session.id}`))).toEqual([
-      'Platform standup',
-      'rec s_adhoc',
-      'Design review',
-      '1:1 with Ana',
+    // the end of the day first, down through now, to this morning
+    expect(titles(day)).toEqual([
       'Hiring sync',
+      '1:1 with Ana',
+      'Design review',
+      'rec s_adhoc',
+      'Platform standup',
     ])
-    const first = day.today[0]!
-    expect(first.kind === 'meeting' && first.session?.id).toBe('s_standup')
-    // Design review ended unrecorded: the next one is the 1:1, with its agenda
+    expect(day.today.every((e) => !e.current)).toBe(true)
+    // the line sits just below the next meeting (the 1:1) and above the last past one (the review)
+    expect(day.nowAt).toBe(2)
+    const standupRow = day.today.at(-1)!
+    expect(standupRow.kind === 'meeting' && standupRow.session?.id).toBe('s_standup')
+    // the soonest meeting still to come is expanded, with its agenda
     expect(day.next).toBe('m:mtg_ana')
+    expect(day.soonest).toBe('m:mtg_ana')
     const ana1 = day.today.find((e) => e.key === 'm:mtg_ana')!
     expect(ana1.kind === 'meeting' && ana1.agenda?.id).toBe('agd_ana')
+    // all-day events are a strip, not on the timeline
+    expect(day.allDay.map((m) => m.title)).toEqual(['Offsite'])
+    // earlier days latest first, and each day latest first too
     expect(day.earlier.map((d) => [d.label, d.sessions.map((s) => s.id)])).toEqual([
-      ['Yesterday', ['s_y', 's_y2']],
+      ['Yesterday', ['s_y2', 's_y']],
       ['Monday', ['s_w']],
     ])
   })
 
-  it('pins a recording under way', () => {
+  it('puts the line at the top when the day is over, at the bottom when it has not begun', () => {
+    const m1 = meeting('mtg_1', 'Morning', at(9), 30)
+    const m2 = meeting('mtg_2', 'Noon', at(12), 30)
+    expect(buildDay([], [m1, m2], [], at(18)).nowAt).toBe(0)
+    expect(buildDay([], [m1, m2], [], at(18)).next).toBeNull()
+    const early = buildDay([], [m1, m2], [], at(7))
+    expect(early.nowAt).toBe(2)
+    expect(early.next).toBe('m:mtg_1')
+    expect(buildDay([], [], [], at(7)).nowAt).toBeNull()
+  })
+
+  it('a recording under way is current, in its place, and there is no now line', () => {
     const live = session('s_live', { status: 'paused', startedAt: iso(at(15)), createdAt: iso(at(15)) })
-    const day = buildDay([live], [], [], at(15, 30))
-    expect(day.live?.id).toBe('s_live')
-    expect(day.today.map((e) => e.key)).toEqual(['s:s_live'])
+    const later = meeting('mtg_later', 'Later', at(17), 30)
+    const earlier = meeting('mtg_early', 'Early', at(10), 30)
+    const day = buildDay([live], [later, earlier], [], at(15, 30))
+    expect(day.today.map((e) => [e.key, e.current])).toEqual([
+      ['m:mtg_later', false],
+      ['s:s_live', true],
+      ['m:mtg_early', false],
+    ])
+    expect(day.nowAt).toBeNull()
+    // the next meeting stays compact while something is under way
     expect(day.next).toBeNull()
+    expect(day.soonest).toBe('m:mtg_later')
+  })
+
+  it('a meeting in progress is current even unrecorded (no line); recorded and running, it is one entry', () => {
+    const now = at(14, 10)
+    const sync = meeting('mtg_sync', 'Weekly sync', at(14), 30)
+    const next = meeting('mtg_next', 'Next one', at(15), 30)
+    const unrecorded = buildDay([], [sync, next], [], now)
+    expect(unrecorded.today.find((e) => e.key === 'm:mtg_sync')?.current).toBe(true)
+    expect(unrecorded.nowAt).toBeNull()
+    expect(unrecorded.next).toBeNull()
+    const rec = linked('s_sync', sync, { status: 'recording', durationMs: 0 })
+    const recorded = buildDay([rec], [sync, next], [], now)
+    expect(recorded.today.map((e) => e.key)).toEqual(['m:mtg_next', 'm:mtg_sync'])
+    const cur = recorded.today[1]!
+    expect(cur.current && cur.kind === 'meeting' && cur.session?.id).toBe('s_sync')
+    // a recording that outlives its meeting is still what is under way
+    expect(buildDay([rec], [sync], [], at(14, 45)).today[0]?.current).toBe(true)
+  })
+
+  it('overlapping meetings in progress are both current, in place, with no line', () => {
+    const a = meeting('mtg_a', 'Planning', at(9), 60)
+    const b = meeting('mtg_b', 'Standup', at(9, 30), 15)
+    const day = buildDay([], [a, b], [], at(9, 35))
+    expect(day.today.map((e) => [e.kind === 'meeting' ? e.meeting.title : '', e.current])).toEqual([
+      ['Standup', true],
+      ['Planning', true],
+    ])
+    expect(day.nowAt).toBeNull()
+  })
+
+  it('a recording with no meeting goes in by its start; one left running since last night is today’s', () => {
+    const m = meeting('mtg_m', 'Review', at(10), 30)
+    const adhoc = session('s_a', {
+      status: 'stopped',
+      startedAt: iso(at(10, 15)),
+      createdAt: iso(at(10, 15)),
+    })
+    expect(titles(buildDay([adhoc], [m], [], at(12)))).toEqual(['rec s_a', 'Review'])
+    const overnight = session('s_n', {
+      status: 'recording',
+      startedAt: iso(at(23, 0, -1)),
+      createdAt: iso(at(23, 0, -1)),
+    })
+    const day = buildDay([overnight], [], [], at(8))
+    expect(day.today.map((e) => [e.key, e.current])).toEqual([['s:s_n', true]])
+    expect(day.earlier).toEqual([])
+  })
+
+  it('cleans up a real calendar: duplicates across calendars, declined, all-day spans, last night’s event', () => {
+    const now = at(12)
+    const meet = { url: 'https://meet.google.com/abc-defg-hij', provider: 'meet' as const }
+    const dupA = meeting('mtg_d1', 'Quarterly planning', at(15), 60, {
+      calendar: { id: 'team', name: 'Team' },
+    })
+    const dupB = meeting('mtg_d2', ' quarterly planning ', at(15), 60, { join: meet, response: 'accepted' })
+    const dupC = meeting('mtg_d3', 'Quarterly planning', at(15), 60, { response: 'needs-action' })
+    const declined = meeting('mtg_no', 'Vendor pitch', at(13), 30, { response: 'declined' })
+    const week = meeting('mtg_wk', 'Conference week', at(0, 0, -2), 5 * 24 * 60, { allDay: true })
+    const holiday = meeting('mtg_h', 'Bank holiday', at(0, 0, 1), 24 * 60, { allDay: true })
+    const lastNight = meeting('mtg_ln', 'Release window', at(23, 30, -1), 90)
+    const day = buildDay([], [dupA, dupB, dupC, declined, week, holiday, lastNight], [], now)
+    expect(titles(day)).toEqual([' quarterly planning ', 'Release window'])
+    // the copy kept is the one with the join link
+    expect(day.today[0]!.kind === 'meeting' && day.today[0]!.meeting.id).toBe('mtg_d2')
+    // last night's event sits at today's start, under the morning
+    expect(day.today[1]!.at).toBe(at(0))
+    expect(day.allDay.map((m) => m.title)).toEqual(['Conference week'])
+    expect(dedupeMeetings([dupA, dupB, dupC, declined]).map((m) => m.id)).toEqual(['mtg_d2'])
+  })
+
+  it('a busy day of many meetings stays in strict descending order, ties by the later end', () => {
+    const ms = Array.from({ length: 10 }, (_, i) => meeting(`mtg_${i}`, `M${i}`, at(8 + i), 30))
+    ms.push(meeting('mtg_long', 'Long', at(10), 120))
+    const day = buildDay([], ms, [], at(12, 45))
+    const ats = day.today.map((e) => e.at)
+    expect([...ats].sort((x, y) => y - x)).toEqual(ats)
+    const tenOClock = day.today.filter((e) => e.at === at(10)).map((e) => e.key)
+    expect(tenOClock).toEqual(['m:mtg_long', 'm:mtg_2'])
+    expect(day.today.length).toBe(11)
+  })
+
+  it('says when a meeting is: starting in, now and how long ago, ended', () => {
+    const now = at(15, 30)
+    expect(countdown(iso(at(15, 32)), iso(at(16)), now)).toBe('starting in 2 min')
+    expect(countdown(iso(at(16, 35)), iso(at(17)), now)).toBe('starting in 1 h 5 min')
+    expect(countdown(iso(at(15, 30)), iso(at(16)), now + 20_000)).toBe('now, just started')
+    expect(countdown(iso(at(15, 20)), iso(at(16)), now)).toBe('now, started 10 min ago')
+    expect(countdown(iso(at(14)), iso(at(16)), now)).toBe('now, started 1 h 30 min ago')
+    expect(countdown(iso(at(14)), iso(at(15)), now)).toBe('ended')
+  })
+
+  it('quiets recordings too short to hold anything', () => {
+    expect(isShortRecording(session('a', { status: 'stopped', durationMs: 4000 }))).toBe(true)
+    expect(isShortRecording(session('b', { status: 'stopped', durationMs: 120_000 }))).toBe(false)
+    expect(isShortRecording(session('c', { status: 'recording', durationMs: 0 }))).toBe(false)
   })
 
   it('matches an occurrence to its agenda by uid and occurrence', () => {

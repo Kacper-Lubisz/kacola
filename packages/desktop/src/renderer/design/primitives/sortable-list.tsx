@@ -12,6 +12,7 @@ import { Icon } from '../icon.tsx'
 // a row by its grip, the keyboard picks a row up with Enter on the grip and moves it with the arrows
 // (React Aria's accessible drag and drop, announced to screen readers). Rows are one Tab stop; the
 // arrows move between rows, Left/Right into a row's own buttons. `onReorder` gets the full new order.
+// `onDelete`: Delete (or Backspace) on a focused row asks to delete that row's item.
 
 export type SortableItem = { id: string; textValue: string; content: ReactNode }
 
@@ -22,6 +23,7 @@ export function SortableList({
   dragLabel,
   empty,
   className = '',
+  onDelete,
 }: {
   label: string
   items: readonly SortableItem[]
@@ -31,6 +33,8 @@ export function SortableList({
   dragLabel: string
   empty?: ReactNode
   className?: string
+  /** Delete / Backspace on a focused row (not inside one of its fields): delete that item. */
+  onDelete?: (id: string) => void
 }) {
   const { dragAndDropHooks } = useDragAndDrop({
     getItems: (keys) =>
@@ -51,7 +55,7 @@ export function SortableList({
       />
     ),
   })
-  return (
+  const grid = (
     <GridList
       aria-label={label}
       items={items}
@@ -76,5 +80,24 @@ export function SortableList({
         </GridListItem>
       )}
     </GridList>
+  )
+  if (!onDelete) return grid
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: the grid's rows take the key; this only listens
+    <div
+      className="contents"
+      onKeyDown={(e) => {
+        if (e.key !== 'Delete' && e.key !== 'Backspace') return
+        const row = e.target as HTMLElement
+        if (row.getAttribute('role') !== 'row') return
+        const rows = [...(e.currentTarget.querySelectorAll('[role="row"]') as NodeListOf<HTMLElement>)]
+        const item = items[rows.indexOf(row)]
+        if (!item) return
+        e.preventDefault()
+        onDelete(item.id)
+      }}
+    >
+      {grid}
+    </div>
   )
 }
