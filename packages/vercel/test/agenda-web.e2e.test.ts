@@ -152,7 +152,9 @@ describe.skipIf(!CHROME)(`shared agenda page in headless Chrome (${CHROME ?? 'no
     expect(await items(page)).toEqual(['Incident review', 'Retry budget <b>bold?</b>', 'On-call rota'])
     const first = page.locator('ol.items > li').first()
     expect(await first.locator('.status').textContent()).toBe('In progress')
-    expect(await first.textContent()).toContain('Set by Kacper (tracker)')
+    // the five actors: the organiser's on-device tracker is "kacola", never "Kacper (tracker)"
+    expect(await first.textContent()).toContain('Set by kacola')
+    expect(await first.textContent()).not.toContain('(tracker)')
     expect(await first.textContent()).toContain('Must cover')
     expect(await page.locator('.card h3').textContent()).toBe('Last incident')
     expect(await page.locator('.card a').getAttribute('href')).toBe('https://status.example/sept')

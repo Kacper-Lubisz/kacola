@@ -142,7 +142,9 @@ describe('notes enhancement chain: daemon → llm → SDK → API → CLI', () =
     api.always({ ...limited, headers: { ...limited.headers, 'retry-after': '0', 'retry-after-ms': '10' } })
     const events = await enhanceAll(id)
     expect(events.at(-1)).toMatchObject({ type: 'error', error: { code: 'unavailable' } })
-    expect((events.at(-1) as { error: { message: string } }).error.message).toMatch(/rate-limiting/)
+    expect((events.at(-1) as { error: { message: string } }).error.message).toMatch(
+      /Anthropic is limiting requests right now/,
+    )
     expect(await c.call('getNotes', { params: { id } })).toEqual(before)
     expect(api.seen.length).toBe(3) // the first attempt and the SDK's two retries
   })

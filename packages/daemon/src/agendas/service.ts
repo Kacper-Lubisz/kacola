@@ -36,7 +36,7 @@ import type { Logger } from '../logger.ts'
 //                  next occurrence's agenda (created if needed)
 //   recap hook     called when a linked recording stops — the recap wave plugs the LLM in here
 //   deep links     resolveLink(): what `kacola://agenda/…` and `kacola://meeting/<uid>?start=…` open
-//   invite block   the "Agenda: kacola://… · web: …" text, written into the event when the provider can
+//   invite block   the "Agenda: https://… / Open in kacola: kacola://…" text, written into the event when the provider can
 //
 // The status rules themselves (forward-only, manual wins, history) live in the store (AgendaStore), so
 // no path — HTTP, a later tracker, replay — can bypass them.

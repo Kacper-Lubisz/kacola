@@ -56,9 +56,14 @@ export function parseKacolaLink(input: string): KacolaLink | null {
 export const INVITE_BLOCK_START = '-- kacola agenda --'
 export const INVITE_BLOCK_END = '-- /kacola --'
 
+/**
+ * The block. With a web page (a shared agenda) its https link comes first — it opens for everyone — and
+ * the kacola link second, for attendees who use kacola. Without one only the kacola link is possible,
+ * which a person without kacola cannot open: `sendAgenda` never hands that out (see agenda-send.ts).
+ */
 export function renderInviteBlock(o: { appLink: string; webLink?: string | null }): string {
-  const line = o.webLink ? `Agenda: ${o.appLink} · web: ${o.webLink}` : `Agenda: ${o.appLink}`
-  return `${INVITE_BLOCK_START}\n${line}\n${INVITE_BLOCK_END}`
+  const lines = o.webLink ? `Agenda: ${o.webLink}\nOpen in kacola: ${o.appLink}` : `Agenda: ${o.appLink}`
+  return `${INVITE_BLOCK_START}\n${lines}\n${INVITE_BLOCK_END}`
 }
 
 /** Where our block sits in a description (from the start marker to the end marker inclusive), or null. */

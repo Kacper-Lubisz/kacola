@@ -17,7 +17,7 @@ import { DaemonError } from './errors.ts'
 const hostedOnly = (what: string) => () => {
   throw new DaemonError(
     'unavailable',
-    `${what} is served by a hosted gnomeola server, not the local daemon`,
+    `${what} is served by a hosted kacola server, not the local daemon`,
     501,
   )
 }

@@ -76,7 +76,7 @@ export class SecretToolKeyring implements Keyring {
   async set(key: string, account: KeyAccount = 'anthropic'): Promise<void> {
     const r = await this.retry(
       (r) => r.code === 0,
-      ['store', `--label=gnomeola: ${LABELS[account]} API key`, ...this.attrs(account)],
+      ['store', `--label=kacola: ${LABELS[account]} API key`, ...this.attrs(account)],
       key,
     )
     if (r.code !== 0) throw failure('store', r)

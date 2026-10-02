@@ -167,7 +167,7 @@ describe('atlas: the top-bar extension in a nested GNOME Shell', () => {
       const i = await indicator()
       return i?.keys.includes('meeting:mtg_1on1') && i
     }, 'meetings in the menu')
-    expect(ind.accessibleName).toBe('gnomeola: not recording')
+    expect(ind.accessibleName).toBe('kacola: not recording')
     await menu(true)
     await shoot('topbar-join__idle__upcoming-meetings', BOUNDS)
     await menu(false)
@@ -208,7 +208,7 @@ describe('atlas: the top-bar extension in a nested GNOME Shell', () => {
       () =>
         shellEval<{ title: string; actions: string[] } | null>(
           d.env,
-          `(() => { const s = Main.messageTray.getSources().find((x) => x.title === 'gnomeola'); const n = s?.notifications.at(-1); return n ? { title: n.title, actions: n.actions.map((a) => a.label) } : null })()`,
+          `(() => { const s = Main.messageTray.getSources().find((x) => x.title === 'kacola'); const n = s?.notifications.at(-1); return n ? { title: n.title, actions: n.actions.map((a) => a.label) } : null })()`,
         ),
       'a notification',
     )
@@ -227,7 +227,7 @@ describe('atlas: the top-bar extension in a nested GNOME Shell', () => {
     await shoot('topbar-join__starting__notification', BANNER_BOUNDS, 8)
     await shellEval(
       d.env,
-      `Main.messageTray.getSources().filter((x) => x.title === 'gnomeola').forEach((s) => s.destroy()); true`,
+      `Main.messageTray.getSources().filter((x) => x.title === 'kacola').forEach((s) => s.destroy()); true`,
     )
   })
 
@@ -270,7 +270,7 @@ describe('atlas: the top-bar extension in a nested GNOME Shell', () => {
       ElapsedMs: 312_000,
     })
     await until(
-      async () => (await indicator())?.accessibleName === 'gnomeola: recording Private meeting, 5:12',
+      async () => (await indicator())?.accessibleName === 'kacola: recording Private meeting, 5:12',
       'private',
     )
     await menu(true)

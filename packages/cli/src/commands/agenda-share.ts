@@ -1,12 +1,14 @@
 import {
   type AgendaView,
+  agentDisplayName,
   parseShareLink,
+  possessive,
   type SharedActor,
   type SharedChange,
   type ShareStatus,
 } from '@gnomeola/protocol'
 import type { Ctx } from '../context.ts'
-import { usage } from '../errors.ts'
+import { CliError, EXIT, refused, usage } from '../errors.ts'
 import { renderJson } from '../output.ts'
 import { mapApiError } from '../sessions.ts'
 import { resolveAgendaId } from './agenda.ts'
@@ -67,10 +69,12 @@ const brief = (s: ShareStatus, v?: AgendaView) => {
   }
 }
 
-/** "Ben", "ben@example.com (tracker)", "Kacper (agent:claude)". */
+/** The five actors (protocol actors.ts): "Ben", "kacola" (Ben's tracker), "Ben's Claude". */
 function who(a: SharedActor): string {
   const name = a.name ?? a.label
-  return a.by === 'tracker' || a.by.startsWith('agent:') ? `${name} (${a.by})` : name
+  if (a.by === 'tracker') return `kacola (${possessive(name)} tracker)`
+  if (a.by.startsWith('agent:')) return `${possessive(name)} ${agentDisplayName(a.by.slice('agent:'.length))}`
+  return name
 }
 
 const briefChange = (c: SharedChange, v?: AgendaView) => ({
@@ -149,6 +153,35 @@ export async function agendaShareOn(ctx: Ctx, ref: string | undefined, o: ShareO
     })
     .catch(mapApiError)
   print(ctx, s, await viewOrNull(ctx, id))
+}
+
+/**
+ * "Send the agenda": share it (or reuse the share) and print the invitation text with the web link first;
+ * written into the calendar event unless `noWrite`. Without hosted sharing it says there is no link an
+ * attendee can open (exit 6) instead of printing a kacola-only block.
+ */
+export async function agendaSend(ctx: Ctx, ref: string | undefined, o: ShareOpts & { noWrite?: boolean }) {
+  const id = await resolveAgendaId(ctx, ref)
+  const r = await ctx.client
+    .call('sendAgenda', {
+      params: { id },
+      body: {
+        ...(o.name ? { ownerName: o.name } : {}),
+        ...(o.goals !== undefined ? { shareGoals: o.goals } : {}),
+        ...(o.noInvitees ? { allowInvitees: false } : {}),
+        ...(o.members !== undefined ? { members: emails(o.members) } : {}),
+        writeInvite: !o.noWrite,
+      },
+    })
+    .catch(mapApiError)
+  if (ctx.format === 'json') ctx.io.stdout(renderJson({ agendaId: id, ...r, share: undefined }, ctx.io))
+  else {
+    if (r.inviteText) ctx.io.stdout(`${r.inviteText}\n`)
+    ctx.io.stdout(`${r.message}${r.writeReason ? ` (not written: ${r.writeReason})` : ''}\n`)
+  }
+  if (r.state === 'no-share-host')
+    throw new CliError(EXIT.UNAVAILABLE, r.message, 'pair with a sharing server: gnomeola pair --url <URL>')
+  if (r.state === 'not-shareable') throw refused(r.message)
 }
 
 /** Owner: unshare (the link answers 410). Member: stop following (the local copy stays). */

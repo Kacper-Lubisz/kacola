@@ -146,7 +146,7 @@ describe('gnomeola agenda share|unshare|share-status|follow|follow-confirm|share
     await expect(stable(r.stdout)).toMatchFileSnapshot(golden('agenda-share'))
     // the invitation block now carries the web link (`agenda invite`; `share --write` points there)
     const inv = JSON.parse((await ok(A, ['agenda', 'invite', s.agenda])).stdout)
-    expect(inv.block).toContain(`web: ${s.link}`)
+    expect(inv.block).toContain(`Agenda: ${s.link}\nOpen in kacola: kacola://`)
     const moved = await cli(A, ['agenda', 'share', s.agenda, '--write'])
     expect(moved.code).toBe(2)
     expect(moved.stderr).toMatch(/agenda invite/)

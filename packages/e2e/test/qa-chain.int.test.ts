@@ -127,7 +127,9 @@ describe('Q&A chain: CLI → daemon → llm → SDK → API', () => {
     api.always(overloaded!)
     const r = await gnomeola(['ask', 'anyone there?', '--session', sessionId], d.baseUrl)
     expect(r.code).toBe(6)
-    expect(r.stderr).toMatch(/LLM provider is unavailable/)
+    // the provider is busy: retry, never "add an API key", never the raw JSON body
+    expect(r.stderr).toMatch(/Anthropic is busy right now\. Try again in a minute\./)
+    expect(r.stderr).not.toMatch(/API key|overloaded_error|\{"type"/)
     expect(api.seen.length).toBeGreaterThan(1) // retried before giving up
   }, 60_000)
 
@@ -146,7 +148,8 @@ describe('Q&A chain without a key', () => {
       const s = await bare.client.call('createSession', { body: { title: 'x' } })
       const r = await gnomeola(['ask', 'q', '--session', s.id], bare.baseUrl)
       expect(r.code).toBe(6)
-      expect(r.stderr).toMatch(/not ready \(is an API key configured\?\)/)
+      expect(r.stderr).toMatch(/Anthropic needs an API key\. Add it in Preferences\./)
+      expect(r.stderr).not.toMatch(/not ready|none provider/)
     } finally {
       await bare.stop()
     }

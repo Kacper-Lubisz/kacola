@@ -30,7 +30,7 @@ export function autostartEntry(exec: string[]): string {
   return [
     '[Desktop Entry]',
     'Type=Application',
-    'Name=gnomeola',
+    'Name=kacola',
     'Comment=Record, transcribe and search your meetings (in the background)',
     `Exec=${exec.map(execArg).join(' ')}`,
     `Icon=${APP_ID}`,

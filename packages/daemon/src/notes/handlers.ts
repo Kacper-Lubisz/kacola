@@ -1,6 +1,7 @@
 import {
   type Citation,
   type EnhanceStreamEvent,
+  type ErrorDetail,
   extractActionItems,
   type NoteTemplate,
   type notesRoutes,
@@ -10,6 +11,7 @@ import { NoteStore, type Store } from '@gnomeola/store'
 import type { Handlers } from '../daemon.ts'
 import { DaemonError, toDaemonError } from '../errors.ts'
 import type { Logger } from '../logger.ts'
+import { assertMayLeave, notReadyError } from '../privacy.ts'
 import type { SettingsService } from '../settings.ts'
 import type { NotesEngine } from './engine.ts'
 import { allTemplates, isBuiltIn, suggestTemplate } from './templates.ts'
@@ -105,6 +107,8 @@ export function notesHandlers(deps: NotesDeps): Pick<Handlers, NotesRouteName> {
     enhanceNotes: async ({ params, body }, open) => {
       // everything that can be a plain 4xx is checked before the stream opens
       const session = visible(params.id, body.includePrivate)
+      // private means never sent to the cloud: refused before anything streams (a typed 409)
+      assertMayLeave(session, deps.settings.get().llm, 'Enhance')
       const custom = notes.templates()
       const templateId =
         body.templateId ??
@@ -120,19 +124,20 @@ export function notesHandlers(deps: NotesDeps): Pick<Handlers, NotesRouteName> {
 
       const sse = open()
       const send = (e: EnhanceStreamEvent) => sse.send({ data: JSON.stringify(e) })
-      const fail = (code: DaemonError['code'], message: string) => {
-        send({ type: 'error', error: { code, message } })
+      const fail = (code: DaemonError['code'], message: string, detail: ErrorDetail = {}) => {
+        send({ type: 'error', error: { code, message, ...detail } })
         sse.end()
       }
+      const failWith = (e: DaemonError) => fail(e.code, e.message, e.detail)
       const abort = new AbortController()
       sse.onClose(() => abort.abort())
       send({ type: 'started', templateId, baseVersion: head.version })
 
       const llm = deps.settings.get().llm
-      if (!engine) return fail('unavailable', 'no enhancement engine is configured in this daemon')
+      if (!engine) return failWith(notReadyError(llm, false, 'Enhance'))
       const apiKey = await deps.settings.apiKey()
       if (!engine.ready({ settings: llm, apiKeyConfigured: apiKey !== null }))
-        return fail('unavailable', `the ${llm.provider} provider is not ready (is an API key configured?)`)
+        return failWith(notReadyError(llm, apiKey !== null, 'Enhance'))
 
       const known = new Set(segments.map((s) => s.id))
       try {
@@ -151,7 +156,14 @@ export function notesHandlers(deps: NotesDeps): Pick<Handlers, NotesRouteName> {
             continue
           }
           if (chunk.stopReason === 'refusal')
-            return fail('unavailable', 'the model declined to enhance these notes; your notes are unchanged')
+            return fail(
+              'unavailable',
+              'The model declined to enhance these notes. Your notes are unchanged.',
+              {
+                reason: 'refused',
+                action: 'none',
+              },
+            )
           if (!chunk.markdown.trim())
             return fail('internal', 'the model returned no notes; your notes are unchanged')
           const citations: Citation[] = chunk.citations.filter((c) => known.has(c.segmentId))
@@ -171,7 +183,11 @@ export function notesHandlers(deps: NotesDeps): Pick<Handlers, NotesRouteName> {
         if (abort.signal.aborted) return
         const e = toDaemonError(err)
         logger.error('enhance failed', { sessionId: params.id, err, code: e.code })
-        fail(e.code, logger.redact(e.code === 'internal' && err instanceof Error ? err.message : e.message))
+        fail(
+          e.code,
+          logger.redact(e.code === 'internal' && err instanceof Error ? err.message : e.message),
+          e.detail,
+        )
       }
     },
   }

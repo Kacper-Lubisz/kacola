@@ -1,7 +1,7 @@
 import { enhance, providerFromSettings } from '@gnomeola/llm'
 import { isKeyedProvider } from '@gnomeola/protocol'
-import { DaemonError } from '../errors.ts'
 import type { EnhanceChunk, EnhanceRequest, NotesEngine } from '../notes/engine.ts'
+import { notReadyError } from '../privacy.ts'
 import { toWireError } from './llm.ts'
 
 // N-2 — the real enhancement engine: @gnomeola/llm's `enhance` (effort high, cached transcript prefix,
@@ -33,7 +33,7 @@ export class LlmNotesEngine implements NotesEngine {
         ...(this.fetchImpl ? { fetch: this.fetchImpl } : {}),
       },
     )
-    if (!provider) throw new DaemonError('unavailable', 'the LLM is switched off in settings')
+    if (!provider) throw notReadyError(req.settings, req.apiKey !== null, 'Enhance')
     try {
       for await (const ev of enhance({
         provider,
@@ -55,7 +55,7 @@ export class LlmNotesEngine implements NotesEngine {
           }
       }
     } catch (err) {
-      throw toWireError(err)
+      throw toWireError(err, req.settings.provider, 'Enhance')
     }
   }
 }

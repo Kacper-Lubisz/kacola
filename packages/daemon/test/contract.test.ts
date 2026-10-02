@@ -123,7 +123,7 @@ describe('contract: every route, real server, typed client', () => {
     const s = await c.call('createSession', { body: { title: 'contract' } })
     const priv = await c.call('createSession', { body: { title: 'private', private: true } })
     const params = { id: s.id }
-    const ag = { id: '', item: '', card: '', suggestion: '', session: '' }
+    const ag = { id: '', item: '', card: '', suggestion: '', session: '', removed: '' }
     const share = { agenda: '', link: '' }
     // the agent channel: one lease on the recording the agenda is linked to
     let grant: LeaseGrant | null = null
@@ -156,6 +156,15 @@ describe('contract: every route, real server, typed client', () => {
       getTranscript: () => c.call('getTranscript', { params, query: { fromMs: 0, toMs: 60_000 } }),
       getQaHistory: () => c.call('getQaHistory', { params }),
       search: () => c.call('search', { query: { q: 'retry' } }),
+      searchMoments: async () => {
+        const r = await c.call('searchMoments', { query: { q: 'retry', includePrivate: true } })
+        expect(r.moments.some((m) => m.kind === 'transcript' && m.sessionId === s.id && m.segmentId)).toBe(
+          true,
+        )
+        const t = await c.call('searchMoments', { query: { q: 'renamed' } })
+        expect(t.moments.some((m) => m.kind === 'title' && m.sessionId === s.id)).toBe(true)
+        return r
+      },
       ask: async () => {
         const events: AskStreamEvent[] = []
         for await (const e of c.ask({ question: 'what was decided?', sessionId: s.id }))
@@ -374,7 +383,29 @@ describe('contract: every route, real server, typed client', () => {
       deleteAgendaItem: async () => {
         const v = await c.call('getAgenda', { params: { id: ag.id } })
         const i = v.items.find((x) => x.text === 'From markdown')!
+        ag.removed = i.id
         return c.call('deleteAgendaItem', { params: { id: ag.id, itemId: i.id } })
+      },
+      getAgendaItemHistory: async () => {
+        const r = await c.call('getAgendaItemHistory', {
+          params: { id: ag.id },
+          query: { itemId: ag.removed },
+        })
+        expect(r.versions.map((v) => v.kind)).toEqual(['imported', 'removed'])
+        expect(r.versions[1]).toMatchObject({ actor: { kind: 'you', label: 'you' }, restorable: true })
+        return r
+      },
+      restoreAgendaItem: async () => {
+        const h = await c.call('getAgendaItemHistory', {
+          params: { id: ag.id },
+          query: { itemId: ag.removed },
+        })
+        const r = await c.call('restoreAgendaItem', {
+          params: { id: ag.id, itemId: ag.removed },
+          body: { seq: h.versions[0]!.seq },
+        })
+        expect(r.item).toMatchObject({ id: ag.removed, text: 'From markdown' })
+        return r
       },
       addContextCard: async () => {
         const card = await c.call('addContextCard', {
@@ -422,7 +453,11 @@ describe('contract: every route, real server, typed client', () => {
       draftAgenda: async () => {
         // proposals only. The LLM is switched off for this call (a key was set above, and a contract test
         // must not reach a real provider), so the stream opens and reports it
-        const before = (await c.call('getAgenda', { params: { id: ag.id } })).agenda.version
+        // what drafting must not touch: the items themselves (the live tracker may still move a status or
+        // bump the version concurrently under load, which is not the draft's doing)
+        const itemsOf = async () =>
+          (await c.call('getAgenda', { params: { id: ag.id } })).items.map((i) => [i.id, i.text])
+        const before = await itemsOf()
         const { provider, model } = (await c.call('getSettings')).llm
         await c.call('updateSettings', { body: { llm: { provider: 'none' } } })
         const events = []
@@ -430,7 +465,7 @@ describe('contract: every route, real server, typed client', () => {
           events.push(e)
         expect(events.map((e) => e.type)).toEqual(['started', 'error'])
         expect(events[1]).toMatchObject({ error: { code: 'unavailable' } })
-        expect((await c.call('getAgenda', { params: { id: ag.id } })).agenda.version).toBe(before)
+        expect(await itemsOf()).toEqual(before)
         await c.call('updateSettings', { body: { llm: { provider, model } } })
         return events
       },
@@ -500,6 +535,13 @@ describe('contract: every route, real server, typed client', () => {
         })
         expect(r).toMatchObject({ shared: true, role: 'owner', state: 'ok' })
         expect(r.link).toMatch(new RegExp(`^${hosted.url}/a/[A-Za-z0-9_-]{32}$`))
+        return r
+      },
+      sendAgenda: async () => {
+        const r = await c.call('sendAgenda', { params: { id: share.agenda }, body: {} })
+        expect(r).toMatchObject({ state: 'ready', reason: null })
+        expect(r.inviteText).toContain(`Agenda: ${r.webLink}`)
+        expect(r.webLink).toMatch(/^https?:\/\//)
         return r
       },
       shareAgendaRecap: () =>

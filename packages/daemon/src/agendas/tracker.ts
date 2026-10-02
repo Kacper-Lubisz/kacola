@@ -89,6 +89,11 @@ export type TrackerDecisions = {
   localProvider(): Promise<DecisionProvider>
   /** The selected provider's name, for the status. */
   selected(): string
+  /**
+   * Whether the selected provider runs on this computer (local, or Ollama on a loopback address). Absent =
+   * only the `local` provider counts as on-device. A private meeting's words never go to one that is not.
+   */
+  onDevice?(): boolean
 }
 
 /** What a round did, for observers (the eval runner). */
@@ -106,8 +111,11 @@ export type TrackerDeps = {
   bus?: EventBus | null
   logger: Logger
   decisions: TrackerDecisions
-  /** The text LLM for next-point bridge lines; null (or absent) = the template line. */
-  llm?: () => Promise<LlmProvider | null>
+  /**
+   * The text LLM for next-point bridge lines of this session; null (or absent) = the template line. The
+   * daemon answers null for a private session unless the provider is on-device.
+   */
+  llm?: (sessionId: string) => Promise<LlmProvider | null>
   now?: () => number
   options?: TrackerOptions
   observe?: {
@@ -161,9 +169,10 @@ export class AgendaTracker {
     this.#o = { ...DEFAULTS, ...d.options }
     this.#now = d.now ?? Date.now
     this.guard = decisionSpeechGuard({
-      provider: async () =>
-        (this.#now() >= this.#degradedUntil ? await this.#d.decisions.provider() : null) ??
-        this.#d.decisions.localProvider(),
+      provider: async (sessionId) => {
+        const p = this.#now() >= this.#degradedUntil ? await this.#d.decisions.provider() : null
+        return p && this.#mayUse(sessionId, p) ? p : this.#d.decisions.localProvider()
+      },
       fallback: () => this.#d.decisions.localProvider(),
       onError: (err) => {
         if (err instanceof LlmError && err.code !== 'aborted') this.#degrade(err)
@@ -379,6 +388,12 @@ export class AgendaTracker {
 
   // ------------------------------------------------------------------------------ providers
 
+  /** Private means never sent to the cloud: a private session's lines only go to an on-device provider. */
+  #mayUse(sessionId: string, p: DecisionProvider): boolean {
+    if (p.id === 'local' || this.#d.decisions.onDevice?.()) return true
+    return !this.#d.store.getSession(sessionId)?.private
+  }
+
   async #provider(live: Live): Promise<{ p: DecisionProvider; primary: boolean }> {
     if (this.#now() < this.#degradedUntil) {
       this.#setState(live, 'degraded', this.#degradedWhy)
@@ -393,6 +408,9 @@ export class AgendaTracker {
       )
       return { p: await this.#d.decisions.localProvider(), primary: false }
     }
+    // a private meeting stays on this computer: on-device decisions, and not a degradation
+    if (!this.#mayUse(live.sessionId, p))
+      return { p: await this.#d.decisions.localProvider(), primary: false }
     return { p, primary: p.id !== 'local' }
   }
 
@@ -725,7 +743,7 @@ export class AgendaTracker {
   }
 
   async #bridge(live: Live, item: LiveItem, remainingMin: number | null): Promise<string | null> {
-    const llm = await this.#d.llm?.().catch(() => null)
+    const llm = await this.#d.llm?.(live.sessionId).catch(() => null)
     if (!llm) return null
     try {
       const r = await bridgeLine({

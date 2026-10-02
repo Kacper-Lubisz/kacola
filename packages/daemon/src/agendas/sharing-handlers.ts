@@ -36,7 +36,7 @@ type Hosted =
 const hostedOnly = () => {
   throw new DaemonError(
     'unavailable',
-    'shared agendas are served by a hosted gnomeola server, not the local daemon',
+    'shared agendas are served by a hosted kacola server, not the local daemon',
     501,
   )
 }

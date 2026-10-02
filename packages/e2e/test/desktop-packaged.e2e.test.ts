@@ -267,7 +267,7 @@ describe('the packaged Linux app (linux-unpacked)', () => {
       c.on('close', (code) => resolve({ code, stdout, stderr }))
     })
     expect(r.code, r.stderr).toBe(0)
-    expect(r.stderr).toMatch(/starting the gnomeola app in the background/)
+    expect(r.stderr).toMatch(/starting the kacola app in the background/)
     expect(JSON.parse(r.stdout)).toHaveProperty('sessions')
     expect((await client.call('health')).ok).toBe(true)
     // the app it started runs without a window; find it by its binary and quit it

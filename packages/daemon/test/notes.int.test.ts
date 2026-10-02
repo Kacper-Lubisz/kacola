@@ -175,7 +175,9 @@ describe('notes through the real daemon', () => {
       type: 'error',
       error: {
         code: 'unavailable',
-        message: 'the model declined to enhance these notes; your notes are unchanged',
+        message: 'The model declined to enhance these notes. Your notes are unchanged.',
+        reason: 'refused',
+        action: 'none',
       },
     })
     await c.call('putNotes', { params, body: { markdown: 'this will FAIL\n', baseVersion: 1 } })
@@ -204,8 +206,19 @@ describe('notes through the real daemon', () => {
     expect((await c.call('getNotes', { params, query: { includePrivate: true } })).note.markdown).toBe(
       'compensation talk\n',
     )
-    const events = await enhanceAll(c, priv.id, { includePrivate: true })
-    expect(events.at(-1)?.type).toBe('done')
+    // private means never sent to the cloud: a typed 409 with the default (cloud) provider…
+    const refused = await enhanceAll(c, priv.id, { includePrivate: true }).catch((e: unknown) => e)
+    expect(refused).toBeInstanceOf(GnomeolaApiError)
+    expect((refused as GnomeolaApiError).status).toBe(409)
+    expect((refused as GnomeolaApiError).detail.reason).toBe('private-meeting')
+    // …and allowed with Ollama on this computer
+    await c.call('updateSettings', { body: { llm: { provider: 'ollama' } } })
+    try {
+      const events = await enhanceAll(c, priv.id, { includePrivate: true })
+      expect(events.at(-1)?.type).toBe('done')
+    } finally {
+      await c.call('updateSettings', { body: { llm: { provider: 'anthropic' } } })
+    }
   })
 
   it('custom templates: built-ins are protected, custom ones win the keyword match', async () => {

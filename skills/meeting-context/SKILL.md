@@ -105,10 +105,13 @@ the previous instance's unfinished items). When the user wants to prepare a meet
    ```
    `--meeting` takes a meeting id (from step 1), an event UID, or `next` / `today` when that is really
    the one; `--reuse` if it already has an agenda. The JSON output carries the agenda id.
-6. **Offer the invitation link**: `gnomeola agenda invite <agd_id>` prints the block
-   (`Agenda: kacola://…`, plus `· web: https://…` once the agenda is shared). Only with the user's yes,
-   `--write` puts it into the calendar event (never over the organiser's text); read-only calendars or
-   events they don't organise return the block to paste instead.
+6. **Offer the invitation link**: `gnomeola agenda invite <agd_id>` prints the block (`Agenda:
+   https://…` first once the agenda is shared, then `Open in kacola: kacola://…`; before sharing only the
+   kacola link, which attendees without kacola cannot open). Only with the user's yes, `--write` puts it
+   into the calendar event (never over the organiser's text); read-only calendars or events they don't
+   organise return the block to paste instead. `gnomeola agenda send <agd_id>` does share + invitation in
+   one step — it shares, so only when the user asks to send the agenda (step 7); exit 6 means no sharing
+   server is set up, so there is no link the attendees could open.
 7. **Sharing with the other attendees is the user's decision.** `gnomeola agenda share <agd_id>` puts the
    agenda's items (never transcripts, notes, evidence or private cards) on the user's hosted server: a web
    link where invitees read it and may add items and comments, and attendees who run kacola can follow it.

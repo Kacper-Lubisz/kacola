@@ -1,6 +1,7 @@
 export {
   AgendaStore,
   type CreateAgendaInput,
+  type ItemEvent,
   type ItemPatch,
   type ListAgendasOptions,
   type NewItemInput,

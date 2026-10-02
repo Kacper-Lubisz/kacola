@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { z } from 'zod'
+import { Actor } from './actors.ts'
 import { Meeting } from './calendar.ts'
 import { Iso } from './schemas.ts'
 
@@ -281,6 +282,11 @@ export const AgendaView = z.object({
   items: z.array(AgendaItem),
   context: z.array(ContextCard),
   suggestions: z.array(Suggestion),
+  /**
+   * Every `changedBy` / `createdBy` / `source` / `resolvedBy` in this view, in words (actors.ts: you,
+   * kacola, your Claude, Ben's Claude, Ben). Filled by GET /agendas/:id; absent on events.
+   */
+  actors: z.record(z.string(), Actor).optional(),
 })
 export type AgendaView = z.infer<typeof AgendaView>
 
@@ -493,16 +499,42 @@ export type LiveEvent = z.infer<typeof LiveEvent>
 
 const Scoped = { agendaId: z.string(), version: z.int().positive(), at: Iso }
 
+/**
+ * Why an item event happened beyond a plain edit, for the item's history: `import` (the markdown form
+ * applied over the agenda), `restore` (put back to an earlier version from its history). Optional: events
+ * written before item history existed have none.
+ */
+export const ItemCause = z.enum(['import', 'restore'])
+export type ItemCause = z.infer<typeof ItemCause>
+const cause = { cause: ItemCause.optional() }
+
 export const AgendaEvents = [
   /** Created, or its header changed (title, goals, meeting link, session link, privacy). */
   z.object({ type: z.literal('agenda.upserted'), agenda: Agenda }),
   /** The agenda and everything hanging off it is gone. */
   z.object({ type: z.literal('agenda.deleted'), agendaId: z.string() }),
   /** An item was added or edited (text, kind, owner, timebox, outcome). Never a status change. */
-  z.object({ type: z.literal('agenda.item.upserted'), ...Scoped, item: AgendaItem }),
+  z.object({ type: z.literal('agenda.item.upserted'), ...Scoped, item: AgendaItem, ...cause }),
   /** A status change: the item as it now is, and the history entry. */
-  z.object({ type: z.literal('agenda.item.status'), ...Scoped, item: AgendaItem, change: StatusChange }),
-  z.object({ type: z.literal('agenda.item.deleted'), ...Scoped, itemId: z.string() }),
+  z.object({
+    type: z.literal('agenda.item.status'),
+    ...Scoped,
+    item: AgendaItem,
+    change: StatusChange,
+    ...cause,
+  }),
+  /**
+   * Removed. `by` and the `item` as it was (so its history can show and restore it) are absent on events
+   * written before item history existed.
+   */
+  z.object({
+    type: z.literal('agenda.item.deleted'),
+    ...Scoped,
+    itemId: z.string(),
+    by: ChangedBy.optional(),
+    item: AgendaItem.optional(),
+    ...cause,
+  }),
   /** New positions: `itemIds` is the full order. */
   z.object({ type: z.literal('agenda.items.reordered'), ...Scoped, itemIds: z.array(z.string()) }),
   z.object({ type: z.literal('agenda.context.upserted'), ...Scoped, card: ContextCard }),
@@ -776,7 +808,7 @@ export const agendaRoutes = {
     body: ResolveSuggestionBody,
     response: ResolveSuggestionResult,
   },
-  /** The "Agenda: kacola://… · web: …" block for the invitation; optionally written into the event. */
+  /** The invitation block (web link first when shared); optionally written into the event. Prefer sendAgenda. */
   agendaInviteBlock: {
     method: 'POST',
     path: '/agendas/:id/invite',
