@@ -397,7 +397,7 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
   it('answers during a live recording, with citations into the growing transcript', async () => {
     // started with home's New recording (as the GTK suite did with Record); it opens the new session
     await w().getByRole('button', { name: 'Back to Today' }).click()
-    await w().getByRole('button', { name: 'New recording' }).click()
+    await w().getByRole('button', { name: 'New recording', exact: true }).click()
     const s = await poll(
       async () =>
         (await daemon.client.call('listSessions', { query: {} })).sessions.find(
@@ -406,7 +406,7 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
       10_000,
       'the recording started from the window',
     )
-    await w().getByRole('heading', { level: 1, name: s.title }).waitFor({ timeout: 10_000 })
+    await w().getByRole('heading', { level: 1, name: 'Untitled meeting' }).waitFor({ timeout: 10_000 })
     // the cassette cites the 3rd and 5th lines: wait until there are enough
     await poll(
       async () => (await daemon.client.call('getTranscript', { params: { id: s.id } })).segments.length >= 6,

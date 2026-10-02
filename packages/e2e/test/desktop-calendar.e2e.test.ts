@@ -57,7 +57,7 @@ describe('desktop: calendar meetings and the calendar-based template suggestion'
       display,
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
     })
-    await w().getByRole('button', { name: 'New recording' }).waitFor({ timeout: 20_000 })
+    await w().getByRole('button', { name: 'New recording', exact: true }).waitFor({ timeout: 20_000 })
   }, 240_000)
 
   afterEach(() => {

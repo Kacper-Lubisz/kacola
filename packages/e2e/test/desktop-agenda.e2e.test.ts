@@ -181,7 +181,7 @@ describe('desktop: agendas', () => {
       display,
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
     })
-    await w().getByRole('button', { name: 'New recording' }).waitFor({ timeout: 20_000 })
+    await w().getByRole('button', { name: 'New recording', exact: true }).waitFor({ timeout: 20_000 })
     await w().emulateMedia({ reducedMotion: 'reduce' })
   }, 300_000)
 

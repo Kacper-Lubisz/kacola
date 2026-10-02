@@ -1,10 +1,12 @@
 import type { AgendaSummary, Meeting, Session } from '@gnomeola/protocol'
 import { _, fmt } from '@gnomeola/ui-core/i18n'
 
-// Home is your day (unit-tested in test/day.test.ts): today's calendar meetings and recordings in one
-// strict time order, the next meeting expanded, a recording under way pinned on top, then earlier days.
-// Pure: sessions, meetings and agendas in, rows out. Calendar words are local time, like the rest of
-// the window.
+// Home is your day (unit-tested in test/day.test.ts): today's calendar meetings and recordings latest
+// first — the end of the day at the top, down through now, to this morning — with what is under way
+// marked current in its own place (no pinned card), the now line's place when nothing is, the soonest
+// meeting still to come, all-day events apart, then earlier days (each latest first too). Calendars
+// as they really come: one invitation copied into several calendars is one row; declined and cancelled
+// ones are left out. Pure: sessions, meetings and agendas in, rows out. Local time, like the window.
 
 const DAY = 86_400_000
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']

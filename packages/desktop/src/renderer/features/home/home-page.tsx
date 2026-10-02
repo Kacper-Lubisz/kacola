@@ -19,8 +19,8 @@ import { DayView } from './day-view.tsx'
 import { SearchResults } from './search-results.tsx'
 
 // Home: the app opens on your day. One search-and-ask box at the top, over titles and transcripts —
-// typing turns the day into results in place, Esc brings it back. Below it, today's meetings and
-// recordings in time order with the next one expanded, then earlier days. No sidebar: every meeting page
+// typing turns the day into results in place, Esc brings it back. Below it, the day latest first, what
+// is under way in its own place (day-view.tsx), then earlier days. No sidebar: every meeting page
 // has Back to Today. The query lives in the URL (?q=), so Back from a result returns to the results.
 
 export function HomePage() {

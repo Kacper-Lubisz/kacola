@@ -111,7 +111,7 @@ describe('keyboard-only walkthrough against the real daemon', () => {
       10_000,
       'a recording started from the keyboard',
     )
-    await w().getByRole('heading', { level: 1, name: live.title }).waitFor({ timeout: 10_000 })
+    await w().getByRole('heading', { level: 1, name: 'Untitled meeting' }).waitFor({ timeout: 10_000 })
     await w()
       .getByRole('timer', { name: /^Recording/ })
       .waitFor()

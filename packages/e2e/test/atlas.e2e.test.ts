@@ -369,7 +369,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       .getByRole('heading', { name: /^Today/ })
       .waitFor()
     await atlas.shoot(w(), 'record-now__idle__record-button', {
-      expect: [dayRow('Platform standup'), w().getByRole('button', { name: 'New recording' })],
+      expect: [dayRow('Platform standup'), w().getByRole('button', { name: 'New recording', exact: true })],
     })
     await searchBox().fill('standup')
     const moments = w().getByRole('list', { name: 'Moments' })

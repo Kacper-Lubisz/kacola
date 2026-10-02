@@ -73,7 +73,7 @@ describe('desktop: team sharing', () => {
 
   const launch = async (d: DaemonHandle) => {
     app = await launchDesktop({ display, env: { GNOMEOLA_URL: d.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' } })
-    await w().getByRole('button', { name: 'New recording' }).waitFor({ timeout: 20_000 })
+    await w().getByRole('button', { name: 'New recording', exact: true }).waitFor({ timeout: 20_000 })
     await w().emulateMedia({ reducedMotion: 'reduce' })
   }
   const relaunch = async (d: DaemonHandle) => {

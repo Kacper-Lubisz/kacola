@@ -24,7 +24,7 @@ msgstr ""
 
 #: src/renderer/design/primitives/dialog.tsx:108
 #: src/renderer/features/agendas/agenda-actions.tsx:146
-#: src/renderer/features/agendas/agenda-editor.tsx:524
+#: src/renderer/features/agendas/agenda-editor.tsx:525
 #: src/renderer/features/agendas/context-cards.tsx:159
 #: src/renderer/features/agendas/follow.tsx:122
 #: src/renderer/features/agendas/send.tsx:96
@@ -50,19 +50,19 @@ msgid "Record"
 msgstr ""
 
 #: src/renderer/design/primitives/record-button.tsx:63
-#: src/renderer/features/home/day-view.tsx:488
+#: src/renderer/features/home/day-view.tsx:493
 #: src/renderer/features/meeting/header.tsx:97
 msgid "Recording, {time}"
 msgstr ""
 
 #: src/renderer/design/primitives/record-button.tsx:63
-#: src/renderer/features/home/day-view.tsx:488
+#: src/renderer/features/home/day-view.tsx:493
 #: src/renderer/features/meeting/header.tsx:97
 msgid "Paused, {time}"
 msgstr ""
 
 #: src/renderer/design/primitives/record-button.tsx:73
-#: src/renderer/features/home/day-view.tsx:496
+#: src/renderer/features/home/day-view.tsx:501
 #: src/renderer/features/meeting/header.tsx:111 ../ui-core/src/format.ts:62
 msgid "Paused"
 msgstr ""
@@ -89,7 +89,7 @@ msgstr ""
 
 #: src/renderer/design/primitives/record-button.tsx:84
 #: src/renderer/design/primitives/record-button.tsx:89
-#: src/renderer/features/home/day-view.tsx:569
+#: src/renderer/features/home/day-view.tsx:583
 #: src/renderer/features/meeting/header.tsx:142
 #: src/renderer/features/meeting/header.tsx:145
 msgid "Stopping…"
@@ -97,7 +97,7 @@ msgstr ""
 
 #: src/renderer/design/primitives/record-button.tsx:84
 #: src/renderer/design/primitives/record-button.tsx:89
-#: src/renderer/features/home/day-view.tsx:569
+#: src/renderer/features/home/day-view.tsx:583
 #: src/renderer/features/home/search-results.tsx:70
 #: src/renderer/features/meeting/ask-bar.tsx:110
 #: src/renderer/features/meeting/header.tsx:142
@@ -250,7 +250,7 @@ msgid "Delete this agenda?"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-actions.tsx:91
-#: src/renderer/features/agendas/agenda-editor.tsx:349
+#: src/renderer/features/agendas/agenda-editor.tsx:350
 #: src/renderer/features/meeting/agenda-rail.tsx:118
 msgid "Delete"
 msgstr ""
@@ -354,8 +354,8 @@ msgid "Items"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-editor.tsx:171
-#: src/renderer/features/home/day-view.tsx:448
-#: src/renderer/features/home/day-view.tsx:547
+#: src/renderer/features/home/day-view.tsx:453
+#: src/renderer/features/home/day-view.tsx:561
 msgid "{n} item"
 msgid_plural "{n} items"
 msgstr[0] ""
@@ -385,7 +385,7 @@ msgid "Add an item…"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-editor.tsx:206
-#: src/renderer/features/agendas/agenda-editor.tsx:534
+#: src/renderer/features/agendas/agenda-editor.tsx:535
 msgid "Kind"
 msgstr ""
 
@@ -413,94 +413,94 @@ msgstr ""
 msgid "carried over"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:309
+#: src/renderer/features/agendas/agenda-editor.tsx:310
 msgid "Edit “{item}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:310
+#: src/renderer/features/agendas/agenda-editor.tsx:311
 msgid "Edit"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:318
+#: src/renderer/features/agendas/agenda-editor.tsx:319
 msgid "Delete “{item}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:319
+#: src/renderer/features/agendas/agenda-editor.tsx:320
 msgid "Delete (Del)"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:325
-#: src/renderer/features/agendas/agenda-editor.tsx:330
+#: src/renderer/features/agendas/agenda-editor.tsx:326
+#: src/renderer/features/agendas/agenda-editor.tsx:331
 #: src/renderer/features/meeting/agenda-rail.tsx:107
 #: src/renderer/features/meeting/agenda-rail.tsx:112
 msgid "More for “{item}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:331
+#: src/renderer/features/agendas/agenda-editor.tsx:332
 #: src/renderer/features/meeting/agenda-rail.tsx:113
 msgid "More"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:337
+#: src/renderer/features/agendas/agenda-editor.tsx:338
 msgid "Move Up"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:344
+#: src/renderer/features/agendas/agenda-editor.tsx:345
 msgid "Move Down"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:368
+#: src/renderer/features/agendas/agenda-editor.tsx:369
 #: src/renderer/features/meeting/suggestion-card.tsx:39
 msgid "Could not change the status"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:369
+#: src/renderer/features/agendas/agenda-editor.tsx:370
 msgid "Status of “{item}”: {status}"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:372
+#: src/renderer/features/agendas/agenda-editor.tsx:373
 msgid "Set the status of “{item}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:407
+#: src/renderer/features/agendas/agenda-editor.tsx:408
 msgid "Added"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:408
+#: src/renderer/features/agendas/agenda-editor.tsx:409
 msgid "Edited"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:409
+#: src/renderer/features/agendas/agenda-editor.tsx:410
 msgid "Status changed"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:410
+#: src/renderer/features/agendas/agenda-editor.tsx:411
 #: src/renderer/features/agendas/share.tsx:557
 msgid "Removed"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:411
+#: src/renderer/features/agendas/agenda-editor.tsx:412
 msgid "Imported"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:412
+#: src/renderer/features/agendas/agenda-editor.tsx:413
 msgid "Restored"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:417
+#: src/renderer/features/agendas/agenda-editor.tsx:418
 #: src/renderer/features/agendas/share.tsx:491
 msgid "{from} → {to} by {who}"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:422
+#: src/renderer/features/agendas/agenda-editor.tsx:423
 msgid "{what} by {who}"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:428
+#: src/renderer/features/agendas/agenda-editor.tsx:429
 msgid "Could not restore the item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:430
+#: src/renderer/features/agendas/agenda-editor.tsx:431
 #: src/renderer/features/meeting/notepad.tsx:37
 #: src/renderer/features/meeting/notepad.tsx:60
 #: src/renderer/features/meeting/notepad.tsx:217
@@ -509,64 +509,64 @@ msgstr ""
 msgid "Loading…"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:433
+#: src/renderer/features/agendas/agenda-editor.tsx:434
 msgid "No changes yet."
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:435
+#: src/renderer/features/agendas/agenda-editor.tsx:436
 #: src/renderer/features/notes/version-history.tsx:140
 msgid "Versions"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:449
+#: src/renderer/features/agendas/agenda-editor.tsx:450
 msgid "Restore “{item}” to this version"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:451
+#: src/renderer/features/agendas/agenda-editor.tsx:452
 msgid "Restore"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:471
-#: src/renderer/features/agendas/agenda-editor.tsx:477
+#: src/renderer/features/agendas/agenda-editor.tsx:472
+#: src/renderer/features/agendas/agenda-editor.tsx:478
 msgid "History of “{item}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:478
-#: src/renderer/features/agendas/agenda-editor.tsx:482
+#: src/renderer/features/agendas/agenda-editor.tsx:479
+#: src/renderer/features/agendas/agenda-editor.tsx:483
 msgid "History"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:497
+#: src/renderer/features/agendas/agenda-editor.tsx:498
 msgid "Could not save the item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:517
+#: src/renderer/features/agendas/agenda-editor.tsx:518
 msgid "Edit Item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:526
+#: src/renderer/features/agendas/agenda-editor.tsx:527
 #: src/renderer/features/agendas/share.tsx:242
 #: src/renderer/features/preferences/preferences-dialog.tsx:142
 msgid "Save"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:532
+#: src/renderer/features/agendas/agenda-editor.tsx:533
 msgid "Item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:536
+#: src/renderer/features/agendas/agenda-editor.tsx:537
 msgid "Owner"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:537
+#: src/renderer/features/agendas/agenda-editor.tsx:538
 msgid "me, them, or a name"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:544
+#: src/renderer/features/agendas/agenda-editor.tsx:545
 msgid "Answer heard"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:544
+#: src/renderer/features/agendas/agenda-editor.tsx:545
 #: src/renderer/features/meeting/outcome-view.tsx:30
 #: src/renderer/features/meeting/outcome-view.tsx:31
 #: src/renderer/features/meeting/outcome-view.tsx:47
@@ -607,7 +607,7 @@ msgid "Shared"
 msgstr ""
 
 #: src/renderer/features/agendas/context-cards.tsx:62
-#: src/renderer/features/home/day-view.tsx:291
+#: src/renderer/features/home/day-view.tsx:289
 #: src/renderer/features/home/search-results.tsx:153
 #: src/renderer/features/meeting/meeting-page.tsx:157
 #: src/renderer/features/meeting/meeting-page.tsx:249
@@ -1385,166 +1385,170 @@ msgstr ""
 msgid "No answer was recorded."
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:66
+#: src/renderer/features/home/day-view.tsx:68
 #: src/renderer/features/meeting/header.tsx:39
-#: src/renderer/features/home/day.ts:58
+#: src/renderer/features/home/day.ts:60
 msgid "Today"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:74
+#: src/renderer/features/home/day-view.tsx:76
 msgid "Today’s meetings"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:93
+#: src/renderer/features/home/day-view.tsx:95
 msgid ""
 "Nothing on your calendar today. New recording captures a call as it happens."
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:94
+#: src/renderer/features/home/day-view.tsx:96
 msgid "Nothing recorded today. New recording captures a call as it happens."
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:104
+#: src/renderer/features/home/day-view.tsx:106
 msgid "Show earlier days"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:121
-#: src/renderer/features/home/day-view.tsx:122
+#: src/renderer/features/home/day-view.tsx:123
+#: src/renderer/features/home/day-view.tsx:124
 msgid "Refreshing the calendar…"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:121
+#: src/renderer/features/home/day-view.tsx:123
 #: src/renderer/features/shell/shortcuts.tsx:32
 msgid "Refresh calendar"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:122
+#: src/renderer/features/home/day-view.tsx:124
 msgid "Refresh calendar (F5)"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:153
+#: src/renderer/features/home/day-view.tsx:150
 msgid "Refreshing…"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:153
+#: src/renderer/features/home/day-view.tsx:150
 msgid "Refresh"
 msgstr ""
 
+#: src/renderer/features/home/day-view.tsx:160
 #: src/renderer/features/home/day-view.tsx:163
-#: src/renderer/features/home/day-view.tsx:166
 msgid "All day"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:296
+#: src/renderer/features/home/day-view.tsx:294
 #: src/renderer/features/meeting/meeting-page.tsx:160
 msgid "Recovered after a crash"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:301
+#: src/renderer/features/home/day-view.tsx:299
 msgid "Recording failed"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:309
+#: src/renderer/features/home/day-view.tsx:307
 msgid "recording now"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:311
+#: src/renderer/features/home/day-view.tsx:309
 msgid "Agenda · {n} item"
 msgid_plural "Agenda · {n} items"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/home/day-view.tsx:329
-#: src/renderer/features/home/day-view.tsx:344
-#: src/renderer/features/home/day-view.tsx:365
+#: src/renderer/features/home/day-view.tsx:327
+#: src/renderer/features/home/day-view.tsx:342
+#: src/renderer/features/home/day-view.tsx:366
 msgid "{title}, {time}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:351
-msgid "not recorded"
+#: src/renderer/features/home/day-view.tsx:348
+msgid "began yesterday {time}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:399
+#: src/renderer/features/home/day-view.tsx:366
+msgid "{title}, {time}, not recorded"
+msgstr ""
+
+#: src/renderer/features/home/day-view.tsx:404
 msgid "Set up"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:415
+#: src/renderer/features/home/day-view.tsx:420
 msgid "{n} person"
 msgid_plural "{n} people"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/home/day-view.tsx:432
+#: src/renderer/features/home/day-view.tsx:437
 msgid "Next: {title}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:446
-#: src/renderer/features/home/day-view.tsx:545
+#: src/renderer/features/home/day-view.tsx:451
+#: src/renderer/features/home/day-view.tsx:559
 msgid "Agenda ready"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:458
-#: src/renderer/features/home/day-view.tsx:587
+#: src/renderer/features/home/day-view.tsx:463
+#: src/renderer/features/home/day-view.tsx:601
 msgid "Open prep for {title}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:458
-#: src/renderer/features/home/day-view.tsx:587
+#: src/renderer/features/home/day-view.tsx:463
+#: src/renderer/features/home/day-view.tsx:601
 msgid "Plan {title}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:460
-#: src/renderer/features/home/day-view.tsx:589
+#: src/renderer/features/home/day-view.tsx:465
+#: src/renderer/features/home/day-view.tsx:603
 msgid "Open prep"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:460
-#: src/renderer/features/home/day-view.tsx:589
+#: src/renderer/features/home/day-view.tsx:465
+#: src/renderer/features/home/day-view.tsx:603
 msgid "Plan an agenda"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:468
-#: src/renderer/features/home/day-view.tsx:597
+#: src/renderer/features/home/day-view.tsx:473
+#: src/renderer/features/home/day-view.tsx:611
 msgid "Join and record {title}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:471
-#: src/renderer/features/home/day-view.tsx:600
+#: src/renderer/features/home/day-view.tsx:476
+#: src/renderer/features/home/day-view.tsx:614
 #: src/renderer/features/meeting/meeting-page.tsx:265
 msgid "Join and record"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:496
+#: src/renderer/features/home/day-view.tsx:501
 #: src/renderer/features/meeting/header.tsx:111
 #: src/renderer/features/shell/shortcuts.tsx:24 ../ui-core/src/format.ts:61
 msgid "Recording"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:522
+#: src/renderer/features/home/day-view.tsx:536
 msgid "Recording now: {title}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:522
+#: src/renderer/features/home/day-view.tsx:536
 msgid "Now: {title}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:559
-#: src/renderer/features/home/day-view.tsx:578
+#: src/renderer/features/home/day-view.tsx:573
+#: src/renderer/features/home/day-view.tsx:592
 msgid "Open {title}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:560
-#: src/renderer/features/home/day-view.tsx:579
+#: src/renderer/features/home/day-view.tsx:574
+#: src/renderer/features/home/day-view.tsx:593
 #: src/renderer/features/meeting/outcome-view.tsx:91
 #: src/renderer/features/agendas/labels.ts:41
 msgid "Open"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:575
+#: src/renderer/features/home/day-view.tsx:589
 msgid "Recorded · {duration}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:635
+#: src/renderer/features/home/day-view.tsx:649
 msgid "{title}, {day} {time}"
 msgstr ""
 
@@ -3543,51 +3547,51 @@ msgstr[1] ""
 msgid "Some need signing in again in GNOME Online Accounts."
 msgstr ""
 
-#: src/renderer/features/home/day.ts:41
+#: src/renderer/features/home/day.ts:43
 msgid "under 1 min"
 msgstr ""
 
-#: src/renderer/features/home/day.ts:44
+#: src/renderer/features/home/day.ts:46
 msgid "{m} min"
 msgstr ""
 
-#: src/renderer/features/home/day.ts:45
+#: src/renderer/features/home/day.ts:47
 msgid "{h} h {m} min"
 msgstr ""
 
-#: src/renderer/features/home/day.ts:45
+#: src/renderer/features/home/day.ts:47
 msgid "{h} h"
 msgstr ""
 
-#: src/renderer/features/home/day.ts:59 ../ui-core/src/format.ts:31
+#: src/renderer/features/home/day.ts:61 ../ui-core/src/format.ts:31
 msgid "Yesterday"
 msgstr ""
 
-#: src/renderer/features/home/day.ts:73
+#: src/renderer/features/home/day.ts:75
 msgid "ended"
 msgstr ""
 
-#: src/renderer/features/home/day.ts:77
+#: src/renderer/features/home/day.ts:79
 msgid "now, just started"
 msgstr ""
 
-#: src/renderer/features/home/day.ts:78
+#: src/renderer/features/home/day.ts:80
 msgid "now, started {duration} ago"
 msgstr ""
 
-#: src/renderer/features/home/day.ts:80
+#: src/renderer/features/home/day.ts:82
 msgid "starting in {duration}"
 msgstr ""
 
-#: src/renderer/features/home/day.ts:270
+#: src/renderer/features/home/day.ts:272
 msgid "kacola isn’t answering right now"
 msgstr ""
 
-#: src/renderer/features/home/day.ts:271
+#: src/renderer/features/home/day.ts:273
 msgid "Speech models aren’t downloaded yet"
 msgstr ""
 
-#: src/renderer/features/home/day.ts:272
+#: src/renderer/features/home/day.ts:274
 msgid "Recording will work"
 msgstr ""
 

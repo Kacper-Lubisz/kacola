@@ -276,8 +276,7 @@ function Marker({ icon, tone, children }: { icon: IconName; tone: 'neutral' | 'w
       }`}
     >
       <Icon name={icon} size={13} className={tone === 'warning' ? 'text-status-warning-text' : ''} />
-      <span className="hidden sm:inline">{children}</span>
-      <span className="sr-only sm:hidden">{children}</span>
+      {children}
     </span>
   )
 }

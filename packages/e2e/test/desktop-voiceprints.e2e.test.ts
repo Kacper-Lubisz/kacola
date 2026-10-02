@@ -56,7 +56,7 @@ describe('desktop: speaker settings and voiceprints against the real daemon', ()
     // home's New recording (a meeting page has Back to Today)
     const back = w().getByRole('button', { name: 'Back to Today' })
     if (await back.count()) await back.click()
-    await w().getByRole('button', { name: 'New recording' }).click()
+    await w().getByRole('button', { name: 'New recording', exact: true }).click()
     const live = await poll(
       async () =>
         (await daemon.client.call('listSessions', { query: {} })).sessions.find(
@@ -65,7 +65,7 @@ describe('desktop: speaker settings and voiceprints against the real daemon', ()
       10_000,
       'a new recording session',
     )
-    await w().getByRole('heading', { level: 1, name: live.title }).waitFor({ timeout: 10_000 })
+    await w().getByRole('heading', { level: 1, name: 'Untitled meeting' }).waitFor({ timeout: 10_000 })
     if (pause) {
       await poll(async () => (await farEnd(live.id)).length >= 1, 15_000, 'the far end speaking')
       await w().getByRole('button', { name: 'Pause', exact: true }).click()
@@ -123,7 +123,7 @@ describe('desktop: speaker settings and voiceprints against the real daemon', ()
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
     })
     // no meetings yet: home offers New recording
-    await w().getByRole('button', { name: 'New recording' }).waitFor({ timeout: 20_000 })
+    await w().getByRole('button', { name: 'New recording', exact: true }).waitFor({ timeout: 20_000 })
   }, 240_000)
 
   afterEach(() => {
