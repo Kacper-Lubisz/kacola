@@ -1,3 +1,4 @@
+import { OfflineCalendar } from '@gnomeola/protocol'
 import { z } from 'zod'
 
 // C-2: the line protocol between gnomeolad and `cal-agent` (packages/daemon/gjs/cal-agent.js), a GJS
@@ -7,7 +8,9 @@ import { z } from 'zod'
 //   {"type":"window","from":ISO,"to":ISO}   the range to expand recurrences over; replaces the previous
 //                                           one and triggers a fresh snapshot. Sent once at start and
 //                                           whenever the window rolls.
-//   {"type":"refresh"}                     re-read everything now (e.g. after resume from suspend).
+//   {"type":"refresh"}                     re-read everything now (Refresh calendar in the window): retry
+//                                           calendars that failed without waiting for their backoff, ask
+//                                           remote backends to re-sync, then send a fresh snapshot.
 //   {"type":"read-description", requestId, sourceUid, uid, recurrenceId, recurring}
 //                                           (v2, agendas) an event's DESCRIPTION and whether we may write it
 //   {"type":"write-description", requestId, …, expect, description}
@@ -16,7 +19,8 @@ import { z } from 'zod'
 //
 // agent → daemon (stdout)
 //   hello      once, first: protocol version, so a stale helper is refused rather than misread.
-//   snapshot   EVERY occurrence in the window across every enabled calendar, replacing the last one.
+//   snapshot   EVERY occurrence in the window across every enabled calendar, replacing the last one,
+//              plus the calendars that are not up to date (`offline`: needs sign-in, offline, failed).
 //              Sent after the first window message and again (debounced) after any change: an event
 //              added/modified/removed through a client view, or a calendar source added/removed/enabled.
 //   error      something failed; fatal ones are followed by exit and the daemon restarts the agent.
@@ -76,6 +80,9 @@ export const AgentMessage = z.discriminatedUnion('type', [
     to: Iso,
     calendars: z.array(z.object({ id: z.string(), name: z.string() })),
     occurrences: z.array(RawOccurrence),
+    /** Calendars that are not up to date (needs sign-in, offline, could not be opened); optional so a
+     *  helper that predates it still speaks protocol 2. */
+    offline: z.array(OfflineCalendar).optional(),
   }),
   z.object({ type: z.literal('error'), message: z.string(), fatal: z.boolean() }),
   z.object({ type: z.literal('log'), level: z.enum(['debug', 'info', 'warn']), message: z.string() }),

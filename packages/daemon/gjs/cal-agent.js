@@ -326,7 +326,7 @@ function snapshot() {
     }
   }
   occurrences.sort((a, b) => a.start.localeCompare(b.start) || a.uid.localeCompare(b.uid))
-  send({ type: 'snapshot', from: window.from, to: window.to, calendars, occurrences })
+  send({ type: 'snapshot', from: window.from, to: window.to, calendars, occurrences, offline: offlineList() })
   return GLib.SOURCE_REMOVE
 }
 
@@ -344,6 +344,37 @@ function closeClient(c) {
   try {
     c.view?.stop()
   } catch (_e) {}
+  if (c.statusId)
+    try {
+      c.source.disconnect(c.statusId)
+    } catch (_e) {}
+}
+
+/**
+ * Calendars that are not up to date, for the window's quiet notice: an account that needs signing in
+ * (EDS is awaiting credentials, or the certificate failed), a remote calendar whose backend is offline
+ * or disconnected (its events are the saved copy — seen on a real machine: Google calendars sat
+ * DISCONNECTED with a stale cache until something asked them to sync), and calendars that could not be
+ * opened at all (retried with backoff, and at once on a refresh).
+ */
+function offlineList() {
+  const S = EDataServer.SourceConnectionStatus
+  const out = []
+  for (const [uid, c] of clients) {
+    let status = S.CONNECTED
+    let online = true
+    try {
+      status = c.source.get_connection_status()
+      online = c.client.is_online()
+    } catch (_e) {}
+    if (status === S.AWAITING_CREDENTIALS || status === S.SSL_FAILED)
+      out.push({ id: uid, name: c.name, reason: 'sign-in' })
+    else if (c.remote && (!online || status === S.DISCONNECTED))
+      out.push({ id: uid, name: c.name, reason: 'offline' })
+  }
+  for (const [uid, name] of failedNames)
+    if (!clients.has(uid)) out.push({ id: uid, name, reason: 'failed' })
+  return out
 }
 
 /** Sources being connected: uid → { cancellable, since (monotonic µs) }. A snapshot waits for them, but
@@ -351,14 +382,20 @@ function closeClient(c) {
 const connecting = new Map()
 /** Consecutive failed connects per source, for the retry backoff. */
 const failures = new Map()
+/** Sources whose last connect failed: uid → display name (reported as `failed` until one succeeds). */
+const failedNames = new Map()
+/** Bumped by a refresh, so retries scheduled before it do not stack up with the immediate one. */
+let retryEpoch = 0
 
 function retryLater(uid, name) {
   const n = (failures.get(uid) ?? 0) + 1
   failures.set(uid, n)
+  failedNames.set(uid, name)
+  const epoch = retryEpoch
   const delay = Math.min(RETRY_BASE_S * 2 ** (n - 1), RETRY_MAX_S)
   log('warn', `calendar "${name}" (${uid}): retrying in ${delay} s (attempt ${n + 1})`)
   GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, delay, () => {
-    if (!exiting && !clients.has(uid) && !connecting.has(uid)) reconcile()
+    if (!exiting && epoch === retryEpoch && !clients.has(uid) && !connecting.has(uid)) reconcile()
     return GLib.SOURCE_REMOVE
   })
 }
@@ -396,9 +433,12 @@ function openClient(source) {
     }
     if (exiting || cancellable.is_cancelled()) return
     failures.delete(uid)
+    failedNames.delete(uid)
     client.set_default_timezone(localZone)
-    const c = { source, client, view: null, name }
+    const c = { source, client, view: null, name, remote: isRemote(source), statusId: 0 }
     clients.set(uid, c)
+    // signing in (or going offline) changes what the snapshot reports, not only the events
+    c.statusId = source.connect('notify::connection-status', () => schedule())
     client.get_view('#t', null, (_c, vres) => {
       try {
         const [, view] = client.get_view_finish(vres)
@@ -413,6 +453,42 @@ function openClient(source) {
     })
     schedule()
   })
+}
+
+/** A calendar with a remote backend (CalDAV, Google, Microsoft 365, webcal…), not one stored locally. */
+function isRemote(source) {
+  try {
+    const backend = source.get_extension(EDataServer.SOURCE_EXTENSION_CALENDAR).get_backend_name()
+    return !['local', 'contacts', 'weather'].includes(backend)
+  } catch (_e) {
+    return false
+  }
+}
+
+/**
+ * Refresh calendar (the window's button / F5): calendars that failed are retried now rather than at their
+ * backoff, remote calendars are asked to re-sync with their server, and a snapshot follows (another one
+ * when the re-sync brings changes, through the views).
+ */
+function refreshAll() {
+  failures.clear()
+  retryEpoch++
+  for (const c of clients.values()) {
+    try {
+      if (!c.client.check_refresh_supported()) continue
+      c.client.refresh(null, (_c, res) => {
+        try {
+          c.client.refresh_finish(res)
+        } catch (e) {
+          log('warn', `calendar "${c.name}": refresh failed: ${errText(e)}`)
+        }
+        schedule()
+      })
+    } catch (e) {
+      log('warn', `calendar "${c.name}": cannot refresh: ${errText(e)}`)
+    }
+  }
+  reconcile()
 }
 
 function reconcile() {
@@ -432,6 +508,7 @@ function reconcile() {
       connecting.delete(uid)
     }
   }
+  for (const uid of failedNames.keys()) if (!current.has(uid)) failedNames.delete(uid)
   for (const [uid, s] of current) if (!clients.has(uid) && !connecting.has(uid)) openClient(s)
   schedule()
 }
@@ -549,7 +626,7 @@ function handle(line) {
     debounceId = 0
     snapshot()
   } else if (msg.type === 'refresh') {
-    reconcile()
+    refreshAll()
   } else if (msg.type === 'read-description') {
     readDescription(msg)
   } else if (msg.type === 'write-description') {

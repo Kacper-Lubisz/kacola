@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
-import type { CalendarState } from '@gnomeola/protocol'
+import { type CalendarState, OfflineCalendar } from '@gnomeola/protocol'
 import { z } from 'zod'
 import { LineChild } from '../line-child.ts'
 import type { Logger } from '../logger.ts'
@@ -17,7 +17,12 @@ import { AgentMessage, CAL_AGENT_PROTOCOL, type DaemonToAgent, RawOccurrence } f
 //   NoCalendar            calendar reading is off
 
 export type CalendarInfo = { id: string; name: string }
-export type CalendarSnapshot = { calendars: CalendarInfo[]; occurrences: RawOccurrence[] }
+export type CalendarSnapshot = {
+  calendars: CalendarInfo[]
+  occurrences: RawOccurrence[]
+  /** Calendars that could not be brought up to date (absent: all are). */
+  offline?: OfflineCalendar[]
+}
 
 export type ProviderListener = {
   snapshot: (s: CalendarSnapshot) => void
@@ -31,6 +36,7 @@ export interface CalendarProvider {
   start(listener: ProviderListener): void
   /** The range recurrences are expanded over. Providers without expansion may ignore it. */
   setWindow(from: Date, to: Date): void
+  /** Re-read every calendar now (and retry the ones that failed); a new snapshot follows when it can. */
   refresh(): void
   stop(): Promise<void>
   /**
@@ -72,6 +78,9 @@ export class ManualCalendarProvider implements CalendarProvider {
   private l: ProviderListener | null = null
   window: { from: Date; to: Date } | null = null
   refreshes = 0
+  /** What a refresh re-reads: the last pushed snapshot, again (or this, when set). */
+  onRefresh: (() => CalendarSnapshot | null) | null = null
+  private last: CalendarSnapshot | null = null
   start(l: ProviderListener): void {
     this.l = l
     l.status('starting', null)
@@ -81,11 +90,14 @@ export class ManualCalendarProvider implements CalendarProvider {
   }
   refresh(): void {
     this.refreshes++
+    const s = this.onRefresh ? this.onRefresh() : this.last
+    if (s) this.push(s)
   }
   async stop(): Promise<void> {
     this.l = null
   }
   push(s: CalendarSnapshot): void {
+    this.last = s
     this.l?.snapshot(s)
   }
   /** Descriptions by event UID, as editDescription sees and leaves them; `readOnly` UIDs refuse. */
@@ -110,6 +122,8 @@ export const CalendarFile = z.union([
   z.object({
     calendars: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
     occurrences: z.array(RawOccurrence),
+    /** Calendars to report as not up to date (tests and demos of the window's quiet notice). */
+    offline: z.array(OfflineCalendar).optional(),
   }),
 ])
 
@@ -119,7 +133,8 @@ export function parseCalendarFile(text: string): CalendarSnapshot {
   const calendars = (!Array.isArray(parsed) && parsed.calendars) || [
     ...new Map(occurrences.map((o) => [o.sourceUid, { id: o.sourceUid, name: o.calendarName }])).values(),
   ]
-  return { calendars, occurrences }
+  const offline = Array.isArray(parsed) ? undefined : parsed.offline
+  return { calendars, occurrences, ...(offline ? { offline } : {}) }
 }
 
 export class FileCalendarProvider implements CalendarProvider {
@@ -271,7 +286,11 @@ export class EdsCalendarProvider implements CalendarProvider {
         if (this.window) this.sendWindow()
         return
       case 'snapshot':
-        this.l?.snapshot({ calendars: m.calendars, occurrences: m.occurrences })
+        this.l?.snapshot({
+          calendars: m.calendars,
+          occurrences: m.occurrences,
+          ...(m.offline ? { offline: m.offline } : {}),
+        })
         this.l?.status('ok', null)
         return
       case 'error':
