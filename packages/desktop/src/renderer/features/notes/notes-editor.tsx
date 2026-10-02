@@ -87,12 +87,18 @@ const highlight = HighlightStyle.define([
 const reducedMotion = () =>
   typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
+/** What a parent may do to a mounted editor: put text at the end (Ask's Pin to notes), focus it. */
+export type NotesEditorHandle = { append: (text: string) => void; focus: () => void }
+
 export function NotesEditor({
   initial,
   onChange,
   label,
   placeholder,
   autoFocus,
+  handle,
+  bottomSpace = 48,
+  size = 'body',
 }: {
   initial: string
   onChange: (text: string) => void
@@ -100,6 +106,11 @@ export function NotesEditor({
   label: string
   placeholder?: string
   autoFocus?: boolean
+  handle?: { current: NotesEditorHandle | null }
+  /** Room under the last line (px), so something laid over the bottom never hides what is typed. */
+  bottomSpace?: number
+  /** `large`: the live notepad's calmer, bigger type. */
+  size?: 'body' | 'large'
 }) {
   const host = useRef<HTMLDivElement>(null)
   const change = useRef(onChange)
@@ -130,6 +141,12 @@ export function NotesEditor({
           markdown({ addKeymap: false }),
           syntaxHighlighting(highlight),
           theme,
+          EditorView.theme({
+            '.cm-content': {
+              paddingBottom: `${bottomSpace}px`,
+              ...(size === 'large' ? { fontSize: '17px', lineHeight: '28px' } : {}),
+            },
+          }),
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({
             'aria-label': label,
@@ -147,7 +164,22 @@ export function NotesEditor({
       }),
     })
     if (autoFocus) view.focus()
+    if (handle)
+      handle.current = {
+        append: (text) => {
+          const doc = view.state.doc.toString()
+          const sep = doc === '' ? '' : doc.endsWith('\n\n') ? '' : doc.endsWith('\n') ? '\n' : '\n\n'
+          const insert = `${sep}${text}`
+          view.dispatch({
+            changes: { from: doc.length, insert },
+            selection: { anchor: doc.length + insert.length },
+            scrollIntoView: true,
+          })
+        },
+        focus: () => view.focus(),
+      }
     return () => {
+      if (handle) handle.current = null
       view.destroy()
       parent.remove()
     }

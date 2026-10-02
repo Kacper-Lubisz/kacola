@@ -10,9 +10,10 @@ import { keys } from '../../data/keys.ts'
 import { patchSessionIn } from '../../data/mutations.ts'
 import { useServices } from '../../data/services.tsx'
 import { type RecordState, useToast } from '../../design/primitives/index.ts'
+import { useMeetingUi } from '../meeting/meeting-ui.ts'
 import { createRequestGate, type RequestKind } from './request-gate.ts'
 
-// The record flow: one hook the sidebar header, the session page and the keyboard shortcuts share.
+// The record flow: one hook home's Record now, the meeting header and the keyboard shortcuts share.
 //
 //   record   create a session, start it, select it (POST /sessions, POST /sessions/:id/start)
 //   pause / resume / stop  on the live session
@@ -76,6 +77,7 @@ export function useRecorder(): Recorder {
     record: () =>
       void run('starting', _('Could not start recording: {reason}'), async () => {
         const created = await api.call('createSession', { body: {} })
+        useMeetingUi.getState().markStarted(created.id)
         const started = await api.call('startSession', { params: { id: created.id } })
         settle(started)
         await navigate({ to: '/sessions/$sessionId', params: { sessionId: started.id } })

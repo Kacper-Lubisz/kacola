@@ -2,6 +2,7 @@ import type { Evidence } from '@gnomeola/protocol'
 import { _, fmt } from '@gnomeola/ui-core/i18n'
 import { useNavigate } from '@tanstack/react-router'
 import { Chip, ChipButton } from '../../design/primitives/index.ts'
+import { atLine } from '../meeting/search-params.ts'
 
 /** An evidence chip: the quote; pressing it opens the Transcript at that line. */
 export function EvidenceChip({ sessionId, ev }: { sessionId: string | null; ev: Evidence }) {
@@ -21,7 +22,7 @@ export function EvidenceChip({ sessionId, ev }: { sessionId: string | null; ev: 
         void navigate({
           to: '/sessions/$sessionId',
           params: { sessionId },
-          search: { tab: 'transcript', segment: ev.segmentId! },
+          search: atLine(ev.segmentId),
         })
       }
     >

@@ -1,0 +1,267 @@
+import type { AgendaItem, AgendaView, Session } from '@gnomeola/protocol'
+import { lastChange, statusCounts } from '@gnomeola/ui-core/agendas'
+import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { useNavigate } from '@tanstack/react-router'
+import { useState } from 'react'
+import { useServices } from '../../data/services.tsx'
+import { Button, Icon, TextField, useToast } from '../../design/primitives/index.ts'
+import { refusal, useAgendaHistory, useAgendaMutation } from '../agendas/agenda-data.ts'
+import { StatusMenu } from '../agendas/agenda-editor.tsx'
+import { STATUS_ICON, whoLabel } from '../agendas/labels.ts'
+import { addItemsMutation, setStatusMutation } from '../agendas/mutations.ts'
+import { usePeopleNames } from '../agendas/share-data.ts'
+import { useMeetingUi } from './meeting-ui.ts'
+
+// The agenda while live and after: a narrow checklist on the left. No times, no bars, nothing that
+// hurries anyone. Live: covered items are ticked and quiet, the current one is highlighted, the rest
+// plain; a tick kacola or an agent made says so, quietly, with Undo. After: the same list as a recap.
+// Private context sits at the bottom, hidden in case the screen is shared.
+
+function CheckItem({ view, item, current }: { view: AgendaView; item: AgendaItem; current: boolean }) {
+  const history = useAgendaHistory(view.agenda.id)
+  const names = usePeopleNames(view.agenda.id)
+  const set = useAgendaMutation(setStatusMutation, _('Could not undo'))
+  const done = item.status === 'covered' || item.status === 'skipped'
+  const change = lastChange(history.data ?? [], item.id)
+  // only a surprise is attributed: something the user did not do themselves
+  const by = change && change.to === item.status && change.by !== 'user' && done ? change : null
+  return (
+    <li
+      aria-label={item.text}
+      aria-current={current ? 'step' : undefined}
+      className={`flex items-start gap-1.5 rounded-md px-1.5 py-1 ${
+        current ? 'border border-border-default bg-bg-surface shadow-e1' : 'border border-transparent'
+      }`}
+    >
+      <StatusMenu agendaId={view.agenda.id} item={item} />
+      <div className="flex min-w-0 flex-1 flex-col pt-1.5">
+        <span
+          className={`type-callout break-words ${
+            current
+              ? 'font-semibold text-text-primary'
+              : done
+                ? `text-text-secondary ${item.status === 'skipped' ? 'line-through' : ''}`
+                : 'text-text-primary'
+          }`}
+        >
+          {item.text}
+        </span>
+        {by ? (
+          <span className="flex flex-wrap items-center gap-x-1.5 type-caption text-text-tertiary">
+            {fmt(_('ticked by {who}'), { who: whoLabel(by.by, names) })}
+            <Button
+              size="sm"
+              variant="link"
+              className="!text-text-secondary"
+              onPress={() =>
+                set.mutate({
+                  agendaId: view.agenda.id,
+                  itemId: item.id,
+                  status: by.from,
+                  note: _('undone in the window'),
+                })
+              }
+              aria-label={fmt(_('Undo the tick on “{item}”'), { item: item.text })}
+            >
+              {_('Undo')}
+            </Button>
+          </span>
+        ) : null}
+      </div>
+    </li>
+  )
+}
+
+function AddItem({ view }: { view: AgendaView }) {
+  const add = useAgendaMutation(addItemsMutation, _('Could not add the item'))
+  const [open, setOpen] = useState(false)
+  const [text, setText] = useState('')
+  if (!open)
+    return (
+      <Button size="sm" variant="ghost" icon="add" className="self-start" onPress={() => setOpen(true)}>
+        {_('Add item')}
+      </Button>
+    )
+  const submit = () => {
+    const t = text.trim()
+    if (t) add.mutate({ agendaId: view.agenda.id, items: [{ text: t, kind: 'topic' }] })
+    setText('')
+    setOpen(false)
+  }
+  return (
+    <TextField
+      label={_('New item')}
+      labelHidden
+      placeholder={_('Add an item…')}
+      value={text}
+      onChange={setText}
+      autoFocus
+      onBlur={submit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') submit()
+        if (e.key === 'Escape') {
+          setText('')
+          setOpen(false)
+        }
+      }}
+    />
+  )
+}
+
+export function LiveChecklist({ view }: { view: AgendaView }) {
+  const items = [...view.items].sort((a, b) => a.order - b.order)
+  const counts = statusCounts(items)
+  const current = items.find((i) => i.status === 'in-progress')
+  return (
+    <section aria-labelledby="live-agenda" className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between gap-2 px-1.5">
+        <h2 id="live-agenda" className="m-0 type-headline text-text-primary">
+          {_('Agenda')}
+        </h2>
+        <span className="type-caption text-text-secondary">
+          {fmt(_('{covered} of {total} covered'), { covered: counts.covered, total: items.length })}
+        </span>
+      </div>
+      {items.length ? (
+        <ol aria-label={_('Agenda items')} className="m-0 flex list-none flex-col gap-0.5 p-0">
+          {items.map((i) => (
+            <CheckItem key={i.id} view={view} item={i} current={i.id === current?.id} />
+          ))}
+        </ol>
+      ) : (
+        <p className="m-0 px-1.5 type-callout text-text-secondary">{_('No items yet.')}</p>
+      )}
+      <AddItem view={view} />
+    </section>
+  )
+}
+
+const RECAP_WORD: Record<AgendaItem['status'], () => string> = {
+  covered: () => _('settled'),
+  skipped: () => _('skipped'),
+  parked: () => _('parked'),
+  open: () => _('not settled'),
+  'in-progress': () => _('talked about, not settled'),
+}
+
+export function OutcomeRecap({ view }: { view: AgendaView }) {
+  const items = [...view.items].sort((a, b) => a.order - b.order)
+  const counts = statusCounts(items)
+  const unsettled = counts.open + counts['in-progress'] + counts.parked
+  return (
+    <section aria-labelledby="recap-agenda" className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 id="recap-agenda" className="m-0 type-headline text-text-primary">
+          {_('Agenda')}
+        </h2>
+        <span className="type-caption text-text-secondary">
+          {fmt(_('{settled} settled, {open} not'), { settled: counts.covered, open: unsettled })}
+        </span>
+      </div>
+      <ol aria-label={_('Recap per item')} className="m-0 flex list-none flex-col p-0">
+        {items.map((i) => (
+          <li
+            key={i.id}
+            aria-label={i.text}
+            className="flex items-start gap-2 border-b border-border-subtle py-2 last:border-b-0"
+          >
+            <Icon
+              name={i.status === 'open' || i.status === 'in-progress' ? 'carry' : STATUS_ICON[i.status]}
+              size={16}
+              className={`mt-0.5 shrink-0 ${i.status === 'covered' ? 'text-status-success' : 'text-text-tertiary'}`}
+            />
+            <span className="flex min-w-0 flex-col">
+              <span
+                className={`type-callout break-words ${i.status === 'covered' ? 'text-text-secondary' : 'text-text-primary'}`}
+              >
+                {i.text}
+              </span>
+              <span className="type-caption text-text-tertiary">{RECAP_WORD[i.status]()}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+/**
+ * Private context ("My notes on Ana"): hidden while live in case the screen is shared; Show reveals it
+ * for this run. After the meeting and in prep it is simply shown, labelled as only yours.
+ */
+export function PrivateContext({ view, hidden }: { view: AgendaView; hidden: boolean }) {
+  const cards = view.context.filter((c) => c.visibility === 'private')
+  const revealed = useMeetingUi((s) => s.revealed[view.agenda.id] ?? false)
+  const reveal = useMeetingUi((s) => s.reveal)
+  if (!cards.length) return null
+  const shown = !hidden || revealed
+  return (
+    <section
+      aria-label={_('Private context')}
+      className="flex flex-col gap-2 rounded-lg border border-dashed border-border-strong px-3 py-2.5"
+    >
+      <div className="flex items-start gap-2">
+        <Icon name={shown ? 'lock' : 'observe'} size={15} className="mt-0.5 shrink-0 text-text-secondary" />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="type-callout font-semibold text-text-primary">
+            {cards.length === 1 ? cards[0]!.title : fmt(_('{n} private notes'), { n: cards.length })}
+          </span>
+          <span className="type-caption text-text-secondary">
+            {shown ? _('Only you. Never in what others get.') : _('Hidden in case you share your screen')}
+          </span>
+        </div>
+        {hidden ? (
+          <Button size="sm" variant="ghost" onPress={() => reveal(view.agenda.id, !revealed)}>
+            {revealed ? _('Hide') : _('Show')}
+          </Button>
+        ) : null}
+      </div>
+      {shown
+        ? cards.map((c) => (
+            <div key={c.id} className="flex flex-col gap-0.5">
+              {cards.length > 1 ? (
+                <span className="type-caption font-semibold text-text-primary">{c.title}</span>
+              ) : null}
+              <p className="m-0 type-callout break-words whitespace-pre-wrap text-text-secondary select-text">
+                {c.body}
+              </p>
+            </div>
+          ))
+        : null}
+    </section>
+  )
+}
+
+/** A recording with no agenda: say so, and offer one (the daemon links it to the recording). */
+export function NoAgenda({ session }: { session: Session }) {
+  const { api, queryClient } = useServices()
+  const toast = useToast()
+  const navigate = useNavigate()
+  const [busy, setBusy] = useState(false)
+  const create = async () => {
+    setBusy(true)
+    try {
+      const m = session.meeting
+      const v = await api.call('createAgenda', {
+        body: m
+          ? { eventUid: m.uid, start: m.start, ifExists: 'reuse' }
+          : { title: fmt(_('Agenda for {title}'), { title: session.title || _('this meeting') }) },
+      })
+      await queryClient.invalidateQueries({ queryKey: ['sessionAgenda', session.id] })
+      if (!v.agenda.sessionId) void navigate({ to: '/agendas/$agendaId', params: { agendaId: v.agenda.id } })
+    } catch (err) {
+      toast(fmt(_('Could not create the agenda: {reason}'), { reason: refusal(err) }), { tone: 'error' })
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <section aria-label={_('Agenda')} className="flex flex-col items-start gap-2 px-1.5">
+      <h2 className="m-0 type-headline text-text-primary">{_('Agenda')}</h2>
+      <p className="m-0 type-callout text-text-secondary">{_('No agenda for this meeting.')}</p>
+      <Button size="sm" icon="add" onPress={() => void create()} isDisabled={busy}>
+        {_('Add an agenda')}
+      </Button>
+    </section>
+  )
+}

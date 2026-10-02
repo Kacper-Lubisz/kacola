@@ -185,6 +185,19 @@ export function createQueries(api: Api) {
         staleTime: 60_000,
         refetchInterval: 5 * 60_000,
       }),
+    /** One local day of calendar meetings (home's Today); refreshed on calendar.updated and every few minutes. */
+    day: (dayStart: number) => {
+      const range = {
+        from: new Date(dayStart).toISOString(),
+        to: new Date(dayStart + 86_400_000).toISOString(),
+      }
+      return queryOptions({
+        queryKey: keys.meetings(range),
+        queryFn: ({ signal }) => api.call('listMeetings', { query: range, signal }),
+        staleTime: 60_000,
+        refetchInterval: 5 * 60_000,
+      })
+    },
     /** Connected agents (+ the ones that ended this run, for the history); refetched on agent.presence. */
     leases: (sessionId: string) =>
       queryOptions({

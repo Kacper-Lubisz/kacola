@@ -1,7 +1,7 @@
 import type { ModelInfo, Settings } from '@gnomeola/protocol'
 import { missingModels } from '@gnomeola/ui-core/settings'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import type { UiState } from '../../../shared/bridge.ts'
 import { useServices } from '../../data/services.tsx'
 
@@ -61,3 +61,7 @@ export function useOnboarding(live: boolean) {
   )
   return { due, missing: missing ?? [], done }
 }
+
+/** How many required speech models are missing (the window provides it; home's banner and readiness read it). */
+export const MissingModelsContext = createContext(0)
+export const useMissingModels = (): number => useContext(MissingModelsContext)

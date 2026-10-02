@@ -10,11 +10,12 @@ import { Icon, type IconName } from '../icon.tsx'
 //   ghost        transparent, hover tint — toolbars, rows
 //   destructive  danger text + border; `confirm` fills it record red (the "yes, delete" step)
 //   link         record-red text, underline on hover
+//   record       record-red fill, white text — only for the actions that start recording
 //
 // Phase-1 names are accepted as aliases (suggested → primary, default → secondary, flat → ghost), so
 // screens written against the Adwaita primitives keep compiling; new code uses the brand names.
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'link'
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'link' | 'record'
 type LegacyVariant = 'suggested' | 'default' | 'flat'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
@@ -56,6 +57,8 @@ const VARIANT: Record<ButtonVariant, string> = {
   destructive:
     'bg-bg-surface text-status-danger-text border border-status-danger data-[hovered]:bg-[color-mix(in_srgb,var(--k-color-bg-surface),var(--k-color-status-danger)_8%)] data-[pressed]:bg-[color-mix(in_srgb,var(--k-color-bg-surface),var(--k-color-status-danger)_14%)]',
   link: 'bg-transparent text-accent-record-text !h-auto !px-0 underline-offset-2 data-[hovered]:underline',
+  record:
+    'bg-record-fill text-text-on-accent data-[hovered]:bg-record-fill-hover data-[pressed]:bg-record-fill-hover',
 }
 const CONFIRM =
   'bg-record-fill text-text-on-accent border border-record-fill data-[hovered]:bg-record-fill-hover data-[pressed]:bg-record-fill-hover'

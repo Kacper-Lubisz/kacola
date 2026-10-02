@@ -241,6 +241,7 @@ export class EventBridge {
     else if (d.type === 'calendar.updated') {
       this.qc.setQueryData(keys.calendar(), d.calendar)
       void this.qc.invalidateQueries({ queryKey: keys.upcoming() })
+      void this.qc.invalidateQueries({ queryKey: ['meetings'] })
     } else if (d.type === 'agenda.tracker')
       // how the live tracker is doing (degraded, the recap's state): the event carries the whole status
       this.qc.setQueryData(keys.agendaTracker(d.status.agendaId), d.status)

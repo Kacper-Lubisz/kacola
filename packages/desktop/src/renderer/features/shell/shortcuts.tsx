@@ -14,30 +14,26 @@ export type ShortcutAction =
   | 'pause'
   | 'shortcuts'
   | 'menu'
-  | 'tab-transcript'
-  | 'tab-ask'
-  | 'tab-notes'
-  | 'tab-details'
+  | 'ask'
+  | 'transcript'
 
 type Shortcut = { action: ShortcutAction; keys: string; label: () => string; group: () => string }
 
 const general = () => _('General')
 const recording = () => _('Recording')
-const session = () => _('Session')
+const meeting = () => _('Meeting')
 
 export const SHORTCUTS: readonly Shortcut[] = [
   { action: 'preferences', keys: 'Ctrl+,', label: () => _('Preferences'), group: general },
   { action: 'shortcuts', keys: 'Ctrl+?', label: () => _('Keyboard shortcuts'), group: general },
   { action: 'menu', keys: 'F10', label: () => _('Main menu'), group: general },
-  { action: 'search', keys: 'Ctrl+F', label: () => _('Search sessions'), group: general },
+  { action: 'search', keys: 'Ctrl+F', label: () => _('Search your meetings'), group: general },
   { action: 'close-window', keys: 'Ctrl+W', label: () => _('Close window'), group: general },
   { action: 'quit', keys: 'Ctrl+Q', label: () => _('Quit'), group: general },
   { action: 'record', keys: 'Ctrl+R', label: () => _('Start or stop recording'), group: recording },
   { action: 'pause', keys: 'Ctrl+Shift+P', label: () => _('Pause or resume recording'), group: recording },
-  { action: 'tab-transcript', keys: 'Ctrl+1', label: () => _('Transcript'), group: session },
-  { action: 'tab-ask', keys: 'Ctrl+2', label: () => _('Ask'), group: session },
-  { action: 'tab-notes', keys: 'Ctrl+3', label: () => _('Notes'), group: session },
-  { action: 'tab-details', keys: 'Ctrl+4', label: () => _('Details'), group: session },
+  { action: 'ask', keys: 'Ctrl+K', label: () => _('Ask about this meeting'), group: meeting },
+  { action: 'transcript', keys: 'Ctrl+T', label: () => _('Show or hide the transcript'), group: meeting },
 ]
 
 /** Does this keydown match "Ctrl+Shift+P"-style keys? `mac`: Ctrl means ⌘. */

@@ -29,7 +29,7 @@ export const keys = {
   agendas: () => ['agendas'] as const,
   /** The agenda linked to a recorded session (its id, or null). */
   sessionAgenda: (sessionId: string) => ['sessionAgenda', sessionId] as const,
-  /** The next week of calendar meetings (the sidebar's Coming up). */
+  /** The next week of calendar meetings (prep's "Earlier with" and the meeting's next occurrence). */
   upcoming: () => ['upcoming'] as const,
   /** Connected agents' leases on a session (the presence chip) and its private-session access. */
   leases: (sessionId: string) => ['leases', sessionId] as const,
