@@ -1195,7 +1195,6 @@ msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:411
 #: src/renderer/features/ask/ask-answer.tsx:104
-#: src/renderer/features/meeting/notepad.tsx:152
 #: src/renderer/features/preferences/extension-setup.tsx:51
 #: src/renderer/routes/main-layout.tsx:95
 msgid "Try Again"
@@ -1928,6 +1927,10 @@ msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:133
 msgid "Your notes were not changed. {reason}"
+msgstr ""
+
+#: src/renderer/features/meeting/notepad.tsx:152
+msgid "Try again"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:169

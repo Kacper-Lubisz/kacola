@@ -109,7 +109,7 @@ function Enhancing({ text, templateName }: { text: string; templateName: string 
 
 /**
  * Why Enhance did not change the notes: the daemon's message as written, and the ONE action it names
- * (Try Again / Set Up a Provider / Add Credits). A private meeting with a cloud provider is not a
+ * (Try again / Set up a provider / Add credits). A private meeting with a cloud provider is not a
  * failure: private meetings stay on this computer, and the notes are untouched.
  */
 function EnhanceProblem({
@@ -149,7 +149,7 @@ function EnhanceProblem({
           ) : null}
           {action === 'retry' ? (
             <Button size="sm" onPress={onRetry}>
-              {_('Try Again')}
+              {_('Try again')}
             </Button>
           ) : null}
           <IconButton

@@ -385,7 +385,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     // the provider recovers: Try Again enhances with the same template
     ctx.api.always(null)
     ctx.api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
-    await alert.getByRole('button', { name: 'Try Again' }).click()
+    await alert.getByRole('button', { name: 'Try again' }).click()
     const draft = before.filter((v) => v.kind !== 'enhanced').at(-1)!
     await waitFor(
       async () =>
