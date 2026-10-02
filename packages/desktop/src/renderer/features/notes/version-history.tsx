@@ -103,7 +103,10 @@ export function VersionHistory({
       footer={
         <>
           {failed ? (
-            <p role="alert" className="m-0 min-w-[12rem] flex-1 self-center type-callout text-status-danger-text">
+            <p
+              role="alert"
+              className="m-0 min-w-[12rem] flex-1 self-center type-callout text-status-danger-text"
+            >
               {fmt(_('The version could not be restored: {reason}'), { reason: failed })}
             </p>
           ) : (

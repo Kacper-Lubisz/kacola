@@ -84,7 +84,10 @@ export function Row({
           {title}
         </span>
         {subtitle ? (
-          <span id={descriptionId} className="type-callout [overflow-wrap:anywhere] text-text-secondary select-text">
+          <span
+            id={descriptionId}
+            className="type-callout [overflow-wrap:anywhere] text-text-secondary select-text"
+          >
             {subtitle}
           </span>
         ) : null}

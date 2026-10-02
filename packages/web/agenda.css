@@ -139,6 +139,17 @@ h4 {
   margin: var(--k-space-12) 0 0;
 }
 
+/* goals hang from the same left edge as the headings, with quiet markers */
+.goals {
+  margin: 0;
+  padding-left: var(--k-space-20);
+  display: grid;
+  gap: var(--k-space-4);
+}
+.goals li::marker {
+  color: var(--k-color-text-tertiary);
+}
+
 .items {
   list-style: none;
   padding: 0;

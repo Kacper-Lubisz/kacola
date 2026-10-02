@@ -201,7 +201,9 @@ export function buildView(props, o) {
       text: m.title || _('Untitled meeting'),
       detail: [when, provider].filter(Boolean).join(' · '),
       verb: recordingThis ? '' : verb,
-      accessibleName: [m.title || _('Untitled meeting'), when, provider, recordingThis ? '' : verb].filter(Boolean).join(', '),
+      accessibleName: [m.title || _('Untitled meeting'), when, provider, recordingThis ? '' : verb]
+        .filter(Boolean)
+        .join(', '),
       // Joining a meeting while another session records would fail; the item stays usable to open the link.
       action: { type: 'join', meetingId: m.id, joinUrl: m.joinUrl || '' },
       inProgress,

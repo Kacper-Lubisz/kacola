@@ -1585,7 +1585,10 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
     await w()
       .getByRole('button', { name: /^Shared: / })
       .click({ timeout: 20_000 })
-    await w().getByRole('dialog', { name: 'Share the agenda' }).getByRole('button', { name: 'Unshare…' }).click()
+    await w()
+      .getByRole('dialog', { name: 'Share the agenda' })
+      .getByRole('button', { name: 'Unshare…' })
+      .click()
     await w()
       .getByRole('alertdialog', { name: 'Stop sharing this agenda?' })
       .getByRole('button', { name: 'Unshare', exact: true })
@@ -2281,7 +2284,10 @@ describe('atlas: first run (real daemon, models not downloaded, calendar off)', 
     await welcome.getByText('Working', { exact: true }).waitFor({ timeout: 20_000 })
     await welcome.getByText(/Lets agents like Claude Code/).waitFor({ timeout: 20_000 })
     await atlas.shoot(app.window, 'first-run__welcome__checks', {
-      expect: [welcome.getByText('Working', { exact: true }), welcome.getByText(/Lets agents like Claude Code/)],
+      expect: [
+        welcome.getByText('Working', { exact: true }),
+        welcome.getByText(/Lets agents like Claude Code/),
+      ],
     })
     const cal = welcome.getByText(/Calendar reading is turned off|Calendar not available/).first()
     await cal.scrollIntoViewIfNeeded()

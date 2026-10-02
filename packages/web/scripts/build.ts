@@ -49,7 +49,11 @@ export async function buildViewer(outDir: string): Promise<{ bytes: number }> {
   mkdirSync(join(outDir, 'fonts'), { recursive: true })
   copyFileSync(join(brand, 'tokens', 'tokens.css'), join(outDir, 'brand', 'tokens.css'))
   copyFileSync(join(brand, 'icons', 'favicon.svg'), join(outDir, 'brand', 'favicon.svg'))
-  for (const f of ['BricolageGrotesque-Variable.woff2', 'InstrumentSans-Variable.woff2', 'JetBrainsMono-Variable.woff2'])
+  for (const f of [
+    'BricolageGrotesque-Variable.woff2',
+    'InstrumentSans-Variable.woff2',
+    'JetBrainsMono-Variable.woff2',
+  ])
     copyFileSync(join(brand, 'fonts', f), join(outDir, 'fonts', f))
   const bytes = Object.values(r.metafile.outputs).reduce((n, o) => n + o.bytes, 0)
   return { bytes }

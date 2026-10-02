@@ -186,7 +186,7 @@ function SelectRow<T extends string>({
         options={options}
         value={value}
         onChange={onChange}
-        className="w-[230px] max-w-[50vw]"
+        className="w-[230px] max-w-[calc(100vw-96px)]"
       />
     </Row>
   )
@@ -224,9 +224,7 @@ function DecisionsGroup({ settings, patch }: { settings: Settings; patch: (p: Se
   return (
     <RowGroup
       title={_('Agenda during meetings')}
-      description={_(
-        'Ticks off agenda items as they are covered and suggests what to raise next.',
-      )}
+      description={_('Ticks off agenda items as they are covered and suggests what to raise next.')}
     >
       <SelectRow
         title={_('Runs on')}

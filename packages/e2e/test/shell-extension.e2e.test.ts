@@ -267,9 +267,7 @@ describe('the extension in a nested GNOME Shell 50', () => {
       const i = await indicator()
       return i?.items.some((x) => x.key === 'calendar-state') && i
     }, 'calendar state line')
-    expect(ind.items.find((i) => i.key === 'calendar-state')!.text).toBe(
-      'Can’t read your calendar right now',
-    )
+    expect(ind.items.find((i) => i.key === 'calendar-state')!.text).toBe('Can’t read your calendar right now')
     fake!.setProps({ CalendarState: 'off' })
     ind = await until(async () => {
       const i = await indicator()

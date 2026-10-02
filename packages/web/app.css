@@ -44,6 +44,40 @@ a {
   outline-offset: var(--k-focus-ring-offset);
 }
 
+/* ---- controls */
+input {
+  font: inherit;
+  color: inherit;
+  background: var(--k-color-bg-surface);
+  border: 1px solid var(--k-color-border-default);
+  border-radius: var(--k-radius-sm);
+  padding: var(--k-space-4) var(--k-space-12);
+  min-height: var(--k-size-control-md);
+}
+input::placeholder {
+  color: var(--k-color-text-tertiary);
+}
+button {
+  font: inherit;
+  font-family: var(--k-font-family-display);
+  font-weight: 600;
+  min-height: var(--k-size-control-md);
+  padding: 0 var(--k-space-16);
+  border-radius: var(--k-radius-sm);
+  border: 0;
+  background: var(--k-color-ink-primary);
+  color: var(--k-color-text-on-ink);
+  cursor: pointer;
+}
+button.quiet {
+  flex: none;
+  min-height: 32px;
+  padding: 0 var(--k-space-12);
+  background: var(--k-color-bg-surface);
+  color: var(--k-color-text-primary);
+  border: 1px solid var(--k-color-border-default);
+}
+
 /* ---- the bar */
 .bar {
   position: sticky;
@@ -89,40 +123,6 @@ search,
   .live-state {
     display: none;
   }
-}
-
-/* ---- controls */
-input {
-  font: inherit;
-  color: inherit;
-  background: var(--k-color-bg-surface);
-  border: 1px solid var(--k-color-border-default);
-  border-radius: var(--k-radius-sm);
-  padding: var(--k-space-4) var(--k-space-12);
-  min-height: var(--k-size-control-md);
-}
-input::placeholder {
-  color: var(--k-color-text-tertiary);
-}
-button {
-  font: inherit;
-  font-family: var(--k-font-family-display);
-  font-weight: 600;
-  min-height: var(--k-size-control-md);
-  padding: 0 var(--k-space-16);
-  border-radius: var(--k-radius-sm);
-  border: 0;
-  background: var(--k-color-ink-primary);
-  color: var(--k-color-text-on-ink);
-  cursor: pointer;
-}
-button.quiet {
-  flex: none;
-  min-height: 32px;
-  padding: 0 var(--k-space-12);
-  background: var(--k-color-bg-surface);
-  color: var(--k-color-text-primary);
-  border: 1px solid var(--k-color-border-default);
 }
 
 /* ---- the page */
@@ -389,14 +389,7 @@ mark {
   gap: var(--k-space-8);
   margin-top: var(--k-space-8);
 }
-.token input {
+#paste input {
   flex: 1;
   min-width: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
-    animation: none !important;
-  }
 }
