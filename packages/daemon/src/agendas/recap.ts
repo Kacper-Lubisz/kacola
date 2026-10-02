@@ -1,5 +1,5 @@
 import { LlmError, type LlmProvider, type RecapResult, recapItem } from '@gnomeola/llm'
-import type { AgendaItem } from '@gnomeola/protocol'
+import type { AgendaItem, Session } from '@gnomeola/protocol'
 import { type AgendaStore, type Store, StoreError } from '@gnomeola/store'
 import type { Logger } from '../logger.ts'
 import type { RecapHook } from './service.ts'
@@ -26,8 +26,8 @@ export type RecapDeps = {
   agendas: AgendaStore
   tracker: AgendaTracker | null
   logger: Logger
-  /** The text LLM, or null with the reason it cannot run. */
-  llm: () => Promise<{ provider: LlmProvider | null; reason: string | null }>
+  /** The text LLM for this recording, or null with the reason it cannot run (a private one: no cloud). */
+  llm: (session: Session) => Promise<{ provider: LlmProvider | null; reason: string | null }>
 }
 
 const STOP_CODES = new Set(['auth', 'quota', 'permission', 'aborted'])
@@ -58,7 +58,7 @@ export function agendaRecapHook(d: RecapDeps): RecapHook {
     await d.tracker?.idle(session.id)
     const set = (state: Parameters<AgendaTracker['setRecap']>[1]) => d.tracker?.setRecap(agendaId, state)
     set({ state: 'running' })
-    const { provider, reason } = await d.llm()
+    const { provider, reason } = await d.llm(d.store.getSession(session.id) ?? session)
     if (!provider) {
       set({ state: 'unavailable', detail: reason ?? 'no text LLM is configured' })
       d.logger.info('agenda recap unavailable', { agendaId, reason })

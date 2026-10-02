@@ -304,7 +304,14 @@ describe('agenda drafting: daemon → llm → provider', () => {
     await d.client.call('updateSettings', { body: { llm: { provider: 'none' } } })
     const events = await draft(target)
     expect(events.map((e) => e.type)).toEqual(['started', 'error'])
-    expect(events[1]).toMatchObject({ error: { code: 'unavailable' } })
+    expect(events[1]).toMatchObject({
+      error: {
+        code: 'unavailable',
+        reason: 'no-provider',
+        action: 'set-up-provider',
+        message: 'Plan with Claude needs an AI provider. Set one up in Preferences.',
+      },
+    })
     expect(anthropic.seen.length + openai.seen.length).toBe(0)
   })
 
@@ -322,6 +329,16 @@ describe('agenda drafting: daemon → llm → provider', () => {
       type: 'started',
       basedOn: { goals: 0, pastMeetings: 0, existingItems: 0 },
     })
+    // private means never sent to the cloud: with a cloud provider it is a typed 409, and nothing is sent
+    await d.client.call('updateSettings', { body: { llm: { provider: 'anthropic' } } })
+    const cloud = await draft(priv.agenda.id, { includePrivate: true }).then(
+      () => null,
+      (e: unknown) => e,
+    )
+    expect((cloud as GnomeolaApiError).status).toBe(409)
+    expect((cloud as GnomeolaApiError).detail.reason).toBe('private-meeting')
+    expect(anthropic.seen.length + openai.seen.length).toBe(0)
+    await d.client.call('updateSettings', { body: { llm: { provider: 'none' } } })
     const missing = await draft('agd_nope').then(
       () => null,
       (e: unknown) => e,

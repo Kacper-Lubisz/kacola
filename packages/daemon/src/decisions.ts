@@ -9,7 +9,7 @@ import {
   type LocalRule,
   OnnxEmbedder,
 } from '@gnomeola/decisions'
-import { DEFAULT_DECISIONS, type DecisionsHealth } from '@gnomeola/protocol'
+import { DEFAULT_DECISIONS, type DecisionsHealth, isOnDeviceDecisions } from '@gnomeola/protocol'
 import type { Logger } from './logger.ts'
 import type { SettingsService } from './settings.ts'
 
@@ -90,6 +90,11 @@ export class DecisionsService {
   /** The selected provider's name. */
   selected(): string {
     return this.#settings().provider
+  }
+
+  /** Whether the selected provider keeps data on this computer (private meetings use only such). */
+  onDevice(): boolean {
+    return isOnDeviceDecisions(this.#settings().provider, this.#d.settings.get().llm.ollamaUrl)
   }
 
   /** The on-device provider, whatever is selected: the live tracker's fallback when a hosted one fails. */

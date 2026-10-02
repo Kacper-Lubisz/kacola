@@ -1,4 +1,4 @@
-import type { ApiError } from '@gnomeola/protocol'
+import type { ApiError, ErrorDetail } from '@gnomeola/protocol'
 import { StoreError } from '@gnomeola/store'
 import { ZodError } from 'zod'
 
@@ -17,11 +17,19 @@ export const STATUS: Record<ApiErrorCode, number> = {
 export class DaemonError extends Error {
   readonly code: ApiErrorCode
   readonly status: number
-  constructor(code: ApiErrorCode, message: string, status?: number) {
+  /** The stable reason and the one action a client offers (see protocol ai.ts). */
+  readonly detail: ErrorDetail
+  constructor(code: ApiErrorCode, message: string, status?: number, detail: ErrorDetail = {}) {
     super(message)
     this.name = 'DaemonError'
     this.code = code
     this.status = status ?? STATUS[code]
+    this.detail = detail
+  }
+
+  /** The same error with another message (e.g. redacted), keeping the code, status and detail. */
+  withMessage(message: string): DaemonError {
+    return new DaemonError(this.code, message, this.status, this.detail)
   }
 }
 
@@ -53,4 +61,9 @@ function isCoded(err: unknown): err is { code: ApiErrorCode; status: number; mes
   )
 }
 
-export const apiErrorBody = (e: DaemonError): ApiError => ({ error: { code: e.code, message: e.message } })
+export const apiErrorBody = (e: DaemonError): ApiError => ({
+  error: { code: e.code, message: e.message, ...e.detail },
+})
+
+/** The `error` member of a stream's error event (ask, enhance, draft): the same shape as a JSON error. */
+export const streamError = (e: DaemonError): ApiError['error'] => apiErrorBody(e).error

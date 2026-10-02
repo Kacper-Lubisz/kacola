@@ -125,9 +125,22 @@ export const AskBody = z.object({
 })
 export type AskBody = z.infer<typeof AskBody>
 
+/** What an Ask sends, and where (the `question` event): "Sends 4 meetings to Anthropic · 1 private left out". */
+export const AskScope = z.object({
+  /** The meetings whose transcripts go to the provider. */
+  sessionIds: z.array(z.string()),
+  /** Private meetings left out because the provider is not on this computer (cross-meeting Ask only). */
+  excludedPrivate: z.int().nonnegative(),
+  /** The provider id (`anthropic`, `ollama`, …); see ai.ts providerName. */
+  provider: z.string(),
+  /** True when nothing leaves this computer (Ollama on a loopback address). */
+  onDevice: z.boolean(),
+})
+export type AskScope = z.infer<typeof AskScope>
+
 /** Messages on the /ask stream, in order: question, delta*, (answer | error). */
 export const AskStreamEvent = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('question'), message: QaMessage }),
+  z.object({ type: z.literal('question'), message: QaMessage, scope: AskScope.optional() }),
   z.object({ type: z.literal('delta'), text: z.string() }),
   z.object({ type: z.literal('answer'), message: QaMessage }),
   z.object({ type: z.literal('error'), error: ApiError.shape.error }),

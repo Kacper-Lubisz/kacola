@@ -1,3 +1,4 @@
+import type { ErrorDetail } from './ai.ts'
 import { AnyEvent, isDurable } from './events.ts'
 import {
   AskStreamEvent,
@@ -23,11 +24,17 @@ export const DEFAULT_BASE_URL = `http://127.0.0.1:${DEFAULT_PORT}`
 export class GnomeolaApiError extends Error {
   readonly status: number
   readonly code: string
-  constructor(status: number, code: string, message: string) {
+  /** The structured detail (ai.ts): `reason` to branch on, `action` to offer, `provider`, `link`. */
+  readonly detail: ErrorDetail
+  constructor(status: number, code: string, message: string, detail: ErrorDetail = {}) {
     super(message)
     this.name = 'GnomeolaApiError'
     this.status = status
     this.code = code
+    this.detail = detail
+  }
+  get reason(): ErrorDetail['reason'] {
+    return this.detail.reason
   }
 }
 
@@ -35,7 +42,7 @@ export class GnomeolaApiError extends Error {
 export class DaemonUnreachableError extends Error {
   readonly baseUrl: string
   constructor(baseUrl: string, cause: unknown) {
-    super(`gnomeola daemon is not reachable at ${baseUrl}`, { cause })
+    super(`kacola's background service is not reachable at ${baseUrl}`, { cause })
     this.name = 'DaemonUnreachableError'
     this.baseUrl = baseUrl
   }
@@ -117,8 +124,10 @@ export function createClient(opts: ClientOptions = {}) {
       try {
         parsed = ApiError.safeParse(JSON.parse(text))
       } catch {}
-      if (parsed?.success)
-        throw new GnomeolaApiError(res.status, parsed.data.error.code, parsed.data.error.message)
+      if (parsed?.success) {
+        const { code, message, ...detail } = parsed.data.error
+        throw new GnomeolaApiError(res.status, code, message, detail)
+      }
       throw new GnomeolaApiError(res.status, 'internal', text || res.statusText)
     }
     return res

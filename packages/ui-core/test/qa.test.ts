@@ -6,6 +6,7 @@ import {
   beginAsk,
   emptyQa,
   fromHistory,
+  isUnavailable,
   QaFeed,
   splitCitations,
   viewTurn,
@@ -184,5 +185,17 @@ describe('QaFeed', () => {
     }).start()
     await feed.ask('q')
     expect(viewTurn(feed.getSnapshot().qa.turns[0]!).kind).toBe('error')
+  })
+})
+
+describe('isUnavailable', () => {
+  it('sends the user to Preferences only when a provider needs setting up', () => {
+    expect(isUnavailable({ code: 'unavailable', message: 'x' })).toBe(true)
+    expect(isUnavailable({ code: 'unavailable', message: 'x', reason: 'no-provider' })).toBe(true)
+    expect(isUnavailable({ code: 'unavailable', message: 'x', reason: 'no-key' })).toBe(true)
+    // an overloaded or out-of-credits provider is not fixed by "add an API key"
+    expect(isUnavailable({ code: 'unavailable', message: 'x', reason: 'overloaded' })).toBe(false)
+    expect(isUnavailable({ code: 'unavailable', message: 'x', reason: 'no-credits' })).toBe(false)
+    expect(isUnavailable({ code: 'conflict', message: 'x', reason: 'private-meeting' })).toBe(false)
   })
 })

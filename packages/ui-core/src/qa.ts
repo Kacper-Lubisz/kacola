@@ -1,4 +1,4 @@
-import type { AnyEvent, AskStreamEvent, Citation, QaMessage } from '@gnomeola/protocol'
+import type { AnyEvent, AskStreamEvent, Citation, ErrorDetail, QaMessage } from '@gnomeola/protocol'
 
 // Q&A for one session as the UI sees it: history from GET /sessions/:id/qa, durable `qa.message`
 // events (from this window or any other client), the POST /ask stream of the question this window is
@@ -9,7 +9,8 @@ import type { AnyEvent, AskStreamEvent, Citation, QaMessage } from '@gnomeola/pr
 // Deltas are kept per origin (`own` from the ask stream, `bus` from qa.delta) because the daemon
 // sends every delta both ways; showing `own` when present never double-counts.
 
-export type AskError = { code: string; message: string }
+/** `reason` / `action` (protocol ai.ts) say what went wrong and the one action that fixes it. */
+export type AskError = { code: string; message: string } & ErrorDetail
 
 export type QaTurn = {
   requestId: string
@@ -180,8 +181,15 @@ export function splitCitations(text: string, count: number): AnswerPiece[] {
   return out
 }
 
-/** The Ask pane should explain "no key / Q&A off" instead of showing a raw error. */
-export const isUnavailable = (e: AskError): boolean => e.code === 'unavailable'
+const SET_UP = new Set(['no-provider', 'no-key', 'bad-key'])
+
+/**
+ * The Ask pane should explain "no key / Q&A off" (and offer Preferences) instead of showing a raw error.
+ * Not for a busy, rate-limited or out-of-credits provider: those carry a reason whose action is Retry or
+ * Add credits, and "set up a provider" would send the user to fix a key that works.
+ */
+export const isUnavailable = (e: AskError): boolean =>
+  e.code === 'unavailable' && (e.reason === undefined || SET_UP.has(e.reason))
 
 // --------------------------------------------------------------------------------------------- feed
 
@@ -200,10 +208,12 @@ export type QaFeedDeps = {
 }
 
 const errorOf = (err: unknown): AskError => {
-  const e = err as { code?: unknown; message?: unknown } | null
+  const e = err as { code?: unknown; message?: unknown; detail?: ErrorDetail } | null
   return {
     code: typeof e?.code === 'string' ? e.code : 'internal',
     message: typeof e?.message === 'string' ? e.message : String(err),
+    // a GnomeolaApiError carries the structured detail (reason, action, provider, link)
+    ...(e?.detail && typeof e.detail === 'object' ? e.detail : {}),
   }
 }
 

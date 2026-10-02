@@ -7,7 +7,9 @@ import {
   type ContextCard,
   type DraftedItem,
   DraftedItem as DraftedItemSchema,
+  type ErrorDetail,
   isKeyedProvider,
+  isOnDeviceLlm,
   MAX_TIMEBOX_MIN,
 } from '@gnomeola/protocol'
 import { type AgendaStore, NoteStore, type Store } from '@gnomeola/store'
@@ -15,6 +17,7 @@ import type { Handlers } from '../daemon.ts'
 import { toWireError } from '../engines/llm.ts'
 import { DaemonError, toDaemonError } from '../errors.ts'
 import type { Logger } from '../logger.ts'
+import { mayLeave, notReadyError, privateMeetingError } from '../privacy.ts'
 import type { SettingsService } from '../settings.ts'
 
 // "Plan with Claude" (kacola wave 2): draft agenda items with the configured LLM and stream them as
@@ -327,8 +330,14 @@ export function agendaDraftHandlers(deps: DraftDeps): Pick<Handlers, 'draftAgend
       const agenda = agendas.get(params.id)
       if (!agenda || !agendas.isVisible(agenda, body.includePrivate))
         throw new DaemonError('not_found', `no agenda ${params.id}`)
+      // private means never sent to the cloud: a private agenda (or one whose recording is private) is
+      // refused for a cloud provider, and private past meetings are left out of what the draft reads
+      const llm = deps.settings.get().llm
+      const onDevice = isOnDeviceLlm(llm)
+      if (!agendas.isVisible(agenda, false) && !mayLeave({ private: true }, llm))
+        throw privateMeetingError(llm, 'Plan with Claude')
       const existing = agendas.items(agenda.id)
-      const past = pastMeetings(store, agendas, agenda, body.includePrivate)
+      const past = pastMeetings(store, agendas, agenda, onDevice && body.includePrivate)
       const input: DraftInput = {
         agenda,
         goals: body.goals ?? agenda.goals,
@@ -341,8 +350,8 @@ export function agendaDraftHandlers(deps: DraftDeps): Pick<Handlers, 'draftAgend
 
       const sse = open()
       const send = (e: AgendaDraftEvent) => sse.send({ data: JSON.stringify(e) })
-      const fail = (code: DaemonError['code'], message: string) => {
-        send({ type: 'error', error: { code, message } })
+      const fail = (code: DaemonError['code'], message: string, detail: ErrorDetail = {}) => {
+        send({ type: 'error', error: { code, message, ...detail } })
         sse.end()
       }
       const abort = new AbortController()
@@ -353,15 +362,17 @@ export function agendaDraftHandlers(deps: DraftDeps): Pick<Handlers, 'draftAgend
         basedOn: { goals: input.goals.length, pastMeetings: past.length, existingItems: existing.length },
       })
 
-      const llm = deps.settings.get().llm
       const apiKey = await deps.settings.apiKey()
-      if (llm.provider === 'none' || (isKeyedProvider(llm.provider) && apiKey === null))
-        return fail('unavailable', `the ${llm.provider} provider is not ready (is an API key configured?)`)
+      const notReady = () => {
+        const e = notReadyError(llm, apiKey !== null, 'Plan with Claude')
+        fail(e.code, e.message, e.detail)
+      }
+      if (llm.provider === 'none' || (isKeyedProvider(llm.provider) && apiKey === null)) return notReady()
       const provider = providerFromSettings(
         { ...llm, apiKeyConfigured: apiKey !== null },
         { ...(apiKey !== null ? { apiKey } : {}), ...(deps.fetch ? { fetch: deps.fetch } : {}) },
       )
-      if (!provider) return fail('unavailable', 'the LLM is switched off in settings')
+      if (!provider) return notReady()
 
       const parser = new DraftLineParser(
         existing.map((i) => i.text),
@@ -386,7 +397,10 @@ export function agendaDraftHandlers(deps: DraftDeps): Pick<Handlers, 'draftAgend
             continue
           }
           if (ev.refusal || ev.stopReason === 'refusal')
-            return fail('unavailable', 'the model declined to draft this agenda')
+            return fail('unavailable', 'The model declined to draft this agenda.', {
+              reason: 'refused',
+              action: 'none',
+            })
           emit(parser.flush())
           const u = ev.usage
           send({
@@ -404,9 +418,13 @@ export function agendaDraftHandlers(deps: DraftDeps): Pick<Handlers, 'draftAgend
         if (!sse.closed) fail('internal', 'the provider finished without a result')
       } catch (err) {
         if (abort.signal.aborted) return
-        const e = toDaemonError(toWireError(err))
+        const e = toDaemonError(toWireError(err, llm.provider, 'Plan with Claude'))
         logger.error('agenda draft failed', { agendaId: agenda.id, err, code: e.code })
-        fail(e.code, logger.redact(e.code === 'internal' && err instanceof Error ? err.message : e.message))
+        fail(
+          e.code,
+          logger.redact(e.code === 'internal' && err instanceof Error ? err.message : e.message),
+          e.detail,
+        )
       }
     },
   }

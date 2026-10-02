@@ -303,7 +303,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
           bus,
           logger,
           decisions,
-          llm: async () => (await llmFor()).provider,
+          llm: async (sessionId) => (await llmFor(store.getSession(sessionId))).provider,
           options: o.tracker ?? {},
         })
   tracker?.start()
@@ -445,8 +445,8 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
         includePrivate: query.includePrivate,
       }),
     ask: async ({ body }, open) => {
-      const transcripts = resolveScope(store, body)
-      await runAsk({ store, bus, engine, settings, logger }, body, transcripts, open())
+      const scope = resolveScope(store, body, settings.get().llm)
+      await runAsk({ store, bus, engine, settings, logger }, body, scope, open())
     },
     events: async ({ query, req }, open) => {
       let from = query.since
@@ -626,8 +626,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
         if (e.code === 'internal')
           logger.error('request failed', { method: req.method, path: pathOf(req), err: errText(err) })
         if (res.headersSent) res.destroy()
-        else
-          sendJson(res, e.status, apiErrorBody(new DaemonError(e.code, logger.redact(e.message), e.status)))
+        else sendJson(res, e.status, apiErrorBody(e.withMessage(logger.redact(e.message))))
       })
       .finally(() => {
         logger.debug('request', {
