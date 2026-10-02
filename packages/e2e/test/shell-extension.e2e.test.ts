@@ -160,7 +160,7 @@ describe('the extension in a nested GNOME Shell 50', () => {
     const standup = ind.items.find((i) => i.key === 'meeting:mtg_standup')!
     expect(standup.text).toBe('Platform standup')
     expect(standup.name).toMatch(/^Platform standup, \d\d:\d\d–\d\d:\d\d, Google Meet, Join$/)
-    expect(ind.items.find((i) => i.key === 'meeting:mtg_review')!.name).toMatch(/Design review, Record$/)
+    expect(ind.items.find((i) => i.key === 'meeting:mtg_review')!.name).toMatch(/^Design review, .*Record$/)
   })
 
   it('Join starts the session over D-Bus and opens the meeting link', async () => {

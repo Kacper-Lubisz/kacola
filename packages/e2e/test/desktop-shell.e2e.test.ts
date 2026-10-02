@@ -323,7 +323,7 @@ describe('the main window against the protocol stub', () => {
     })
     try {
       await app.window.getByRole('heading', { name: 'Can’t reach kacola' }).waitFor({ timeout: 30_000 })
-      await app.window.getByText(`it is not answering at ${url}.`, { exact: false }).waitFor()
+      await app.window.getByText(`${url} · `, { exact: false }).waitFor() // where it looked, in the detail line
       expect(await app.axe()).toEqual([])
       await shot(app, 'shell-unreachable')
       stub = await startStubDaemon([makeSession('Board meeting')], port)

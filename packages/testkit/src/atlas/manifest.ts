@@ -394,7 +394,7 @@ export const ATLAS: AtlasEntry[] = [
     'notes',
     'Enhance replaced the draft with the tidied notes; Back to my draft undoes it',
   ),
-  win('notes-history', 'dialog', 'versions', 'Version History: every version, restorable'),
+  win('notes-history', 'dialog', 'versions', 'Version history: every version, restorable'),
   win('notes-export', 'copied', 'toast', 'Copy Notes as Markdown: "Notes copied as Markdown"'),
   win(
     'notes-export',
@@ -420,7 +420,7 @@ export const ATLAS: AtlasEntry[] = [
     'settings-provider',
     'decisions',
     'provider',
-    'Runs on (jev, OpenAI, Anthropic, Ollama, local) and its key',
+    'Agenda during meetings: what it runs on (jev, OpenAI, Anthropic, Ollama, this computer) and its key',
   ),
   win(
     'settings-capture',
@@ -488,7 +488,7 @@ export const ATLAS: AtlasEntry[] = [
   web('web-viewer', 'search', 'hits', 'Search with highlighted matches', { responsive: true }),
 
   // ---- When things go wrong
-  win('daemon-down', 'window', 'cant-reach', 'Can’t Reach kacola, with Try again', { responsive: true }),
+  win('daemon-down', 'window', 'cant-reach', 'Can’t reach kacola, with Try again', { responsive: true }),
   shell('daemon-down', 'topbar', 'not-running', 'Top bar: gnomeola is not running'),
   cli('daemon-down', 'cli', 'exit-3', 'The CLI says the daemon is unreachable (exit 3)', {
     cli: { argv: ['search', 'retry budget'] },
