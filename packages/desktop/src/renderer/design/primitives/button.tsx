@@ -5,7 +5,8 @@ import { Icon, type IconName } from '../icon.tsx'
 // The brand button (brand spec, "Components"): five variants × three sizes. Behaviour (press, keyboard,
 // focus-visible, disabled) from React Aria; looks from tokens only.
 //
-//   primary      ink fill (inverts in dark), text.onInk — the one main action of a screen
+//   primary      ink fill (inverts in dark), text.onInk — the one main action of a screen; disabled,
+//                a quiet oat fill (a faded ink block would be the loudest thing on an empty form)
 //   secondary    surface + default border
 //   ghost        transparent, hover tint — toolbars, rows
 //   destructive  danger text + border; `confirm` fills it record red (the "yes, delete" step)
@@ -74,7 +75,10 @@ export function buttonClass({
     'app-no-drag inline-flex shrink-0 cursor-default select-none items-center justify-center whitespace-nowrap',
     'font-display font-semibold leading-none focus-ring',
     'transition-[background-color,border-color,color,transform] duration-(--k-duration-fast) ease-out',
-    'data-[pressed]:translate-y-[0.5px] data-[disabled]:opacity-45 data-[disabled]:pointer-events-none',
+    'data-[pressed]:translate-y-[0.5px] data-[disabled]:pointer-events-none',
+    v === 'primary'
+      ? 'data-[disabled]:bg-bg-sidebar data-[disabled]:text-text-tertiary'
+      : 'data-[disabled]:opacity-45',
     pill ? 'rounded-pill' : 'rounded-md',
     SIZE[size],
     v === 'destructive' && confirm ? CONFIRM : VARIANT[v],

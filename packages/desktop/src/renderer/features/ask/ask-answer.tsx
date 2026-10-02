@@ -36,7 +36,7 @@ function CitationChip({ n, c, onCite }: { n: number; c: Citation; onCite: (c: Ci
       aria-label={citationName(n, c)}
       title={_('Show this line in the transcript')}
       onClick={() => onCite(c)}
-      className="mx-0.5 inline-flex h-5 cursor-default items-center rounded-pill bg-bg-sidebar px-1.5 align-[1px] font-mono text-[12px] font-medium text-text-secondary tabular-nums focus-ring hover:text-accent-record-text"
+      className="ml-0.5 inline-flex h-5 cursor-default items-center rounded-pill bg-bg-sidebar px-1.5 align-[1px] font-mono text-[12px] font-medium text-text-secondary tabular-nums focus-ring hover:text-accent-record-text"
     >
       [{n}]
     </button>
@@ -106,7 +106,7 @@ function ErrorNotice({ error, onRetry }: { error: AskError; onRetry?: () => void
       ) : null}
       {action === 'set-up-provider' ? (
         <Button size="sm" className="mt-1" onPress={() => dialogs.open('preferences')}>
-          {_('Set Up a Provider')}
+          {_('Set up a provider')}
         </Button>
       ) : null}
       {action === 'add-credits' ? (
@@ -117,11 +117,11 @@ function ErrorNotice({ error, onRetry }: { error: AskError; onRetry?: () => void
             icon="external"
             onPress={() => void bridge.openExternal(error.link!)}
           >
-            {_('Add Credits')}
+            {_('Add credits')}
           </Button>
         ) : (
           <Button size="sm" className="mt-1" onPress={() => dialogs.open('preferences')}>
-            {_('Switch Provider')}
+            {_('Switch provider')}
           </Button>
         )
       ) : null}

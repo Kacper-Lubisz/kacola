@@ -197,7 +197,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     // hold the stream after the third text delta: a deterministic mid-stream state to look at
     const release = ctx.api.holdAfter(9)
     const before = await h.head(SEED.retro)
-    await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
+    await h.w().getByRole('button', { name: 'Enhance notes' }).click()
     await h.w().getByRole('progressbar', { name: 'Enhancing' }).waitFor({ timeout: 10_000 })
     try {
       await h.streamedUpTo('migration thursday')
@@ -286,8 +286,8 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     expect(await list.getByRole('listitem').count()).toBe(3)
     // Share summary → Copy Summary: the action items as a task list
     await h.w().getByRole('button', { name: 'Share summary' }).click()
-    const share = h.w().getByRole('dialog', { name: 'Share Summary' })
-    await share.getByRole('button', { name: 'Copy Summary' }).click()
+    const share = h.w().getByRole('dialog', { name: 'Share summary' })
+    await share.getByRole('button', { name: 'Copy summary' }).click()
     await h.toast('Summary copied').waitFor({ timeout: 5000 })
     await share.waitFor({ state: 'detached' })
     const copied = await ctx.app.evaluateMain(({ clipboard }) => clipboard.readText())
@@ -301,7 +301,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
   })
 
   it('copies the notes to the clipboard as markdown', async () => {
-    await h.notesAction('Copy Notes as Markdown')
+    await h.notesAction('Copy notes as markdown')
     await h.toast('Notes copied as Markdown').waitFor({ timeout: 5000 })
     const pasted = await ctx.app.evaluateMain(({ clipboard }) => clipboard.readText())
     const note = await h.head(SEED.retro)
@@ -329,7 +329,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
         return { canceled: false, filePath: path }
       }) as typeof dialog.showSaveDialog
     }, out)
-    await h.notesAction('Export Notes…')
+    await h.notesAction('Export notes…')
     await waitFor(() => existsSync(out), 10_000, 'the exported file')
     await h.toast('Notes exported to').waitFor({ timeout: 5000 })
     const note = await h.head(SEED.retro)
@@ -349,7 +349,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     await ctx.app.evaluateMain(({ dialog }) => {
       dialog.showSaveDialog = (async () => ({ canceled: true, filePath: '' })) as typeof dialog.showSaveDialog
     })
-    await h.notesAction('Export Notes…')
+    await h.notesAction('Export notes…')
     await new Promise((r) => setTimeout(r, 500))
     expect(await h.toast('Notes exported to').count()).toBe(0)
   })
@@ -357,7 +357,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
   it('a refusal leaves the notes exactly as they were and says so', async () => {
     const before = await h.versions(SEED.retro)
     ctx.api.enqueue(...loadCassette(join(CASSETTES, 'refusal.json')))
-    await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
+    await h.w().getByRole('button', { name: 'Enhance notes' }).click()
     const alert = h.w().getByRole('status', { name: /Your notes were not changed/ })
     await alert.waitFor({ timeout: 20_000 })
     expect(await alert.textContent()).toMatch(/notes were not changed/)
@@ -376,7 +376,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
       ...limited,
       headers: { ...limited.headers, 'retry-after': '0', 'retry-after-ms': '10' },
     })
-    await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
+    await h.w().getByRole('button', { name: 'Enhance notes' }).click()
     const alert = h.w().getByRole('status', { name: /Your notes were not changed/ })
     await alert.waitFor({ timeout: 20_000 })
     expect(await alert.textContent()).toContain('limiting requests')
@@ -385,7 +385,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     // the provider recovers: Try Again enhances with the same template
     ctx.api.always(null)
     ctx.api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
-    await alert.getByRole('button', { name: 'Try Again' }).click()
+    await alert.getByRole('button', { name: 'Try again' }).click()
     const draft = before.filter((v) => v.kind !== 'enhanced').at(-1)!
     await waitFor(
       async () =>
@@ -416,7 +416,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
   it('restores an old version from the history: a new version on top, nothing removed', async () => {
     const before = await h.versions(SEED.retro)
     const typed = before.filter((v) => v.kind === 'user' && v.markdown === TYPED).at(-1)!
-    await h.notesAction('Version History…')
+    await h.notesAction('Version history…')
     const dialog = h.w().getByRole('dialog', { name: 'Version History' })
     await dialog.waitFor()
     const list = dialog.getByRole('listbox', { name: 'Versions' })
@@ -440,7 +440,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     expect(await h.head(SEED.retro)).toMatchObject({ version: after.at(-1)!.version, markdown: TYPED })
     await waitFor(async () => (await h.editorText()) === TYPED, 10_000, 'the editor to show the restore')
     // and the restore is itself undoable from the same list
-    await h.notesAction('Version History…')
+    await h.notesAction('Version history…')
     await dialog.waitFor()
     expect(await dialog.getByRole('option').first().textContent()).toContain(
       `Restored version ${typed.version}`,
@@ -450,8 +450,8 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
   })
 
   it('creates a custom template, is suggested by it, enhances with it, and deletes it', async () => {
-    await h.w().getByRole('button', { name: 'Choose a Template' }).click()
-    await h.w().getByRole('menuitem', { name: 'Manage Templates…' }).click()
+    await h.w().getByRole('button', { name: 'Choose a template' }).click()
+    await h.w().getByRole('menuitem', { name: 'Manage templates…' }).click()
     const dialog = h.w().getByRole('dialog', { name: 'Notes Templates' })
     await dialog.waitFor()
     // the built-ins are listed, read-only
@@ -481,9 +481,9 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     // "Sprint retro" now matches its keyword: suggested, and the default for Enhance
     await h
       .w()
-      .getByText('Retrospective template, suggested by the meeting title ("retro")')
+      .getByText('Retrospective template, suggested by the meeting title (“retro”)')
       .waitFor({ timeout: 10_000 })
-    await h.w().getByRole('button', { name: 'Choose a Template' }).click()
+    await h.w().getByRole('button', { name: 'Choose a template' }).click()
     await h
       .w()
       .getByRole('menuitem', { name: /Enhance as Retrospective \(suggested\)/ })
@@ -491,7 +491,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     await h.w().keyboard.press('Escape')
     ctx.api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
     const headBefore = await h.head(SEED.retro)
-    await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
+    await h.w().getByRole('button', { name: 'Enhance notes' }).click()
     await waitFor(
       async () =>
         (await h.versions(SEED.retro)).some(
@@ -513,8 +513,8 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     )
 
     // delete it again
-    await h.w().getByRole('button', { name: 'Choose a Template' }).click()
-    await h.w().getByRole('menuitem', { name: 'Manage Templates…' }).click()
+    await h.w().getByRole('button', { name: 'Choose a template' }).click()
+    await h.w().getByRole('menuitem', { name: 'Manage templates…' }).click()
     await dialog.waitFor()
     await dialog.getByRole('option', { name: /Retrospective/ }).click()
     await dialog.getByRole('button', { name: 'Delete Template' }).click()
@@ -569,7 +569,7 @@ describe('Notes in dark and high contrast', () => {
 
       ctx.api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
       const release = ctx.api.holdAfter(9)
-      await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
+      await h.w().getByRole('button', { name: 'Enhance notes' }).click()
       try {
         await h.streamedUpTo('migration thursday')
         await h.axe()
@@ -608,7 +608,7 @@ describe('Notes in dark and high contrast', () => {
       await waitFor(async () => (await h.head(SEED.retro)).markdown === TYPED, 10_000, 'saved')
       await h.axe()
       ctx.api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
-      await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
+      await h.w().getByRole('button', { name: 'Enhance notes' }).click()
       await waitFor(
         async () => (await h.versions(SEED.retro)).some((v) => v.kind === 'merge'),
         20_000,

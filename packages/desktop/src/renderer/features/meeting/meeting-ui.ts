@@ -24,3 +24,10 @@ export const useMeetingUi = create<MeetingUi>((set) => ({
   reveal: (agendaId, shown) => set((s) => ({ revealed: { ...s.revealed, [agendaId]: shown } })),
   markStarted: (id) => set((s) => ({ startedHere: new Set([...s.startedHere, id]) })),
 }))
+
+/** The rail beside the page, the same in Live and Outcome so nothing moves when the meeting ends. */
+export const RAIL =
+  'flex shrink-0 flex-col gap-4 overflow-y-auto border-b border-border-subtle p-3 md:w-[272px] md:border-r md:border-b-0'
+
+/** The suggestion card and the Ask bar line up with the notepad's text (its 720 px column less 24 px either side, plus their own 16 px padding). */
+export const OVER_NOTEPAD = 'max-w-[704px]'

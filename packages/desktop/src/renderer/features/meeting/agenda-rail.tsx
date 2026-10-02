@@ -208,7 +208,7 @@ export function OutcomeRecap({ view }: { view: AgendaView }) {
   const counts = statusCounts(items)
   const unsettled = counts.open + counts['in-progress'] + counts.parked
   return (
-    <section aria-labelledby="recap-agenda" className="flex flex-col gap-2">
+    <section aria-labelledby="recap-agenda" className="flex flex-col gap-2 px-1.5">
       <div className="flex items-baseline justify-between gap-2">
         <h2 id="recap-agenda" className="m-0 type-headline text-text-primary">
           {_('Agenda')}
@@ -229,9 +229,10 @@ export function OutcomeRecap({ view }: { view: AgendaView }) {
               size={16}
               className={`mt-0.5 shrink-0 ${i.status === 'covered' ? 'text-status-success' : 'text-text-tertiary'}`}
             />
-            <span className="flex min-w-0 flex-col">
+            {/* the state word sits at the end of the item's line, and drops under it when there is no room */}
+            <span className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-2">
               <span
-                className={`type-callout break-words ${i.status === 'covered' ? 'text-text-secondary' : 'text-text-primary'}`}
+                className={`min-w-[7rem] flex-1 type-callout break-words ${i.status === 'covered' ? 'text-text-secondary' : 'text-text-primary'}`}
               >
                 {i.text}
               </span>
@@ -257,7 +258,7 @@ export function PrivateContext({ view, hidden }: { view: AgendaView; hidden: boo
   return (
     <section
       aria-label={_('Private context')}
-      className="flex flex-col gap-2 rounded-lg border border-dashed border-border-strong px-3 py-2.5"
+      className="flex flex-col gap-2 rounded-lg bg-bg-sidebar px-3 py-2.5"
     >
       <div className="flex items-start gap-2">
         <Icon name={shown ? 'lock' : 'observe'} size={15} className="mt-0.5 shrink-0 text-text-secondary" />
@@ -277,7 +278,7 @@ export function PrivateContext({ view, hidden }: { view: AgendaView; hidden: boo
       </div>
       {shown
         ? cards.map((c) => (
-            <div key={c.id} className="flex flex-col gap-0.5">
+            <div key={c.id} className="flex flex-col gap-0.5 pl-[23px]">
               {cards.length > 1 ? (
                 <span className="type-caption font-semibold text-text-primary">{c.title}</span>
               ) : null}

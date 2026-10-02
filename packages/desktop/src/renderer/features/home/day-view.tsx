@@ -8,6 +8,7 @@ import { type ReactNode, useState } from 'react'
 import { useStore } from 'zustand'
 import { useServices } from '../../data/services.tsx'
 import { Button, Card, Icon, IconButton, type IconName } from '../../design/primitives/index.ts'
+import { MetaDot } from '../meeting/header.tsx'
 import { providerLabel, useJoin, useOpenPrep } from '../meeting/join.ts'
 import { useMissingModels } from '../onboarding/onboarding-state.ts'
 import { useRecorder } from '../sessions/recorder.ts'
@@ -141,15 +142,24 @@ function CalendarNoticeLine() {
   return (
     <p
       role="status"
-      className="m-0 flex flex-wrap items-center gap-x-2 gap-y-0.5 type-callout text-text-secondary"
+      className="m-0 grid grid-cols-[15px_minmax(0,1fr)] items-start gap-x-2 gap-y-0.5 type-callout text-text-secondary"
     >
-      <Icon name="calendar" size={15} className="shrink-0 text-text-tertiary" />
-      <span>{notice.text}</span>
-      <Button size="sm" variant="link" isDisabled={running} onPress={() => void refresh(api, queryClient)}>
-        {running ? _('Refreshing…') : _('Refresh')}
-      </Button>
+      <Icon name="calendar" size={15} className="mt-[3px] text-text-tertiary" />
+      {/* Refresh follows the sentence (it wraps with it on a narrow window); ink, not record red */}
+      <span>
+        <span>{notice.text}</span>{' '}
+        <Button
+          size="sm"
+          variant="link"
+          className="!inline !text-text-primary underline"
+          isDisabled={running}
+          onPress={() => void refresh(api, queryClient)}
+        >
+          {running ? _('Refreshing…') : _('Refresh')}
+        </Button>
+      </span>
       {notice.detail ? (
-        <span className="basis-full pl-[23px] type-caption text-text-tertiary">{notice.detail}</span>
+        <span className="col-start-2 type-caption text-text-tertiary">{notice.detail}</span>
       ) : null}
     </p>
   )
@@ -166,8 +176,9 @@ function AllDayStrip({ meetings }: { meetings: Meeting[] }) {
       <ul className="m-0 flex min-w-0 list-none flex-wrap gap-x-1 p-0 text-text-secondary">
         {meetings.map((m, i) => (
           <li key={m.id} className="min-w-0 break-words">
-            {i > 0 ? <span aria-hidden="true">· </span> : null}
             {m.title}
+            {/* the dot ends the line it is on, so a wrapped line never starts with one */}
+            {i < meetings.length - 1 ? <span aria-hidden="true"> ·</span> : null}
           </li>
         ))}
       </ul>
@@ -253,7 +264,7 @@ function Row({
         <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5">
           <span
             title={title}
-            className={`max-w-full truncate leading-6 ${quiet ? 'type-body text-text-secondary' : 'type-body-strong text-text-primary'}`}
+            className={`line-clamp-2 max-w-full break-words leading-6 ${quiet ? 'type-body text-text-secondary' : 'type-body-strong text-text-primary'}`}
           >
             {title}
           </span>
@@ -413,13 +424,21 @@ function ReadinessLine() {
 function MeetingFacts({ m }: { m: Meeting }) {
   const provider = providerLabel(m.join?.provider)
   return (
-    <p className="m-0 flex flex-wrap items-center gap-x-2 type-callout text-text-secondary">
+    <p className="m-0 flex flex-wrap items-center gap-x-1.5 type-callout text-text-secondary">
       <span className="font-mono text-[13px] tabular-nums">
         {clock(m.start)}–{clock(m.end)}
       </span>
-      {provider ? <span>· {provider}</span> : null}
+      {provider ? (
+        <>
+          <MetaDot />
+          <span>{provider}</span>
+        </>
+      ) : null}
       {m.attendees > 1 ? (
-        <span>· {fmt(ngettext('{n} person', '{n} people', m.attendees), { n: m.attendees })}</span>
+        <>
+          <MetaDot />
+          <span>{fmt(ngettext('{n} person', '{n} people', m.attendees), { n: m.attendees })}</span>
+        </>
       ) : null}
     </p>
   )
@@ -444,7 +463,9 @@ function NextMeeting({ entry: e, now }: { entry: Extract<DayEntry, { kind: 'meet
             <h3 className="m-0 type-title1 break-words text-text-primary">{m.title}</h3>
             <MeetingFacts m={m} />
           </div>
-          <p className="m-0 type-headline text-text-primary">{countdown(m.start, m.end, now)}</p>
+          <p className="m-0 type-headline text-text-primary first-letter:uppercase">
+            {countdown(m.start, m.end, now)}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-md bg-bg-sidebar px-3 py-2 type-callout">
           {e.agenda ? (
@@ -550,7 +571,9 @@ function CurrentEntry({
           {live ? (
             <RecordingClock s={s!} />
           ) : m ? (
-            <p className="m-0 type-headline text-text-primary">{countdown(m.start, m.end, now)}</p>
+            <p className="m-0 type-headline text-text-primary first-letter:uppercase">
+              {countdown(m.start, m.end, now)}
+            </p>
           ) : null}
         </div>
         {!live && m && !s && (e.agenda || (sayReadiness && !ready.ok)) ? (

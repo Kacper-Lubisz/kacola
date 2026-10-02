@@ -225,7 +225,7 @@ describe('keyboard-only walkthrough against the real daemon', () => {
       'the typed notes saved',
     )
     api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
-    await tabTo(/^button:Enhance Notes$/, { reverse: true })
+    await tabTo(/^button:Enhance notes$/, { reverse: true })
     await key('Enter')
     const merged = await poll(
       async () =>

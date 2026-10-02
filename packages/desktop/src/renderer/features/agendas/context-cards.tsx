@@ -171,7 +171,7 @@ export function ContextTab({ view }: { view: AgendaView }) {
         </section>
       ) : (
         <Button icon="add" className="self-start" onPress={() => setAdding(true)}>
-          {_('Add a Card')}
+          {_('Add card')}
         </Button>
       )}
     </div>

@@ -97,7 +97,9 @@ export class Atlas {
     const e = entry(id)
     if (e.surface !== this.surface) throw new Error(`atlas: ${id} belongs to the ${e.surface} surface`)
     for (const l of [o.expect].flat()) await l.waitFor({ state: 'visible', timeout: 20_000 })
-    const widths = o.widths ?? (e.responsive ? WIDTHS_MAIN : WIDTHS_ONE)
+    // GNOMEOLA_ATLAS_ALL_WIDTHS=1: every shot at the main widths too (for a design review of a run)
+    const widths =
+      o.widths ?? (e.responsive || process.env.GNOMEOLA_ATLAS_ALL_WIDTHS === '1' ? WIDTHS_MAIN : WIDTHS_ONE)
     const files: CapturedFile[] = []
     const original = page.viewportSize() ?? { width: 1280, height: this.opts.height ?? HEIGHT }
     for (const width of widths) {

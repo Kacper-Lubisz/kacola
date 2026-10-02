@@ -115,11 +115,11 @@ export function PrepView({ view }: { view: AgendaView }) {
   const sharing = Boolean(share && (share.shared || share.state === 'revoked'))
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto grid w-full max-w-[1160px] gap-8 px-4 py-6 sm:px-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid w-full max-w-[1400px] gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex min-w-0 flex-col gap-6">
           <ShareBanner view={view} status={share} />
-          <section aria-labelledby="prep-agenda" className="flex flex-col gap-4">
-            <h2 id="prep-agenda" className="m-0 type-title2 text-text-primary">
+          <section aria-labelledby="prep-agenda" className="flex flex-col gap-3">
+            <h2 id="prep-agenda" className="m-0 type-headline text-text-primary">
               {_('Agenda')}
             </h2>
             {carried ? (

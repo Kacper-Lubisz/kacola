@@ -152,7 +152,7 @@ describe('desktop: calendar meetings and the calendar-based template suggestion'
     await w().getByRole('heading', { level: 1, name: 'Chat with Sam' }).waitFor({ timeout: 10_000 })
     // the outcome page carries the notes (no tabs)
     await w()
-      .getByText('Interview template, suggested by the calendar event ("interview")', { exact: true })
+      .getByText('Interview template, suggested by the calendar event (“interview”)', { exact: true })
       .waitFor({ timeout: 10_000 })
     // the daemon agrees, and Enhance defaults to it
     const { suggested } = await daemon.client.call('listTemplates', { query: { sessionId } })
@@ -161,7 +161,7 @@ describe('desktop: calendar meetings and the calendar-based template suggestion'
       reason: 'keyword',
       matched: { keyword: 'interview', source: 'calendar' },
     })
-    await w().getByRole('button', { name: 'Choose a Template' }).click()
+    await w().getByRole('button', { name: 'Choose a template' }).click()
     await w()
       .getByRole('menuitem', { name: /Enhance as Interview \(suggested\)/ })
       .waitFor({ timeout: 5000 })

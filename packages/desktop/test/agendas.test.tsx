@@ -266,7 +266,7 @@ describe('agenda editor', () => {
     expect(screen.getByRole('list', { name: 'Goals' }).textContent).toContain('agree the promo timeline')
 
     fireEvent.change(screen.getByLabelText('New item'), { target: { value: 'Budget sign-off' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add Item' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
     // optimistic: there before the daemon answered (its row is pending: no edit yet)
     await until(() => within(list).getAllByRole('row').length === 4)
     await until(() => app.daemon.calls.includes('addAgendaItems'))
@@ -303,7 +303,7 @@ describe('agenda editor', () => {
   it('moves an item down from its menu (the keyboard path) and sends the full order', async () => {
     const { app } = mount({ view: agendaView(), path: '/agendas/agd_1' })
     fireEvent.click(await screen.findByRole('button', { name: 'More for “Promo timeline”' }))
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Move Down' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Move down' }))
     await until(() => app.daemon.calls.includes('reorderAgendaItems'))
     expect(app.daemon.log.find((c) => c.name === 'reorderAgendaItems')!.opts.body).toEqual({
       itemIds: ['Hiring plan', 'Promo timeline', 'Offsite dates'],
@@ -1221,7 +1221,7 @@ describe('team sharing', () => {
       },
     })
     fireEvent.click(await screen.findByRole('button', { name: 'Share summary' }))
-    const dlg = await screen.findByRole('dialog', { name: 'Share Summary' })
+    const dlg = await screen.findByRole('dialog', { name: 'Share summary' })
     expect(dlg.textContent).toContain('# 1:1 with Ana')
     const sw = await within(dlg).findByRole('switch', { name: /Share recap/ })
     expect((sw as HTMLInputElement).checked).toBe(false)

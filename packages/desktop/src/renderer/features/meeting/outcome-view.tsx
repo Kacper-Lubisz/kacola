@@ -12,7 +12,7 @@ import { useNotesFeed } from '../notes/notes-data.ts'
 import type { NotesEditorHandle } from '../notes/notes-editor.tsx'
 import { OutcomeRecap, PrivateContext } from './agenda-rail.tsx'
 import { AskBar } from './ask-bar.tsx'
-import { useMeetingUi } from './meeting-ui.ts'
+import { OVER_NOTEPAD, RAIL, useMeetingUi } from './meeting-ui.ts'
 import { OutcomeNotes } from './notepad.tsx'
 import { buildOutcome, type Outcome, ownerLabel, summaryMarkdown } from './outcome.ts'
 import { atLine } from './search-params.ts'
@@ -65,7 +65,7 @@ function OutcomeBlock({ outcome, sessionId }: { outcome: Outcome; sessionId: str
                     onPress={() => cite(d.evidence!.segmentId!)}
                     aria-label={fmt(_('Show in transcript: “{quote}”'), { quote: d.evidence.quote })}
                   >
-                    {_('Where')}
+                    <span className="max-sm:hidden">{_('Where')}</span>
                   </Button>
                 ) : null}
               </li>
@@ -194,7 +194,7 @@ export function ShareSummaryButton({
         {_('Share summary')}
       </Button>
       <Dialog
-        title={_('Share Summary')}
+        title={_('Share summary')}
         isOpen={open}
         onOpenChange={setOpen}
         size="lg"
@@ -205,14 +205,14 @@ export function ShareSummaryButton({
               onPress={() =>
                 void bridge
                   .saveTextFile({
-                    title: _('Save Summary'),
+                    title: _('Save summary'),
                     defaultName: `${title.replace(/[^\p{L}\p{N} ._-]+/gu, ' ').trim() || 'summary'}.md`,
                     text,
                   })
                   .then((r) => r.saved && toast(fmt(_('Summary saved to {path}'), { path: r.path })))
               }
             >
-              {_('Save as File…')}
+              {_('Save as file…')}
             </Button>
             <Button
               variant="primary"
@@ -224,7 +224,7 @@ export function ShareSummaryButton({
                 })
               }
             >
-              {_('Copy Summary')}
+              {_('Copy summary')}
             </Button>
           </>
         }
@@ -285,11 +285,13 @@ export function OutcomeView({
   const setAsk = useMeetingUi((s) => s.setAsk)
   const carried = data.outcome.carried.length
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col md:flex-row">
+    // On a narrow window the page is one scrolling column with the outcome first and the agenda recap
+    // after the notes (the recap repeats what the outcome says; it must not push it off the screen).
+    <div className="relative flex min-h-0 flex-1 flex-col max-md:overflow-y-auto md:flex-row">
       {view ? (
         <aside
           aria-label={_('Agenda and context')}
-          className="flex shrink-0 flex-col gap-4 overflow-y-auto border-b border-border-subtle p-4 md:w-[256px] md:border-r md:border-b-0"
+          className={`${RAIL} max-md:order-last max-md:overflow-visible max-md:border-t max-md:border-b-0`}
         >
           <OutcomeRecap view={view} />
           {carried && view.agenda.meeting?.recurring ? (
@@ -311,8 +313,8 @@ export function OutcomeView({
           <PrivateContext view={view} hidden={false} />
         </aside>
       ) : null}
-      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="flex min-w-0 flex-col md:relative md:min-h-0 md:flex-1">
+        <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
           <div className="mx-auto flex w-full max-w-[780px] flex-col gap-6 px-4 py-6 sm:px-8">
             {session.status === 'failed' && session.error ? (
               <Banner tone="danger" title={fmt(_('Recording failed: {reason}'), { reason: session.error })} />
@@ -324,8 +326,8 @@ export function OutcomeView({
           </div>
         </div>
         {askOpen ? (
-          <div className="absolute inset-x-0 bottom-4 z-[1] flex justify-center px-4 sm:px-6">
-            <div className="w-full max-w-[760px]">
+          <div className="fixed inset-x-0 bottom-4 z-[1] flex justify-center px-4 sm:px-6 md:absolute">
+            <div className={`w-full ${OVER_NOTEPAD}`}>
               <AskBar
                 askKey={session.id}
                 sessionId={session.id}

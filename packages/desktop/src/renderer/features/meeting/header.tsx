@@ -57,7 +57,7 @@ export function MeetingHeader({
         <div className="flex min-w-[min(100%,18rem)] flex-1 flex-col gap-1">
           {title}
           {meta ? (
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 type-callout text-text-secondary">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 type-callout text-text-secondary">
               {meta}
             </div>
           ) : null}
@@ -65,6 +65,15 @@ export function MeetingHeader({
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
     </>
+  )
+}
+
+/** The separator between a header's facts ("14:00–14:30 · Work · Repeats"): its own element, so the space either side is the same. */
+export function MetaDot() {
+  return (
+    <span aria-hidden="true" className="text-text-tertiary">
+      ·
+    </span>
   )
 }
 
@@ -86,9 +95,7 @@ export function RecordingPill({ session }: { session: Session }) {
   return (
     <span
       className={`inline-flex h-9 items-center gap-2 rounded-pill border px-3.5 ${
-        recording
-          ? 'border-border-default bg-bg-surface'
-          : 'border-dashed border-border-strong bg-transparent'
+        recording ? 'border-border-default bg-bg-surface' : 'border-transparent bg-bg-sidebar'
       }`}
     >
       <span

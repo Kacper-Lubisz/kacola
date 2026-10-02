@@ -104,7 +104,7 @@ export function GoalsEditor({ view }: { view: AgendaView }) {
           className="flex-1"
         />
         <Button onPress={add} isDisabled={!draft.trim()} icon="add">
-          {_('Add Goal')}
+          {_('Add goal')}
         </Button>
       </div>
     </section>
@@ -205,7 +205,7 @@ export function ItemsEditor({ view, readOnly = false }: { view: AgendaView; read
           />
           <Select label={_('Kind')} labelHidden options={kindOptions()} value={kind} onChange={setKind} />
           <Button variant="primary" icon="add" onPress={submit} isDisabled={!text.trim()}>
-            {_('Add Item')}
+            {_('Add item')}
           </Button>
         </div>
       )}
@@ -290,12 +290,15 @@ function ItemRow({
     <div className="relative flex min-w-0 items-start gap-2">
       <StatusMenu agendaId={agendaId} item={item} isDisabled={pending} />
       <div className="flex min-w-0 flex-1 flex-col gap-1 pt-1">
-        <span
-          className={`type-body break-words ${item.status === 'skipped' ? 'text-text-secondary line-through' : 'text-text-primary'}`}
-        >
-          {item.text}
-        </span>
-        <ItemMeta view={view} item={item} change={change} names={names} />
+        {/* the kind and owner sit on the item's line (wrapping under it only when there is no room), so rows keep one rhythm */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span
+            className={`min-w-0 type-body break-words ${item.status === 'skipped' ? 'text-text-secondary line-through' : 'text-text-primary'}`}
+          >
+            {item.text}
+          </span>
+          <ItemMeta view={view} item={item} change={change} names={names} />
+        </div>
         {item.outcome ? (
           <p className="m-0 type-callout break-words text-text-secondary">{item.outcome}</p>
         ) : null}
@@ -335,14 +338,14 @@ function ItemRow({
           }
         >
           <MenuItem icon="arrowUp" isDisabled={index === 0} onAction={() => onMove(index, index - 1)}>
-            {_('Move Up')}
+            {_('Move up')}
           </MenuItem>
           <MenuItem
             icon="arrowDown"
             isDisabled={index === count - 1}
             onAction={() => onMove(index, index + 1)}
           >
-            {_('Move Down')}
+            {_('Move down')}
           </MenuItem>
           {onDelete ? <MenuSeparator /> : null}
           {onDelete ? (

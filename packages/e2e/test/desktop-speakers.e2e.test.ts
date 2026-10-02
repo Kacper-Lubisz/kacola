@@ -249,14 +249,14 @@ describe('desktop speakers against the real daemon', () => {
     await micIsMe()
   })
 
-  it('splits one line off to a new speaker ("Someone Else Said This"); a mic line cannot be', async () => {
+  it('splits one line off to a new speaker ("Someone else said this"); a mic line cannot be', async () => {
     const row = transcriptList(w()).locator('[role=option][aria-label^="Ana at "]').first()
     const name = (await row.getAttribute('aria-label'))!
     await row.click()
     const text = name.replace(/^Ana at \d+:\d+: /, '').replace(/ \((provisional|in progress)\)$/, '')
     const seg = (await segments()).find((s) => s.text === text && s.speaker === 'Ana')!
     expect(seg, name).toBeDefined()
-    await w().getByRole('button', { name: 'Someone Else Said This' }).click()
+    await w().getByRole('button', { name: 'Someone else said this' }).click()
     await poll(
       async () => {
         const now = (await segments()).find((s) => s.id === seg.id)!
@@ -292,7 +292,7 @@ describe('desktop speakers against the real daemon', () => {
     await w()
       .getByText(/your microphone is always you/)
       .waitFor({ timeout: 3000 })
-    expect(await w().getByRole('button', { name: 'Someone Else Said This' }).count()).toBe(0)
+    expect(await w().getByRole('button', { name: 'Someone else said this' }).count()).toBe(0)
     await micIsMe()
     expect(await app.axe()).toEqual([])
     expect(app.problems()).toEqual([])

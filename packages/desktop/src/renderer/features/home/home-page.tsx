@@ -73,7 +73,8 @@ export function HomePage() {
           </>
         }
       />
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      {/* the gutter is kept when results are short, so the search box never jumps sideways as you type */}
+      <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable_both-edges]">
         <div className="mx-auto flex w-full max-w-[880px] flex-col gap-6 px-4 pt-4 pb-10 sm:px-8">
           {connection.kind === 'reconnecting' ? (
             <Banner
@@ -90,7 +91,7 @@ export function HomePage() {
               )}
               action={
                 <Button size="sm" onPress={() => dialogs.open('onboarding')}>
-                  {_('Set Up')}
+                  {_('Set up')}
                 </Button>
               }
             />

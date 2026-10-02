@@ -254,12 +254,12 @@ describe('desktop: agendas', () => {
     // keyboard reorder: the item menu's Move Up
     await w().getByRole('button', { name: 'More for “Hiring plan”' }).focus()
     await w().keyboard.press('Enter')
-    await w().getByRole('menuitem', { name: 'Move Up' }).waitFor()
+    await w().getByRole('menuitem', { name: 'Move up' }).waitFor()
     await w().keyboard.press('Enter')
     await until(
       () => texts(id),
       (t) => t[0] === 'Hiring plan',
-      'Move Up',
+      'Move up',
     )
 
     // drag reorder: the last item's grip onto the first row
@@ -282,7 +282,7 @@ describe('desktop: agendas', () => {
 
     // goals
     await w().getByRole('textbox', { name: 'Add a goal' }).fill('settle the offsite')
-    await w().getByRole('button', { name: 'Add Goal' }).click()
+    await w().getByRole('button', { name: 'Add goal' }).click()
     await until(
       async () => (await view(id)).agenda.goals,
       (g) => g.length === 2,
@@ -314,7 +314,7 @@ describe('desktop: agendas', () => {
     await shot('editor', w().getByRole('region', { name: 'Agenda', exact: true }))
 
     // context (beside the agenda, no tabs): a private card, then shared
-    await w().getByRole('button', { name: 'Add a Card' }).click()
+    await w().getByRole('button', { name: 'Add card' }).click()
     await w().getByRole('textbox', { name: 'Card title' }).fill('Last quarter numbers')
     await w().getByRole('textbox', { name: 'Card text' }).fill('Revenue up 12%, hiring behind by two.')
     await w().getByRole('button', { name: 'Add Card' }).click()
@@ -400,7 +400,7 @@ describe('desktop: agendas', () => {
       recurring: true,
     })
     await w()
-      .getByText(/^· now, (just started|started .+ ago)$/)
+      .getByText(/^(just started|started .+ ago)$/)
       .waitFor()
 
     // Send the agenda without a sharing server: it says so, with one action — and never hands out a

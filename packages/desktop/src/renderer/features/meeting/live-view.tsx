@@ -7,7 +7,7 @@ import { useNotesFeed } from '../notes/notes-data.ts'
 import type { NotesEditorHandle } from '../notes/notes-editor.tsx'
 import { LiveChecklist, NoAgenda, PrivateContext } from './agenda-rail.tsx'
 import { AskBar } from './ask-bar.tsx'
-import { useMeetingUi } from './meeting-ui.ts'
+import { OVER_NOTEPAD, RAIL, useMeetingUi } from './meeting-ui.ts'
 import { LiveNotepad, saveStatus } from './notepad.tsx'
 import { SuggestionCard } from './suggestion-card.tsx'
 import { TranscriptPanel } from './transcript-panel.tsx'
@@ -38,26 +38,31 @@ export function LiveView({
   const now = useNow(15_000).getTime()
   return (
     <div className="relative flex min-h-0 flex-1 flex-col md:flex-row">
-      <aside
-        aria-label={_('Agenda and context')}
-        className="flex max-h-[24vh] shrink-0 flex-col gap-4 overflow-y-auto border-b border-border-subtle p-3 md:max-h-none md:w-[272px] md:border-r md:border-b-0"
-      >
-        {view ? <LiveChecklist view={view} /> : <NoAgenda session={session} />}
-        <span className="flex-1" />
-        {view ? <PrivateContext view={view} hidden /> : null}
-      </aside>
+      {/* a call recorded on the spot (no agenda, no calendar meeting) has nothing for the rail: the
+          notepad is the whole screen. With the transcript open on a narrower window, the rail steps
+          aside so the notepad keeps a usable width. */}
+      {view || session.meeting ? (
+        <aside
+          aria-label={_('Agenda and context')}
+          className={`${RAIL} max-h-[24vh] md:max-h-none ${transcript ? 'md:hidden xl:flex' : ''}`}
+        >
+          {view ? <LiveChecklist view={view} /> : <NoAgenda session={session} />}
+          <span className="flex-1" />
+          {view ? <PrivateContext view={view} hidden /> : null}
+        </aside>
+      ) : null}
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="min-h-0 flex-1">
           <LiveNotepad state={state} feed={feed} handle={handle} bottomSpace={48} />
         </div>
         <div className={`${SLOT_HEIGHT} shrink-0 px-4 sm:px-6`}>
-          <div className="mx-auto flex h-full w-full max-w-[760px] flex-col justify-end">
+          <div className={`mx-auto flex h-full w-full ${OVER_NOTEPAD} flex-col justify-end`}>
             {view && !askOpen ? <SuggestionCard view={view} now={now} sessionId={session.id} /> : null}
           </div>
         </div>
         {askOpen ? (
           <div className="absolute inset-x-0 bottom-12 flex justify-center px-4 sm:px-6">
-            <div className="w-full max-w-[760px]">
+            <div className={`w-full ${OVER_NOTEPAD}`}>
               <AskBar
                 askKey={session.id}
                 sessionId={session.id}
@@ -83,7 +88,10 @@ export function LiveView({
             aria-pressed={askOpen}
             onPress={() => setAsk(!askOpen)}
           >
-            {_('Ask')} <Kbd>Ctrl+K</Kbd>
+            {_('Ask')}
+            <span className="max-lg:hidden">
+              <Kbd>Ctrl+K</Kbd>
+            </span>
           </Button>
           <Button
             size="sm"
@@ -92,7 +100,10 @@ export function LiveView({
             aria-pressed={transcript}
             onPress={() => onTranscript(!transcript)}
           >
-            {_('Transcript')} <Kbd>Ctrl+T</Kbd>
+            {_('Transcript')}
+            <span className="max-lg:hidden">
+              <Kbd>Ctrl+T</Kbd>
+            </span>
           </Button>
         </div>
       </div>
