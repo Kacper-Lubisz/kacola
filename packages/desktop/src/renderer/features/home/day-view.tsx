@@ -142,15 +142,24 @@ function CalendarNoticeLine() {
   return (
     <p
       role="status"
-      className="m-0 flex flex-wrap items-center gap-x-2 gap-y-0.5 type-callout text-text-secondary"
+      className="m-0 grid grid-cols-[15px_minmax(0,1fr)] items-start gap-x-2 gap-y-0.5 type-callout text-text-secondary"
     >
-      <Icon name="calendar" size={15} className="shrink-0 text-text-tertiary" />
-      <span>{notice.text}</span>
-      <Button size="sm" variant="link" isDisabled={running} onPress={() => void refresh(api, queryClient)}>
-        {running ? _('Refreshing…') : _('Refresh')}
-      </Button>
+      <Icon name="calendar" size={15} className="mt-[3px] text-text-tertiary" />
+      {/* Refresh follows the sentence (it wraps with it on a narrow window); ink, not record red */}
+      <span>
+        <span>{notice.text}</span>{' '}
+        <Button
+          size="sm"
+          variant="link"
+          className="!inline !text-text-primary underline"
+          isDisabled={running}
+          onPress={() => void refresh(api, queryClient)}
+        >
+          {running ? _('Refreshing…') : _('Refresh')}
+        </Button>
+      </span>
       {notice.detail ? (
-        <span className="basis-full pl-[23px] type-caption text-text-tertiary">{notice.detail}</span>
+        <span className="col-start-2 type-caption text-text-tertiary">{notice.detail}</span>
       ) : null}
     </p>
   )
@@ -167,8 +176,9 @@ function AllDayStrip({ meetings }: { meetings: Meeting[] }) {
       <ul className="m-0 flex min-w-0 list-none flex-wrap gap-x-1 p-0 text-text-secondary">
         {meetings.map((m, i) => (
           <li key={m.id} className="min-w-0 break-words">
-            {i > 0 ? <span aria-hidden="true">· </span> : null}
             {m.title}
+            {/* the dot ends the line it is on, so a wrapped line never starts with one */}
+            {i < meetings.length - 1 ? <span aria-hidden="true"> ·</span> : null}
           </li>
         ))}
       </ul>
