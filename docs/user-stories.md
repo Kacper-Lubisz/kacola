@@ -97,11 +97,51 @@ flowchart TB
   %% shot: LIVEW = record-now__recording__live-transcript
   %% shot: DONE = record-now__stopped__finished
   %% shot: LIB = find-meeting__open__transcript
-  %% shot: NOTES = notes-enhance__review__changes
+  %% shot: NOTES = notes-enhance__applied__notes
   %% shot: CLI = cli-skill__search__hits
   %% shot: MCP = mcp__tools__list
   %% shot: WV = web-viewer__list__sessions
   %% shot: WA = agenda-invitee__web__agenda
+```
+
+## The day
+
+### day — Home is your day; a meeting is one page (Prep → Live → Outcome)
+- **Status:** built (the Day redesign)
+- **Entry points:** opening the app; a meeting on home; Join and record; a search moment.
+- **Steps:** 1. Home at 13:52: search-and-ask on top, today on a time rail with the next meeting expanded
+  (countdown, agenda, "Recording will work", Join and record, Open prep), earlier days below. 2. Search
+  in place of the day: moments that open the meeting at the line; Enter asks, with citations. 3. The
+  meeting's page in Prep: agenda (no timeboxes asked for), context, earlier meetings, Ask. 4. Live,
+  minimal: one recording pill, Pause, Stop, a narrow agenda checklist, the notepad, one suggestion slot;
+  Ask (Ctrl+K) and the transcript (Ctrl+T) on demand; paused is plainly different. 5. Outcome: decided,
+  to do (yours first), carried over, then the notes; the transcript opens at a cited line; Share summary.
+- **States:** `day__home__next-meeting`, `day__search__moments`, `day__search__answer`,
+  `day__prep__agenda`, `day__live__suggestion`, `day__live__ask`, `day__live__paused`,
+  `day__outcome__outcome`, `day__outcome__transcript-cited`, `day__outcome__share-summary`.
+
+```mermaid
+flowchart TD
+  A([Open the app]) --> H[Home: today, the next meeting expanded]
+  H -->|type| S[Moments in place of the day]
+  S -->|Enter| SA[A cited answer]
+  H -->|Open prep| P[Prep: agenda, context, Ask]
+  P -->|Join and record| L[Live: pill, checklist, notepad, one suggestion]
+  L -->|Ctrl+K| LA[Ask bar over the notepad]
+  L -->|Pause| LP[Paused: no red]
+  L -->|Stop| O[Outcome: decided, to do, carried over]
+  O -->|citation| OT[Transcript at the cited line]
+  O --> OS[Share summary]
+  %% shot: H = day__home__next-meeting
+  %% shot: S = day__search__moments
+  %% shot: SA = day__search__answer
+  %% shot: P = day__prep__agenda
+  %% shot: L = day__live__suggestion
+  %% shot: LA = day__live__ask
+  %% shot: LP = day__live__paused
+  %% shot: O = day__outcome__outcome
+  %% shot: OT = day__outcome__transcript-cited
+  %% shot: OS = day__outcome__share-summary
 ```
 
 ## Get started
@@ -477,18 +517,16 @@ flowchart TD
 
 ### ask-across — Ask across meetings
 - **Status:** built
-- **Steps:** 1. Ask › Scope: Last 30 days. 2. The answer cites several meetings; chips open them.
-  3. The same from Claude: `gnomeola ask … --since 14d`.
-- **States:** `ask-across__scope__last-30-days`, `ask-across__answered__cross-meeting`,
-  `ask-across__cli__ask-since`.
+- **Steps:** 1. Home's search-and-ask box: type a question, Enter. 2. The answer cites several meetings
+  (private ones are left out); chips open them at the line. 3. The same from Claude:
+  `gnomeola ask … --since 14d`.
+- **States:** `ask-across__answered__cross-meeting`, `ask-across__cli__ask-since`.
 
 ```mermaid
 flowchart LR
-  A([Ask tab]) --> B[Scope: Last 30 days]
-  B --> C[Answer citing several meetings]
+  A([Home's search-and-ask box]) --> C[Answer citing several meetings]
   C -->|chip| D[That meeting, at that line]
   E([Claude Code]) --> F[gnomeola ask --since 14d]
-  %% shot: B = ask-across__scope__last-30-days
   %% shot: C = ask-across__answered__cross-meeting
   %% shot: F = ask-across__cli__ask-since
 ```
@@ -508,24 +546,22 @@ flowchart LR
   %% shot: C = notes-write__actions__action-items
 ```
 
-### notes-enhance — Enhance notes and review them
+### notes-enhance — Enhance notes
 - **Status:** built
-- **Steps:** 1. Enhance Notes (or Enhance as a template). 2. The enhanced notes stream in. 3. Review: each
-  change side by side, keep or leave out. 4. Apply: the original stays in history, and no word is lost.
-- **States:** `notes-enhance__enhancing__mid-stream`, `notes-enhance__review__changes`,
-  `notes-enhance__applied__notes`, `provider-errors__enhance__no-provider`.
+- **Steps:** 1. Enhance Notes (or Enhance as a template) on the outcome. 2. The tidied notes stream in.
+  3. They replace the draft; Back to my draft restores it (a new version: history never loses a word).
+- **States:** `notes-enhance__enhancing__mid-stream`, `notes-enhance__applied__notes`,
+  `provider-errors__enhance__no-provider`.
 
 ```mermaid
 flowchart TD
   A([Notes]) --> B[Enhance Notes / Enhance as template]
   B --> C[Enhancing: streaming]
-  C --> D[Review Enhanced Notes]
-  D -->|Apply| E[Reviewed notes; original in history]
-  D -->|Discard| A
+  C --> E[The tidied notes replace the draft]
+  E -->|Back to my draft| A
   C -.refused.-> F[Your notes were not enhanced]
   B -.no provider.-> G[Enhancing needs a language model provider]
   %% shot: C = notes-enhance__enhancing__mid-stream
-  %% shot: D = notes-enhance__review__changes
   %% shot: E = notes-enhance__applied__notes
   %% shot: G = provider-errors__enhance__no-provider
 ```
@@ -810,7 +846,8 @@ flowchart LR
   provider; a billing error says to add credits or switch provider; an overloaded provider is retried,
   then explained. Notes are never touched by a failed enhancement.
 - **States:** `provider-errors__ask__no-provider`, `provider-errors__enhance__no-provider`,
-  `provider-errors__ask__no-credits`, `provider-errors__ask__overloaded`.
+  `provider-errors__ask__no-credits`, `provider-errors__ask__overloaded`,
+  `provider-errors__ask__private-meeting`.
 
 ```mermaid
 flowchart TD
@@ -818,7 +855,8 @@ flowchart TD
   B -->|none| C[Questions aren't available: Open Preferences]
   B -->|none, enhance| D[Enhancing needs a provider]
   B -->|no credits| E[No credits left: add credits or switch]
-  B -->|overloaded| F[Retried, then: could not be answered]
+  B -->|overloaded| F[Retried, then: the message and Try Again]
+  B -->|private meeting, cloud provider| G[Private meetings stay on this computer]
   C --> P([Preferences])
   D --> P
   E --> P
@@ -826,6 +864,7 @@ flowchart TD
   %% shot: D = provider-errors__enhance__no-provider
   %% shot: E = provider-errors__ask__no-credits
   %% shot: F = provider-errors__ask__overloaded
+  %% shot: G = provider-errors__ask__private-meeting
 ```
 
 ### calendar-offline — The calendar is unavailable
@@ -894,12 +933,13 @@ flowchart LR
 
 ### agenda-live — The agenda during the meeting
 - **Status:** built in the window (kacola wave 2); some states still planned
-- **Steps:** 1. The live panel shows items open / in progress / covered. 2. An item is checked off from
-  what was said (confidence ≥ 0.8 with evidence, undoable), or "looks covered?" when unsure; manual always
-  wins. 3. One "next talking point" card with a bridge line. 4. Five minutes before the end: what is not
-  covered. 5. The context panel: cards from the agenda and the connected agent.
+- **Steps:** 1. A narrow checklist beside the notepad: covered items ticked and quiet, the current one
+  highlighted; no times. 2. An item is ticked off from what was said ("ticked by kacola", undoable), or
+  "looks covered?" when unsure; manual always wins. 3. One suggestion slot at a time ("Looks covered?",
+  "Say next"), only when there is one. 4. Private context, hidden in case the screen is shared. (The
+  five-minute "not covered" nudge was cut in the Day redesign: no time pressure on the live screen.)
 - **States:** `agenda-live__panel__items`, `agenda-live__check-off__auto-covered`,
-  `agenda-live__suggest__looks-covered`, `agenda-live__next-point__card`, `agenda-live__time__not-covered`,
+  `agenda-live__suggest__looks-covered`, `agenda-live__next-point__card`,
   `agenda-live__context__panel`, `agenda-live__presence__agent`, `agenda-live__topbar__next-point`.
 
 ```mermaid
@@ -909,34 +949,28 @@ flowchart TD
   C -->|covered ≥ 0.8 + evidence| D[Checked off, undoable]
   C -->|0.5–0.8| E[Looks covered?]
   E -->|yes| D
-  B --> F[Next talking point card]
-  B --> G[T-5 min: not covered]
-  B --> H[Context panel]
+  B --> F[One suggestion: Say next]
+  B --> H[Private context: Show]
   F --> T[Top bar: next point]
   %% shot: B = agenda-live__panel__items
   %% shot: D = agenda-live__check-off__auto-covered
   %% shot: E = agenda-live__suggest__looks-covered
   %% shot: F = agenda-live__next-point__card
-  %% shot: G = agenda-live__time__not-covered
   %% shot: H = agenda-live__context__panel
   %% shot: T = agenda-live__topbar__next-point
 ```
 
 ### interview-mode — A job interview
-- **Status:** built in the window (kacola wave 2); some states still planned
-- **Steps:** Candidate: items of kind *info to get*; the live panel splits Told / Not told yet with the
-  answer heard and a quote; a 5-minute "not covered" nudge. Interviewer: competencies covered.
-- **States:** `interview-mode__panel__told-not-told`, `interview-mode__nudge__not-covered`,
-  `interview-mode__interviewer__competencies`.
+- **Status:** planned (the Told / Not told yet split and its nudge were cut from the live screen in the
+  Day redesign; the checklist ticks what was told, and the outcome keeps the answers heard)
+- **Steps:** Candidate: items of kind *info to get*, ticked as they are told; the answer heard is each
+  item's outcome. Interviewer: competencies covered.
 
 ```mermaid
 flowchart LR
   A([Interview agenda]) --> B[Told / Not told yet + answers]
   B --> C[T-5: not covered nudge]
   A --> D[Interviewer: competencies]
-  %% shot: B = interview-mode__panel__told-not-told
-  %% shot: C = interview-mode__nudge__not-covered
-  %% shot: D = interview-mode__interviewer__competencies
 ```
 
 ### agenda-recap — The recap and carry-over

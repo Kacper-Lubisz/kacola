@@ -172,7 +172,7 @@ export function OnboardingDialog({ onFinished }: { onFinished: (skippedMissing: 
 
   return (
     <Dialog
-      title={_('Welcome to gnomeola')}
+      title={_('Welcome to kacola')}
       isOpen
       isDismissable={false}
       onOpenChange={(o) => !o && finish(!allReady)}
@@ -206,7 +206,7 @@ export function OnboardingDialog({ onFinished }: { onFinished: (skippedMissing: 
         <div className="flex items-start gap-4">
           <p className="m-0 type-body text-text-secondary">
             {_(
-              'gnomeola transcribes on this computer. It needs a few speech models first, and access to your microphone and system audio.',
+              'kacola transcribes on this computer. It needs a few speech models first, and access to your microphone and system audio.',
             )}
           </p>
         </div>

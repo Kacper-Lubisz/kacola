@@ -111,6 +111,7 @@ export function ContextTab({ view }: { view: AgendaView }) {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [shared, setShared] = useState(false)
+  const [adding, setAdding] = useState(false)
   const cards = [...view.context].sort((a, b) => Number(b.pinned) - Number(a.pinned))
   const submit = () => {
     if (!title.trim()) return
@@ -124,17 +125,13 @@ export function ContextTab({ view }: { view: AgendaView }) {
           setTitle('')
           setBody('')
           setShared(false)
+          setAdding(false)
         },
       },
     )
   }
   return (
     <div className="flex flex-col gap-4">
-      <p className="m-0 type-callout text-text-secondary">
-        {_(
-          'Background for the meeting. Cards are private unless you share them; shared cards are visible to attendees.',
-        )}
-      </p>
       {cards.length ? (
         <div className="flex flex-col gap-2">
           {cards.map((c) => (
@@ -142,23 +139,41 @@ export function ContextTab({ view }: { view: AgendaView }) {
           ))}
         </div>
       ) : (
-        <p className="m-0 type-callout text-text-secondary">{_('No context cards yet.')}</p>
+        <p className="m-0 type-callout text-text-secondary">
+          {_('Background for the meeting. Cards are private unless you share them.')}
+        </p>
       )}
-      <section aria-labelledby="new-card" className="flex flex-col gap-2">
-        <h2 id="new-card" className="m-0 type-overline text-text-secondary">
-          {_('New card')}
-        </h2>
-        <TextField label={_('Card title')} value={title} onChange={setTitle} />
-        <TextArea label={_('Card text')} value={body} onChange={setBody} rows={4} />
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Switch isSelected={shared} onChange={setShared}>
-            <span className="type-callout">{_('Share with attendees')}</span>
-          </Switch>
-          <Button variant="primary" icon="add" onPress={submit} isDisabled={!title.trim() || add.isPending}>
-            {_('Add Card')}
-          </Button>
-        </div>
-      </section>
+      {adding ? (
+        <section aria-labelledby="new-card" className="flex flex-col gap-2">
+          <h2 id="new-card" className="m-0 type-overline text-text-secondary">
+            {_('New card')}
+          </h2>
+          <TextField label={_('Card title')} value={title} onChange={setTitle} />
+          <TextArea label={_('Card text')} value={body} onChange={setBody} rows={4} />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Switch isSelected={shared} onChange={setShared}>
+              <span className="type-callout">{_('Share with attendees')}</span>
+            </Switch>
+            <span className="flex gap-2">
+              <Button variant="ghost" onPress={() => setAdding(false)}>
+                {_('Cancel')}
+              </Button>
+              <Button
+                variant="primary"
+                icon="add"
+                onPress={submit}
+                isDisabled={!title.trim() || add.isPending}
+              >
+                {_('Add Card')}
+              </Button>
+            </span>
+          </div>
+        </section>
+      ) : (
+        <Button icon="add" className="self-start" onPress={() => setAdding(true)}>
+          {_('Add a Card')}
+        </Button>
+      )}
     </div>
   )
 }

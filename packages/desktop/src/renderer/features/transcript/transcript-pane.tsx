@@ -18,7 +18,7 @@ import { buildRows, citedIndex, findMatches, gapsOf, isLine } from './rows.ts'
 import type { CitationTarget } from './search-params.ts'
 import { TranscriptList, type TranscriptListHandle } from './transcript-list.tsx'
 
-// The Transcript pane: the transcript query (kept current by the EventBridge's folds: segment revisions,
+// The transcript (shown in the meeting's side panel, meeting/transcript-panel.tsx): the transcript query (kept current by the EventBridge's folds: segment revisions,
 // live → final, attribution changes) + the live partial lines (ephemeral store) + recorded gaps, in a
 // virtualised list; search-within in a slim toolbar; the selected line's actions (Someone Else Said
 // This) underneath. Citation targets come in as the session route's ?segment= / ?t= search params.
@@ -170,13 +170,7 @@ export function TranscriptPane({ session }: PaneProps) {
 
   return (
     <section aria-label={_('Transcript')} className="flex min-h-0 flex-1 flex-col">
-      <div className="mx-auto flex h-10 w-full max-w-[860px] shrink-0 items-center gap-2 px-4 sm:px-6">
-        {live ? (
-          <span className="inline-flex items-center gap-1.5 type-caption font-semibold text-accent-record-text">
-            <span aria-hidden className="size-2 rounded-pill bg-accent-record" />
-            {session.status === 'paused' ? _('Paused') : _('Live')}
-          </span>
-        ) : null}
+      <div className="mx-auto flex h-10 w-full  shrink-0 items-center gap-2 px-4 sm:px-6">
         <div className="flex-1" />
         {searching ? (
           <div className="flex items-center gap-1">
@@ -236,17 +230,17 @@ export function TranscriptPane({ session }: PaneProps) {
         )}
       </div>
       {session.status === 'recovered' ? (
-        <div className="mx-auto w-full max-w-[860px] px-4 pb-2 sm:px-6">
+        <div className="mx-auto w-full  px-4 pb-2 sm:px-6">
           <Banner
             tone="warning"
             title={_(
-              'gnomeola stopped unexpectedly while recording this session. Everything up to then was kept.',
+              'kacola stopped unexpectedly while recording this meeting. Everything up to then was kept.',
             )}
           />
         </div>
       ) : null}
       {session.status === 'failed' && session.error ? (
-        <div className="mx-auto w-full max-w-[860px] px-4 pb-2 sm:px-6">
+        <div className="mx-auto w-full  px-4 pb-2 sm:px-6">
           <Banner tone="danger" title={fmt(_('Recording failed: {reason}'), { reason: session.error })} />
         </div>
       ) : null}

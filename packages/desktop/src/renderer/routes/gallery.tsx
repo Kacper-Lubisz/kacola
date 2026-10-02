@@ -18,12 +18,10 @@ import {
   IconButton,
   type IconName,
   Kbd,
-  ListRow,
   Menu,
   MenuGroup,
   MenuItem,
   MenuSeparator,
-  Meter,
   NavigationList,
   NumberField,
   Popover,
@@ -36,7 +34,6 @@ import {
   Select,
   SortableList,
   Spinner,
-  SplitView,
   Switch,
   TabList,
   TabPanel,
@@ -101,7 +98,6 @@ export function Gallery() {
   const [days, setDays] = useState(30)
   const [dialog, setDialog] = useState(false)
   const [alert, setAlert] = useState(false)
-  const [showContent, setShowContent] = useState(false)
   const [last, setLast] = useState('none')
   return (
     <div className="flex h-full flex-col">
@@ -284,13 +280,18 @@ export function Gallery() {
                 selected={selected}
                 onSelect={setSelected}
                 items={[
-                  { id: 'a', title: 'Platform standup', meta: 'Recording · 12:04', live: true },
+                  { id: 'a', title: 'Platform standup', meta: 'Recording · 12:04' },
                   { id: 'b', title: 'Design review: onboarding flow', meta: '5 min ago · Finished · 30:00' },
                   { id: 'c', title: '1:1 with Sam', meta: 'Yesterday · Finished · 25:00' },
                 ].map((r) => ({
                   id: r.id,
                   textValue: r.title,
-                  content: <ListRow title={r.title} meta={r.meta} live={r.live} liveLabel="Recording" />,
+                  content: (
+                    <div className="flex flex-col px-3 py-2">
+                      <span className="type-body-strong">{r.title}</span>
+                      <span className="type-caption text-text-secondary">{r.meta}</span>
+                    </div>
+                  ),
                 }))}
               />
             </div>
@@ -423,14 +424,10 @@ export function Gallery() {
             <Banner tone="success" title="All models are ready" />
           </Section>
 
-          <Section title="Progress and levels" wide>
+          <Section title="Progress" wide>
             <div className="flex flex-wrap items-center gap-6">
               <Spinner label="Loading" />
               <ProgressBar label="Whisper small download progress" value={0.42} showValue className="w-60" />
-              <div className="flex w-60 flex-col gap-2">
-                <Meter label="Microphone level" value={0.35} />
-                <Meter label="System audio level" value={0.9} />
-              </div>
               <span className="flex items-center gap-2 type-callout text-text-secondary">
                 Preferences <Kbd>Ctrl+,</Kbd>
               </span>
@@ -447,30 +444,6 @@ export function Gallery() {
               >
                 <Button variant="primary">Record</Button>
               </EmptyState>
-            </div>
-          </Section>
-
-          <Section title="Sidebar layout (collapsed)" wide>
-            <div className="h-[220px] max-w-[360px] overflow-hidden rounded-lg border border-border-subtle">
-              <SplitView
-                landmarks={false}
-                collapsed
-                sidebarLabel="Demo sidebar"
-                showContent={showContent}
-                onShowContentChange={setShowContent}
-                sidebar={
-                  <div className="p-3">
-                    <Button onPress={() => setShowContent(true)}>Open content</Button>
-                  </div>
-                }
-                content={
-                  <div className="p-3">
-                    <Button icon="back" variant="ghost" onPress={() => setShowContent(false)}>
-                      Back
-                    </Button>
-                  </div>
-                }
-              />
             </div>
           </Section>
 

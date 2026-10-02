@@ -13,7 +13,7 @@ import { markOnboarded } from '../src/ui.ts'
 // daemon whose fake pipeline diarizes the far end (three fixed voices, one-hot "embeddings", recognised
 // against the known voiceprints the way the real diarizer is — the daemon's speakers.int test, driven
 // from the window here): the Preferences switches reach the daemon and follow it; a meeting recorded,
-// paused, resumed and stopped with the window's own Record controls; a far-end speaker named in the
+// paused, resumed and stopped with the window's own recording controls (home's Record now, the header's Pause / Resume / Stop); a far-end speaker named in the
 // Speakers dialog becomes a voiceprint; the next meeting recorded from the window names them by voice.
 
 const PIPELINE = {
@@ -53,7 +53,10 @@ describe('desktop: speaker settings and voiceprints against the real daemon', ()
     const before = new Set(
       (await daemon.client.call('listSessions', { query: {} })).sessions.map((s) => s.id),
     )
-    await w().getByRole('button', { name: 'Record', exact: true }).click()
+    // home's Record now (a meeting page has Back to Today)
+    const back = w().getByRole('button', { name: 'Back to Today' })
+    if (await back.count()) await back.click()
+    await w().getByRole('button', { name: 'Record now' }).click()
     const live = await poll(
       async () =>
         (await daemon.client.call('listSessions', { query: {} })).sessions.find(
@@ -80,11 +83,17 @@ describe('desktop: speaker settings and voiceprints against the real daemon', ()
     await poll(async () => (await farEnd(live.id)).length >= n, 30_000, `${n} far-end segments`)
     await w().getByRole('button', { name: 'Stop', exact: true }).click()
     await poll(async () => (await status(live.id)) === 'stopped', 10_000, 'stopped in the daemon')
-    await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 10_000 })
+    // the page moves on to the meeting's outcome
+    await w().getByRole('button', { name: 'Share summary' }).waitFor({ timeout: 10_000 })
+    // and the transcript beside it (Ctrl+T)
+    await w().keyboard.press('Control+t')
+    await w().getByRole('listbox', { name: 'Transcript' }).waitFor({ timeout: 10_000 })
     return live.id
   }
+  // the outcome page's Meeting actions → Speakers…
   const openSpeakers = async () => {
-    await w().getByRole('button', { name: 'Speakers', exact: true }).click()
+    await w().getByRole('button', { name: 'Meeting actions' }).click()
+    await w().getByRole('menuitem', { name: 'Speakers…' }).click()
     await speakersDialog().getByRole('list', { name: 'Speakers' }).waitFor({ timeout: 5000 })
   }
   const closeSpeakers = () =>
@@ -113,8 +122,8 @@ describe('desktop: speaker settings and voiceprints against the real daemon', ()
       display,
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
     })
-    // no sessions yet: the sidebar shows its empty state, the Record button is there
-    await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 20_000 })
+    // no meetings yet: home offers Record now
+    await w().getByRole('button', { name: 'Record now' }).waitFor({ timeout: 20_000 })
   }, 240_000)
 
   afterEach(() => {

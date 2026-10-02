@@ -1,32 +1,24 @@
 import { _, fmt } from '@gnomeola/ui-core/i18n'
 import { useQuery } from '@tanstack/react-query'
-import { Outlet, useNavigate, useParams } from '@tanstack/react-router'
+import { Outlet, useLocation, useNavigate, useParams } from '@tanstack/react-router'
 import { useEffect, useRef } from 'react'
 import { useStore } from 'zustand'
 import { useServices } from '../data/services.tsx'
-import {
-  Button,
-  EmptyState,
-  HeaderBar,
-  Spinner,
-  SplitView,
-  useSplitView,
-} from '../design/primitives/index.ts'
+import { Button, EmptyState, HeaderBar, Spinner } from '../design/primitives/index.ts'
 import { AboutDialog } from '../features/about/about-dialog.tsx'
 import { DeepLinkHandler } from '../features/agendas/deep-links.tsx'
 import { FollowDialogHost } from '../features/agendas/follow.tsx'
+import { useMeetingUi } from '../features/meeting/meeting-ui.ts'
 import { OnboardingDialog } from '../features/onboarding/onboarding-dialog.tsx'
-import { useOnboarding } from '../features/onboarding/onboarding-state.ts'
+import { MissingModelsContext, useOnboarding } from '../features/onboarding/onboarding-state.ts'
 import { PreferencesDialog } from '../features/preferences/preferences-dialog.tsx'
 import { useRecorder } from '../features/sessions/recorder.ts'
-import { SessionSidebar } from '../features/sessions/session-sidebar.tsx'
 import { DialogsProvider, useDialogs } from '../features/shell/dialogs.tsx'
 import { ShortcutsDialog, useShortcuts } from '../features/shell/shortcuts.tsx'
 
-// The main window: the session list beside the selected session (SplitView; below 560px one pane at a
-// time with a Back button). Before the first snapshot it is a whole-window status page (connecting /
-// can't reach the daemon), as in the GTK app. The window's dialogs, keyboard shortcuts and first-run
-// onboarding live here.
+// The main window: one page at a time — home (your day) or a meeting — with no sidebar; every meeting
+// page has Back to Today. Before the first snapshot it is a whole-window status page (connecting /
+// can't reach the daemon). The window's dialogs, keyboard shortcuts and first-run onboarding live here.
 
 export function MainLayout() {
   return (
@@ -57,7 +49,7 @@ function Window() {
       <Page>
         <EmptyState
           title={_('Connecting…')}
-          description={fmt(_('Reaching gnomeola at {origin}'), { origin: appInfo.daemonUrl })}
+          description={fmt(_('Reaching kacola at {origin}'), { origin: appInfo.daemonUrl })}
         >
           <Spinner label={_('Connecting…')} />
         </EmptyState>
@@ -69,10 +61,11 @@ function Window() {
       <Page>
         <EmptyState
           icon="offline"
-          title={_('Can’t Reach gnomeola')}
-          description={fmt(_('The gnomeola daemon is not answering at {origin}.'), {
-            origin: appInfo.daemonUrl,
-          })}
+          title={_('Can’t Reach kacola')}
+          description={fmt(
+            _('kacola records and transcribes in a background service, and it is not answering at {origin}.'),
+            { origin: appInfo.daemonUrl },
+          )}
         >
           <Button variant="primary" size="lg" onPress={() => events.start()}>
             {_('Try Again')}
@@ -84,29 +77,16 @@ function Window() {
   }
   return (
     <>
-      <Split missing={onboarding.missing.length} />
+      <main className="flex h-full min-h-0 flex-col bg-bg-window">
+        <MissingModelsContext.Provider value={onboarding.missing.length}>
+          <Outlet />
+        </MissingModelsContext.Provider>
+      </main>
       {live ? <DialogHost onOnboardingDone={onboarding.done} /> : null}
       {everLive ? <DeepLinkHandler /> : null}
       {live ? <FollowDialogHost /> : null}
       <Shortcuts />
     </>
-  )
-}
-
-function Split({ missing }: { missing: number }) {
-  const params = useParams({ strict: false }) as { sessionId?: string; agendaId?: string }
-  const navigate = useNavigate()
-  return (
-    <SplitView
-      sidebarLabel={_('Sessions')}
-      contentLabel={_('Session')}
-      showContent={params.sessionId !== undefined || params.agendaId !== undefined}
-      onShowContentChange={(show) => {
-        if (!show) void navigate({ to: '/' })
-      }}
-      sidebar={<SessionSidebar missingModels={missing} />}
-      content={<Outlet />}
-    />
   )
 }
 
@@ -133,7 +113,9 @@ function Shortcuts() {
   const dialogs = useDialogs()
   const recorder = useRecorder()
   const navigate = useNavigate()
-  const params = useParams({ strict: false }) as { sessionId?: string }
+  const location = useLocation()
+  const params = useParams({ strict: false }) as { sessionId?: string; agendaId?: string }
+  const inMeeting = params.sessionId !== undefined || params.agendaId !== undefined
   useShortcuts((a) => {
     switch (a) {
       case 'preferences':
@@ -144,6 +126,7 @@ function Shortcuts() {
         bridge.windowControl('close')
         return
       case 'search':
+        // home's search box; a meeting's transcript panel has its own Ctrl+F
         document.querySelector<HTMLInputElement>('[data-shortcut="search"] input')?.focus()
         return
       case 'menu':
@@ -157,16 +140,17 @@ function Shortcuts() {
         if (recorder.state === 'recording') recorder.pause()
         else if (recorder.state === 'paused') recorder.resume()
         return
-      case 'tab-transcript':
-      case 'tab-ask':
-      case 'tab-notes':
-      case 'tab-details':
-        if (params.sessionId)
-          void navigate({
-            to: '/sessions/$sessionId',
-            params: { sessionId: params.sessionId },
-            search: { tab: a.slice(4) as 'transcript' },
-          })
+      case 'ask':
+        if (inMeeting) useMeetingUi.getState().toggleAsk()
+        else document.querySelector<HTMLInputElement>('[data-shortcut="search"] input')?.focus()
+        return
+      case 'transcript':
+        // either form of the meeting's URL (by recording or by agenda); before a recording there is
+        // no transcript, and the page ignores the panel
+        if (inMeeting) {
+          const open = (location.search as { panel?: string }).panel === 'transcript'
+          void navigate({ to: '.', search: open ? {} : { panel: 'transcript' }, replace: true })
+        }
         return
       case 'quit':
         return // main handles Ctrl+Q before the page sees it
@@ -180,23 +164,6 @@ function Page({ children }: { children: React.ReactNode }) {
     <div className="flex h-full flex-col">
       <HeaderBar />
       <main className="min-h-0 flex-1">{children}</main>
-    </div>
-  )
-}
-
-export function NoSessionSelected() {
-  const { collapsed } = useSplitView()
-  if (collapsed) return null
-  return (
-    <div className="flex h-full flex-col">
-      <HeaderBar controls="end" />
-      <div className="min-h-0 flex-1">
-        <EmptyState
-          icon="mic"
-          title={_('No Session Selected')}
-          description={_('Pick a session in the sidebar, or press Record to start one.')}
-        />
-      </div>
     </div>
   )
 }

@@ -40,8 +40,11 @@ packages/desktop/
     routes/                 router.tsx (the tree), main-layout.tsx (the shell), gallery.tsx
     data/                   client, queries, keys, event-bridge, ephemeral (Zustand), mutations, streams
     features/shell/         dialogs context, keyboard shortcuts (+ help dialog)
-    features/sessions/      sidebar, record flow (recorder.ts), session page + tabs, Details
-    features/{transcript,ask,notes}/   the session page's panes (PaneProps, features/sessions/pane.ts)
+    features/home/          home: your day (day.ts, day-view.tsx), search-and-ask (search.ts, search-results.tsx)
+    features/meeting/       the meeting page: phase.ts (Prep / Live / Outcome), header, live-view, outcome-view,
+                            prep-view, the suggestion slot, the Ask bar, the transcript panel, the notepad
+    features/sessions/      record flow (recorder.ts), Details
+    features/{transcript,ask,notes}/   the pieces the meeting page is built from (PaneProps, features/sessions/pane.ts)
     features/preferences/   Preferences, settings mutations, CLI / extension install rows
     features/onboarding/    first run: models, capture, calendar, CLI + skill
     features/about/         About (Granola credit, licence, notices)
@@ -316,9 +319,19 @@ element with an accessible name. Export it from `design/primitives/index.ts`, sh
 full height) and runs axe over it in light, dark and high contrast. Icons: import the Lucide icon in
 `design/icon.tsx` and give it a name in `ICONS`.
 
-**Add a session pane.** The session page renders `TranscriptPane` / `AskPane` / `NotesPane` from
-`features/<area>/<area>-pane.tsx` with `PaneProps = { session }`; the tab is the route's `?tab=`
-(`navigate({ to: '/sessions/$sessionId', params, search: { tab: 'transcript', segment } })`).
+**The window's shape (the Day redesign).** No sidebar: two levels. Home (`#/`, `features/home/`) is the
+day — search-and-ask at the top (`?q=`; moments open the meeting at the line), today's meetings and
+recordings in time order with the next one expanded, earlier days below. A meeting is ONE page
+(`features/meeting/meeting-page.tsx`) reached by its recording (`#/sessions/<id>`) or its agenda
+(`#/agendas/<id>`); `phase.ts` picks Prep (no recording yet), Live (recording / paused) or Outcome (ended),
+and the page moves on by itself. Back (`header.tsx`) always returns to home as it was left. Live is
+minimal: the recording pill (who started it, Paused without red), Pause / Stop, the agent's permission
+pill, a narrow agenda checklist (no times), the notepad, and ONE suggestion slot (`suggestion-slot.ts`)
+in a strip whose height is reserved; Ask (Ctrl+K, `ask-bar.tsx`) and the transcript (Ctrl+T,
+`?panel=transcript`, `transcript-panel.tsx`) are on demand. Outcome leads with `outcome.ts`'s decisions /
+action items / carried over, then the notes (Enhance replaces the draft; Back to my draft restores it).
+To open the transcript at a line: `navigate({ to: '.', search: atLine(segmentId, startMs) })`
+(`features/meeting/search-params.ts`); old `?tab=transcript` links still work.
 Dialogs: `useDialogs().open('preferences')`; toasts: `useToast()(text, { tone: 'error' })`.
 
 **Strings.** Every user-visible string through `_()` / `ngettext()` from `@gnomeola/ui-core/i18n`,
@@ -370,13 +383,15 @@ the literal msgid as the first argument (never a variable). Catalogues are JSON 
   ` (provisional)` / ` (in progress)`, the GTK app's names), one Tab stop, arrows/Page/Home/End move the
   selection (`aria-activedescendant`), and the selection is the highlight. Follow mode is intent-based
   (wheel/keys up or a scrollbar drag detach, reaching the bottom re-attaches), "Jump to Live" re-attaches.
-- **Citations** are URLs: `#/sessions/<id>?tab=transcript&segment=<seg>` or `&t=<seconds>`; the pane
+- **Citations** are URLs: `#/sessions/<id>?panel=transcript&segment=<seg>` or `&t=<seconds>`; the panel
   scrolls to, selects and flashes the line once per navigation (the router's per-navigation key), so
   following the same link twice re-scrolls. Anything may link to a line this way.
-- **Ask** (`features/ask/`): history = the qa query; this window's own asks live in `own-asks.ts` (they
-  survive the tab unmounting), tokens stream into `streams[localId]`, and `mergeTurns` lays them over the
-  history until the durable answer arrives. A cross-meeting ask (`since: '30d'`) is shown from its
-  stream's answer (no session history holds it); its chips open the cited session.
+- **Ask** (`features/ask/ask-answer.tsx`, `useAsk`): history = the qa query; this window's own asks live
+  in `own-asks.ts` (they survive the bar closing), tokens stream into `streams[localId]`, and `mergeTurns`
+  lays them over the history until the durable answer arrives. No scope or effort choices: a meeting's
+  Ctrl+K bar asks about that meeting; home's box asks across the last 90 days (`since: '90d'`, private
+  meetings left out) and is shown from its stream's answer; its chips open the cited meeting. An answer
+  can be pinned into the notes (`pinText`), or in Prep kept as a private card.
 - **Speakers** (`features/speakers/`): rename / merge fold the very event the daemon will echo through
   ui-core's folds, so the echo is a no-op; split shows a provisional "New speaker" until
   `speaker.upserted` + `segments.attributed` name it. Chips: daemon slot n → `speaker.((n mod 6)+1)`.
@@ -404,22 +419,21 @@ Contracts: docs/agendas.md (agenda core, drafting) and the agent channel's owner
   version, so the echo always folds over it. An add shows `tmp_…` rows until the response (folded only if
   the echo has not already brought that version); the temporary ids live in a module-wide WeakMap keyed
   by the call's variables (a hook rebuilds its options every render).
-- **Screens.** `#/agendas/<id>` (`agenda-page.tsx`): title, meeting line, "This meeting is happening now"
-  → Join and Record (`joinMeeting`, opens the join URL, goes to the session's Agenda tab), Plan with
-  Claude (the draft route; proposals are the dialog's own state), Add Link to Invite (written, or the
-  calendar's reason + the block to copy), the actions menu (export through the save dialog, copy, import
-  with `baseVersion`, delete), Items (goals, `SortableList` of items: status menu, edit dialog, history
-  popover, Move Up / Down) and Context (private by default, "Shared with attendees"). The session page's
-  **Agenda** tab (`agenda-pane.tsx` → `live-panel.tsx`): counts, "Not covered yet" from T-5 min, one
-  Next talking point card, suggestions (Accept for looks-covered / agent proposals, Turn into Item,
-  Dismiss), items with attribution ("auto", "checked by Claude") + Undo (an override) and evidence chips
-  (→ `?tab=transcript&segment=`), the Interview view (Told / Not told yet), compact mode, the context
-  panel (cards, agents' first; search past meetings → Add as Card); after the recording the recap
-  (`recap.tsx`: outcome / decisions / actions parsed from the item's outcome, evidence, carry-over + Open
-  Next Agenda). The header's **presence chip** (`presence.tsx`): "Claude · connected|reading", the
-  record-pulse ring while reading (none under reduced motion), recent actions in its tooltip, a popover
-  with the mode (observe / suggest / act), activity, Disconnect, and the private-meeting allow switch.
-  The sidebar's **Coming up** (`upcoming.tsx`, calendar on only): the next three meetings, Plan / Agenda.
+- **Screens.** Prep (`features/meeting/prep-view.tsx`): title, meeting line, Join and record
+  (`joinMeeting`, opens the join URL; the page becomes Live), Plan with Claude (the draft route; proposals
+  are the dialog's own state), Share… / Add Link to Invite (written, or the calendar's reason + the block
+  to copy), the actions menu (export through the save dialog, copy, import with `baseVersion`, delete),
+  goals and items (`SortableList`: status menu, edit dialog — no timebox field —, history popover, Move Up /
+  Down), Context (private by default, "Shared with attendees"), Sharing once shared, earlier meetings of
+  the same name, Ask. Live (`agenda-rail.tsx`): the checklist (covered ticked and quiet, the current item
+  highlighted; a tick kacola or an agent made says so, with Undo), private context hidden until Show, and
+  the one suggestion card (`suggestion-card.tsx`: Looks covered? / Say next / an agent's proposal / a fact
+  to check — never "missed" — with its evidence quote, Accept and Not now). No timeboxes, no "not covered
+  yet", no tracker internals. Outcome: the recap per item and the outcome block (`outcome.ts` parses each
+  item's recap outcome and the notes). The live header's **presence pill** (`presence.tsx`): "Your Claude ·
+  can suggest" (its permission), the record-pulse ring while it reads, a popover with the mode (observe /
+  suggest / act), activity, Disconnect, and the private-meeting allow switch. Home's day lists today's
+  calendar meetings (`queries.day`) with their agenda status; "Open prep" creates the agenda on first open.
 - **Deep links** (`deep-links.tsx`): subscribe to `onDeepLink`, then `takeDeepLink()` once;
   `resolveAgendaLink {link, create: true, includePrivate: true}` → navigate to the agenda.
 - **Tests.** `test/agendas.test.tsx` (screens over a one-agenda fake daemon that echoes every write),

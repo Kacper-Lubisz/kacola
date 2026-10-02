@@ -63,7 +63,7 @@ function onboarded(d: HeadlessDisplay, extra: Record<string, unknown> = {}) {
 const card = (app: DesktopApp) => app.window.getByRole('region', { name: 'Top-bar extension' })
 const prefs = (app: DesktopApp) => app.window.getByRole('dialog', { name: 'Preferences' })
 async function openIntegration(app: DesktopApp) {
-  await app.window.getByRole('searchbox', { name: 'Search sessions' }).waitFor({ timeout: 20_000 })
+  await app.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
   await app.window.keyboard.press('Control+,')
   await prefs(app).getByRole('tab', { name: 'Integration' }).click()
   const row = prefs(app).getByText('Top-bar extension', { exact: true }).locator('../..')
@@ -162,7 +162,7 @@ describe('against a real GNOME Shell (private, headless)', () => {
     await d.screenshot(join(DESKTOP_ARTIFACTS, 'extension-running-topbar.png'))
     const app = await launchDesktop({ display: d, env: { GNOMEOLA_URL: daemon.baseUrl } })
     try {
-      await app.window.getByRole('searchbox', { name: 'Search sessions' }).waitFor({ timeout: 20_000 })
+      await app.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
       // on, and the card was dismissed anyway
       expect(await card(app).count()).toBe(0)
       const row = await openIntegration(app)
@@ -352,7 +352,7 @@ describe('the states a real Shell will not show on demand (fake gdbus / gsetting
     onboarded(display)
     const app = await launch({ XDG_CURRENT_DESKTOP: 'KDE' })
     try {
-      await app.window.getByRole('searchbox', { name: 'Search sessions' }).waitFor({ timeout: 20_000 })
+      await app.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
       await app.window.keyboard.press('Control+,')
       await prefs(app).getByRole('tab', { name: 'Integration' }).click()
       await prefs(app).getByText('Command-line tool and Claude skill').waitFor()

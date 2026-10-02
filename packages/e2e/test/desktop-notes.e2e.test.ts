@@ -2,14 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import {
-  defaultChoices,
-  diffNoteBlocks,
-  isChoice,
-  type MergeChoice,
-  mergeNoteBlocks,
-  type NoteVersion,
-} from '@gnomeola/protocol'
+import { diffNoteBlocks, mergeNoteBlocks, type NoteVersion } from '@gnomeola/protocol'
 import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
 import { buildDesktop, type DesktopApp, launchDesktop, matchBaseline } from '@gnomeola/testkit/desktop'
 import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
@@ -21,11 +14,12 @@ import { SEED, seedMeetings } from '../src/seed.ts'
 // Phase 2C — the notes pane in the Electron window, the port of ui-notes.e2e.test.ts (the GTK / AT-SPI
 // suite) with every assertion kept: type notes with the real keyboard into the CodeMirror editor, watch
 // them autosave, enhance them through the real daemon + @gnomeola/llm + SDK against a replayed Anthropic
-// stream, revert some changes and keep others in the review, apply — then prove from the daemon's stored
-// versions that the merge is exactly what was chosen and every word typed is still recoverable. Plus
+// stream, which REPLACES the draft (the Day redesign: no block-by-block review) — then prove from the
+// daemon's stored versions that the replacement is the enhanced text, that "Back to my draft" restores
+// what was typed, and that every word typed is still recoverable. Plus
 // copy (read back from the clipboard), export through the save dialog (stood in for in main), action
 // items, a refusal, leaving mid-typing — and what the GTK window never had: history restore and custom
-// templates. axe over every state; screenshot baselines (editor, enhancing, review, merged) light + dark.
+// templates. axe over every state; screenshot baselines (editor, enhancing, merged) light + dark.
 
 const CASSETTES = join(import.meta.dirname, '..', '..', 'llm', 'test', 'fixtures', 'cassettes')
 const BASELINES = join(import.meta.dirname, '__screenshots__', 'desktop-notes')
@@ -60,7 +54,7 @@ async function world(scheme: 'light' | 'dark', extraEnv: Record<string, string> 
     display,
     env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: scheme, ...extraEnv },
   })
-  await app.window.getByRole('listbox', { name: 'Sessions' }).waitFor({ timeout: 20_000 })
+  await app.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
   // still frames for the baselines: the brand's reduced-motion mode stops spinners and progress sweeps
   // (Playwright's own `animations: 'disabled'` injects a <style>, which our CSP rightly refuses)
   await app.window.emulateMedia({ reducedMotion: 'reduce' })
@@ -80,25 +74,31 @@ function helpers(getApp: () => DesktopApp, getDaemon: () => DaemonHandle, scheme
       .versions
   const head = async (id: string) =>
     (await getDaemon().client.call('getNotes', { params: { id }, query: { includePrivate: true } })).note
+  // a recorded meeting opens on its outcome page: the notes are under the outcome
   const openSession = async (title: string) => {
-    await w()
-      .getByRole('listbox', { name: 'Sessions' })
-      .getByRole('option', { name: new RegExp(title) })
-      .click()
+    const id = await waitFor(
+      async () =>
+        (await getDaemon().client.call('listSessions', { query: { includePrivate: true } })).sessions.find(
+          (s) => s.title === title,
+        )?.id,
+      10_000,
+      `the session ${title}`,
+    )
+    await w().evaluate(`location.hash = ${JSON.stringify(`#/sessions/${id}`)}`)
     await w().getByRole('heading', { level: 1, name: title }).waitFor()
-    // the session frame (phase 2A) puts the pane behind a Notes tab; until then it is the whole body
-    const tab = w().getByRole('tab', { name: 'Notes' })
-    if (await tab.count()) await tab.click()
     await editor().waitFor({ timeout: 10_000 })
   }
+  /** A notes action from the notes' menu (history, copy, export). */
+  const notesAction = async (name: string) => {
+    await w().getByRole('button', { name: 'Notes actions' }).click()
+    await w().getByRole('menuitem', { name }).click()
+  }
   const editor = () => w().getByRole('textbox', { name: 'Notes' })
-  /** The editor's document, line by line (CodeMirror renders one .cm-line per line). */
+  /** The editor's document (from CodeMirror's own state: the screen draws `##` and `-` more quietly). */
   const editorText = async (): Promise<string> =>
     (await w().evaluate(`(() => {
-      const lines = [...document.querySelector('[data-notes-pane] [data-notes-editor]').shadowRoot.querySelectorAll('.cm-content .cm-line')]
-      // the placeholder is a widget inside the first line, not text
-      const text = (l) => [...l.childNodes].filter((n) => !n.classList?.contains('cm-placeholder')).map((n) => n.textContent).join('')
-      return lines.map(text).join('\\n')
+      const content = document.querySelector('[data-notes-pane] [data-notes-editor]').shadowRoot.querySelector('.cm-content')
+      return content.cmTile.root.view.state.doc.toString()
     })()`)) as string
   /** A toast in the shell's Notifications region. */
   const toast = (text: string) =>
@@ -136,10 +136,23 @@ function helpers(getApp: () => DesktopApp, getDaemon: () => DaemonHandle, scheme
       'the held stream to settle',
     )
   }
-  return { w, versions, head, openSession, editor, editorText, status, toast, shot, axe, streamedUpTo }
+  return {
+    w,
+    versions,
+    head,
+    openSession,
+    notesAction,
+    editor,
+    editorText,
+    status,
+    toast,
+    shot,
+    axe,
+    streamedUpTo,
+  }
 }
 
-describe('Notes in the Electron window: type, enhance, review, apply (light)', () => {
+describe('Notes in the Electron window: type, enhance (replaces), back to my draft (light)', () => {
   let ctx: Awaited<ReturnType<typeof world>>
   const h = helpers(
     () => ctx.app,
@@ -179,7 +192,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     await h.shot('editor')
   })
 
-  it('enhances through the real LLM chain, streaming with progress, without touching the notes', async () => {
+  it('enhances through the real LLM chain, streaming with progress, then replaces the draft', async () => {
     ctx.api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
     // hold the stream after the third text delta: a deterministic mid-stream state to look at
     const release = ctx.api.holdAfter(9)
@@ -189,12 +202,13 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     try {
       await h.streamedUpTo('migration thursday')
       await h.w().getByText('words written so far', { exact: false }).waitFor()
+      // nothing replaced while it streams
+      expect(await h.head(SEED.retro)).toMatchObject({ version: before.version, markdown: TYPED })
       await h.axe()
       await h.shot('enhancing')
     } finally {
       release()
     }
-    await h.w().getByRole('heading', { name: 'Review Enhanced Notes' }).waitFor({ timeout: 20_000 })
     // the request: effort high, the typed notes last, the key from the environment
     const req = ctx.api.seen.at(-1)!
     expect(req.headers['x-api-key']).toBe(KEY)
@@ -204,80 +218,31 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     }
     expect(body.output_config.effort).toBe('high')
     expect(body.messages[0]!.content.at(-1)!.text).toContain(`<my_notes>\n${TYPED.trimEnd()}\n</my_notes>`)
-    // stored beside the head, never over it
-    const after = await h.head(SEED.retro)
-    expect(after).toMatchObject({ version: before.version, markdown: TYPED })
-    expect(after.pendingEnhancement).not.toBeNull()
-    const enhanced = (await h.versions(SEED.retro)).find((v) => v.version === after.pendingEnhancement)!
-    expect(enhanced.kind).toBe('enhanced')
-    expect(enhanced.enhancement?.templateId).toBe('general')
-    await h.axe()
-    await h.shot('review')
-  })
-
-  it('accepts some blocks, reverts others, applies — and the stored merge is exactly that', async () => {
-    const note = await h.head(SEED.retro)
-    const enhanced = (await h.versions(SEED.retro)).find((v) => v.version === note.pendingEnhancement)!
-    const hunks = diffNoteBlocks(note.markdown, enhanced.markdown)
-    const changes = hunks.map((hk, i) => ({ h: hk, i })).filter((x) => isChoice(x.h))
-    expect(changes.length).toBeGreaterThanOrEqual(4)
-    // the typo'd line is offered as rewritten, the verbatim lines are unchanged context
-    expect(changes.some((c) => c.h.kind === 'changed')).toBe(true)
-    // the UI shows exactly the changes the shared diff computes
-    expect(
-      await h
-        .w()
-        .getByRole('switch', { name: /^Use enhanced text for change \d+$/ })
-        .count(),
-    ).toBe(changes.length)
-    // revert the rewrite of the user's own line and the first addition; accept everything else
-    const choices: MergeChoice[] = defaultChoices(hunks)
-    const revert = [changes.find((c) => c.h.kind === 'changed')!, changes.find((c) => c.h.kind === 'added')!]
-    for (const r of revert) {
-      const n = changes.indexOf(r) + 1
-      const sw = h.w().getByRole('switch', { name: `Use enhanced text for change ${n}`, exact: true })
-      expect(await sw.isChecked()).toBe(true)
-      // a pointer click on the switch's track (the input itself is visually hidden)
-      await sw.locator('xpath=ancestor::label[1]').click()
-      await waitFor(async () => !(await sw.isChecked()), 5000, `change ${n} reverted`)
-      choices[r.i] = 'mine'
-    }
-    // toggle one more off and on again, from the keyboard: a round trip leaves its choice where it was
-    const last = changes.length
-    const sw = h.w().getByRole('switch', { name: `Use enhanced text for change ${last}`, exact: true })
-    await sw.focus()
-    await h.w().keyboard.press('Space')
-    await waitFor(async () => !(await sw.isChecked()), 5000, 'toggled off')
-    await h.w().keyboard.press('Space')
-    await waitFor(async () => sw.isChecked(), 5000, 'toggled back on')
-    await h
-      .w()
-      .getByText(`${changes.length - 2} using the enhanced text`, { exact: false })
-      .waitFor()
-
-    await h.w().getByRole('button', { name: 'Apply', exact: true }).click()
+    // the enhanced version is stored, then applied whole: the head is a merge taking every change
     const merged = await waitFor(
       async () => (await h.versions(SEED.retro)).find((v) => v.kind === 'merge'),
-      10_000,
-      'the merge version',
+      20_000,
+      'the replacement',
     )
-    expect(merged.merge).toEqual({ enhancedVersion: enhanced.version, choices })
-    expect(merged.markdown).toBe(mergeNoteBlocks(hunks, choices))
-    // the reverted rewrite kept the user's words, typos included
-    expect(merged.markdown).toContain('- retry budgt three attmpts\n')
-    const now = await h.head(SEED.retro)
-    expect(now).toMatchObject({
+    const enhanced = (await h.versions(SEED.retro)).find((v) => v.kind === 'enhanced')!
+    expect(enhanced.enhancement?.templateId).toBe('general')
+    const hunks = diffNoteBlocks(TYPED, enhanced.markdown)
+    expect(merged.merge).toEqual({ enhancedVersion: enhanced.version, choices: hunks.map(() => 'enhanced') })
+    expect(merged.markdown).toBe(
+      mergeNoteBlocks(
+        hunks,
+        hunks.map(() => 'enhanced'),
+      ),
+    )
+    expect(merged.markdown).not.toContain('retry budgt three attmpts')
+    expect(await h.head(SEED.retro)).toMatchObject({
       version: merged.version,
       markdown: merged.markdown,
       pendingEnhancement: null,
     })
-    // the editor shows the merged notes
-    await waitFor(
-      async () => (await h.editorText()) === merged.markdown,
-      10_000,
-      'the editor to show the merge',
-    )
-    await h.status('Saved').waitFor()
+    await waitFor(async () => (await h.editorText()) === merged.markdown, 10_000, 'the editor to show it')
+    await h.status('Tidied from your draft by your AI provider').waitFor()
+    await h.w().getByRole('button', { name: 'Back to my draft' }).waitFor()
     await h.axe()
     await h.w().mouse.move(0, 0)
     await h.shot('merged')
@@ -296,14 +261,15 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
   })
 
   it('lists the action items the notes contain, with owners', async () => {
+    // the outcome block's To do, read from the notes
     const list = h.w().getByRole('list', { name: 'Action items' })
     await list.waitFor({ timeout: 5000 })
     const rows = list.getByRole('listitem')
     expect(await rows.count()).toBe(2)
     await list.getByRole('listitem', { name: 'Add an alert on the dead-letter queue', exact: true }).waitFor()
     await list.getByRole('listitem', { name: 'Share the new dashboard link', exact: true }).waitFor()
-    expect(await rows.nth(0).textContent()).toContain('Owner: Bruno · Due: Friday')
-    expect(await rows.nth(1).textContent()).toContain('Owner: Ana')
+    expect(await rows.nth(0).textContent()).toContain('Bruno · Friday')
+    expect(await rows.nth(1).textContent()).toContain('Ana')
     const items = await ctx.daemon.client.call('getActionItems', { params: { id: SEED.retro } })
     expect(items.items.map((i) => [i.owner, i.due])).toEqual([
       ['Bruno', 'Friday'],
@@ -311,17 +277,21 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     ])
   })
 
-  it('updates the action items live as the notes are typed, and copies them', async () => {
+  it('updates the action items live as the notes are typed, and the summary carries them', async () => {
     const list = h.w().getByRole('list', { name: 'Action items' })
     await h.editor().click()
     await h.w().keyboard.press('Control+End')
     await h.w().keyboard.type('- [ ] Book the retro room — owner: Carla — due: Monday\n')
     await list.getByRole('listitem', { name: 'Book the retro room', exact: true }).waitFor({ timeout: 5000 })
     expect(await list.getByRole('listitem').count()).toBe(3)
-    await h.w().getByRole('button', { name: 'Copy Action Items' }).click()
-    await h.toast('Action items copied').waitFor({ timeout: 5000 })
+    // Share summary → Copy Summary: the action items as a task list
+    await h.w().getByRole('button', { name: 'Share summary' }).click()
+    const share = h.w().getByRole('dialog', { name: 'Share Summary' })
+    await share.getByRole('button', { name: 'Copy Summary' }).click()
+    await h.toast('Summary copied').waitFor({ timeout: 5000 })
+    await share.waitFor({ state: 'detached' })
     const copied = await ctx.app.evaluateMain(({ clipboard }) => clipboard.readText())
-    expect(copied).toBe(
+    expect(copied).toContain(
       '- [ ] Add an alert on the dead-letter queue — owner: Bruno — due: Friday\n' +
         '- [ ] Share the new dashboard link — owner: Ana\n' +
         '- [ ] Book the retro room — owner: Carla — due: Monday\n',
@@ -331,7 +301,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
   })
 
   it('copies the notes to the clipboard as markdown', async () => {
-    await h.w().getByRole('button', { name: 'Copy Notes as Markdown' }).click()
+    await h.notesAction('Copy Notes as Markdown')
     await h.toast('Notes copied as Markdown').waitFor({ timeout: 5000 })
     const pasted = await ctx.app.evaluateMain(({ clipboard }) => clipboard.readText())
     const note = await h.head(SEED.retro)
@@ -359,7 +329,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
         return { canceled: false, filePath: path }
       }) as typeof dialog.showSaveDialog
     }, out)
-    await h.w().getByRole('button', { name: 'Export Notes' }).click()
+    await h.notesAction('Export Notes…')
     await waitFor(() => existsSync(out), 10_000, 'the exported file')
     await h.toast('Notes exported to').waitFor({ timeout: 5000 })
     const note = await h.head(SEED.retro)
@@ -379,7 +349,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     await ctx.app.evaluateMain(({ dialog }) => {
       dialog.showSaveDialog = (async () => ({ canceled: true, filePath: '' })) as typeof dialog.showSaveDialog
     })
-    await h.w().getByRole('button', { name: 'Export Notes' }).click()
+    await h.notesAction('Export Notes…')
     await new Promise((r) => setTimeout(r, 500))
     expect(await h.toast('Notes exported to').count()).toBe(0)
   })
@@ -388,9 +358,9 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     const before = await h.versions(SEED.retro)
     ctx.api.enqueue(...loadCassette(join(CASSETTES, 'refusal.json')))
     await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
-    const alert = h.w().getByRole('status', { name: /Your notes were not enhanced/ })
+    const alert = h.w().getByRole('status', { name: /Your notes were not changed/ })
     await alert.waitFor({ timeout: 20_000 })
-    expect(await alert.textContent()).toContain('Nothing was changed')
+    expect(await alert.textContent()).toMatch(/notes were not changed/)
     expect(await h.versions(SEED.retro)).toEqual(before)
     expect(await h.editorText()).toBe(before.at(-1)!.markdown)
     await h.axe()
@@ -398,7 +368,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     await alert.waitFor({ state: 'detached' })
   })
 
-  it('rate limiting says to try again later, leaves the notes alone, and Try Again works', async () => {
+  it('rate limiting says to try again later, leaves the notes alone; Try Again replaces, Back to my draft restores', async () => {
     const before = await h.versions(SEED.retro)
     // every attempt is a 429 (the SDK retries twice); a short retry hint keeps it fast
     const limited = loadCassette(join(CASSETTES, 'rate-limited.json'))[0]!
@@ -407,7 +377,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
       headers: { ...limited.headers, 'retry-after': '0', 'retry-after-ms': '10' },
     })
     await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
-    const alert = h.w().getByRole('status', { name: /Your notes were not enhanced/ })
+    const alert = h.w().getByRole('status', { name: /Your notes were not changed/ })
     await alert.waitFor({ timeout: 20_000 })
     expect(await alert.textContent()).toContain('limiting requests')
     expect(await h.versions(SEED.retro)).toEqual(before)
@@ -416,19 +386,37 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     ctx.api.always(null)
     ctx.api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
     await alert.getByRole('button', { name: 'Try Again' }).click()
-    await h.w().getByRole('heading', { name: 'Review Enhanced Notes' }).waitFor({ timeout: 20_000 })
-    await h.w().getByRole('button', { name: 'Discard', exact: true }).click()
-    await h.editor().waitFor({ timeout: 10_000 })
-    await waitFor(async () => (await h.head(SEED.retro)).pendingEnhancement === null, 10_000, 'review closed')
-    expect((await h.head(SEED.retro)).markdown).toBe(
-      before.filter((v) => v.kind !== 'enhanced').at(-1)!.markdown,
+    const draft = before.filter((v) => v.kind !== 'enhanced').at(-1)!
+    await waitFor(
+      async () =>
+        (await h.head(SEED.retro)).version > draft.version &&
+        (await h.head(SEED.retro)).markdown !== draft.markdown,
+      20_000,
+      'the replacement',
     )
+    // undo: the draft comes back as a new version (restored from the one the enhancement replaced)
+    await h.w().getByRole('button', { name: 'Back to my draft' }).click()
+    await waitFor(
+      async () => (await h.head(SEED.retro)).markdown === draft.markdown,
+      10_000,
+      'the draft restored',
+    )
+    expect((await h.versions(SEED.retro)).at(-1)).toMatchObject({
+      kind: 'restore',
+      restoredFrom: draft.version,
+    })
+    await waitFor(
+      async () => (await h.editorText()) === draft.markdown,
+      10_000,
+      'the editor to show the draft',
+    )
+    await h.w().getByRole('button', { name: 'Back to my draft' }).waitFor({ state: 'detached' })
   })
 
   it('restores an old version from the history: a new version on top, nothing removed', async () => {
     const before = await h.versions(SEED.retro)
     const typed = before.filter((v) => v.kind === 'user' && v.markdown === TYPED).at(-1)!
-    await h.w().getByRole('button', { name: 'Version History' }).click()
+    await h.notesAction('Version History…')
     const dialog = h.w().getByRole('dialog', { name: 'Version History' })
     await dialog.waitFor()
     const list = dialog.getByRole('listbox', { name: 'Versions' })
@@ -452,7 +440,7 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
     expect(await h.head(SEED.retro)).toMatchObject({ version: after.at(-1)!.version, markdown: TYPED })
     await waitFor(async () => (await h.editorText()) === TYPED, 10_000, 'the editor to show the restore')
     // and the restore is itself undoable from the same list
-    await h.w().getByRole('button', { name: 'Version History' }).click()
+    await h.notesAction('Version History…')
     await dialog.waitFor()
     expect(await dialog.getByRole('option').first().textContent()).toContain(
       `Restored version ${typed.version}`,
@@ -502,22 +490,27 @@ describe('Notes in the Electron window: type, enhance, review, apply (light)', (
       .waitFor()
     await h.w().keyboard.press('Escape')
     ctx.api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
+    const headBefore = await h.head(SEED.retro)
     await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
-    await h.w().getByRole('heading', { name: 'Review Enhanced Notes' }).waitFor({ timeout: 20_000 })
+    await waitFor(
+      async () =>
+        (await h.versions(SEED.retro)).some(
+          (v) => v.kind === 'enhanced' && v.enhancement?.templateId === 'retrospective',
+        ) && (await h.head(SEED.retro)).version > headBefore.version,
+      20_000,
+      'the retrospective enhancement applied',
+    )
     const req = ctx.api.seen.at(-1)!.body as { messages: { content: { text: string }[] }[] }
     const prompt = req.messages[0]!.content.map((c) => c.text).join('\n')
     expect(prompt).toContain('<template id="retrospective"')
     expect(prompt).toContain('One owner per action.')
-    await h
-      .w()
-      .getByText(/^Retrospective template · \d+ changes?/)
-      .waitFor()
-    // discard: the notes stay exactly as they were (a merge that keeps every line of the user's)
-    const headBefore = await h.head(SEED.retro)
-    await h.w().getByRole('button', { name: 'Discard', exact: true }).click()
-    await h.editor().waitFor({ timeout: 10_000 })
-    await waitFor(async () => (await h.head(SEED.retro)).pendingEnhancement === null, 10_000, 'review closed')
-    expect((await h.head(SEED.retro)).markdown).toBe(headBefore.markdown)
+    // back to the draft: the notes are exactly what they were
+    await h.w().getByRole('button', { name: 'Back to my draft' }).click()
+    await waitFor(
+      async () => (await h.head(SEED.retro)).markdown === headBefore.markdown,
+      10_000,
+      'the draft restored',
+    )
 
     // delete it again
     await h.w().getByRole('button', { name: 'Choose a Template' }).click()
@@ -584,18 +577,13 @@ describe('Notes in dark and high contrast', () => {
       } finally {
         release()
       }
-      await h.w().getByRole('heading', { name: 'Review Enhanced Notes' }).waitFor({ timeout: 20_000 })
-      await h.axe()
-      await h.shot('review')
-
-      await h.w().getByRole('button', { name: 'Apply', exact: true }).click()
       await waitFor(
         async () => (await h.versions(SEED.retro)).some((v) => v.kind === 'merge'),
         10_000,
         'merged',
       )
       await h.editor().waitFor()
-      await h.status('Saved').waitFor()
+      await h.status('Tidied from your draft by your AI provider').waitFor()
       await h.axe()
       await h.w().mouse.move(0, 0)
       await h.shot('merged')
@@ -605,7 +593,7 @@ describe('Notes in dark and high contrast', () => {
     }
   }, 180_000)
 
-  it('high contrast (dark): the editor and the review stay accessible', async () => {
+  it('high contrast (dark): the editor and the enhanced notes stay accessible', async () => {
     const ctx = await world('dark', { GNOMEOLA_CONTRAST: 'high' })
     const h = helpers(
       () => ctx.app,
@@ -621,12 +609,17 @@ describe('Notes in dark and high contrast', () => {
       await h.axe()
       ctx.api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
       await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
-      await h.w().getByRole('heading', { name: 'Review Enhanced Notes' }).waitFor({ timeout: 20_000 })
+      await waitFor(
+        async () => (await h.versions(SEED.retro)).some((v) => v.kind === 'merge'),
+        20_000,
+        'the replacement',
+      )
+      await h.w().getByRole('button', { name: 'Back to my draft' }).waitFor()
       await h.axe()
       await h
         .w()
         .locator('[data-notes-pane]')
-        .screenshot({ path: join(ARTIFACTS, 'review-dark-hc.png') })
+        .screenshot({ path: join(ARTIFACTS, 'merged-dark-hc.png') })
       expect(ctx.app.problems()).toEqual([])
     } finally {
       await ctx.close()

@@ -11,7 +11,7 @@ import { markOnboarded } from '../src/ui.ts'
 // The calendar in the Electron window, against the real daemon and its calendar service fed by a
 // calendar file (GNOMEOLA_CALENDAR=file:…, the RawOccurrence shape cal-agent emits from EDS; the same
 // fixture style as cli-meetings.int.test.ts): the auto-record rule switched on in Preferences records a
-// meeting when it begins, linked to its calendar event; the recorded session's Notes suggest a template
+// meeting when it begins, linked to its calendar event; the recorded meeting's notes (its outcome page) suggest a template
 // from the calendar event's title — even after the session was renamed to something that matches
 // nothing — and Enhance defaults to it.
 
@@ -57,7 +57,7 @@ describe('desktop: calendar meetings and the calendar-based template suggestion'
       display,
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
     })
-    await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 20_000 })
+    await w().getByRole('button', { name: 'Record now' }).waitFor({ timeout: 20_000 })
   }, 240_000)
 
   afterEach(() => {
@@ -130,12 +130,12 @@ describe('desktop: calendar meetings and the calendar-based template suggestion'
     sessionId = live.id
     expect(live.title).toBe(MEETING)
     expect(live.meeting?.title).toBe(MEETING)
-    const row = w()
-      .getByRole('listbox', { name: 'Sessions' })
-      .getByRole('option', { name: new RegExp(MEETING) })
-    await row.getByRole('img', { name: 'Recording' }).waitFor({ timeout: 10_000 })
-    // stopped from the window
-    await row.click()
+    // home pins the recording under way
+    const pinned = w().getByRole('region', { name: 'Recording now' })
+    await pinned.getByRole('timer', { name: /^Recording/ }).waitFor({ timeout: 10_000 })
+    await pinned.getByText(MEETING).waitFor()
+    // stopped from the window (its live page)
+    await pinned.getByRole('button', { name: `Open ${MEETING}` }).click()
     await w().getByRole('heading', { level: 1, name: MEETING }).waitFor({ timeout: 10_000 })
     await w().getByRole('button', { name: 'Stop', exact: true }).click()
     await poll(
@@ -150,8 +150,7 @@ describe('desktop: calendar meetings and the calendar-based template suggestion'
     // renamed to something no template knows: only the linked calendar event can suggest one
     await daemon.client.call('updateSession', { params: { id: sessionId }, body: { title: 'Chat with Sam' } })
     await w().getByRole('heading', { level: 1, name: 'Chat with Sam' }).waitFor({ timeout: 10_000 })
-    const tab = w().getByRole('tab', { name: 'Notes' })
-    await tab.click()
+    // the outcome page carries the notes (no tabs)
     await w()
       .getByText('Interview template, suggested by the calendar event ("interview")', { exact: true })
       .waitFor({ timeout: 10_000 })

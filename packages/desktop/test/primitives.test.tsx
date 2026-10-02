@@ -13,21 +13,17 @@ import {
   HeaderBar,
   IconButton,
   Kbd,
-  ListRow,
-  Meter,
   ProgressBar,
   RecordButton,
   SearchField,
   SegmentedControl,
   Select,
-  SplitView,
   Switch,
   TabList,
   TabPanel,
   Tabs,
   TextField,
   ToastProvider,
-  useSplitView,
   useToast,
 } from '../src/renderer/design/primitives/index.ts'
 import { appInfo, servicesFor } from './app-harness.tsx'
@@ -281,26 +277,12 @@ describe('status and layout', () => {
     expect(screen.getByRole('region', { name: 'No Sessions Yet' })).toBeTruthy()
     expect(screen.getByRole('heading', { level: 2, name: 'No Sessions Yet' })).toBeTruthy()
   })
-  it('ProgressBar and Meter expose their value', () => {
-    render(
-      <>
-        <ProgressBar label="Download" value={0.42} />
-        <Meter label="Microphone level" value={0.35} />
-      </>,
-    )
+  it('ProgressBar exposes its value', () => {
+    render(<ProgressBar label="Download" value={0.42} />)
     expect(screen.getByRole('progressbar', { name: 'Download' }).getAttribute('aria-valuenow')).toBe('42')
-    expect(screen.getByRole('progressbar', { name: 'Microphone level' }).getAttribute('aria-valuenow')).toBe(
-      '35',
-    )
   })
-  it('ListRow names its live dot; Kbd splits keys', () => {
-    render(
-      <>
-        <ListRow title="Standup" meta="Recording · 1:00" live liveLabel="Recording" />
-        <Kbd>Ctrl+,</Kbd>
-      </>,
-    )
-    expect(screen.getByRole('img', { name: 'Recording' })).toBeTruthy()
+  it('Kbd splits keys', () => {
+    render(<Kbd>Ctrl+,</Kbd>)
     expect([...document.querySelectorAll('kbd')].map((k) => k.textContent)).toEqual(['Ctrl', ','])
   })
   it('HeaderBar leaves the traffic lights room on macOS and draws window buttons on Linux', () => {
@@ -318,33 +300,5 @@ describe('status and layout', () => {
     )
     expect(container.querySelector('header')!.className).not.toContain('pl-[78px]')
     expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy()
-  })
-  it('SplitView: side by side when wide; one pane at a time when collapsed, with Back', () => {
-    function Content() {
-      const { collapsed, showSidebar } = useSplitView()
-      return collapsed ? <Button onPress={showSidebar}>Back</Button> : <span>content</span>
-    }
-    function H({ collapsed }: { collapsed: boolean }) {
-      const [show, setShow] = useState(true)
-      return (
-        <SplitView
-          collapsed={collapsed}
-          sidebarLabel="Sessions"
-          contentLabel="Session"
-          showContent={show}
-          onShowContentChange={setShow}
-          sidebar={<span>list</span>}
-          content={<Content />}
-        />
-      )
-    }
-    const { rerender } = render(<H collapsed={false} />)
-    expect(screen.getByRole('complementary', { name: 'Sessions' })).toBeTruthy()
-    expect(screen.getByRole('main', { name: 'Session' }).textContent).toBe('content')
-    rerender(<H collapsed />)
-    expect(screen.queryByRole('complementary')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    expect(screen.getByRole('complementary', { name: 'Sessions' })).toBeTruthy()
-    expect(screen.queryByRole('main')).toBeNull()
   })
 })

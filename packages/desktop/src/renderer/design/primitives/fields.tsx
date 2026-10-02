@@ -134,6 +134,8 @@ export function SearchField({
   label,
   placeholder,
   className = '',
+  size = 'md',
+  end,
   ...rest
 }: {
   label: string
@@ -143,21 +145,33 @@ export function SearchField({
   onSubmit?: (v: string) => void
   autoFocus?: boolean
   className?: string
+  /** `lg`: home's search-and-ask box (taller, larger type). */
+  size?: 'md' | 'lg'
+  /** Something inside the box at its end (a shortcut hint), shown only while it is empty. */
+  end?: ReactNode
 }) {
+  const lg = size === 'lg'
   return (
     <AriaSearchField {...rest} aria-label={label} className={`group relative flex items-center ${className}`}>
-      <span className="pointer-events-none absolute left-2.5 text-text-tertiary">
-        <Icon name="search" size={16} />
+      <span className={`pointer-events-none absolute text-text-tertiary ${lg ? 'left-4' : 'left-2.5'}`}>
+        <Icon name="search" size={lg ? 20 : 16} />
       </span>
       <Input
         placeholder={placeholder ?? label}
-        className={`${INPUT} pl-8 pr-8 [&::-webkit-search-cancel-button]:hidden`}
+        className={`${INPUT} [&::-webkit-search-cancel-button]:hidden ${
+          lg ? '!h-14 rounded-lg pr-14 pl-12 !text-[17px] shadow-e1' : 'pr-8 pl-8'
+        }`}
       />
+      {end ? (
+        <span className="pointer-events-none absolute right-4 hidden group-data-[empty]:flex">{end}</span>
+      ) : null}
       <AriaButton
         aria-label={_('Clear')}
-        className="absolute right-1.5 flex size-6 cursor-default items-center justify-center rounded-sm text-text-secondary focus-ring data-[hovered]:bg-bg-hover group-data-[empty]:hidden"
+        className={`absolute flex cursor-default items-center justify-center rounded-sm text-text-secondary focus-ring data-[hovered]:bg-bg-hover group-data-[empty]:hidden ${
+          lg ? 'right-3 size-8' : 'right-1.5 size-6'
+        }`}
       >
-        <Icon name="close" size={14} />
+        <Icon name="close" size={lg ? 18 : 14} />
       </AriaButton>
     </AriaSearchField>
   )

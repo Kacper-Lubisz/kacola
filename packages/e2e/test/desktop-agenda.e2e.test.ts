@@ -20,13 +20,14 @@ import { markOnboarded } from '../src/ui.ts'
 // presence from its heartbeats. The live tracker is off here (GNOMEOLA_TRACKER=off: its marks depend on
 // timing; desktop-tracker.e2e follows the real one) and so is the speech guard.
 //
-// The flows: the editor (keyboard add, edit dialog, status, drag and keyboard reorder, history, goals,
-// context cards), markdown export / copy / import, Add link to invite refused by a read-only calendar
-// (copy fallback), Plan with Claude (held mid-stream for the baseline), the meeting in progress → Join
-// and record → the live panel (the tracker's auto mark with its evidence, an agent's mark, suggestions,
-// next talking point, undo, interview view, compact), presence (connected / reading, mode, Disconnect),
-// and after Stop the recap and the carry-over into the next occurrence. axe in light, dark and high
-// contrast on every screen; baselines at ≤ 1 %.
+// The flows, on the meeting page as it moves through its phases: Prep — the editor (keyboard add, edit
+// dialog, status, drag and keyboard reorder, history, goals, context cards), markdown export / copy /
+// import, Send the agenda without a sharing server (one action, no kacola:// link), Plan with Claude (held
+// mid-stream for the baseline), opened from home's day; Live after Join and record — the checklist
+// (an agent's ticks, quietly attributed, with Undo), the one suggestion slot (its evidence opens the
+// transcript at the line; Not now / Accept), presence (connected / reading, its permission, mode,
+// Disconnect); Outcome after Stop — the recap per item, the outcome block, and the carry-over into the
+// next occurrence. axe in light, dark and high contrast on every screen; baselines at ≤ 1 %.
 
 const PIPELINE = { speed: 4, segmentEveryMs: 1500, partialEveryMs: 250, finalizeAfterMs: 200, tickMs: 20 }
 const KEY = 'sk-ant-e2e-desktop-agenda-000111222'
@@ -215,7 +216,7 @@ describe('desktop: agendas', () => {
       display,
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
     })
-    await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 20_000 })
+    await w().getByRole('button', { name: 'Record now' }).waitFor({ timeout: 20_000 })
     await w().emulateMedia({ reducedMotion: 'reduce' })
   }, 300_000)
 
@@ -259,17 +260,17 @@ describe('desktop: agendas', () => {
     )
     expect(await texts(id)).toEqual(['Budget review', 'Hiring plan', 'Offsite dates', 'Team offsite budget'])
 
-    // edit: kind, owner, timebox
+    // edit: kind, owner (the UI never asks for a timebox)
     await w().getByRole('button', { name: 'Edit “Offsite dates”' }).click()
     const dlg = w().getByRole('dialog', { name: 'Edit Item' })
     await dlg.getByRole('button', { name: /Kind/ }).click()
     await w().getByRole('option', { name: 'Must cover' }).click()
     await dlg.getByRole('textbox', { name: 'Owner' }).fill('me')
-    await dlg.getByRole('textbox', { name: 'Timebox (minutes)' }).fill('10')
+    expect(await dlg.getByRole('textbox', { name: /Timebox/ }).count()).toBe(0)
     await dlg.getByRole('button', { name: 'Save' }).click()
     await until(
       () => item(id, 'Offsite dates'),
-      (i) => i.kind === 'must-cover' && i.timeboxMin === 10,
+      (i) => i.kind === 'must-cover' && i.owner === 'me',
       'the edit',
     )
     expect((await item(id, 'Offsite dates')).owner).toBe('me')
@@ -345,10 +346,10 @@ describe('desktop: agendas', () => {
       .getByText('Team offsite budget')
       .waitFor()
     await axeAllModes('agenda editor')
-    await shot('editor', w().getByRole('tabpanel', { name: 'Items' }))
+    await shot('editor', w().getByRole('region', { name: 'Agenda', exact: true }))
 
-    // context: a private card, then shared
-    await w().getByRole('tab', { name: 'Context' }).click()
+    // context (beside the agenda, no tabs): a private card, then shared
+    await w().getByRole('button', { name: 'Add a Card' }).click()
     await w().getByRole('textbox', { name: 'Card title' }).fill('Last quarter numbers')
     await w().getByRole('textbox', { name: 'Card text' }).fill('Revenue up 12%, hiring behind by two.')
     await w().getByRole('button', { name: 'Add Card' }).click()
@@ -365,7 +366,7 @@ describe('desktop: agendas', () => {
       (x) => x === 'shared',
       'sharing the card',
     )
-    await axeAllModes('context tab')
+    await axeAllModes('context')
   })
 
   it('markdown: export through the save dialog, copy, import (merge)', async () => {
@@ -418,9 +419,12 @@ describe('desktop: agendas', () => {
     expect((await texts(id)).length).toBe(5) // merge kept the rest
   })
 
-  it('a calendar meeting: Plan from Coming up; Add link to invite refused → copy the block', async () => {
+  it('a calendar meeting: Plan from home’s day; Send the agenda without a sharing server says so', async () => {
     await go('#/')
-    const plan = w().getByRole('button', { name: `Plan ${MEETING}, now` })
+    // the meeting under way is today's next unrecorded one: expanded, with no agenda yet
+    const next = w().getByRole('region', { name: `Next: ${MEETING}` })
+    await next.getByText('No agenda yet').waitFor({ timeout: 15_000 })
+    const plan = next.getByRole('button', { name: `Plan ${MEETING}` })
     await plan.waitFor({ timeout: 15_000 })
     await plan.click()
     await w().getByRole('heading', { level: 1, name: MEETING }).waitFor()
@@ -429,20 +433,25 @@ describe('desktop: agendas', () => {
       eventUid: 'one-on-one@x',
       recurring: true,
     })
-    await w().getByRole('status', { name: 'This meeting is happening now' }).waitFor()
+    await w().getByText('happening now').waitFor()
 
-    await w().getByRole('button', { name: 'Add Link to Invite' }).click()
-    const dlg = w().getByRole('dialog', { name: 'Couldn’t Edit the Invitation' })
-    await dlg.waitFor()
-    expect(await dlg.textContent()).toContain(`kacola://`)
-    await axeAllModes('invite refused')
-    await dlg.getByRole('button', { name: 'Copy' }).click()
-    await waitFor(
-      async () =>
-        (await app.evaluateMain(({ clipboard }) => clipboard.readText())).includes('kacola://meeting/'),
-      5000,
-      'the copied block',
-    )
+    // Send the agenda without a sharing server: it says so, with one action — and never hands out a
+    // kacola:// link that attendees without kacola could not open
+    await w().getByRole('button', { name: 'Send the agenda' }).click()
+    const dlg = w().getByRole('dialog', { name: 'Send the Agenda' })
+    await dlg.getByRole('region', { name: 'What attendees see' }).waitFor()
+    await dlg.getByRole('button', { name: 'Send', exact: true }).click()
+    await dlg.getByRole('button', { name: 'Set Up Sharing' }).waitFor({ timeout: 15_000 })
+    expect(await dlg.getByRole('status').count()).toBeGreaterThan(0)
+    expect(await dlg.textContent()).not.toContain('kacola://')
+    expect(await dlg.getByRole('button', { name: 'Copy Invitation Text' }).count()).toBe(0)
+    await axeAllModes('send without a sharing server')
+    expect((await daemon.client.call('getAgendaShare', { params: { id: meetingAgenda } })).shared).toBe(false)
+    // its one action opens Preferences
+    await dlg.getByRole('button', { name: 'Set Up Sharing' }).click()
+    await w().getByRole('dialog', { name: 'Preferences' }).waitFor()
+    await w().keyboard.press('Escape')
+    await w().getByRole('dialog', { name: 'Preferences' }).waitFor({ state: 'detached' })
   })
 
   it('Plan with Claude: goals → streamed proposals (held for the baseline) → accepted items', async () => {
@@ -491,19 +500,21 @@ describe('desktop: agendas', () => {
     ])
   })
 
-  it('Join and record → the live panel folds the agent’s marks; suggestions; undo; interview; compact', async () => {
+  it('Join and record → the live checklist folds the agent’s ticks; the one suggestion slot; undo', async () => {
     await daemon.client.call('addAgendaItems', {
       params: { id: meetingAgenda },
       body: { items: [{ text: 'Parking lot' }, { text: 'Skip this one' }] },
     })
-    await w().getByRole('button', { name: 'Join and Record' }).click()
-    await w().getByRole('tab', { name: 'Agenda', selected: true }).waitFor({ timeout: 15_000 })
-    sessionId = ((await w().evaluate('location.hash')) as string).split('/')[2]!.split('?')[0]!
-    await until(
+    await w().getByRole('button', { name: 'Join and record' }).click()
+    // the prep page moves on by itself: live, the recording pill in its header
+    await w()
+      .getByRole('timer', { name: /^Recording/ })
+      .waitFor({ timeout: 15_000 })
+    sessionId = (await until(
       async () => (await view(meetingAgenda)).agenda.sessionId,
-      (s) => s === sessionId,
+      (s) => s !== null,
       'the agenda to link',
-    )
+    ))!
     await w().getByRole('list', { name: 'Agenda items' }).waitFor({ timeout: 15_000 })
 
     const seg = await until(
@@ -539,6 +550,14 @@ describe('desktop: agendas', () => {
       claude,
     )
     await status('How is onboarding going', { status: 'in-progress' }, claude)
+    await status(
+      'Next review date',
+      {
+        status: 'in-progress',
+        evidence: [{ segmentId: seg[0]!.id, quote: 'the review could be in March', confidence: 0.8 }],
+      },
+      claude,
+    )
     await status('Parking lot', { status: 'parked' })
     await status('Skip this one', { status: 'skipped' })
     await claude.call('addSuggestion', {
@@ -555,34 +574,37 @@ describe('desktop: agendas', () => {
       },
     })
 
+    // ticks someone else made are attributed, quietly; the current item is the first in progress
     const promo = w().getByRole('listitem', { name: 'Promo timeline' })
-    await promo.getByText('checked by Claude').waitFor()
-    await w()
-      .getByRole('listitem', { name: 'How is onboarding going' })
-      .getByText('checked by Claude')
-      .waitFor()
-    const next = w().getByRole('region', { name: 'Next talking point' })
-    await next.getByText('Bridge to the review date while onboarding wraps up').waitFor()
-    await w()
-      .getByRole('listitem', { name: 'Suggestion: Ask whether the March cycle has a deadline' })
-      .waitFor()
-    await axeAllModes('live panel')
-    await shot('live', w().getByRole('tabpanel', { name: 'Agenda' }))
-    // every status at once: open, in progress (agent), covered (agent + evidence), skipped, parked
+    await promo.getByText('ticked by your Claude').waitFor()
+    expect(
+      await w().getByRole('listitem', { name: 'How is onboarding going' }).getAttribute('aria-current'),
+    ).toBe('step')
+    // ONE suggestion at a time: the newest of its kind
+    const slot = w().getByRole('region', { name: /^Suggestion: / })
+    const bridge = w().getByRole('region', {
+      name: 'Suggestion: Bridge to the review date while onboarding wraps up',
+    })
+    await bridge.waitFor()
+    await bridge.getByText('from your Claude').waitFor()
+    expect(await slot.count()).toBe(1)
+    await axeAllModes('live page')
+    await shot('live', w().getByRole('main'), [w().getByRole('timer')])
+    // every status at once: open, in progress (agent), covered (agent), skipped, parked
     await shot('live-items', w().getByRole('list', { name: 'Agenda items' }))
 
-    // the evidence chip jumps the transcript to the line
-    await promo.getByRole('button', { name: 'Show in transcript: “so the promo goes in March”' }).click()
-    await w().getByRole('tab', { name: 'Transcript', selected: true }).waitFor()
+    // the suggestion's evidence opens the transcript beside the page, at the line
+    await bridge.getByRole('button', { name: 'Show in transcript: “the review could be in March”' }).click()
+    await w().getByRole('button', { name: 'Close the transcript' }).waitFor()
     await until(
       () => w().evaluate('location.hash') as Promise<string>,
       (h) => h.includes(`segment=${seg[0]!.id}`),
       'the citation',
     )
-    await w().getByRole('tab', { name: 'Agenda' }).click()
+    await w().getByRole('button', { name: 'Close the transcript' }).click()
 
-    // undo the agent's mark: the user sets it back (an override; manual wins after)
-    await w().getByRole('listitem', { name: 'Promo timeline' }).getByRole('button', { name: 'Undo' }).click()
+    // undo the agent's tick: the user sets it back (an override; manual wins after)
+    await promo.getByRole('button', { name: 'Undo the tick on “Promo timeline”' }).click()
     await until(
       () => item(meetingAgenda, 'Promo timeline'),
       (i) => i.status === 'open',
@@ -594,49 +616,18 @@ describe('desktop: agendas', () => {
     })
     expect(hist.changes.at(-1)).toMatchObject({ to: 'open', by: 'user', override: true })
 
-    // the agent's suggestion becomes an item
-    const s = w().getByRole('listitem', { name: 'Suggestion: Ask whether the March cycle has a deadline' })
-    await s.getByRole('button', { name: 'Turn into Item' }).click()
-    await until(
-      () => texts(meetingAgenda),
-      (t) => t.includes('Ask whether the March cycle has a deadline'),
-      'the new item',
-    )
-    await s.waitFor({ state: 'detached' })
-
-    // interview view
-    await daemon.client.call('addAgendaItems', {
-      params: { id: meetingAgenda },
-      body: {
-        items: [
-          {
-            text: 'Team size',
-            kind: 'info-to-get',
-            status: 'covered',
-            outcome: 'eight engineers, two designers',
-          },
-          { text: 'Salary band', kind: 'info-to-get' },
-        ],
-      },
+    // Not now: the next one waiting takes the slot; Accept resolves it
+    await bridge.getByRole('button', { name: 'Not now' }).click()
+    const ask = w().getByRole('region', { name: 'Suggestion: Ask whether the March cycle has a deadline' })
+    await ask.waitFor()
+    await ask.getByRole('button', { name: 'Accept' }).click()
+    await ask.waitFor({ state: 'detached' })
+    const states = Object.fromEntries((await view(meetingAgenda)).suggestions.map((x) => [x.text, x.state]))
+    expect(states).toMatchObject({
+      'Bridge to the review date while onboarding wraps up': 'dismissed',
+      'Ask whether the March cycle has a deadline': 'accepted',
     })
-    await w().getByRole('radio', { name: 'Interview' }).click()
-    const told = w().getByRole('region', { name: 'Told (1)' })
-    await told.getByText('eight engineers, two designers').waitFor()
-    await w().getByRole('region', { name: 'Not told yet (1)' }).getByText('Salary band').waitFor()
-    await axeAllModes('interview view')
-    await shot('interview', w().getByRole('tabpanel', { name: 'Agenda' }))
-    await w().getByRole('radio', { name: 'Agenda' }).click()
-
-    // compact: what is in progress, the next point
-    await w().getByRole('button', { name: 'Compact view' }).click()
-    const list = w().getByRole('list', { name: 'Agenda items' })
-    await until(
-      async () => list.getByRole('listitem').count(),
-      (n) => n === 1,
-      'compact',
-    )
-    await list.getByRole('listitem', { name: 'How is onboarding going' }).waitFor()
-    await w().getByRole('button', { name: 'Full view' }).click()
+    expect(await slot.count()).toBe(0)
   })
 
   it('presence: connected / reading, the activity on the chip, mode, Disconnect (the real agent channel)', async () => {
@@ -648,7 +639,8 @@ describe('desktop: agendas', () => {
           query: { includeEnded: true },
         })
       ).leases.find((l) => l.id === grant.lease.id)!
-    const chip = w().getByRole('button', { name: 'Claude · connected. Show agent' })
+    // the pill states what it may do
+    const chip = w().getByRole('button', { name: 'Your Claude · can check items off. Show agent' })
     await chip.waitFor({ timeout: 10_000 })
     await still()
     await expectScreenshot(app, 'agenda-presence-connected-light', { region: chip })
@@ -656,8 +648,13 @@ describe('desktop: agendas', () => {
       params: { leaseId: grant.lease.id },
       body: { state: 'reading' },
     })
-    const reading = w().getByRole('button', { name: 'Claude · reading. Show agent' })
-    await reading.waitFor()
+    // reading: the same words (the pulse says it; none under reduced motion)
+    const reading = chip
+    await until(
+      async () => (await lease()).state,
+      (st) => st === 'reading',
+      'the reading heartbeat',
+    )
     await still()
     await expectScreenshot(app, 'agenda-presence-reading-light', { region: reading })
     await reading.click()
@@ -677,7 +674,7 @@ describe('desktop: agendas', () => {
     await pop.getByRole('button', { name: 'Disconnect' }).click()
     await until(lease, (l) => l.endReason === 'revoked', 'the revoke')
     await w()
-      .getByRole('button', { name: /Claude · / })
+      .getByRole('button', { name: /Your Claude · / })
       .waitFor({ state: 'detached' })
     // the token is dead
     await expect(
@@ -685,7 +682,7 @@ describe('desktop: agendas', () => {
     ).rejects.toMatchObject({ status: expect.any(Number) })
   })
 
-  it('after Stop: the recap per item, and open items carried over to the next occurrence', async () => {
+  it('after Stop: the recap per item, the outcome, and open items carried over to the next occurrence', async () => {
     await daemon.client.call('updateAgendaItem', {
       params: { id: meetingAgenda, itemId: (await item(meetingAgenda, 'Next review date')).id },
       body: {
@@ -699,9 +696,14 @@ describe('desktop: agendas', () => {
     await daemon.client.call('stopSession', { params: { id: sessionId } })
     const recap = w().getByRole('list', { name: 'Recap per item' })
     await recap.waitFor({ timeout: 20_000 })
-    const nr = recap.getByRole('listitem', { name: 'Next review date' })
-    expect(await nr.textContent()).toMatch(/Review on 12 November\..*12 November.*Ana: book the room/)
-    const openNext = w().getByRole('button', { name: 'Open Next Agenda' })
+    expect(await recap.getByRole('listitem', { name: 'Next review date' }).textContent()).toContain('settled')
+    // the outcome block: what was decided, who does what
+    const outcome = w().getByRole('region', { name: 'Outcome' })
+    await outcome.getByText('12 November', { exact: true }).waitFor()
+    const todo = outcome.getByRole('listitem', { name: 'book the room' })
+    expect(await todo.textContent()).toContain('Ana')
+    await outcome.getByText('Carried over').waitFor()
+    const openNext = w().getByRole('button', { name: 'Open the next meeting' })
     await openNext.waitFor({ timeout: 20_000 })
     await axeAllModes('recap')
     await shot('recap', recap)

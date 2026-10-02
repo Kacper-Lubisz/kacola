@@ -122,13 +122,17 @@ Calendar integration (M4) only has to pass the event's title; nothing here depen
   React Query (`['notes', id]`, `['templates', id]`), events from `EventBridge.listen`, writes over the
   protocol routes. The EventBridge folds `note.version` into `['notes', id]` and `['noteVersions', id]`
   with ui-core's `applyNotesEvent` / `applyVersionEvent`; template events invalidate `['templates']`.
-- `notes-pane.tsx`: Enhance + template menu (built-ins and custom; the suggestion and why — calendar
-  event or meeting title keyword), save status, the streaming progress (words so far + the text), the
-  error banner (`enhanceProblem`: refused / rate-limited → Try Again / no provider → Preferences),
-  Version History, Copy Notes as Markdown (main's clipboard), Export Notes (main's save dialog, starting
-  in Documents), live Action Items with owner / due and their own copy button.
-- `notes-review.tsx`: one card per change, "Your notes" beside "Enhanced", a switch "Use enhanced text
-  for change N"; Use All Enhanced / Keep All Mine / Discard / Apply.
+- `features/meeting/notepad.tsx`: the live notepad (just the editor), and the outcome's notes: Enhance +
+  template menu (built-ins and custom; the suggestion and why — calendar event or meeting title keyword),
+  save status, the streaming progress (words so far + the text), the error banner (`enhanceProblem`:
+  refused / rate-limited → Try Again / no provider → Preferences), and the Notes actions menu: Version
+  History, Copy Notes as Markdown (main's clipboard), Export Notes (main's save dialog, starting in
+  Documents). Action items with owner / due are in the outcome block above the notes.
+- The window no longer shows a block-by-block review: Enhance (`features/meeting/notepad.tsx`) merges
+  with every hunk set to the enhanced text — the tidied notes REPLACE the draft — and "Back to my draft"
+  restores the merge's base version (restoring appends a version, so it is undoable too). A pending
+  enhancement made elsewhere is offered as Use It / Keep Mine. The review machinery below stays the
+  daemon's contract (the CLI and agents use it).
 - `version-history.tsx`: every version newest first with a preview; Restore This Version appends a
   `restore` version (so a restore is itself undoable). `template-editor.tsx`: custom templates (name,
   keywords, body), built-ins read-only with Duplicate.

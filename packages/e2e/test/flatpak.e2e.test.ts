@@ -375,7 +375,7 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
     })
     children.add(windowed)
     cdp = await connectCdp(cdpPort, 90_000)
-    await cdp.window.getByRole('dialog', { name: 'Welcome to gnomeola' }).waitFor({ timeout: 30_000 })
+    await cdp.window.getByRole('dialog', { name: 'Welcome to kacola' }).waitFor({ timeout: 30_000 })
     // the renderer is up; the compositor maps the window on ready-to-show, a frame or two later
     await waitFor(
       async () => !readFileSync(await display.screenshot(join(home, 'windowed.png'))).equals(empty),
@@ -400,7 +400,7 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
   })
 
   it('onboarding installs the CLI through the host shim (flatpak run --command=gnomeola)', async () => {
-    const welcome = cdp.window.getByRole('dialog', { name: 'Welcome to gnomeola' })
+    const welcome = cdp.window.getByRole('dialog', { name: 'Welcome to kacola' })
     expect(
       await welcome.getByRole('switch', { name: 'Install command-line tool and Claude skill' }).isChecked(),
     ).toBe(true)
@@ -415,14 +415,12 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
     expect(JSON.parse(st.stdout).sessions.map((s: { title: string }) => s.title)).toContain('Flatpak standup')
   })
 
-  it('the renderer shows the session list from the sandboxed daemon', async () => {
-    const list = cdp.window.getByRole('listbox', { name: 'Sessions' })
-    const row = list.getByRole('option', { name: /Flatpak standup/ })
+  it('the renderer shows the meetings from the sandboxed daemon', async () => {
+    const row = cdp.window.getByRole('button', { name: /^Flatpak standup, / })
     await row.waitFor({ timeout: 20_000 })
     await row.click()
     await cdp.window.getByRole('heading', { level: 1, name: 'Flatpak standup' }).waitFor({ timeout: 10_000 })
-    expect(await cdp.window.getByRole('heading', { name: 'No Session Selected' }).count()).toBe(0)
-    expect(await row.getAttribute('aria-selected')).toBe('true')
+    await cdp.window.getByRole('button', { name: 'Back to Today' }).waitFor()
     await new Promise((r) => setTimeout(r, 500)) // the compositor's next frame
     await display.screenshot(join(REPO, 'packages', 'e2e', 'test', '__artifacts__', 'flatpak-window.png'))
   })

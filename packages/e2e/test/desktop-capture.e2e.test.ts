@@ -37,7 +37,6 @@ let segments: Segment[] = []
 let durationMs = 0
 const durable: DurableEvent[] = []
 let levelEvents = 0
-let uiLevelMax = 0
 
 beforeAll(async () => {
   buildDesktop()
@@ -82,7 +81,7 @@ describe('recording through the app’s own capture (daemon backend: external)',
         else if (e.data.type === 'audio.level' && e.data.track === 'mic') levelEvents++
       },
     })
-    await app.window.getByRole('button', { name: 'Record', exact: true }).click()
+    await app.window.getByRole('button', { name: 'Record now', exact: true }).click()
     const running = await waitForLog(
       app,
       /"event":"capture","kind":"state","track":"mic","state":"running"/,
@@ -101,13 +100,17 @@ describe('recording through the app’s own capture (daemon backend: external)',
       await app.evaluateMain(({ BrowserWindow }) =>
         BrowserWindow.getAllWindows().map((w) => ({ visible: w.isVisible(), title: w.getTitle() })),
       ),
-    ).toEqual(expect.arrayContaining([{ visible: false, title: 'gnomeola capture' }]))
-    // the session page's level meter follows the daemon's audio.level events for the streamed track
-    const meter = app.window.getByRole('progressbar', { name: 'Microphone level' })
-    await meter.waitFor({ timeout: 10_000 })
+    ).toEqual(
+      expect.arrayContaining([
+        { visible: false, title: expect.stringMatching(/^(kacola|gnomeola) capture$/) },
+      ]),
+    )
+    // the live page: the recording pill runs, and the quiet "can't hear you" line never shows while
+    // the fixture is heard (no level meters any more: levels only feed that warning). The system track
+    // is unfed here (no loopback in Linux Chromium), so "can't hear the other side" may rightly appear.
+    await app.window.getByRole('timer', { name: /^Recording, / }).waitFor({ timeout: 10_000 })
     while (Date.now() - t0 < FIXTURE.truth.durationMs + 2_000) {
-      const v = Number((await meter.getAttribute('aria-valuenow')) ?? 0)
-      uiLevelMax = Math.max(uiLevelMax, v)
+      expect(await app.window.getByText(/can’t hear (you|anyone)/).count()).toBe(0)
       await new Promise((r) => setTimeout(r, 500))
     }
     await app.window.getByRole('button', { name: 'Stop', exact: true }).first().click()
@@ -131,7 +134,6 @@ describe('recording through the app’s own capture (daemon backend: external)',
     // nothing lost on the way but the start-up latency (capture window + getUserMedia)
     expect(mic.gaps.filter((g) => g.reason !== 'latency')).toEqual([])
     expect(levelEvents, 'mic audio.level events').toBeGreaterThan(FIXTURE.truth.durationMs / 100 / 2)
-    expect(uiLevelMax, 'the Microphone level meter moved').toBeGreaterThan(5)
     assertNoViolations(checkSegments(segments, { durationMs, requireFinal: true }), 'final transcript')
     assertNoViolations(checkEventLog(durable, durable[0]!.seq - 1), 'durable stream')
   }, 180_000)

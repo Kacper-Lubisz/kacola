@@ -23,13 +23,17 @@ export const keys = {
   // ---- agendas (kacola wave 2): one AgendaView per agenda, folded from the agenda.* events
   agenda: (id: string) => ['agenda', id] as const,
   agendaHistory: (id: string) => ['agendaHistory', id] as const,
+  /** An item's versions (restorable), from GET /agendas/:id/item-history; refetched on the agenda's events. */
+  itemHistory: (id: string, itemId: string) => ['itemHistory', id, itemId] as const,
+  /** Home's search: moments over titles, notes and transcripts. */
+  moments: (q: string) => ['moments', q] as const,
   /** The live tracker's status for an agenda's recording (agenda.tracker events keep it current). */
   agendaTracker: (id: string) => ['agendaTracker', id] as const,
   /** Every agenda (summaries), for matching calendar meetings to their agendas. */
   agendas: () => ['agendas'] as const,
   /** The agenda linked to a recorded session (its id, or null). */
   sessionAgenda: (sessionId: string) => ['sessionAgenda', sessionId] as const,
-  /** The next week of calendar meetings (the sidebar's Coming up). */
+  /** The next week of calendar meetings (prep's "Earlier with" and the meeting's next occurrence). */
   upcoming: () => ['upcoming'] as const,
   /** Connected agents' leases on a session (the presence chip) and its private-session access. */
   leases: (sessionId: string) => ['leases', sessionId] as const,

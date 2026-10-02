@@ -29,7 +29,7 @@ import { markOnboarded } from '../src/ui.ts'
 // Port of ui-ask.e2e.test.ts (V-9a / Q-5) to the Electron window. The whole chain is real — Electron
 // renderer → fetch tunnel → gnomeolad (child process) → @gnomeola/llm → provider SDK → HTTP — and only
 // the far end is a replay of recorded streams, trickled one SSE event at a time so the streaming state
-// is visible. Plus what the GTK pane did not have: effort, cross-meeting scope, the no-credits notice.
+// is visible. Plus what the GTK pane did not have: cross-meeting asking (from home), the no-credits notice.
 
 const CASSETTES = join(import.meta.dirname, '..', '..', 'llm', 'test', 'fixtures', 'cassettes')
 const KEY = 'sk-ant-e2e-desktop-planted-key-9876543210'
@@ -74,24 +74,30 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
   let markerId = ''
 
   const w = () => app.window
-  const pane = () => w().getByRole('region', { name: 'Ask' })
-  const openSession = async (title: string) => {
-    await w()
-      .getByRole('listbox', { name: 'Sessions' })
-      .getByRole('option', { name: new RegExp(title) })
-      .click()
+  // Ask is a bar over the meeting page (Ctrl+K): the latest exchange above its box
+  const pane = () => w().getByRole('region', { name: 'Ask about this meeting' })
+  const sessionId = async (title: string) =>
+    poll(
+      async () =>
+        (await daemon.client.call('listSessions', { query: { includePrivate: true } })).sessions.find(
+          (s) => s.title === title,
+        )?.id,
+      10_000,
+      `the session ${title}`,
+    )
+  const openSession = async (title: string, search = '') => {
+    const id = await sessionId(title)
+    await w().evaluate(`location.hash = ${JSON.stringify(`#/sessions/${id}${search}`)}`)
     await w().getByRole('heading', { level: 1, name: title }).waitFor({ timeout: 10_000 })
   }
-  const openTab = async (name: 'Transcript' | 'Ask') => {
-    const tab = w().getByRole('tab', { name })
-    await tab.click()
-    await poll(async () => (await tab.getAttribute('aria-selected')) === 'true', 5000, `the ${name} tab`)
+  const openAsk = async () => {
+    if (!(await pane().count())) await w().keyboard.press('Control+k')
+    await pane().waitFor({ timeout: 5000 })
   }
-  const tabSelected = async (name: string) =>
-    (await w().getByRole('tab', { name }).getAttribute('aria-selected')) === 'true'
+  const transcriptOpen = async () => (await transcriptList(w()).count()) > 0
   /** Type a question with the real keyboard and submit it with Enter. */
   const ask = async (question: string) => {
-    const field = w().getByRole('textbox', { name: 'Question' })
+    const field = pane().getByRole('textbox', { name: 'Ask about this meeting' })
     await field.click()
     await w().keyboard.type(question)
     await w().keyboard.press('Enter')
@@ -104,12 +110,6 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
     const a = messages.filter((m) => m.role === 'assistant').at(-1)
     if (!a) throw new Error('no answer in the history')
     return a
-  }
-  /** Pick a segmented-control option (a radio whose input is visually hidden: click its label). */
-  const choose = async (group: string, label: string) => {
-    const g = w().getByRole('radiogroup', { name: group })
-    await g.getByText(label, { exact: true }).click()
-    await poll(async () => g.getByRole('radio', { name: label }).isChecked(), 3000, `${label} chosen`)
   }
   const answering = () => pane().getByRole('progressbar', { name: 'Answering' })
 
@@ -139,7 +139,7 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
       display,
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
     })
-    await w().getByRole('listbox', { name: 'Sessions' }).waitFor({ timeout: 20_000 })
+    await w().getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
   }, 240_000)
 
   afterEach(() => {
@@ -156,7 +156,7 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
   })
 
   it('streams an answer, then shows citation chips that jump to and highlight the cited line', async () => {
-    await openSession('Quarterly planning')
+    await openSession('Quarterly planning', '?panel=transcript')
     // park the transcript at its far end, so following a citation must scroll back up
     await transcriptList(w()).focus()
     await w().keyboard.press('End')
@@ -166,52 +166,54 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
       'the transcript at its end',
     )
 
-    await openTab('Ask')
-    await pane().getByRole('heading', { name: 'Ask About This Meeting' }).waitFor()
+    await openAsk()
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
     // the provider stream stops after its 8th event — "…three attempts, then dead-letter [s" — until
     // released: a fixed mid-stream state (a marker cut in half) for the assertions and the baseline
     const release = api.holdAfter(8)
-    await ask('What did we decide about the retry budget?')
+    try {
+      await ask('What did we decide about the retry budget?')
 
-    // the question appears at once, and the answer streams in under a spinner
-    await pane()
-      .getByText('What did we decide about the retry budget?', { exact: true })
-      .waitFor({ timeout: 5000 })
-    const partial = await poll(
-      async () => {
-        if (!(await answering().count())) return null
-        const t = await pane()
-          .getByText(/three attempts/)
-          .first()
-          .textContent()
-        return t
-      },
-      15_000,
-      'streamed text under the Answering spinner',
-    )
-    // held: everything before the cut has arrived, the half marker is not shown
-    await pane()
-      .getByText(/then dead-letter/)
-      .first()
-      .waitFor({ timeout: 10_000 })
-    expect(
+      // the question appears at once, and the answer streams in under a spinner
+      await pane()
+        .getByText('What did we decide about the retry budget?', { exact: true })
+        .waitFor({ timeout: 5000 })
+      const partial = await poll(
+        async () => {
+          if (!(await answering().count())) return null
+          const t = await pane()
+            .getByText(/three attempts/)
+            .first()
+            .textContent()
+          return t
+        },
+        15_000,
+        'streamed text under the Answering spinner',
+      )
+      // held: everything before the cut has arrived, the half marker is not shown
       await pane()
         .getByText(/then dead-letter/)
         .first()
-        .textContent(),
-    ).not.toMatch(/\[s/)
-    expect(partial).not.toMatch(/\[s\d/) // aliases never leak: markers are rewritten as they stream
-    // still spinner, no caret or hover: the baseline is the state
-    await w().emulateMedia({ reducedMotion: 'reduce' })
-    await w().evaluate('document.activeElement?.blur()')
-    await w().mouse.move(0, 0)
-    await expectScreenshot(app, 'ask-streaming-light', { region: pane() })
-    await setScheme(w(), 'dark')
-    await expectScreenshot(app, 'ask-streaming-dark', { region: pane() })
-    await setScheme(w(), 'light')
-    await w().emulateMedia({ reducedMotion: null })
-    release()
+        .waitFor({ timeout: 10_000 })
+      expect(
+        await pane()
+          .getByText(/then dead-letter/)
+          .first()
+          .textContent(),
+      ).not.toMatch(/\[s/)
+      expect(partial).not.toMatch(/\[s\d/) // aliases never leak: markers are rewritten as they stream
+      // still spinner, no caret or hover: the baseline is the state
+      await w().emulateMedia({ reducedMotion: 'reduce' })
+      await w().evaluate('document.activeElement?.blur()')
+      await w().mouse.move(0, 0)
+      await expectScreenshot(app, 'ask-streaming-light', { region: pane() })
+      await setScheme(w(), 'dark')
+      await expectScreenshot(app, 'ask-streaming-dark', { region: pane() })
+      await setScheme(w(), 'light')
+      await w().emulateMedia({ reducedMotion: null })
+    } finally {
+      release()
+    }
 
     // the answer: text with [n] markers (the chips), and one chip per citation
     const answer = await poll(() => lastAnswer(SEED.long), 15_000, 'the persisted answer')
@@ -234,9 +236,10 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
     await expectScreenshot(app, 'ask-answered-dark', { region: pane() })
     await setScheme(w(), 'light')
 
-    // follow citation 2: the Transcript shows, scrolled back to that line, which is the one selected
+    // follow citation 2: the transcript panel scrolls back to that line, which is the one selected;
+    // the answer stays where it is
     await chip2.click()
-    await poll(() => tabSelected('Transcript'), 5000, 'the Transcript tab')
+    await poll(transcriptOpen, 5000, 'the transcript panel')
     await poll(
       async () => JSON.stringify(await selectedRowNames(w())) === JSON.stringify([rowName(cited[1]!)]),
       5000,
@@ -248,8 +251,7 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
       'citation 2 on screen',
     )
 
-    // and back: citation 1 moves the highlight
-    await openTab('Ask')
+    // citation 1 moves the highlight (the answer never went away)
     await pane()
       .getByRole('button', { name: chipName(1), exact: true })
       .click()
@@ -266,7 +268,6 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
     // following the same citation again re-scrolls to it (a new navigation), even after scrolling away
     await transcriptList(w()).focus()
     await w().keyboard.press('End')
-    await openTab('Ask')
     await pane()
       .getByRole('button', { name: chipName(1), exact: true })
       .click()
@@ -278,7 +279,7 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
   })
 
   it('shows a refusal as a notice, replacing the partial text that streamed before it', async () => {
-    await openTab('Ask')
+    await openAsk()
     api.enqueue(...loadCassette(join(CASSETTES, 'refusal.json')))
     await ask('Tell me something you will refuse')
     // the partial arrives first…
@@ -307,36 +308,34 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
       async () =>
         (await pane()
           .getByRole('button', { name: /^Citation 1:/ })
-          .count()) >= 2,
+          .count()) >= 1,
       10_000,
       'the CLI answer’s citation chips',
     )
 
-    // away and back: the pane is rebuilt from getQaHistory, refusal included
+    // away and back: the bar is rebuilt from getQaHistory (it shows the latest exchange)
     await openSession('Platform standup')
     await openSession('Quarterly planning')
-    await openTab('Ask')
-    for (const q of [
+    await openAsk()
+    await pane().getByText('Asked from the CLI?', { exact: true }).waitFor({ timeout: 10_000 })
+    await pane()
+      .getByRole('button', { name: /^Citation 1:/ })
+      .first()
+      .waitFor({ timeout: 10_000 })
+    const { messages } = await daemon.client.call('getQaHistory', {
+      params: { id: SEED.long },
+      query: { includePrivate: true },
+    })
+    expect(messages.filter((m) => m.role === 'user').map((m) => m.text)).toEqual([
       'What did we decide about the retry budget?',
       'Tell me something you will refuse',
       'Asked from the CLI?',
-    ]) {
-      await pane().getByText(q, { exact: true }).waitFor({ timeout: 10_000 })
-    }
-    await pane()
-      .getByText(/The model declined to answer this question/)
-      .waitFor()
-    expect(
-      await pane()
-        .getByRole('button', { name: /^Citation 1:/ })
-        .count(),
-    ).toBe(2)
+    ])
   })
 
-  it('passes the effort to the provider, and asks across recent meetings with citations into them', async () => {
-    await choose('Effort', 'Thorough')
+  it('asks quickly (no effort to choose), and asks across meetings from home with citations into them', async () => {
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
-    await ask('Thorough question?')
+    await ask('Quick question?')
     await poll(
       async () => (await lastAnswer(SEED.long)).text.length > 0 && api.seen.length > 0,
       15_000,
@@ -344,19 +343,21 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
     )
     await poll(async () => (await answering().count()) === 0, 15_000, 'the answer to finish')
     const sent = api.seen.at(-1)!.body as { output_config?: { effort?: string } }
-    expect(sent.output_config?.effort).toBe('high')
-    await choose('Effort', 'Quick')
+    expect(sent.output_config?.effort).toBe('low')
 
-    // cross-meeting: no session history holds it; the stream's final answer is shown, and its
-    // citations open the cited session's transcript
-    await choose('Scope', 'Last 30 days')
+    // cross-meeting: home's search-and-ask box; no session history holds it, the stream's final answer
+    // is shown, and its citations open the cited meeting at the line
+    await w().getByRole('button', { name: 'Back to Today' }).click()
+    const box = w().getByRole('searchbox', { name: 'Search or ask' })
+    await box.fill('Across meetings: retry budget?')
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
-    await ask('Across meetings: retry budget?')
-    const chip = pane()
-      .getByRole('button', { name: /^Citation 1:/ })
-      .last()
+    await box.press('Enter')
+    const answer = w().getByRole('region', { name: 'Answer' })
+    const chip = answer.getByRole('button', { name: /^Citation 1:/ }).last()
     await poll(
-      async () => (await answering().count()) === 0 && (await chip.count()) > 0,
+      async () =>
+        (await answer.getByRole('progressbar', { name: 'Answering' }).count()) === 0 &&
+        (await chip.count()) > 0,
       20_000,
       'the cross-meeting answer',
     )
@@ -364,7 +365,7 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
     expect(body.output_config?.effort).toBe('low')
     const name = (await chip.getAttribute('aria-label'))!
     await chip.click()
-    await poll(() => tabSelected('Transcript'), 5000, 'a transcript')
+    await poll(transcriptOpen, 5000, 'a transcript')
     const sel = await poll(async () => (await selectedRowNames(w()))[0], 5000, 'the cited line selected')
     // "Citation 1: Them at 1:06" ↔ "Them at 1:06: …"
     expect(sel.startsWith(`${name.replace(/^Citation 1: /, '')}: `)).toBe(true)
@@ -372,25 +373,31 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
 
   it('explains an exhausted provider account instead of a raw error — nothing persisted as an answer', async () => {
     await openSession('Platform standup')
-    await openTab('Ask')
-    await choose('Scope', 'This meeting')
+    await openAsk()
     await daemon.client.call('updateSettings', { body: { llm: { provider: 'openai' } } })
-    api.enqueue(noCredits())
-    await ask('Anything?')
-    await pane()
-      .getByText('The provider account has no credits left', { exact: true })
-      .waitFor({ timeout: 15_000 })
-    expect(await answering().count()).toBe(0)
-    const { messages } = await daemon.client.call('getQaHistory', { params: { id: SEED.standup } })
-    expect(messages.at(-1)).toMatchObject({ role: 'user', text: 'Anything?' })
-    expect(await app.axe()).toEqual([])
-    await expectScreenshot(app, 'ask-no-credits-light', { region: pane() })
-    await daemon.client.call('updateSettings', { body: { llm: { provider: 'anthropic' } } })
+    try {
+      api.enqueue(noCredits())
+      await ask('Anything?')
+      // the daemon's sentence, and ONE action that fixes it (add credits, or switch provider)
+      await pane().getByText('No answer this time', { exact: true }).waitFor({ timeout: 15_000 })
+      await pane()
+        .getByRole('button', { name: /^(Add Credits|Switch Provider)$/ })
+        .waitFor()
+      expect(await pane().getByRole('button', { name: 'Try Again' }).count()).toBe(0)
+      expect(await answering().count()).toBe(0)
+      const { messages } = await daemon.client.call('getQaHistory', { params: { id: SEED.standup } })
+      expect(messages.at(-1)).toMatchObject({ role: 'user', text: 'Anything?' })
+      expect(await app.axe()).toEqual([])
+      await expectScreenshot(app, 'ask-no-credits-light', { region: pane() })
+    } finally {
+      await daemon.client.call('updateSettings', { body: { llm: { provider: 'anthropic' } } })
+    }
   })
 
   it('answers during a live recording, with citations into the growing transcript', async () => {
-    // started with the window's own Record button (as the GTK suite did); it opens the new session
-    await w().getByRole('button', { name: 'Record', exact: true }).click()
+    // started with home's Record now (as the GTK suite did with Record); it opens the new session
+    await w().getByRole('button', { name: 'Back to Today' }).click()
+    await w().getByRole('button', { name: 'Record now' }).click()
     const s = await poll(
       async () =>
         (await daemon.client.call('listSessions', { query: {} })).sessions.find(
@@ -406,7 +413,7 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
       20_000,
       'six segments',
     )
-    await openTab('Ask')
+    await openAsk()
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
     await ask('What have we said so far?')
     const answer = await poll(() => lastAnswer(s.id).catch(() => null), 20_000, 'an answer')
@@ -417,6 +424,7 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
     const chip = pane().getByRole('button', { name: /^Citation 1:/ })
     await chip.waitFor({ timeout: 10_000 })
     await chip.click()
+    await poll(transcriptOpen, 5000, 'the transcript panel')
     // the cited line is found by its start time and speaker (its text may have been revised to final)
     const prefix = `${speakerName(cited.speaker)} at ${formatOffset(cited.startMs)}: `
     await poll(
@@ -431,9 +439,9 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
     )
     // it went through the real API with the key from the environment
     expect(api.seen.at(-1)!.headers['x-api-key']).toBe(KEY)
-    // …and stopped with the window's Stop button: the header offers Record again
+    // …and stopped with the header's Stop button: the page moves on to the outcome
     await w().getByRole('button', { name: 'Stop', exact: true }).click()
-    await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 10_000 })
+    await w().getByRole('button', { name: 'Share summary' }).waitFor({ timeout: 10_000 })
     expect((await daemon.client.call('getSession', { params: { id: s.id } })).status).toBe('stopped')
   })
 })

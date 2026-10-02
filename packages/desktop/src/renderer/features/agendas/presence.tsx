@@ -1,4 +1,4 @@
-import type { AgentAction, AgentPresenceState, LeaseInfo, Session } from '@gnomeola/protocol'
+import type { AgentAction, AgentMode, AgentPresenceState, LeaseInfo, Session } from '@gnomeola/protocol'
 import { formatClockTime } from '@gnomeola/ui-core/format'
 import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
 import { useQuery } from '@tanstack/react-query'
@@ -18,8 +18,8 @@ import { useAgendaMutation } from './agenda-data.ts'
 import { MODES, modeDescription, modeLabel } from './labels.ts'
 import { revokeLeaseMutation, setAgentAccessMutation, updateLeaseMutation } from './mutations.ts'
 
-// Who else is in the meeting: the user's connected agents (the agent channel's leases), in the session
-// header. "Claude · connected", with a pulse while it reads (none under reduced motion), its recent
+// Who else is in the meeting: the user's connected agents (the agent channel's leases), in the live
+// header. "Your Claude · can suggest" (what it may do), with a pulse while it reads (none under reduced motion), its recent
 // activity on hover, and — pressed — the mode (observe / suggest / act), its full activity, Disconnect
 // (revokes the lease), and for a private meeting the switch that allows agents at all. Presence arrives
 // as ephemeral agent.presence events (the pulse); the lease list is the daemon's, refetched on each.
@@ -27,6 +27,18 @@ import { revokeLeaseMutation, setAgentAccessMutation, updateLeaseMutation } from
 /** "Claude", or "Claude (work-laptop)" for an agent not simply named claude. */
 export function agentTitle(name: string): string {
   return name.toLowerCase() === 'claude' ? 'Claude' : fmt(_('Claude ({name})'), { name })
+}
+
+/** What a connected agent may do, said plainly: the pill on the live header. */
+export function permissionLabel(mode: AgentMode): string {
+  switch (mode) {
+    case 'observe':
+      return _('can read along')
+    case 'suggest':
+      return _('can suggest')
+    case 'act':
+      return _('can check items off')
+  }
 }
 
 export function presenceLabel(s: AgentPresenceState): string {
@@ -163,10 +175,13 @@ export function PresenceChip({ session }: { session: Session }) {
     ) : null
   const lead = active[0]!
   const reading = active.some((l) => l.state === 'reading')
-  const label = fmt(_('{agent} · {state}'), {
-    agent: active.length > 1 ? fmt(_('{n} agents'), { n: active.length }) : agentTitle(lead.name),
-    state: presenceLabel(reading ? 'reading' : lead.state),
-  })
+  const label =
+    active.length > 1
+      ? fmt(_('{n} agents · {permission}'), { n: active.length, permission: permissionLabel(lead.mode) })
+      : fmt(_('Your {agent} · {permission}'), {
+          agent: agentTitle(lead.name),
+          permission: permissionLabel(lead.mode),
+        })
   return (
     <Popover
       label={_('Connected agents')}

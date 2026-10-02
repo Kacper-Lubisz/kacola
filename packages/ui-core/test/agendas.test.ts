@@ -14,11 +14,7 @@ import {
   applyHistoryEvent,
   attributionOf,
   carriesOver,
-  interviewSplit,
-  isInterview,
   moveItem,
-  nextTalkingPoint,
-  notCoveredYet,
   parseRecapOutcome,
   personName,
   reorderItems,
@@ -205,71 +201,10 @@ describe('ordering', () => {
   })
 })
 
-describe('live panel logic', () => {
+describe('live logic', () => {
   const now = Date.parse('2026-09-30T10:20:00.000Z')
 
-  it('next talking point: a next-point suggestion first, else the first open must-cover, else the first open', () => {
-    const v = view({
-      items: [
-        item('a', { order: 0, status: 'in-progress' }),
-        item('b', { order: 1 }),
-        item('c', { order: 2, kind: 'must-cover' }),
-      ],
-    })
-    expect(nextTalkingPoint(v, now)).toMatchObject({ kind: 'item', item: { id: 'c' } })
-    const noMust = view({ items: [item('a', { status: 'covered' }), item('b', { order: 1 })] })
-    expect(nextTalkingPoint(noMust, now)).toMatchObject({ kind: 'item', item: { id: 'b' } })
-    const withSug = { ...v, suggestions: [suggestion('s', { itemId: 'b' })] }
-    expect(nextTalkingPoint(withSug, now)).toMatchObject({ kind: 'suggestion', item: { id: 'b' } })
-    // expired, resolved, or about a covered item: not shown
-    const stale = {
-      ...v,
-      suggestions: [
-        suggestion('x', { expiresAt: '2026-09-30T10:00:00.000Z' }),
-        suggestion('y', { state: 'dismissed' }),
-      ],
-    }
-    expect(nextTalkingPoint(stale, now)).toMatchObject({ kind: 'item', item: { id: 'c' } })
-    expect(nextTalkingPoint(view({ items: [item('a', { status: 'covered' })] }), now)).toBeNull()
-  })
-
-  it('not covered yet appears at T-5 min, must-cover first', () => {
-    const meeting = {
-      eventUid: 'u',
-      start: '2026-09-30T10:00:00.000Z',
-      end: '2026-09-30T10:30:00.000Z',
-      recurrenceId: null,
-      meetingId: null,
-      title: 't',
-      calendar: null,
-      recurring: false,
-    }
-    const v = view({
-      agenda: agenda({ meeting }),
-      items: [
-        item('a', { order: 0 }),
-        item('b', { order: 1, status: 'covered' }),
-        item('c', { order: 2, kind: 'must-cover', status: 'in-progress' }),
-      ],
-    })
-    expect(notCoveredYet(v, Date.parse('2026-09-30T10:24:59.000Z'))).toBeNull()
-    expect(notCoveredYet(v, Date.parse('2026-09-30T10:25:00.000Z'))!.map((i) => i.id)).toEqual(['c', 'a'])
-    expect(notCoveredYet(view(), now)).toBeNull()
-  })
-
-  it('interview split and attribution', () => {
-    const v = view({
-      items: [
-        item('salary', { kind: 'info-to-get', status: 'covered', outcome: '90k' }),
-        item('team', { kind: 'info-to-get', order: 1 }),
-        item('chat', { order: 2 }),
-      ],
-    })
-    expect(isInterview(v)).toBe(true)
-    expect(isInterview(view())).toBe(false)
-    const s = interviewSplit(v)
-    expect(s.told.map((i) => i.id)).toEqual(['salary'])
-    expect(s.notYet.map((i) => i.id)).toEqual(['team'])
+  it('reads attributions', () => {
     expect(attributionOf('agent:claude')).toEqual({ kind: 'agent', name: 'claude' })
     expect(attributionOf('tracker')).toEqual({ kind: 'tracker', name: null })
     expect(attributionOf('invitee:a@b.c')).toEqual({ kind: 'invitee', name: 'a@b.c' })

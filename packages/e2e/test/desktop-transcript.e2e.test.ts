@@ -47,17 +47,19 @@ describe('desktop transcript pane against the real daemon', () => {
 
   const w = () => app.window
   const pane = () => w().getByRole('region', { name: 'Transcript' })
+  // a meeting opens with its transcript beside it (?panel=transcript, what Ctrl+T toggles)
   const openSession = async (title: string) => {
-    await w()
-      .getByRole('listbox', { name: 'Sessions' })
-      .getByRole('option', { name: new RegExp(title) })
-      .click()
+    const id = await poll(
+      async () =>
+        (await daemon.client.call('listSessions', { query: { includePrivate: true } })).sessions.find(
+          (s) => s.title === title,
+        )?.id,
+      10_000,
+      `the session ${title}`,
+    )
+    await w().evaluate(`location.hash = ${JSON.stringify(`#/sessions/${id}?panel=transcript`)}`)
     await w().getByRole('heading', { level: 1, name: title }).waitFor({ timeout: 10_000 })
-  }
-  const openTab = async (name: 'Transcript' | 'Ask') => {
-    const tab = w().getByRole('tab', { name })
-    await tab.click()
-    await poll(async () => (await tab.getAttribute('aria-selected')) === 'true', 5000, `the ${name} tab`)
+    await pane().waitFor({ timeout: 10_000 })
   }
 
   beforeAll(async () => {
@@ -96,7 +98,7 @@ describe('desktop transcript pane against the real daemon', () => {
       display,
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
     })
-    await w().getByRole('listbox', { name: 'Sessions' }).waitFor({ timeout: 20_000 })
+    await w().getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
   }, 240_000)
 
   afterAll(async () => {
@@ -228,9 +230,7 @@ describe('desktop transcript pane against the real daemon', () => {
   it('follows a citation target from the URL (?seg= / ?t=): scrolled to, one line highlighted', async () => {
     const { segments } = await daemon.client.call('getTranscript', { params: { id: SEED.long } })
     const target = segments.find((s) => s.text.startsWith('Planning item 900:'))!
-    await w().evaluate(
-      `location.hash = ${JSON.stringify(`#/sessions/${SEED.long}?tab=transcript&segment=${target.id}`)}`,
-    )
+    await w().evaluate(`location.hash = ${JSON.stringify(`#/sessions/${SEED.long}?segment=${target.id}`)}`)
     await poll(
       async () => JSON.stringify(await selectedRowNames(w())) === JSON.stringify([rowName(target)]),
       5000,
@@ -238,7 +238,7 @@ describe('desktop transcript pane against the real daemon', () => {
     )
     expect(await visibleRowNames(w())).toContain(rowName(target))
     // by time: 2000 s is item 500's line
-    await w().evaluate(`location.hash = ${JSON.stringify(`#/sessions/${SEED.long}?tab=transcript&t=2001.5`)}`)
+    await w().evaluate(`location.hash = ${JSON.stringify(`#/sessions/${SEED.long}?t=2001.5`)}`)
     await poll(
       async () => (await selectedRowNames(w()))[0]?.includes('Planning item 500:'),
       5000,
@@ -282,7 +282,6 @@ describe('desktop transcript pane against the real daemon', () => {
     liveId = s.id
     await daemon.client.call('startSession', { params: { id: s.id } })
     await openSession('Live transcript')
-    await openTab('Transcript')
 
     // caught at the hold: the daemon's transcript stops changing (finals are held too), and the pane
     // shows exactly those segments plus the two open partial lines
@@ -433,7 +432,8 @@ describe('desktop transcript pane against the real daemon', () => {
     if (await jump.count()) await jump.click()
     // with the window's own Stop button, as the GTK suite did
     await w().getByRole('button', { name: 'Stop', exact: true }).click()
-    await w().getByRole('button', { name: 'Record', exact: true }).waitFor({ timeout: 10_000 })
+    // the page moves on to the outcome (the transcript panel stays open)
+    await w().getByRole('button', { name: 'Share summary' }).waitFor({ timeout: 10_000 })
     expect((await daemon.client.call('getSession', { params: { id: liveId } })).status).toBe('stopped')
     const { segments } = await poll(
       async () => {
@@ -443,6 +443,9 @@ describe('desktop transcript pane against the real daemon', () => {
       15_000,
       'a final transcript in the daemon',
     )
+    // the outcome page's panel opens at the top: go to the end
+    await transcriptList(w()).focus()
+    await w().keyboard.press('End')
     await poll(
       async () => {
         const names = await visibleRowNames(w())

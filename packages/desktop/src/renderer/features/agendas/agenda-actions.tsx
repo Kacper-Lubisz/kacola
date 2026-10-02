@@ -1,4 +1,4 @@
-import type { AgendaView, InviteBlockResult } from '@gnomeola/protocol'
+import type { AgendaView } from '@gnomeola/protocol'
 import { _, fmt } from '@gnomeola/ui-core/i18n'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -20,76 +20,10 @@ import {
 } from '../../design/primitives/index.ts'
 import { refusal } from './agenda-data.ts'
 
-// The agenda's actions beyond editing: "Add link to invite" (the daemon writes a marked block into the
-// calendar event through the calendar's write path — or says why it can't, and then the block is copied
-// instead), markdown export / copy / import, and delete.
+// The agenda's actions beyond editing and sending (send.tsx): markdown export / copy / import, and delete.
 
 /** File names from titles: one path component, no odd characters (main sanitizes again). */
 const fileName = (title: string) => `${title.replace(/[^\p{L}\p{N} ._-]+/gu, ' ').trim() || 'agenda'}.md`
-
-export function InviteButton({ view }: { view: AgendaView }) {
-  const { api, bridge } = useServices()
-  const toast = useToast()
-  const [busy, setBusy] = useState(false)
-  const [refused, setRefused] = useState<InviteBlockResult | null>(null)
-  const linked = view.agenda.meeting !== null
-  const run = async () => {
-    setBusy(true)
-    try {
-      const r = await api.call('agendaInviteBlock', {
-        params: { id: view.agenda.id },
-        body: { write: linked },
-      })
-      if (r.written) toast(_('Added the agenda link to the invitation'))
-      else setRefused(r)
-    } catch (err) {
-      toast(fmt(_('Could not add the link: {reason}'), { reason: refusal(err) }), { tone: 'error' })
-    } finally {
-      setBusy(false)
-    }
-  }
-  return (
-    <>
-      <Button icon="link" onPress={() => void run()} isDisabled={busy}>
-        {linked ? _('Add Link to Invite') : _('Copy Agenda Link')}
-      </Button>
-      {refused ? (
-        <Dialog
-          title={linked ? _('Couldn’t Edit the Invitation') : _('Agenda Link')}
-          isOpen
-          onOpenChange={(o) => {
-            if (!o) setRefused(null)
-          }}
-          footer={
-            <>
-              <Button onPress={() => setRefused(null)}>{_('Close')}</Button>
-              <Button
-                variant="primary"
-                icon="copy"
-                onPress={() => {
-                  void bridge.copyText(refused.block).then(() => toast(_('Copied the agenda link')))
-                  setRefused(null)
-                }}
-              >
-                {_('Copy')}
-              </Button>
-            </>
-          }
-        >
-          <div className="flex flex-col gap-3">
-            {linked && refused.reason ? <Banner tone="warning" title={refused.reason} /> : null}
-            <p className="m-0 type-callout text-text-secondary">
-              {_('Paste this into the invitation yourself:')}
-            </p>
-            <pre className="m-0 overflow-x-auto rounded-md border border-border-subtle bg-bg-surface p-3 font-mono text-[13px] whitespace-pre-wrap text-text-primary select-text">
-              {refused.block}
-            </pre>
-          </div>
-        </Dialog>
-      ) : null}
-    </>
-  )
-}
 
 export function AgendaMenu({ view, onImport }: { view: AgendaView; onImport: () => void }) {
   const { api, bridge } = useServices()

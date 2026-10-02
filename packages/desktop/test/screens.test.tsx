@@ -16,7 +16,7 @@ const writes = (calls: string[]) =>
   calls.filter((c) => /^(update|set|create|start|stop|pause|resume)/.test(c))
 
 async function openPreferences() {
-  await screen.findByRole('searchbox', { name: 'Search sessions' })
+  await screen.findByRole('searchbox', { name: 'Search or ask' })
   fireEvent.keyDown(window, { key: ',', ctrlKey: true })
   const prefs = await screen.findByRole('dialog', { name: 'Preferences' })
   await within(prefs).findByRole('region', { name: 'Questions and Answers' })
@@ -133,7 +133,7 @@ describe('Preferences', () => {
 })
 
 describe('the record flow', () => {
-  it('Record creates, starts and selects a session; Stop stops it; failures are toasts', async () => {
+  it('Record now creates, starts and opens a session; Stop stops it; failures are toasts', async () => {
     let live: Session | null = null
     let failStop = true
     const app = renderApp({
@@ -151,26 +151,29 @@ describe('the record flow', () => {
         },
       },
     })
-    await screen.findByRole('searchbox', { name: 'Search sessions' })
-    fireEvent.click(screen.getByRole('button', { name: 'Record' }))
+    await screen.findByRole('searchbox', { name: 'Search or ask' })
+    fireEvent.click(screen.getByRole('button', { name: 'Record now' }))
     await until(() => app.router.state.location.pathname === '/sessions/ses_new')
-    expect(app.daemon.calls.filter((c) => c.endsWith('Session'))).toEqual([
+    expect(app.daemon.calls.filter((c) => c.endsWith('Session')).slice(0, 2)).toEqual([
       'createSession',
       'startSession',
-      'getSession',
     ])
     // the echo arrives through the bridge
     act(() =>
       app.daemon.emit(upserted(2, { ...live!, status: 'recording', startedAt: new Date().toISOString() })),
     )
+    // the live page: the recording state is in its header, and nothing else is red
     await screen.findByRole('timer', { name: /^Recording, / })
+    expect(screen.getByText('started by you')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
     await screen.findByText('Could not stop recording: no daemon today')
     failStop = false
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
     await until(() => app.daemon.calls.filter((c) => c === 'stopSession').length === 2)
     act(() => app.daemon.emit(upserted(3, { ...live!, status: 'stopped' })))
-    await screen.findByRole('button', { name: 'Record' })
+    // the same page moves on to the outcome
+    await screen.findByRole('region', { name: 'Outcome' })
+    expect(screen.queryByRole('timer')).toBeNull()
     app.stop()
   })
 })
@@ -196,7 +199,7 @@ describe('onboarding', () => {
         health: () => ({ lastSeq: 1, capture: { available: true, backend: 'fake', detail: null } }),
       },
     })
-    const welcome = await screen.findByRole('dialog', { name: 'Welcome to gnomeola' }, { timeout: 3000 })
+    const welcome = await screen.findByRole('dialog', { name: 'Welcome to kacola' }, { timeout: 3000 })
     await within(welcome).findByRole('listitem', { name: 'whisper' })
     await within(welcome).findByText('Available (fake)')
     expect(
@@ -215,9 +218,11 @@ describe('onboarding', () => {
     })
     await until(() => fb.bridge.installCli.mock.calls.length === 1)
     // the banner offers to set up again
-    const banner = await screen.findByRole('status', { name: 'A speech model is not downloaded yet' })
+    const banner = await screen.findByRole('status', {
+      name: 'A speech model is not downloaded yet, so recording can’t transcribe',
+    })
     fireEvent.click(within(banner).getByRole('button', { name: 'Set Up' }))
-    await screen.findByRole('dialog', { name: 'Welcome to gnomeola' })
+    await screen.findByRole('dialog', { name: 'Welcome to kacola' })
     app.stop()
   })
 })
@@ -245,7 +250,7 @@ describe('shell', () => {
 
   it('Ctrl+? opens the keyboard shortcuts help', async () => {
     const app = renderApp()
-    await screen.findByRole('searchbox', { name: 'Search sessions' })
+    await screen.findByRole('searchbox', { name: 'Search or ask' })
     fireEvent.keyDown(window, { key: '?', ctrlKey: true, shiftKey: true })
     const help = await screen.findByRole('dialog', { name: 'Keyboard Shortcuts' })
     expect(within(help).getByText('Start or stop recording')).toBeTruthy()
@@ -253,20 +258,38 @@ describe('shell', () => {
     app.stop()
   })
 
-  it('a session’s tabs follow the URL, and Ctrl+4 opens Details', async () => {
+  it('a meeting’s transcript panel follows the URL and Ctrl+T; Details are in its menu', async () => {
     const s = session('ses_a', { title: 'Standup', status: 'stopped', durationMs: 720_000, tracks: [] })
     const app = renderApp({
       sessions: [s],
-      path: '/sessions/ses_a?tab=ask',
-      handlers: { ...shellHandlers(), getSession: () => s },
+      path: '/sessions/ses_a?panel=transcript',
+      handlers: {
+        ...shellHandlers(),
+        getSession: () => s,
+        getTranscript: () => ({ segments: [] }),
+        listSpeakers: () => ({ speakers: [] }),
+        listAgendas: () => ({ agendas: [] }),
+      },
     })
     await screen.findByRole('heading', { level: 1, name: 'Standup' })
-    expect(screen.getByRole('tab', { name: 'Ask' }).getAttribute('aria-selected')).toBe('true')
-    fireEvent.keyDown(window, { key: '4', ctrlKey: true })
-    await until(() => screen.getByRole('tab', { name: 'Details' }).getAttribute('aria-selected') === 'true')
-    const details = screen.getByRole('region', { name: 'Details' })
+    await screen.findByRole('heading', { level: 2, name: 'Transcript' })
+    fireEvent.keyDown(window, { key: 't', ctrlKey: true })
+    await until(() => screen.queryByRole('heading', { level: 2, name: 'Transcript' }) === null)
+    expect(app.router.state.location.search).toEqual({})
+    fireEvent.keyDown(window, { key: 't', ctrlKey: true })
+    await screen.findByRole('heading', { level: 2, name: 'Transcript' })
+    expect(app.router.state.location.search).toEqual({ panel: 'transcript' })
+    // the old ?tab=transcript links still open it
+    await app.router.navigate({
+      to: '/sessions/$sessionId',
+      params: { sessionId: 'ses_a' },
+      search: { tab: 'transcript' } as never,
+    })
+    await until(() => app.router.state.location.search.panel === 'transcript')
+    fireEvent.click(screen.getByRole('button', { name: 'Meeting actions' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Details…' }))
+    const details = await screen.findByRole('dialog', { name: 'Details' })
     expect(within(details).getByText('12:00')).toBeTruthy()
-    expect(app.router.state.location.search).toEqual({ tab: 'details' })
     app.stop()
   })
 })
