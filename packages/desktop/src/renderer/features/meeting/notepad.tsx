@@ -243,7 +243,7 @@ export function OutcomeNotes({
   const exportFile = async () => {
     try {
       const r = await bridge.saveTextFile({
-        title: _('Export Notes'),
+        title: _('Export notes'),
         defaultName: exportFileName(session),
         text: exportMarkdown(session, state.draft),
       })
@@ -269,7 +269,7 @@ export function OutcomeNotes({
           {tidied
             ? _('Tidied from your draft by your AI provider')
             : state.rebased
-              ? _('Saved on top of a newer version from elsewhere; that one is in Version History.')
+              ? _('Saved on top of a newer version from elsewhere; that one is in Version history.')
               : saveStatus(state)}
         </span>
         {tidied ? (

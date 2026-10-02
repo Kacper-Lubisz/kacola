@@ -434,7 +434,7 @@ export class ExtensionManager {
     const before = await this.status()
     if (before.state === 'unsupported' || before.state === 'unavailable' || before.state === 'enabled')
       return before
-    // an extension that failed in the Shell gets a fresh copy too ("Try Again")
+    // an extension that failed in the Shell gets a fresh copy too ("Try again")
     if (before.state === 'not-installed' || before.state === 'outdated' || before.state === 'error') {
       // the Shell that has the old copy loaded keeps running it until the next login
       const loaded = await this.shell.info(EXTENSION_UUID)

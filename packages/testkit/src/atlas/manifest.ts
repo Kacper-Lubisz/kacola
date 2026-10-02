@@ -275,7 +275,7 @@ export const ATLAS: AtlasEntry[] = [
 
   // ---- During the meeting
   win('live-transcript', 'search', 'live', 'Searching the transcript panel while it grows (Ctrl+F)'),
-  win('live-transcript', 'detached', 'jump-to-live', 'Scrolled back while recording: "Jump to Live" appears'),
+  win('live-transcript', 'detached', 'jump-to-live', 'Scrolled back while recording: "Jump to live" appears'),
   win('speakers', 'transcript', 'chips', 'Who said what: speaker chips on a diarized meeting'),
   win('speakers', 'dialog', 'list', 'The Speakers dialog: everyone in the meeting and how much they said'),
   win('speakers', 'rename', 'field', 'Naming a speaker inline'),
@@ -381,7 +381,7 @@ export const ATLAS: AtlasEntry[] = [
     'action-items',
     'The outcome’s To do: action items from the notes with owner and due date, yours first',
   ),
-  win('notes-templates', 'menu', 'open', 'Choose a Template: enhance as standup / 1:1 / interview …'),
+  win('notes-templates', 'menu', 'open', 'Choose a template: enhance as standup / 1:1 / interview …'),
   win('notes-templates', 'manage', 'dialog', 'Notes templates: built-in and custom'),
   win('notes-templates', 'new', 'form', 'A new template: name, keywords, instructions'),
   win('notes-templates', 'suggested', 'calendar', 'A template suggested by the calendar event'),
@@ -400,7 +400,7 @@ export const ATLAS: AtlasEntry[] = [
     'notes-export',
     'exported',
     'toast',
-    'Export Notes: saved through the file dialog, "Notes exported to …"',
+    'Export notes: saved through the file dialog, "Notes exported to …"',
   ),
 
   // ---- Settings

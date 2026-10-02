@@ -10,7 +10,7 @@ import { Icon, type IconName } from '../icon.tsx'
 //   secondary    surface + default border
 //   ghost        transparent, hover tint — toolbars, rows
 //   destructive  danger text + border; `confirm` fills it record red (the "yes, delete" step)
-//   link         record-red text, underline on hover
+//   link         ink text, underline on hover (red stays for live / recording)
 //   record       record-red fill, white text — only for the actions that start recording
 //
 // Phase-1 names are accepted as aliases (suggested → primary, default → secondary, flat → ghost), so
@@ -57,7 +57,7 @@ const VARIANT: Record<ButtonVariant, string> = {
   ghost: 'bg-transparent text-text-primary data-[hovered]:bg-bg-hover data-[pressed]:bg-bg-selected',
   destructive:
     'bg-bg-surface text-status-danger-text border border-status-danger data-[hovered]:bg-[color-mix(in_srgb,var(--k-color-bg-surface),var(--k-color-status-danger)_8%)] data-[pressed]:bg-[color-mix(in_srgb,var(--k-color-bg-surface),var(--k-color-status-danger)_14%)]',
-  link: 'bg-transparent text-accent-record-text !h-auto !px-0 underline-offset-2 data-[hovered]:underline',
+  link: 'bg-transparent text-text-primary !h-auto !px-0 underline-offset-2 data-[hovered]:underline',
   record:
     'bg-record-fill text-text-on-accent data-[hovered]:bg-record-fill-hover data-[pressed]:bg-record-fill-hover',
 }

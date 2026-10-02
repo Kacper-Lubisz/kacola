@@ -120,7 +120,7 @@ export function TranscriptPane({ session }: PaneProps) {
   if (transcript.isPending) {
     body = (
       <div className="flex flex-1 items-center justify-center">
-        <Spinner label={_('Loading Transcript…')} />
+        <Spinner label={_('Loading transcript…')} />
       </div>
     )
   } else if (transcript.isError && rows.length === 0) {
@@ -129,7 +129,7 @@ export function TranscriptPane({ session }: PaneProps) {
         compact
         headingLevel={2}
         icon="warning"
-        title={_('Could Not Load the Transcript')}
+        title={_('Could not load the transcript')}
         description={transcript.error.message}
       />
     )

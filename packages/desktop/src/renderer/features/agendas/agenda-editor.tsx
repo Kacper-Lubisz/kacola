@@ -518,7 +518,7 @@ function EditItemDialog({
   }
   return (
     <Dialog
-      title={_('Edit Item')}
+      title={_('Edit item')}
       isOpen
       onOpenChange={(o) => {
         if (!o) onClose()

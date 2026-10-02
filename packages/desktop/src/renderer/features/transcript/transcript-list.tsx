@@ -19,7 +19,7 @@ import './transcript.css'
 //
 // Following the live end is about intent, not position (ui-core/follow.ts explains why): a wheel or
 // key up, or dragging the scrollbar up by more than a page, detaches; reaching the bottom re-attaches;
-// growth while attached pins the view to the bottom. "Jump to Live" re-attaches.
+// growth while attached pins the view to the bottom. "Jump to live" re-attaches.
 
 const NEAR_BOTTOM_PX = 32
 const LINE_PX = 30
@@ -333,7 +333,7 @@ export function TranscriptList({
               toEnd()
             }}
           >
-            {_('Jump to Live')}
+            {_('Jump to live')}
           </Button>
         </div>
       ) : null}

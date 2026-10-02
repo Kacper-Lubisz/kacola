@@ -227,7 +227,7 @@ describe('desktop: agendas', () => {
 
     // edit: kind, owner (the UI never asks for a timebox)
     await w().getByRole('button', { name: 'Edit “Offsite dates”' }).click()
-    const dlg = w().getByRole('dialog', { name: 'Edit Item' })
+    const dlg = w().getByRole('dialog', { name: 'Edit item' })
     await dlg.getByRole('button', { name: /Kind/ }).click()
     await w().getByRole('option', { name: 'Must cover' }).click()
     await dlg.getByRole('textbox', { name: 'Owner' }).fill('me')
@@ -317,7 +317,7 @@ describe('desktop: agendas', () => {
     await w().getByRole('button', { name: 'Add card' }).click()
     await w().getByRole('textbox', { name: 'Card title' }).fill('Last quarter numbers')
     await w().getByRole('textbox', { name: 'Card text' }).fill('Revenue up 12%, hiring behind by two.')
-    await w().getByRole('button', { name: 'Add Card' }).click()
+    await w().getByRole('button', { name: 'Add card' }).click()
     const card = w().getByRole('article', { name: 'Last quarter numbers' })
     await card.waitFor()
     expect((await view(id)).context[0]).toMatchObject({

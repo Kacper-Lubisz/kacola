@@ -377,7 +377,7 @@ describe('desktop transcript pane against the real daemon', () => {
     expect(seg!.revision).toBeGreaterThanOrEqual(2)
   })
 
-  it('follows live output, stops following when scrolled up, and Jump to Live brings it back', async () => {
+  it('follows live output, stops following when scrolled up, and Jump to live brings it back', async () => {
     await poll(async () => (await rowCount(w())) >= 30, 40_000, 'more than a screenful of lines')
     // following: the newest line stays on screen as lines are added
     for (let i = 0; i < 3; i++) {
@@ -385,7 +385,7 @@ describe('desktop transcript pane against the real daemon', () => {
       const names = await visibleRowNames(w())
       expect(names.at(-1)!).toMatch(/\((in progress|provisional)\)$|\.$/)
     }
-    const jump = w().getByRole('button', { name: 'Jump to Live' })
+    const jump = w().getByRole('button', { name: 'Jump to live' })
     expect(await jump.count()).toBe(0)
 
     // keyboard focus entering a followed transcript lands on the newest line, not the first
@@ -416,7 +416,7 @@ describe('desktop transcript pane against the real daemon', () => {
       5000,
       'the live end back in view',
     )
-    await poll(async () => (await jump.count()) === 0, 5000, 'the Jump to Live button to go away')
+    await poll(async () => (await jump.count()) === 0, 5000, 'the Jump to live button to go away')
 
     // the wheel detaches too
     await transcriptList(w()).hover()
@@ -428,7 +428,7 @@ describe('desktop transcript pane against the real daemon', () => {
 
   it('stops: the partial line goes, every line becomes final, and it matches the daemon', async () => {
     // following the live end (whatever the previous test left)
-    const jump = w().getByRole('button', { name: 'Jump to Live' })
+    const jump = w().getByRole('button', { name: 'Jump to live' })
     if (await jump.count()) await jump.click()
     // with the window's own Stop button, as the GTK suite did
     await w().getByRole('button', { name: 'Stop', exact: true }).click()
@@ -458,7 +458,7 @@ describe('desktop transcript pane against the real daemon', () => {
       10_000,
       'a final, complete transcript ending in the daemon’s last segment',
     )
-    expect(await w().getByRole('button', { name: 'Jump to Live' }).count()).toBe(0)
+    expect(await w().getByRole('button', { name: 'Jump to live' }).count()).toBe(0)
     expect(app.problems()).toEqual([])
   })
 })

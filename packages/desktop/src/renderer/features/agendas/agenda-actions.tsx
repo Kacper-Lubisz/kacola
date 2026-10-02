@@ -52,7 +52,7 @@ export function AgendaMenu({ view, onImport }: { view: AgendaView; onImport: () 
             void markdown()
               .then((text) =>
                 bridge.saveTextFile({
-                  title: _('Export Agenda'),
+                  title: _('Export agenda'),
                   defaultName: fileName(view.agenda.title),
                   text,
                 }),
@@ -81,7 +81,7 @@ export function AgendaMenu({ view, onImport }: { view: AgendaView; onImport: () 
         </MenuItem>
         <MenuSeparator />
         <MenuItem icon="delete" destructive onAction={() => setConfirmDelete(true)}>
-          {_('Delete Agenda…')}
+          {_('Delete agenda…')}
         </MenuItem>
       </Menu>
       <AlertDialog

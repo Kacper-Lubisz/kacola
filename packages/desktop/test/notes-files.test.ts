@@ -30,10 +30,10 @@ describe('save requests', () => {
   })
 
   it('checks the text and fills defaults', () => {
-    expect(checkSaveRequest({ text: 'hi', defaultName: 'x/y.md', title: 'Export Notes' })).toEqual({
+    expect(checkSaveRequest({ text: 'hi', defaultName: 'x/y.md', title: 'Export notes' })).toEqual({
       text: 'hi',
       defaultName: 'x y.md',
-      title: 'Export Notes',
+      title: 'Export notes',
     })
     expect(checkSaveRequest({ text: '' })).toEqual({ text: '', defaultName: 'notes.md', title: '' })
     expect(() => checkSaveRequest({ defaultName: 'a.md' })).toThrow(TypeError)
@@ -45,13 +45,13 @@ describe('save requests', () => {
     const writeFile = vi.fn(async () => {})
     const showSaveDialog = vi.fn(async () => ({ canceled: false, filePath: '/tmp/out.md' }))
     const r = await saveText(
-      { title: 'Export Notes', defaultName: 'Sprint retro.md', text: '# Sprint retro\n' },
+      { title: 'Export notes', defaultName: 'Sprint retro.md', text: '# Sprint retro\n' },
       { showSaveDialog, writeFile, documentsDir: '/home/u/Documents', join },
     )
     expect(r).toEqual({ saved: true, path: '/tmp/out.md' })
     expect(showSaveDialog).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Export Notes',
+        title: 'Export notes',
         defaultPath: '/home/u/Documents/Sprint retro.md',
         filters: expect.arrayContaining([{ name: 'Markdown', extensions: ['md'] }]),
       }),

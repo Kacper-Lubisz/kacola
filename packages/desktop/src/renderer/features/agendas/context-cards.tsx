@@ -164,7 +164,7 @@ export function ContextTab({ view }: { view: AgendaView }) {
                 onPress={submit}
                 isDisabled={!title.trim() || add.isPending}
               >
-                {_('Add Card')}
+                {_('Add card')}
               </Button>
             </span>
           </div>
