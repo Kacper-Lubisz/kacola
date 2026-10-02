@@ -846,7 +846,8 @@ flowchart LR
   provider; a billing error says to add credits or switch provider; an overloaded provider is retried,
   then explained. Notes are never touched by a failed enhancement.
 - **States:** `provider-errors__ask__no-provider`, `provider-errors__enhance__no-provider`,
-  `provider-errors__ask__no-credits`, `provider-errors__ask__overloaded`.
+  `provider-errors__ask__no-credits`, `provider-errors__ask__overloaded`,
+  `provider-errors__ask__private-meeting`.
 
 ```mermaid
 flowchart TD
@@ -854,7 +855,8 @@ flowchart TD
   B -->|none| C[Questions aren't available: Open Preferences]
   B -->|none, enhance| D[Enhancing needs a provider]
   B -->|no credits| E[No credits left: add credits or switch]
-  B -->|overloaded| F[Retried, then: could not be answered]
+  B -->|overloaded| F[Retried, then: the message and Try Again]
+  B -->|private meeting, cloud provider| G[Private meetings stay on this computer]
   C --> P([Preferences])
   D --> P
   E --> P
@@ -862,6 +864,7 @@ flowchart TD
   %% shot: D = provider-errors__enhance__no-provider
   %% shot: E = provider-errors__ask__no-credits
   %% shot: F = provider-errors__ask__overloaded
+  %% shot: G = provider-errors__ask__private-meeting
 ```
 
 ### calendar-offline — The calendar is unavailable

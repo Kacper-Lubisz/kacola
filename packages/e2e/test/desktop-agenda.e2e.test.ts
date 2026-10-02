@@ -22,7 +22,7 @@ import { markOnboarded } from '../src/ui.ts'
 //
 // The flows, on the meeting page as it moves through its phases: Prep — the editor (keyboard add, edit
 // dialog, status, drag and keyboard reorder, history, goals, context cards), markdown export / copy /
-// import, Add link to invite refused by a read-only calendar (copy fallback), Plan with Claude (held
+// import, Send the agenda without a sharing server (one action, no kacola:// link), Plan with Claude (held
 // mid-stream for the baseline), opened from home's day; Live after Join and record — the checklist
 // (an agent's ticks, quietly attributed, with Undo), the one suggestion slot (its evidence opens the
 // transcript at the line; Not now / Accept), presence (connected / reading, its permission, mode,
@@ -419,7 +419,7 @@ describe('desktop: agendas', () => {
     expect((await texts(id)).length).toBe(5) // merge kept the rest
   })
 
-  it('a calendar meeting: Plan from home’s day; Add link to invite refused → copy the block', async () => {
+  it('a calendar meeting: Plan from home’s day; Send the agenda without a sharing server says so', async () => {
     await go('#/')
     // the meeting under way is today's next unrecorded one: expanded, with no agenda yet
     const next = w().getByRole('region', { name: `Next: ${MEETING}` })
@@ -435,18 +435,23 @@ describe('desktop: agendas', () => {
     })
     await w().getByText('happening now').waitFor()
 
-    await w().getByRole('button', { name: 'Add Link to Invite' }).click()
-    const dlg = w().getByRole('dialog', { name: 'Couldn’t Edit the Invitation' })
-    await dlg.waitFor()
-    expect(await dlg.textContent()).toContain(`kacola://`)
-    await axeAllModes('invite refused')
-    await dlg.getByRole('button', { name: 'Copy' }).click()
-    await waitFor(
-      async () =>
-        (await app.evaluateMain(({ clipboard }) => clipboard.readText())).includes('kacola://meeting/'),
-      5000,
-      'the copied block',
-    )
+    // Send the agenda without a sharing server: it says so, with one action — and never hands out a
+    // kacola:// link that attendees without kacola could not open
+    await w().getByRole('button', { name: 'Send the agenda' }).click()
+    const dlg = w().getByRole('dialog', { name: 'Send the Agenda' })
+    await dlg.getByRole('region', { name: 'What attendees see' }).waitFor()
+    await dlg.getByRole('button', { name: 'Send', exact: true }).click()
+    await dlg.getByRole('button', { name: 'Set Up Sharing' }).waitFor({ timeout: 15_000 })
+    expect(await dlg.getByRole('status').count()).toBeGreaterThan(0)
+    expect(await dlg.textContent()).not.toContain('kacola://')
+    expect(await dlg.getByRole('button', { name: 'Copy Invitation Text' }).count()).toBe(0)
+    await axeAllModes('send without a sharing server')
+    expect((await daemon.client.call('getAgendaShare', { params: { id: meetingAgenda } })).shared).toBe(false)
+    // its one action opens Preferences
+    await dlg.getByRole('button', { name: 'Set Up Sharing' }).click()
+    await w().getByRole('dialog', { name: 'Preferences' }).waitFor()
+    await w().keyboard.press('Escape')
+    await w().getByRole('dialog', { name: 'Preferences' }).waitFor({ state: 'detached' })
   })
 
   it('Plan with Claude: goals → streamed proposals (held for the baseline) → accepted items', async () => {

@@ -506,6 +506,12 @@ export const ATLAS: AtlasEntry[] = [
     'overloaded',
     'The provider is overloaded: its message after retries, and Try Again',
   ),
+  win(
+    'provider-errors',
+    'ask',
+    'private-meeting',
+    'Asking about a private meeting with a cloud provider: “Private meetings stay on this computer”, not an error',
+  ),
   shell('calendar-offline', 'topbar', 'unavailable', 'Top bar: calendar unavailable, and why'),
   shell('calendar-offline', 'topbar', 'off', 'Top bar: calendar access is off'),
   win(

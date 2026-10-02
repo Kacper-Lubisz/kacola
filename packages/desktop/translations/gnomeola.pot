@@ -570,7 +570,7 @@ msgstr ""
 #: src/renderer/features/meeting/header.tsx:54
 #: src/renderer/features/meeting/outcome-view.tsx:30
 #: src/renderer/features/meeting/outcome-view.tsx:31
-#: src/renderer/features/meeting/outcome-view.tsx:45
+#: src/renderer/features/meeting/outcome-view.tsx:47
 msgid "Outcome"
 msgstr ""
 
@@ -611,7 +611,7 @@ msgstr ""
 #: src/renderer/features/home/day-view.tsx:206
 #: src/renderer/features/home/search-results.tsx:153
 #: src/renderer/features/meeting/meeting-page.tsx:158
-#: src/renderer/features/meeting/meeting-page.tsx:256
+#: src/renderer/features/meeting/meeting-page.tsx:258
 #: src/renderer/features/sessions/session-details.tsx:106
 #: src/renderer/features/sessions/session-details.tsx:111
 msgid "Private"
@@ -675,8 +675,8 @@ msgid "Evidence: “{quote}”"
 msgstr ""
 
 #: src/renderer/features/agendas/evidence.tsx:20
-#: src/renderer/features/meeting/outcome-view.tsx:64
-#: src/renderer/features/meeting/suggestion-card.tsx:94
+#: src/renderer/features/meeting/outcome-view.tsx:66
+#: src/renderer/features/meeting/suggestion-card.tsx:99
 msgid "Show in transcript: “{quote}”"
 msgstr ""
 
@@ -969,7 +969,7 @@ msgstr ""
 
 #: src/renderer/features/agendas/send.tsx:91
 #: src/renderer/features/agendas/share.tsx:230
-#: src/renderer/features/meeting/outcome-view.tsx:89
+#: src/renderer/features/meeting/outcome-view.tsx:91
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:182
 msgid "Done"
 msgstr ""
@@ -986,38 +986,34 @@ msgstr ""
 msgid "The link is in the calendar invitation now."
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:111
-msgid "The invitation could not be edited from here."
+#: src/renderer/features/agendas/send.tsx:115
+msgid "Paste this into the invitation:"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:113
-msgid "Paste this into it yourself:"
-msgstr ""
-
-#: src/renderer/features/agendas/send.tsx:125
+#: src/renderer/features/agendas/send.tsx:132
 msgid "Attendees get a page anyone can open, with exactly this:"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:128
+#: src/renderer/features/agendas/send.tsx:135
 msgid "What attendees see"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:135
+#: src/renderer/features/agendas/send.tsx:142
 msgid "Goal: {goal}"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:151
+#: src/renderer/features/agendas/send.tsx:158
 msgid "Include the goals"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:158
+#: src/renderer/features/agendas/send.tsx:165
 msgid "{n} private note stays on this computer: attendees never see it."
 msgid_plural ""
 "{n} private notes stay on this computer: attendees never see them."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/agendas/send.tsx:167
+#: src/renderer/features/agendas/send.tsx:174
 msgid "The agenda was not sent: {reason}"
 msgstr ""
 
@@ -1574,7 +1570,7 @@ msgid "Join and record {title}"
 msgstr ""
 
 #: src/renderer/features/home/day-view.tsx:379
-#: src/renderer/features/meeting/meeting-page.tsx:272
+#: src/renderer/features/meeting/meeting-page.tsx:274
 msgid "Join and record"
 msgstr ""
 
@@ -1593,7 +1589,7 @@ msgid "Open {title}"
 msgstr ""
 
 #: src/renderer/features/home/day-view.tsx:422
-#: src/renderer/features/meeting/outcome-view.tsx:89
+#: src/renderer/features/meeting/outcome-view.tsx:91
 #: src/renderer/features/agendas/labels.ts:41
 msgid "Open"
 msgstr ""
@@ -1881,14 +1877,14 @@ msgid ""
 msgstr ""
 
 #: src/renderer/features/meeting/live-view.tsx:42
-#: src/renderer/features/meeting/outcome-view.tsx:283
+#: src/renderer/features/meeting/outcome-view.tsx:291
 msgid "Agenda and context"
 msgstr ""
 
 #: src/renderer/features/meeting/live-view.tsx:64
 #: src/renderer/features/meeting/meeting-page.tsx:170
-#: src/renderer/features/meeting/outcome-view.tsx:323
-#: src/renderer/features/meeting/outcome-view.tsx:324
+#: src/renderer/features/meeting/outcome-view.tsx:332
+#: src/renderer/features/meeting/outcome-view.tsx:333
 #: src/renderer/features/shell/shortcuts.tsx:35
 msgid "Ask about this meeting"
 msgstr ""
@@ -1922,24 +1918,24 @@ msgstr ""
 msgid "Speakers…"
 msgstr ""
 
-#: src/renderer/features/meeting/meeting-page.tsx:213
+#: src/renderer/features/meeting/meeting-page.tsx:215
 #: src/renderer/features/sessions/session-details.tsx:90
 msgid "Details"
 msgstr ""
 
-#: src/renderer/features/meeting/meeting-page.tsx:243
+#: src/renderer/features/meeting/meeting-page.tsx:245
 msgid "Repeats"
 msgstr ""
 
-#: src/renderer/features/meeting/meeting-page.tsx:248
+#: src/renderer/features/meeting/meeting-page.tsx:250
 msgid "happening now"
 msgstr ""
 
-#: src/renderer/features/meeting/meeting-page.tsx:249
+#: src/renderer/features/meeting/meeting-page.tsx:251
 msgid "starts {when}"
 msgstr ""
 
-#: src/renderer/features/meeting/meeting-page.tsx:254
+#: src/renderer/features/meeting/meeting-page.tsx:256
 msgid "Not linked to a calendar meeting"
 msgstr ""
 
@@ -2133,88 +2129,88 @@ msgid ""
 "the transcript."
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:49
+#: src/renderer/features/meeting/outcome-view.tsx:51
 msgid "Decided"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:66
+#: src/renderer/features/meeting/outcome-view.tsx:68
 msgid "Where"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:80
+#: src/renderer/features/meeting/outcome-view.tsx:82
 msgid "To do"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:82
+#: src/renderer/features/meeting/outcome-view.tsx:84
 #: src/renderer/features/meeting/outcome.ts:107
 msgid "Action items"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:121
+#: src/renderer/features/meeting/outcome-view.tsx:123
 #: src/renderer/features/meeting/outcome.ts:121
 msgid "Carried over"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:121
+#: src/renderer/features/meeting/outcome-view.tsx:123
 #: src/renderer/features/meeting/outcome.ts:121
 msgid "Not settled"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:129
+#: src/renderer/features/meeting/outcome-view.tsx:131
 msgid "next time"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:164
+#: src/renderer/features/meeting/outcome-view.tsx:166
 msgid "Open the next meeting"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:192
+#: src/renderer/features/meeting/outcome-view.tsx:194
 msgid "Share summary"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:195
+#: src/renderer/features/meeting/outcome-view.tsx:197
 msgid "Share Summary"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:206
+#: src/renderer/features/meeting/outcome-view.tsx:208
 msgid "Save Summary"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:210
+#: src/renderer/features/meeting/outcome-view.tsx:212
 msgid "Summary saved to {path}"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:213
+#: src/renderer/features/meeting/outcome-view.tsx:215
 msgid "Save as File…"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:220
+#: src/renderer/features/meeting/outcome-view.tsx:222
 msgid "Summary copied"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:225
+#: src/renderer/features/meeting/outcome-view.tsx:227
 msgid "Copy Summary"
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:233
+#: src/renderer/features/meeting/outcome-view.tsx:235
 msgid ""
 "This is exactly what they get: the outcome and your notes. Private context "
 "never goes in it."
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:247
+#: src/renderer/features/meeting/outcome-view.tsx:249
 msgid ""
 "This meeting is private. Sharing a summary is up to you; kacola never sends "
 "it anywhere."
 msgstr ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:291
+#: src/renderer/features/meeting/outcome-view.tsx:299
 msgid "{n} item carries over to the next meeting"
 msgid_plural "{n} items carry over to the next meeting"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/meeting/outcome-view.tsx:310
+#: src/renderer/features/meeting/outcome-view.tsx:318
 #: src/renderer/features/transcript/transcript-pane.tsx:244
 msgid "Recording failed: {reason}"
 msgstr ""

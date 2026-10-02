@@ -191,7 +191,9 @@ function OutcomePage({
               </MenuItem>
             </Menu>
             {/* a shared agenda stays manageable (sync state, unshare) after the meeting */}
-            {view && share?.shared ? <ShareButton view={view} status={share} /> : null}
+            {view && (share?.shared || share?.role === 'member' || share?.state === 'revoked') ? (
+              <ShareButton view={view} status={share} />
+            ) : null}
             <ShareSummaryButton
               session={session}
               view={view}

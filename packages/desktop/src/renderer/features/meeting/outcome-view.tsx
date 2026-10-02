@@ -5,7 +5,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { useServices } from '../../data/services.tsx'
 import { Banner, Button, Card, Dialog, Icon, useToast } from '../../design/primitives/index.ts'
-import { ShareRecapSwitch } from '../agendas/share.tsx'
+import { ShareBanner, ShareRecapSwitch } from '../agendas/share.tsx'
 import { useAgendaShare } from '../agendas/share-data.ts'
 import { trackerLine } from '../agendas/tracker-status.tsx'
 import { useNotesFeed } from '../notes/notes-data.ts'
@@ -255,6 +255,12 @@ export function ShareSummaryButton({
   )
 }
 
+/** A followed copy whose organiser stopped sharing (or a share that cannot sync) says so after the meeting too. */
+function OutcomeShareBanner({ view }: { view: AgendaView }) {
+  const { data: share } = useAgendaShare(view.agenda.id)
+  return <ShareBanner view={view} status={share} />
+}
+
 export function useOutcome(session: Session, view: AgendaView | null) {
   const { feed, state } = useNotesFeed(session.id)
   const notes = state?.draft ?? ''
@@ -311,6 +317,7 @@ export function OutcomeView({
             {session.status === 'failed' && session.error ? (
               <Banner tone="danger" title={fmt(_('Recording failed: {reason}'), { reason: session.error })} />
             ) : null}
+            {view ? <OutcomeShareBanner view={view} /> : null}
             <OutcomeBlock outcome={data.outcome} sessionId={session.id} />
             {view ? <RecapState agendaId={view.agenda.id} /> : null}
             <OutcomeNotes session={session} feed={data.feed} state={data.state} handle={handle} />

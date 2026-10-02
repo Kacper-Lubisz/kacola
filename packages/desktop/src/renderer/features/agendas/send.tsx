@@ -105,13 +105,20 @@ function SendDialog({ view, onClose }: { view: AgendaView; onClose: () => void }
         <div className="flex flex-col gap-3">
           <Banner tone={result.state === 'ready' ? 'success' : 'warning'} title={result.message} />
           {result.state === 'ready' ? (
-            <p className="m-0 type-callout text-text-secondary">
-              {result.written
-                ? _('The link is in the calendar invitation now.')
-                : (result.writeReason ?? _('The invitation could not be edited from here.')) +
-                  ' ' +
-                  _('Paste this into it yourself:')}
-            </p>
+            result.written ? (
+              <p className="m-0 type-callout text-text-secondary">
+                {_('The link is in the calendar invitation now.')}
+              </p>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <p className="m-0 type-callout font-semibold text-text-primary">
+                  {_('Paste this into the invitation:')}
+                </p>
+                {result.writeReason ? (
+                  <p className="m-0 type-caption text-text-secondary">{result.writeReason}</p>
+                ) : null}
+              </div>
+            )
           ) : null}
           {result.inviteText ? (
             <pre className="m-0 overflow-x-auto rounded-md border border-border-subtle bg-bg-surface p-3 font-mono text-[13px] whitespace-pre-wrap text-text-primary select-text">

@@ -362,7 +362,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     await atlas.shoot(w(), 'record-now__idle__record-button', {
       expect: [dayRow('Platform standup'), w().getByRole('button', { name: 'Record now' })],
     })
-    await searchBox().fill('stand')
+    await searchBox().fill('standup')
     const moments = w().getByRole('list', { name: 'Moments' })
     await atlas.shoot(w(), 'find-meeting__search__matches', {
       expect: moments.getByRole('button', { name: /^Platform standup/ }).first(),
@@ -654,6 +654,14 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       expect: details.getByRole('switch', { name: 'Private', checked: true }),
     })
     await escapeUntilGone(details)
+    // asking about it with a cloud provider: not a failure, private meetings stay on this computer
+    await openAsk()
+    await askBox().fill('What did we agree about compensation?')
+    await askBox().press('Enter')
+    await atlas.shoot(w(), 'provider-errors__ask__private-meeting', {
+      expect: w().getByText('Private meetings stay on this computer'),
+    })
+    await closeAsk()
     await goHome()
     await atlas.shoot(w(), 'recovered-session__list__recovered', {
       expect: w().getByText('Recovered after a crash').first(),
@@ -1441,13 +1449,6 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
     })
     await send.getByRole('button', { name: 'Send' }).click()
     const copyText = send.getByRole('button', { name: 'Copy Invitation Text' })
-    await send
-      .getByRole('button', { name: 'Done' })
-      .waitFor({ timeout: 20_000 })
-      .catch(() => {})
-    await w().screenshot({
-      path: '/tmp/claude-1000/-home-kacper-projects-gnomeola/4d5ce598-c8a7-4f24-abe1-a3e61be985a8/scratchpad/af-send.png',
-    })
     await copyText.waitFor({ timeout: 20_000 })
     await atlas.shoot(w(), 'agenda-invite__fallback__copy-link', {
       expect: copyText,
@@ -1617,11 +1618,15 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
       .getByRole('alertdialog', { name: 'Stop sharing this agenda?' })
       .getByRole('button', { name: 'Unshare', exact: true })
       .click()
-    // unshared: the agenda can be sent (or shared) again
+    // unshared (the meeting has been recorded: its outcome page no longer offers the share)
+    const shareDlg = w().getByRole('dialog', { name: 'Share Agenda' })
+    if ((await shareDlg.count()) > 0) {
+      await w().keyboard.press('Escape')
+      await shareDlg.waitFor({ state: 'detached', timeout: 5000 })
+    }
     await w()
-      .getByRole('button', { name: 'Send the agenda' })
-      .or(w().getByRole('button', { name: 'Share…' }))
-      .waitFor({ timeout: 20_000 })
+      .getByRole('button', { name: /^Shared: / })
+      .waitFor({ state: 'detached', timeout: 20_000 })
     let last: unknown
     await waitFor(
       async () => {

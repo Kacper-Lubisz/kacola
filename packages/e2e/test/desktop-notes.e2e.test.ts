@@ -360,7 +360,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     await h.w().getByRole('button', { name: 'Enhance Notes' }).click()
     const alert = h.w().getByRole('status', { name: /Your notes were not changed/ })
     await alert.waitFor({ timeout: 20_000 })
-    expect(await alert.textContent()).toContain('Nothing was changed')
+    expect(await alert.textContent()).toMatch(/notes were not changed/)
     expect(await h.versions(SEED.retro)).toEqual(before)
     expect(await h.editorText()).toBe(before.at(-1)!.markdown)
     await h.axe()
