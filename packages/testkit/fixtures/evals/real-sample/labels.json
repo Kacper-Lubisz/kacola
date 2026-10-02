@@ -1,0 +1,72 @@
+{
+  "name": "real-sample",
+  "sessionId": "ses_synthetic_sample",
+  "labelledBy": "test-author",
+  "reviewed": true,
+  "items": [
+    {
+      "id": "team-size",
+      "text": "How many engineers are on the team?",
+      "kind": "info-to-get",
+      "coverage": "full",
+      "startedAt": "s2",
+      "answeredAt": "s2",
+      "evidence": ["s2"],
+      "answer": "twelve engineers",
+      "answerAliases": ["12 engineers"],
+      "why": "Synthetic: stated in one line."
+    },
+    {
+      "id": "how-decide",
+      "text": "How is it decided what to build?",
+      "kind": "question",
+      "coverage": "full",
+      "startedAt": "s3",
+      "answeredAt": "s4",
+      "evidence": ["s3", "s4"],
+      "why": "Synthetic: asked, then answered on the next line."
+    },
+    {
+      "id": "next-steps",
+      "text": "What are the next steps in the process?",
+      "kind": "question",
+      "coverage": "full",
+      "startedAt": "s6",
+      "answeredAt": "s6",
+      "evidence": ["s6"],
+      "why": "Synthetic: take-home then onsite."
+    },
+    {
+      "id": "culture",
+      "text": "What is the culture like?",
+      "kind": "question",
+      "coverage": "partial",
+      "startedAt": "s1",
+      "answeredAt": "s1",
+      "evidence": ["s1"],
+      "why": "Synthetic: only 'a calm pace'."
+    },
+    {
+      "id": "salary",
+      "text": "What is the salary range?",
+      "kind": "info-to-get",
+      "coverage": "none",
+      "startedAt": null,
+      "answeredAt": null,
+      "evidence": [],
+      "answer": null,
+      "why": "Synthetic: never said."
+    },
+    {
+      "id": "remote",
+      "text": "What is the remote working policy?",
+      "kind": "info-to-get",
+      "coverage": "none",
+      "startedAt": null,
+      "answeredAt": null,
+      "evidence": [],
+      "why": "Synthetic: never said.",
+      "nearMisses": ["s6"]
+    }
+  ]
+}

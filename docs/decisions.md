@@ -158,6 +158,57 @@ Modes:
 - `node packages/evals/scripts/run-evals.ts [offline|fake|live]` prints scorecards and writes them to
   `__artifacts__/evals/<suite>/`.
 
+### Real meetings (`real-interview-coverage`, private fixtures)
+
+The hand-written fixtures above are scripted conversations. This suite instead replays a **real recorded
+meeting** against agenda items someone labelled by hand, through the live tracker's own code path (the
+daemon's `trackerStatusRunner`: trivial-line filter → relevance gate → batched status round → interview
+question for `info-to-get` items → `statusPolicy` with the real thresholds, forward-only, heartbeat every 30 s
+of meeting time). Code: `packages/evals/src/real.ts`.
+
+Real meetings are private, so **the fixtures are never committed**. They live in
+`packages/testkit/fixtures/evals/private/<name>/` (gitignored; or point `GNOMEOLA_EVAL_PRIVATE_DIR` at another
+directory), and the suite is skipped with the reason wherever there is none (CI, other machines). Scorecards
+carry item ids and numbers only. The committed `fixtures/evals/real-sample/` is a made-up eight-line
+transcript for the suite's own tests.
+
+What it scores, per fixture:
+
+- **auto-tick precision / recall**: a tick is right when the item was fully answered and the tick came at or
+  after the topic first came up (`startedAt`); before that it is a *premature* tick (wrong). Items labelled
+  `partial` are counted apart: recall leaves them out; `autoPrecision` counts a tick on them as wrong,
+  `autoPrecisionLenient` as right.
+- **false ticks on negatives**: ticks on items the meeting never answered (`coverage: "none"`).
+- **looks covered**: a "looks covered" suggestion or a tick, on answered items (recall) and on negatives.
+- **tick lag**: seconds from the end of the labelled answering segment (`answeredAt`) to the tick (segment end
+  plus the provider's wall time); median, p90, max, and how many ticked before the labelled answer.
+- evidence hits, `info-to-get` answer accuracy and hallucinated answers, cost, decision calls, latency.
+
+Run it: `node packages/evals/scripts/run-evals.ts offline live` (every suite, the real one included),
+`… live --real-only` (just this one), or `pnpm test:eval packages/daemon` (the tracker's live eval file).
+Each run also writes `results-<provider>.json` next to the fixture, for the review page.
+
+**Export another meeting** (read-only: only `GET /sessions/:id/transcript` is called):
+
+```sh
+node packages/evals/scripts/export-real.ts <sessionId> packages/testkit/fixtures/evals/private/<name>
+```
+
+This writes `transcript.json` (segments: id, speaker, track, start/end ms, text). Then write `labels.json`
+beside it: `{ name, sessionId, labelledBy, reviewed, items: [...] }`, where each item is an agenda item
+(`id`, `text`, `kind`) plus `coverage` (`full` | `partial` | `none`), `startedAt` and `answeredAt` (segment
+ids; `null` when never answered), `evidence` (segment ids), `answer` / `answerAliases` for `info-to-get`,
+`why` (one line), and optional `nearMisses` (lines that sound related but do not answer it). Choose a few
+items the meeting never answers, so false ticks are measured. The loader rejects unknown segment ids and
+contradictory labels.
+
+**Review labels**: `node packages/evals/scripts/review-real.ts packages/testkit/fixtures/evals/private/<name>`
+writes `review.html` into the same (private) directory: each item with its label, the evidence and near-miss
+lines with timestamps, what each provider's latest run did (tick time, lag, the line it ticked on), and the
+whole transcript with segment indices. To correct a label, edit `labels.json`, set `"reviewed": true`,
+re-run the suite and the page. Labels drafted by a model say so (`labelledBy`), and every scorecard notes
+whether they were reviewed.
+
 Current offline numbers (local provider, MiniLM; the hashing embedder is within noise — the lexical rules
 dominate both):
 

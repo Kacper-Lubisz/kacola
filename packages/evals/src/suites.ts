@@ -49,7 +49,7 @@ export const STATUS_BUDGETS = (enforced: boolean): Budget[] => [
   },
 ]
 
-class Meter {
+export class Meter {
   usd: number | null = 0
   inputTokens = 0
   outputTokens = 0
@@ -89,7 +89,7 @@ async function timed<T>(
   return r
 }
 
-function card(
+export function card(
   suite: string,
   runner: RunnerMeta,
   dataset: string,

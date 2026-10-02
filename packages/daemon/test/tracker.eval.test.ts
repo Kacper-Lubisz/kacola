@@ -8,13 +8,20 @@
 // No key → skipped with the reason; quota / auth on the first call → the rest of that provider is skipped
 // with the error as the reason. Numbers are never faked. The brief's budgets (auto check-off precision
 // ≥ 0.9, p90 check-off ≤ 30 s after settling) are asserted for live providers.
+//
+// The real-meeting coverage suite (private fixtures in packages/testkit/fixtures/evals/private, see
+// docs/decisions.md) runs here too, through the same tracker: skipped with the reason when the
+// machine has no fixture. It prints aggregate numbers only; no budget is asserted on it (its labels are a
+// person's judgement, possibly not yet reviewed).
 import {
   agendaFixtures,
   liveProviders,
   liveSkipReason,
+  realFixtureSkipReason,
   runInjectionSuite,
   runInterviewSuite,
   runNextPointSuite,
+  runRealSuites,
   runRecapSuite,
   runRelevanceSuite,
   runStatusSuite,
@@ -65,6 +72,29 @@ describe.each(liveProviders().map((s) => [s.label, s] as const))(
         printed.push(`── tracker live · ${label} · SKIPPED: ${reason}\n`)
         ctx.skip()
       }
+    })
+  },
+)
+
+describe.each(liveProviders().map((s) => [s.label, s] as const))(
+  'tracker, real meeting coverage, live — %s',
+  (label, setup) => {
+    const skip = setup.skip ?? realFixtureSkipReason()
+    if (skip) {
+      it.skip(`SKIPPED: ${skip}`, () => {})
+      printed.push(`── tracker real-interview-coverage · ${label} · SKIPPED: ${skip}\n`)
+      return
+    }
+    it('private real meetings replayed through the tracker', async (ctx) => {
+      const cards = await runRealSuites(setup, (p, mode) => trackerStatusRunner(p, { mode }))
+      for (const c of cards) report(c)
+      const skipped = cards.find((c) => c.skipped)
+      if (skipped) {
+        printed.push(`── tracker real-interview-coverage · ${label} · SKIPPED: ${skipped.skipped}\n`)
+        ctx.skip()
+        return
+      }
+      for (const c of cards) expect(c.metrics.items).toBeGreaterThan(0)
     })
   },
 )
