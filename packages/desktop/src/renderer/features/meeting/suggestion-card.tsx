@@ -89,7 +89,12 @@ export function SuggestionCard({
           <button
             type="button"
             onClick={() =>
-              void navigate({ to: '.', search: atLine(slot.evidence!.segmentId), replace: true })
+              void navigate({
+                to: '.',
+                search: atLine(slot.evidence!.segmentId),
+                replace: true,
+                state: { cite: Date.now() } as never,
+              })
             }
             aria-label={fmt(_('Show in transcript: “{quote}”'), { quote: slot.evidence.quote })}
             className="flex cursor-default items-start gap-1.5 self-start rounded-sm text-left type-caption text-text-secondary outline-none hover:text-text-primary focus-visible:outline-(length:--focus-ring-width) focus-visible:outline-solid focus-visible:outline-(--focus-ring-color)"

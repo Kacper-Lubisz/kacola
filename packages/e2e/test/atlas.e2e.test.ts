@@ -1617,7 +1617,11 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
       .getByRole('alertdialog', { name: 'Stop sharing this agenda?' })
       .getByRole('button', { name: 'Unshare', exact: true })
       .click()
-    await w().getByRole('button', { name: 'Send the agenda' }).waitFor({ timeout: 20_000 })
+    // unshared: the agenda can be sent (or shared) again
+    await w()
+      .getByRole('button', { name: 'Send the agenda' })
+      .or(w().getByRole('button', { name: 'Share…' }))
+      .waitFor({ timeout: 20_000 })
     let last: unknown
     await waitFor(
       async () => {

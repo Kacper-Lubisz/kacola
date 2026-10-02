@@ -40,6 +40,8 @@ function OutcomeBlock({ outcome, sessionId }: { outcome: Outcome; sessionId: str
       params: { sessionId },
       search: atLine(segmentId),
       replace: true,
+      // a fresh state makes following the same citation again a new navigation (it re-scrolls)
+      state: { cite: Date.now() } as never,
     })
   return (
     <Card as="section" aria-label={_('Outcome')} className="flex flex-col gap-4 px-5 py-4">
