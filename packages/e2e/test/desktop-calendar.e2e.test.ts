@@ -57,7 +57,7 @@ describe('desktop: calendar meetings and the calendar-based template suggestion'
       display,
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
     })
-    await w().getByRole('button', { name: 'Record now' }).waitFor({ timeout: 20_000 })
+    await w().getByRole('button', { name: 'New recording' }).waitFor({ timeout: 20_000 })
   }, 240_000)
 
   afterEach(() => {
@@ -166,6 +166,79 @@ describe('desktop: calendar meetings and the calendar-based template suggestion'
       .getByRole('menuitem', { name: /Enhance as Interview \(suggested\)/ })
       .waitFor({ timeout: 5000 })
     expect(await app.axe()).toEqual([])
+    await w().keyboard.press('Escape')
+  })
+
+  it('Refresh calendar: F5 and the button by the date re-read the calendar; calendars not up to date show quietly', async () => {
+    await w().evaluate(`location.hash = '#/'`)
+    await w().getByRole('searchbox', { name: 'Search or ask' }).waitFor()
+    const later = Date.now() + 2 * 3_600_000
+    const event = (summary: string) => ({
+      uid: `${summary}@x`,
+      sourceUid: 'cal-work',
+      calendarName: 'Work',
+      recurrenceId: null,
+      summary,
+      description: '',
+      location: '',
+      url: '',
+      start: new Date(later).toISOString(),
+      end: new Date(later + 30 * 60_000).toISOString(),
+      allDay: false,
+      startDate: null,
+      endDate: null,
+      timezone: null,
+      status: 'CONFIRMED',
+      myPartstat: 'ACCEPTED',
+      organizer: null,
+      attendees: 2,
+      recurring: false,
+      xprops: {},
+    })
+    const updatedAt = async () => (await daemon.client.call('calendarStatus')).updatedAt
+    const today = w().getByRole('list', { name: 'Today’s meetings' })
+    writeCalendar([event('Budget sync')])
+    await today.getByText('Budget sync').waitFor({ timeout: 10_000 })
+    // nothing changed on disk since: no new snapshot until asked for one
+    const before = await updatedAt()
+    await new Promise((r) => setTimeout(r, 800))
+    expect(await updatedAt()).toBe(before)
+    // F5: the daemon re-reads the calendar (a fresh snapshot)
+    await w().keyboard.press('F5')
+    const afterF5 = await poll(
+      async () => {
+        const u = await updatedAt()
+        return u && u !== before ? u : undefined
+      },
+      10_000,
+      'the re-read after F5',
+    )
+
+    // the button by the date does the same; a calendar reported as not up to date shows quietly
+    writeFileSync(
+      `${calFile}.tmp`,
+      JSON.stringify({
+        calendars: [{ id: 'cal-work', name: 'Work' }],
+        occurrences: [event('Budget sync'), event('Vendor call')],
+        offline: [{ id: 'cal-team', name: 'Team', reason: 'sign-in' }],
+      }),
+    )
+    renameSync(`${calFile}.tmp`, calFile)
+    await today.getByText('Vendor call').waitFor({ timeout: 10_000 })
+    const settled = await updatedAt()
+    expect(settled).not.toBe(afterF5)
+    await w().getByRole('button', { name: 'Refresh calendar' }).click()
+    await poll(
+      async () => ((await updatedAt()) !== settled ? true : undefined),
+      10_000,
+      'the re-read after the button',
+    )
+    await w().getByText('Team needs signing in again (GNOME Online Accounts)').waitFor()
+    expect(await app.axe()).toEqual([])
+    // the shortcut is listed
+    await w().keyboard.press('Control+?')
+    const help = w().getByRole('dialog', { name: 'Keyboard Shortcuts' })
+    await help.getByText('Refresh calendar').waitFor()
     await w().keyboard.press('Escape')
   })
 })

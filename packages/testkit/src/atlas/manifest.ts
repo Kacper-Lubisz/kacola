@@ -66,6 +66,20 @@ export const ATLAS: AtlasEntry[] = [
   ),
   win(
     'day',
+    'home',
+    'messy-busy',
+    'Home on a messy real day: all-day strip, one row per invitation, overlaps, the 1:1 under way in its place, untitled recordings quiet',
+    { responsive: true },
+  ),
+  win('day', 'home', 'messy-afternoon', 'Late afternoon: the next meeting expanded just above the now line', {
+    responsive: true,
+  }),
+  win('day', 'home', 'empty-day', 'An empty day: nothing on the calendar, earlier days below', {
+    responsive: true,
+  }),
+  win('day', 'home', 'calendar-offline', 'Calendars not up to date: one quiet line, with Refresh'),
+  win(
+    'day',
     'search',
     'moments',
     'Search in place of the day: moments (meeting · day · time · speaker · line)',
@@ -522,7 +536,7 @@ export const ATLAS: AtlasEntry[] = [
   ),
 
   // ---- Agendas, live intelligence and BYO agent (the window's states built; the rest planned)
-  win('agenda-plan', 'window', 'plan-with-claude', 'Prep: Plan with Claude drafting items'),
+  win('agenda-plan', 'window', 'delete-undo', 'Prep: an item deleted at once, Undo in the toast restores it'),
   plannedCli(
     'agenda-plan',
     'skill',

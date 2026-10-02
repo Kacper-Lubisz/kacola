@@ -69,7 +69,7 @@ function CheckItem({
     <li
       aria-label={item.text}
       aria-current={current ? 'step' : undefined}
-      className={`group flex items-start gap-1.5 rounded-md px-1.5 py-1 ${
+      className={`group relative flex items-start gap-1.5 rounded-md px-1.5 py-1 ${
         current ? 'border border-border-default bg-bg-surface shadow-e1' : 'border border-transparent'
       }`}
     >
@@ -102,7 +102,7 @@ function CheckItem({
         ) : null}
       </div>
       {onDelete ? (
-        <div className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-[[data-pressed]]:opacity-100 has-[[aria-expanded=true]]:opacity-100">
+        <div className="absolute top-1 right-1 rounded-md bg-bg-surface opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100">
           <Menu
             label={fmt(_('More for “{item}”'), { item: item.text })}
             trigger={

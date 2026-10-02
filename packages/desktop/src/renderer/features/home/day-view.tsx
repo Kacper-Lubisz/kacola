@@ -52,6 +52,8 @@ export function DayView() {
   const meetings = useQuery({ ...queries.day(startOfToday(now)), enabled: calOn }).data?.meetings ?? []
   const agendas = useQuery(queries.agendas()).data ?? []
   const day = buildDay(sessions, calOn ? meetings : [], agendas, now)
+  // only the first meeting under way says what would stop recording (overlapping ones don't repeat it)
+  const sayReadiness = day.today.find((e) => e.current && e.kind === 'meeting' && !e.session)?.key
   const [earlierShown, setEarlierShown] = useState(EARLIER_PAGE)
   const line = (key: string) => (
     <li key={key} aria-hidden="true" className="relative">
@@ -77,7 +79,7 @@ export function DayView() {
               ...(day.nowAt === i ? [line('now')] : []),
               <li key={e.key} className="relative">
                 {e.current ? (
-                  <CurrentEntry entry={e} now={now} />
+                  <CurrentEntry entry={e} now={now} sayReadiness={e.key === sayReadiness} />
                 ) : e.key === day.next && e.kind === 'meeting' ? (
                   <NextMeeting entry={e} now={now} />
                 ) : (
@@ -240,22 +242,24 @@ function Row({
         type="button"
         onClick={onPress}
         aria-label={label}
-        className="group flex min-w-0 flex-1 cursor-default items-center gap-2 rounded-md py-2 pr-2 text-left outline-none focus-visible:outline-(length:--focus-ring-width) focus-visible:outline-solid focus-visible:outline-(--focus-ring-color) hover:bg-bg-hover"
+        className="group flex min-w-0 flex-1 cursor-default items-start gap-2 rounded-md py-2.5 pr-2 text-left outline-none focus-visible:outline-(length:--focus-ring-width) focus-visible:outline-solid focus-visible:outline-(--focus-ring-color) hover:bg-bg-hover"
       >
-        <span className={`${TIME} text-text-secondary`}>{time}</span>
-        <span className={NODE}>
+        <span className={`${TIME} leading-6 text-text-secondary`}>{time}</span>
+        <span className={`${NODE} h-6 items-center`}>
           <Node kind={node} />
         </span>
         <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5">
           <span
             title={title}
-            className={`max-w-full truncate ${quiet ? 'type-body text-text-secondary' : 'type-body-strong text-text-primary'}`}
+            className={`max-w-full truncate leading-6 ${quiet ? 'type-body text-text-secondary' : 'type-body-strong text-text-primary'}`}
           >
             {title}
           </span>
-          {meta ? <span className="type-callout text-text-secondary">{meta}</span> : null}
+          {meta ? <span className="type-callout leading-6 text-text-secondary">{meta}</span> : null}
         </span>
-        {trailing ? <span className="flex shrink-0 flex-wrap items-center gap-2">{trailing}</span> : null}
+        {trailing ? (
+          <span className="flex min-h-6 shrink-0 flex-wrap items-center gap-2">{trailing}</span>
+        ) : null}
       </button>
     </div>
   )
@@ -342,9 +346,12 @@ function EntryRow({ entry: e, now, soonest }: { entry: DayEntry; now: number; so
     )
   const ended = Date.parse(m.end) <= now
   const provider = providerLabel(m.join?.provider)
-  const meta = ended
-    ? _('not recorded')
-    : [soonest ? countdown(m.start, m.end, now) : '', provider].filter(Boolean).join(' · ') || undefined
+  const since = Date.parse(m.start) < e.at ? fmt(_('began yesterday {time}'), { time: clock(m.start) }) : ''
+  const meta =
+    // a past meeting nobody recorded is simply quiet (its empty node says so), no label on every row
+    [since, !ended && soonest ? countdown(m.start, m.end, now) : '', ended ? '' : provider]
+      .filter(Boolean)
+      .join(' · ') || undefined
   return (
     <Row
       time={time}
@@ -357,7 +364,7 @@ function EntryRow({ entry: e, now, soonest }: { entry: DayEntry; now: number; so
           <span className="type-caption text-text-secondary">{agendaCount(e.agenda.counts.items)}</span>
         ) : null
       }
-      label={fmt(_('{title}, {time}'), { title: m.title, time })}
+      label={fmt(ended ? _('{title}, {time}, not recorded') : _('{title}, {time}'), { title: m.title, time })}
       onPress={() => void prep.open(m, e.agenda?.id)}
     />
   )
@@ -375,12 +382,16 @@ function CardGutter({ time, node }: { time: string; node: NodeKind }) {
   )
 }
 
-function ReadinessLine() {
+function useReadiness() {
   const { store } = useServices()
   const connection = useStore(store, (s) => s.connection)
   const missing = useMissingModels()
+  return readiness({ missingModels: missing, connected: connection.kind === 'live' })
+}
+
+function ReadinessLine() {
   const dialogs = useDialogs()
-  const ready = readiness({ missingModels: missing, connected: connection.kind === 'live' })
+  const ready = useReadiness()
   return (
     <span className="inline-flex items-center gap-1.5">
       <Icon
@@ -499,7 +510,16 @@ function RecordingClock({ s }: { s: Session }) {
  * What is under way, in its own place on the timeline, highlighted: a recording (its clock, Open, Stop),
  * or a meeting whose time has come (when, Join and record, prep; or Open once it was recorded).
  */
-function CurrentEntry({ entry: e, now }: { entry: DayEntry; now: number }) {
+function CurrentEntry({
+  entry: e,
+  now,
+  sayReadiness,
+}: {
+  entry: DayEntry
+  now: number
+  sayReadiness: boolean
+}) {
+  const ready = useReadiness()
   const navigate = useNavigate()
   const recorder = useRecorder()
   const join = useJoin()
@@ -532,7 +552,7 @@ function CurrentEntry({ entry: e, now }: { entry: DayEntry; now: number }) {
             <p className="m-0 type-headline text-text-primary">{countdown(m.start, m.end, now)}</p>
           ) : null}
         </div>
-        {!live && m && !s ? (
+        {!live && m && !s && (e.agenda || (sayReadiness && !ready.ok)) ? (
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-md bg-bg-sidebar px-3 py-2 type-callout">
             {e.agenda ? (
               <span className="inline-flex items-center gap-1.5">
@@ -545,7 +565,7 @@ function CurrentEntry({ entry: e, now }: { entry: DayEntry; now: number }) {
                 </span>
               </span>
             ) : null}
-            <ReadinessLine />
+            {sayReadiness && !ready.ok ? <ReadinessLine /> : null}
           </div>
         ) : null}
         <div className="flex flex-wrap items-center gap-3">

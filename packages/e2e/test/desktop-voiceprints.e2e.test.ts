@@ -13,7 +13,7 @@ import { markOnboarded } from '../src/ui.ts'
 // daemon whose fake pipeline diarizes the far end (three fixed voices, one-hot "embeddings", recognised
 // against the known voiceprints the way the real diarizer is — the daemon's speakers.int test, driven
 // from the window here): the Preferences switches reach the daemon and follow it; a meeting recorded,
-// paused, resumed and stopped with the window's own recording controls (home's Record now, the header's Pause / Resume / Stop); a far-end speaker named in the
+// paused, resumed and stopped with the window's own recording controls (home's New recording, the header's Pause / Resume / Stop); a far-end speaker named in the
 // Speakers dialog becomes a voiceprint; the next meeting recorded from the window names them by voice.
 
 const PIPELINE = {
@@ -53,10 +53,10 @@ describe('desktop: speaker settings and voiceprints against the real daemon', ()
     const before = new Set(
       (await daemon.client.call('listSessions', { query: {} })).sessions.map((s) => s.id),
     )
-    // home's Record now (a meeting page has Back to Today)
+    // home's New recording (a meeting page has Back to Today)
     const back = w().getByRole('button', { name: 'Back to Today' })
     if (await back.count()) await back.click()
-    await w().getByRole('button', { name: 'Record now' }).click()
+    await w().getByRole('button', { name: 'New recording' }).click()
     const live = await poll(
       async () =>
         (await daemon.client.call('listSessions', { query: {} })).sessions.find(
@@ -122,8 +122,8 @@ describe('desktop: speaker settings and voiceprints against the real daemon', ()
       display,
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
     })
-    // no meetings yet: home offers Record now
-    await w().getByRole('button', { name: 'Record now' }).waitFor({ timeout: 20_000 })
+    // no meetings yet: home offers New recording
+    await w().getByRole('button', { name: 'New recording' }).waitFor({ timeout: 20_000 })
   }, 240_000)
 
   afterEach(() => {

@@ -101,7 +101,7 @@ describe('desktop window on the accessibility bus (AT-SPI)', () => {
   it('exposes home’s controls named, with their roles', async () => {
     await find('frame', 'kacola')
     await find('heading', 'Your day')
-    await find('button', 'Record now')
+    await find('button', 'New recording')
     await find('button', 'Main menu')
     await find('entry', 'Search or ask')
     const list = await find('list', 'Today’s meetings')

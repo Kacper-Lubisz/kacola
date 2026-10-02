@@ -395,9 +395,9 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
   })
 
   it('answers during a live recording, with citations into the growing transcript', async () => {
-    // started with home's Record now (as the GTK suite did with Record); it opens the new session
+    // started with home's New recording (as the GTK suite did with Record); it opens the new session
     await w().getByRole('button', { name: 'Back to Today' }).click()
-    await w().getByRole('button', { name: 'Record now' }).click()
+    await w().getByRole('button', { name: 'New recording' }).click()
     const s = await poll(
       async () =>
         (await daemon.client.call('listSessions', { query: {} })).sessions.find(

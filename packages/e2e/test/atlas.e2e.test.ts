@@ -23,6 +23,15 @@ import {
   readFakeShell,
   writeFakeShell,
 } from '../src/fake-shell-extensions.ts'
+import {
+  MESSY_AFTERNOON,
+  MESSY_EMPTY_DAY,
+  MESSY_NOW,
+  MESSY_TITLES,
+  MESSY_TZ,
+  seedMessySessions,
+  writeMessyCalendar,
+} from '../src/messy-day.ts'
 import { SEED, seedMeetings } from '../src/seed.ts'
 import { linkToken, type ShareHost, startShareHost } from '../src/share-host.ts'
 
@@ -360,7 +369,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       .getByRole('heading', { name: /^Today/ })
       .waitFor()
     await atlas.shoot(w(), 'record-now__idle__record-button', {
-      expect: [dayRow('Platform standup'), w().getByRole('button', { name: 'Record now' })],
+      expect: [dayRow('Platform standup'), w().getByRole('button', { name: 'New recording' })],
     })
     await searchBox().fill('standup')
     const moments = w().getByRole('list', { name: 'Moments' })
@@ -983,7 +992,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
 
 describe('atlas: agendas (real daemon, a calendar file, the draft route, the agent channel)', () => {
   // A weekly 1:1 under way (started 5 min ago, 30 min long) and its next occurrence; the agenda is opened
-  // from its kacola:// link, planned with Claude (a replayed stream, held), edited, followed live while
+  // from its kacola:// link, its items added (as the CLI plans them), one deleted and undone, edited, followed live while
   // it records (the tracker's and an agent's marks posted over HTTP, as those waves do), then recapped.
   // Not frozen at ATLAS_NOW (the meeting must be happening now): anything showing wall-clock time — the
   // meeting's hours, its countdown, a recording's timer — is masked.
@@ -999,44 +1008,11 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
   const clock = () => [
     // the meeting's hours, and how long until it (prep) or how long it ran (outcome)
     w().getByText(/\d{2}:\d{2}–\d{2}:\d{2}/),
-    w().getByText(/^· (happening now|starts )/),
+    w().getByText(/^· (now, |starting in )/),
     w().locator('h1 + div > span:nth-child(-n+2)'),
     // a recording's elapsed timer
     w().getByRole('timer'),
   ]
-  const draftStream = (chunks: string[]) => {
-    const ev = (type: string, data: Record<string, unknown>) =>
-      `event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`
-    const usage = { input_tokens: 700, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
-    return {
-      status: 200,
-      headers: { 'content-type': 'text/event-stream' },
-      body:
-        ev('message_start', {
-          message: {
-            id: 'msg_atlas_draft',
-            type: 'message',
-            role: 'assistant',
-            model: 'claude-opus-5',
-            content: [],
-            stop_reason: null,
-            stop_sequence: null,
-            usage: { ...usage, output_tokens: 1 },
-          },
-        }) +
-        ev('content_block_start', { index: 0, content_block: { type: 'text', text: '' } }) +
-        chunks
-          .map((text) => ev('content_block_delta', { index: 0, delta: { type: 'text_delta', text } }))
-          .join('') +
-        ev('content_block_stop', { index: 0 }) +
-        ev('message_delta', {
-          delta: { stop_reason: 'end_turn', stop_sequence: null },
-          usage: { ...usage, output_tokens: 60 },
-        }) +
-        ev('message_stop', {}),
-    }
-  }
-
   afterAll(async () => {
     await app?.close()
     await daemon?.stop()
@@ -1110,37 +1086,33 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
       masks: clock(),
     })
 
-    // Plan with Claude, held mid-stream
-    api.enqueue(
-      draftStream([
-        '- [must-cover] Promo timeline (10m, @me)\n',
-        '- [question] How is onboarding going (@Ana)\n',
-        '- [decision] Next review date\n',
-      ]),
-    )
-    const release = api.holdAfter(4)
-    await w().getByRole('button', { name: 'Plan with Claude' }).click()
-    const plan = w().getByRole('dialog', { name: 'Plan with Claude' })
-    await plan
-      .getByRole('textbox', { name: 'Goals (one per line)' })
-      .fill('agree the promo timeline\nhear how onboarding is going')
-    await plan.getByRole('button', { name: 'Draft Items' }).click()
-    await plan.getByRole('checkbox', { name: /How is onboarding going/ }).waitFor({ timeout: 15_000 })
-    await atlas.shoot(w(), 'agenda-plan__window__plan-with-claude', {
-      expect: plan.getByRole('checkbox', { name: /How is onboarding going/ }),
-      masks: clock(),
-    })
-    release()
-    await plan.getByText('Drafted by claude-opus-5').waitFor({ timeout: 15_000 })
-    await plan.getByRole('button', { name: 'Add 3 Items' }).click()
-    await plan.waitFor({ state: 'detached' })
-    const items = w().getByRole('grid', { name: 'Agenda items' })
-    await items.getByRole('row', { name: 'Next review date' }).waitFor()
+    // the items planned from the terminal (the CLI and the skill draft them; the window has no planner)
     await daemon.client.call('addAgendaItems', {
       params: { id: agendaId },
-      body: { items: [{ text: 'Parking lot' }, { text: 'Skip this one' }] },
+      body: {
+        items: [
+          { text: 'Promo timeline', kind: 'must-cover', owner: 'me' },
+          { text: 'How is onboarding going', kind: 'question', owner: 'Ana' },
+          { text: 'Next review date', kind: 'decision' },
+          { text: 'Parking lot' },
+          { text: 'Skip this one' },
+        ],
+      },
     })
+    const items = w().getByRole('grid', { name: 'Agenda items' })
     await items.getByRole('row', { name: 'Skip this one' }).waitFor()
+    // deleted at once (no confirm), Undo in the toast puts it back from its history
+    await w().getByRole('button', { name: 'Delete “Parking lot”' }).click()
+    const toast = w()
+      .getByRole('region', { name: 'Notifications' })
+      .filter({ hasText: 'Deleted “Parking lot”' })
+    await items.getByRole('row', { name: 'Parking lot' }).waitFor({ state: 'detached' })
+    await atlas.shoot(w(), 'agenda-plan__window__delete-undo', {
+      expect: toast.getByRole('button', { name: 'Undo' }),
+      masks: clock(),
+    })
+    await toast.getByRole('button', { name: 'Undo' }).click()
+    await items.getByRole('row', { name: 'Parking lot' }).waitFor()
     await atlas.shoot(w(), 'agenda-plan__saved__agenda', { expect: items, masks: clock() })
 
     await w().getByRole('button', { name: 'Edit “Next review date”' }).click()
@@ -1330,7 +1302,7 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
     d.client.call('getAgenda', { params: { id }, query: { includePrivate: true } })
   const clock = () => [
     w().getByText(/\d{2}:\d{2}–\d{2}:\d{2}/),
-    w().getByText(/^· (happening now|starts )/),
+    w().getByText(/^· (now, |starting in )/),
     w().locator('h1 + div > span:nth-child(-n+2)'),
     w().locator('[data-share-time]'),
     w().getByRole('timer'),
@@ -2181,6 +2153,114 @@ describe('atlas: the Day story (a 1:1 with Ana, from home through prep and live 
     await w().keyboard.press('Escape')
     await share.waitFor({ state: 'detached' })
     expect(app.problems()).toEqual([])
+  })
+})
+
+describe('atlas: home on a messy real day (ten calendars’ worth of shapes, Europe/London)', () => {
+  // The day as real calendars deliver it (packages/e2e/src/messy-day.ts, invented content): all-day
+  // events, last night's release window, overlapping meetings, one invitation copied into three
+  // calendars, a declined and a cancelled one, long titles, events without links, and recordings with
+  // the store's stand-in titles. The window runs in Europe/London, where those UTC stand-ins used to
+  // disagree with the clock next to them; the renderer's clock is frozen per scene.
+  let daemon: DaemonHandle
+  let app: DesktopApp
+  let box = ''
+  const w = () => app.window
+  afterAll(async () => {
+    await app?.close()
+    await daemon?.stop()
+    if (box) rmSync(box, { recursive: true, force: true })
+  })
+
+  it('a busy day with a meeting under way, late afternoon, an empty day, calendars not up to date', async () => {
+    box = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-messy-'))
+    const dataDir = join(box, 'data')
+    mkdirSync(dataDir, { recursive: true })
+    const calFile = join(box, 'calendar.json')
+    writeMessyCalendar(calFile)
+    seedMessySessions(dataDir)
+    daemon = await startDaemon({ dataDir, env: { GNOMEOLA_CALENDAR: `file:${calFile}` } })
+    const { models } = await daemon.client.call('listModels')
+    for (const m of models)
+      if (m.state !== 'ready') await daemon.client.call('downloadModel', { params: { id: m.id } })
+    await poll(
+      async () => (await daemon.client.call('listModels')).models.every((m) => m.state === 'ready'),
+      20_000,
+      'the speech models',
+    )
+    markOnboarded(
+      display,
+      models.map((m) => m.id),
+    )
+    app = await launchDesktop({
+      display,
+      env: { GNOMEOLA_URL: daemon.baseUrl, TZ: MESSY_TZ, GNOMEOLA_COLOR_SCHEME: 'light' },
+    })
+    const at = async (t: number) => {
+      await w().clock.setFixedTime(new Date(t))
+      await w().evaluate(`location.hash = '#/'`)
+      await w().reload()
+      await w().waitForLoadState('domcontentloaded')
+      await w().emulateMedia({ reducedMotion: 'reduce' })
+      await w().setViewportSize({ width: 1280, height: HEIGHT })
+      await w().getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
+    }
+    const today = () => w().getByRole('list', { name: 'Today’s meetings' })
+
+    // 13:10: the 1:1 (and lunch) under way, in place; the copies of one invitation folded into one row
+    await at(MESSY_NOW)
+    const priya = w().getByRole('region', { name: `Now: ${MESSY_TITLES.priya}` })
+    await priya.waitFor({ timeout: 20_000 })
+    expect(
+      await today()
+        .getByRole('button', { name: /^Architecture review, 11:00/ })
+        .count(),
+    ).toBe(1)
+    expect(
+      await today()
+        .getByRole('button', { name: /^Vendor pitch/ })
+        .count(),
+    ).toBe(0)
+    expect(
+      await today()
+        .getByRole('button', { name: /^Untitled meeting, 10:1/ })
+        .count(),
+    ).toBe(3)
+    expect(
+      await w()
+        .getByText(/Meeting 2026-/)
+        .count(),
+    ).toBe(0)
+    await atlas.shoot(w(), 'day__home__messy-busy', {
+      expect: [
+        priya.getByRole('button', { name: `Join and record ${MESSY_TITLES.priya}` }),
+        w().getByRole('region', { name: 'All day' }),
+      ],
+    })
+
+    // 17:15: nothing under way; the demo expanded above the now line
+    await at(MESSY_AFTERNOON)
+    await atlas.shoot(w(), 'day__home__messy-afternoon', {
+      expect: w().getByRole('region', { name: `Next: ${MESSY_TITLES.demo}` }),
+    })
+
+    // Saturday: nothing on the calendar
+    await at(MESSY_EMPTY_DAY)
+    await atlas.shoot(w(), 'day__home__empty-day', {
+      expect: w().getByText('Nothing on your calendar today. New recording captures a call as it happens.'),
+    })
+
+    // calendars that are not up to date: one quiet line, Refresh next to it
+    writeMessyCalendar(calFile, [
+      { id: 'cal-team', name: 'Team', reason: 'offline' },
+      { id: 'cal-holidays', name: 'Holidays', reason: 'sign-in' },
+    ])
+    await at(MESSY_NOW)
+    const notice = w().getByText('Team and Holidays aren’t up to date: showing what was saved')
+    await notice.waitFor({ timeout: 10_000 })
+    await atlas.shoot(w(), 'day__home__calendar-offline', {
+      expect: [notice, w().getByRole('button', { name: 'Refresh calendar' })],
+    })
   })
 })
 

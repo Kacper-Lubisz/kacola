@@ -287,7 +287,7 @@ function ItemRow({
 }) {
   const pending = isTemporary(item.id)
   return (
-    <div className="flex min-w-0 items-start gap-2">
+    <div className="relative flex min-w-0 items-start gap-2">
       <StatusMenu agendaId={agendaId} item={item} isDisabled={pending} />
       <div className="flex min-w-0 flex-1 flex-col gap-1 pt-1">
         <span
@@ -301,7 +301,8 @@ function ItemRow({
         ) : null}
         {comments}
       </div>
-      <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 group-data-[focus-visible]:opacity-100 focus-within:opacity-100">
+      {/* over the row's end while it is hovered or focused, so the text keeps the whole width */}
+      <div className="absolute top-0 right-0 flex items-center rounded-md bg-bg-surface opacity-0 shadow-e1 transition-opacity group-hover:opacity-100 group-data-[hovered]:opacity-100 group-data-[focus-visible]:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100">
         <ItemHistory agendaId={agendaId} item={item} />
         <IconButton
           icon="edit"
