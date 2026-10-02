@@ -10,8 +10,31 @@ import { dayLabel } from './day.ts'
 
 export type SnippetPart = { text: string; mark: boolean }
 
-/** The daemon marks matches `[like this]`; split them out so the screen can highlight them. */
+/**
+ * The daemon marks matches `[like this]`; split them out so the screen can highlight them. Marks
+ * separated only by spaces ("[retry] [budget]") read as one.
+ */
 export function snippetParts(snippet: string): SnippetPart[] {
+  return mergeMarks(rawParts(snippet))
+}
+
+function mergeMarks(parts: SnippetPart[]): SnippetPart[] {
+  const out: SnippetPart[] = []
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i]!
+    const prev = out.at(-1)
+    const next = parts[i + 1]
+    if (!p.mark && /^\s+$/.test(p.text) && prev?.mark && next?.mark) {
+      prev.text += p.text + next.text
+      i++
+      continue
+    }
+    out.push({ ...p })
+  }
+  return out
+}
+
+function rawParts(snippet: string): SnippetPart[] {
   const parts: SnippetPart[] = []
   const re = /\[([^\]]*)\]/g
   let last = 0
@@ -101,3 +124,25 @@ export const looksLikeQuestion = (q: string): boolean =>
   /^(what|who|when|where|why|how|did|do|does|is|are|was|were|which|can|could|should|will|would)\b/i.test(
     q.trim(),
   )
+
+const STOP = new Set(
+  (
+    'a an and are as at be but by did do does for from had has have how i in is it its me my of on or our ' +
+    'should so that the their them they this to was we were what when where which who whom why will with ' +
+    'would you your about can could decide decided say said tell told'
+  ).split(' '),
+)
+
+/**
+ * What to search for: a question's content words ("what did we decide about the retry budget?" →
+ * "retry budget"); anything else as typed.
+ */
+export function searchTerms(q: string): string {
+  const t = q.trim()
+  if (!looksLikeQuestion(t)) return t
+  const words = t
+    .replace(/[?!.,;:"“”'‘’()]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w && !STOP.has(w.toLowerCase()))
+  return words.join(' ') || t
+}

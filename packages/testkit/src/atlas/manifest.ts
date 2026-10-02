@@ -54,6 +54,67 @@ const plannedShell = mk('shell', 'planned')
 const plannedCli = mk('cli', 'planned')
 
 export const ATLAS: AtlasEntry[] = [
+  // ---- The Day story: home is your day, a meeting is one page (Prep → Live → Outcome)
+  win(
+    'day',
+    'home',
+    'next-meeting',
+    'Home at 13:52: search-and-ask, today on a time rail with the 1:1 expanded, earlier days',
+    {
+      responsive: true,
+    },
+  ),
+  win(
+    'day',
+    'search',
+    'moments',
+    'Search in place of the day: moments (meeting · day · time · speaker · line)',
+    {
+      responsive: true,
+    },
+  ),
+  win(
+    'day',
+    'search',
+    'answer',
+    'Ask from the same box: a cited answer above the moments, private meetings left out',
+  ),
+  win(
+    'day',
+    'prep',
+    'agenda',
+    'The 1:1’s page in Prep: agenda, context, earlier meetings, Ask, Join and record',
+    {
+      responsive: true,
+    },
+  ),
+  win(
+    'day',
+    'live',
+    'suggestion',
+    'Live, minimal: recording pill, agenda checklist, the notepad, one suggestion',
+    {
+      responsive: true,
+    },
+  ),
+  win('day', 'live', 'ask', 'Ask on demand (Ctrl+K): a bar over the notepad, answers pinned to notes'),
+  win('day', 'live', 'paused', 'Paused: no red, “Paused”, Resume'),
+  win(
+    'day',
+    'outcome',
+    'outcome',
+    'Outcome: decided, to do (yours first), carried over; then the clean notes',
+    {
+      responsive: true,
+    },
+  ),
+  win(
+    'day',
+    'outcome',
+    'transcript-cited',
+    'The transcript as evidence: a side panel opened at the cited line',
+  ),
+  win('day', 'outcome', 'share-summary', 'Share summary: exactly what they get, to copy or save'),
   // ---- Get started
   win(
     'first-run',

@@ -282,7 +282,7 @@ function ItemRow({
         ) : null}
         {comments}
       </div>
-      <div className="flex shrink-0 items-center">
+      <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 group-data-[focus-visible]:opacity-100 focus-within:opacity-100">
         <ItemHistory item={item} history={history} names={names} />
         <IconButton
           icon="edit"

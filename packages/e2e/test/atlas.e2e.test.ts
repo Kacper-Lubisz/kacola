@@ -1739,6 +1739,424 @@ describe('atlas: the live tracker (a replayed meeting, on-device decisions)', ()
   })
 })
 
+describe('atlas: the Day story (a 1:1 with Ana, from home through prep and live to its outcome)', () => {
+  // The redesign's main screens, for the presentation: one consistent day (Thursday 1 October, the
+  // window in UTC) — a standup this morning, a 1:1 with Ana at 14:00, a design review and a hiring sync
+  // later; yesterday's planning, Monday's private HR 1:1 and a recording recovered after a crash. The
+  // renderer's clock is frozen per scene (13:52 at home, 16 minutes into the 1:1 while live), so every
+  // time on screen is the story's. The 1:1's conversation is a replayed script on the fake pipeline.
+  let daemon: DaemonHandle
+  let api: FakeAnthropic
+  let app: DesktopApp
+  let box = ''
+  const w = () => app.window
+  const DAY = Date.UTC(2026, 9, 1)
+  const at = (h: number, m = 0, days = 0) => DAY + days * 86_400_000 + (h * 60 + m) * 60_000
+  const iso = (t: number) => new Date(t).toISOString()
+  const ANA = 'Ana Ruiz'
+  const line = (s: number, who: 'me' | 'ana', text: string) => ({
+    track: who === 'me' ? ('mic' as const) : ('system' as const),
+    ...(who === 'ana' ? { speaker: ANA } : {}),
+    startMs: s * 1000,
+    endMs: s * 1000 + Math.max(2500, text.length * 55),
+    text,
+  })
+  const SCRIPT = {
+    utterances: [
+      line(12, 'me', 'Thanks for making time. Shall we start with the promo timeline?'),
+      line(20, 'ana', 'Yes. I would like the lead role, and I want a date, not soon.'),
+      line(
+        34,
+        'me',
+        'Fair. The rubric gap is stakeholder updates. I can pair you with Marta on the Q4 review.',
+      ),
+      line(52, 'ana', 'That works for me. March is realistic if the scope is agreed by December.'),
+      line(300, 'me', 'How is onboarding going with the two new hires?'),
+      line(309, 'ana', 'The buddy setup works. Both shipped a pull request in their first week.'),
+      line(322, 'me', 'Good, let us keep it for the next two hires.'),
+      line(330, 'ana', 'Onboarding sounds settled, then.'),
+      line(840, 'me', 'Okay, the review. I was thinking end of October.'),
+      line(852, 'ana', 'The 28th could work, if Marta can join.'),
+      line(866, 'me', 'I want Marta in the room, since she would sponsor the lead role.'),
+      line(878, 'ana', 'That makes sense. I will have the write-up ready the week before.'),
+    ],
+  }
+  const occurrence = (
+    uid: string,
+    summary: string,
+    start: number,
+    minutes: number,
+    url: string,
+    recurring = false,
+  ) => ({
+    uid,
+    sourceUid: 'cal-work',
+    calendarName: 'Work',
+    recurrenceId: recurring ? iso(start) : null,
+    summary,
+    description: '',
+    location: '',
+    url,
+    start: iso(start),
+    end: iso(start + minutes * 60_000),
+    allDay: false,
+    startDate: null,
+    endDate: null,
+    timezone: 'UTC',
+    status: 'CONFIRMED',
+    myPartstat: 'ACCEPTED',
+    organizer: 'mailto:me@example.com',
+    attendees: 2,
+    recurring,
+    xprops: {},
+  })
+  const fix = async (t: number) => {
+    await w().clock.setFixedTime(new Date(t))
+    // let every useNow tick past the new time
+    await new Promise((r) => setTimeout(r, 1200))
+  }
+
+  afterAll(async () => {
+    await app?.close()
+    await daemon?.stop()
+    await api?.close()
+    if (box) rmSync(box, { recursive: true, force: true })
+  })
+
+  it('home, search and ask, prep, live with a suggestion, paused, the outcome and its summary', async () => {
+    box = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-day-'))
+    const dataDir = join(box, 'data')
+    mkdirSync(dataDir, { recursive: true })
+    const calFile = join(box, 'calendar.json')
+    writeFileSync(
+      calFile,
+      JSON.stringify({
+        calendars: [{ id: 'cal-work', name: 'Work' }],
+        occurrences: [
+          occurrence('ana@x', '1:1 with Ana', at(14), 30, 'https://meet.google.com/ana-oneo-one', true),
+          occurrence(
+            'ana@x',
+            '1:1 with Ana',
+            at(14, 0, 14),
+            30,
+            'https://meet.google.com/ana-oneo-one',
+            true,
+          ),
+          occurrence('review@x', 'Design review', at(15), 45, 'https://zoom.us/j/123456789'),
+          occurrence('hiring@x', 'Hiring sync', at(16, 30), 30, 'https://meet.google.com/hir-ings-ync'),
+        ],
+      }),
+    )
+    seedMeetings(dataDir)
+    const store = Store.open(join(dataDir, 'gnomeola.db'))
+    const date = (id: string, t: number, ms?: number) =>
+      store.updateSession(id, (s) => ({
+        ...s,
+        createdAt: iso(t),
+        startedAt: iso(t),
+        endedAt: iso(t + (ms ?? s.durationMs)),
+        ...(ms ? { durationMs: ms } : {}),
+      }))
+    date(SEED.standup, at(9, 30))
+    date(SEED.long, at(11, 0, -1))
+    date(SEED.private, at(14, 0, -3), 25 * 60_000)
+    date(SEED.retro, at(10, 0, -9))
+    store.createSession({ id: 'ses_000000006fffffffffff6', title: 'Customer call', private: false })
+    store.updateSession('ses_000000006fffffffffff6', (s) => ({
+      ...s,
+      createdAt: iso(at(16, 30, -3)),
+      startedAt: iso(at(16, 30, -3)),
+      status: 'recording',
+      durationMs: 41 * 60_000,
+    }))
+    store.close()
+    api = await startFakeAnthropic({ eventDelayMs: 30 })
+    const start = () =>
+      startDaemon({
+        dataDir,
+        env: {
+          ANTHROPIC_API_KEY: KEY,
+          ANTHROPIC_BASE_URL: api.url,
+          GNOMEOLA_CALENDAR: `file:${calFile}`,
+          GNOMEOLA_FAKE_PIPELINE: JSON.stringify({
+            speed: 60,
+            tickMs: 20,
+            partialEveryMs: 400,
+            finalizeAfterMs: 200,
+            script: SCRIPT,
+          }),
+          GNOMEOLA_TRACKER: 'off',
+          GNOMEOLA_SPEECH_GUARD: 'none',
+        },
+      })
+    daemon = await start()
+    await daemon.client.call('updateSettings', { body: { llm: { provider: 'anthropic' } } })
+    await daemon.client.call('setApiKey', { body: { key: KEY } })
+    const { models } = await daemon.client.call('listModels')
+    for (const m of models)
+      if (m.state !== 'ready') await daemon.client.call('downloadModel', { params: { id: m.id } })
+    await poll(
+      async () => (await daemon.client.call('listModels')).models.every((m) => m.state === 'ready'),
+      20_000,
+      'the speech models',
+    )
+    // the 1:1's agenda, planned the day before: five items, a private note on Ana
+    const created = await daemon.client.call('createAgenda', {
+      body: {
+        eventUid: 'ana@x',
+        start: iso(at(14)),
+        goals: ['Agree a date for the lead-role review'],
+        items: [
+          { text: 'Promo timeline', kind: 'must-cover' },
+          { text: 'How is onboarding going' },
+          { text: 'Next review date', kind: 'decision' },
+          { text: 'Conference budget', kind: 'must-cover' },
+          { text: 'Parking lot' },
+        ],
+      },
+    })
+    const agendaId = created.agenda.id
+    await daemon.client.call('addContextCard', {
+      params: { id: agendaId },
+      body: { title: 'My notes on Ana', body: 'Ana wants the lead role; nervous about the timeline.' },
+    })
+    const view = () =>
+      daemon.client.call('getAgenda', { params: { id: agendaId }, query: { includePrivate: true } })
+    const ids = Object.fromEntries((await view()).items.map((i) => [i.text, i.id]))
+
+    markOnboarded(
+      display,
+      models.map((m) => m.id),
+    )
+    const open = async (t: number) => {
+      app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl, ...WINDOW_ENV } })
+      await app.window.clock.setFixedTime(new Date(t))
+      await app.window.reload()
+      await app.window.waitForLoadState('domcontentloaded')
+      await app.window.emulateMedia({ reducedMotion: 'reduce' })
+      await app.window.setViewportSize({ width: 1280, height: HEIGHT })
+    }
+    await open(at(13, 52))
+
+    // ---- home at 13:52: the day, the 1:1 expanded
+    const next = w().getByRole('region', { name: 'Next: 1:1 with Ana' })
+    await next.waitFor({ timeout: 20_000 })
+    await w()
+      .getByRole('heading', { name: /^Yesterday/ })
+      .waitFor()
+    await atlas.shoot(w(), 'day__home__next-meeting', {
+      expect: [
+        next.getByRole('button', { name: 'Join and record 1:1 with Ana' }),
+        next.getByText('Agenda ready'),
+      ],
+    })
+
+    // ---- search and ask: moments, then a cited answer
+    const box2 = w().getByRole('searchbox', { name: 'Search or ask' })
+    await box2.fill('retry budget')
+    const moments = w().getByRole('list', { name: 'Moments' })
+    await moments
+      .getByRole('button', { name: /Platform standup/ })
+      .first()
+      .waitFor({ timeout: 10_000 })
+    await atlas.shoot(w(), 'day__search__moments', { expect: moments })
+    api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
+    await box2.fill('What did we decide about the retry budget?')
+    await box2.press('Enter')
+    const answer = w().getByRole('region', { name: 'Answer' })
+    await answer.getByRole('button', { name: /^Citation 1: / }).waitFor({ timeout: 20_000 })
+    await atlas.shoot(w(), 'day__search__answer', { expect: answer })
+    await box2.fill('')
+    await next.waitFor()
+
+    // ---- prep
+    await next.getByRole('button', { name: 'Open prep for 1:1 with Ana' }).click()
+    const title = w().getByRole('heading', { level: 1, name: '1:1 with Ana' })
+    await title.waitFor({ timeout: 10_000 })
+    await atlas.shoot(w(), 'day__prep__agenda', {
+      expect: [
+        w().getByRole('grid', { name: 'Agenda items' }),
+        w().getByRole('button', { name: 'Join and record' }),
+      ],
+    })
+
+    // ---- live: joined at 14:00 (through the daemon: nothing opens a browser here); the page moves on
+    const joined = await daemon.client.call('joinMeeting', {
+      params: { id: (await view()).agenda.meeting!.meetingId! },
+      body: {},
+    })
+    const sessionId = joined.session.id
+    await w().getByRole('timer').waitFor({ timeout: 15_000 })
+    await poll(
+      async () =>
+        (await daemon.client.call('getTranscript', { params: { id: sessionId }, query: {} })).segments.filter(
+          (s) => s.quality === 'final',
+        ).length >= SCRIPT.utterances.length,
+      60_000,
+      'the 1:1 to be said',
+    )
+    const segs = (await daemon.client.call('getTranscript', { params: { id: sessionId }, query: {} }))
+      .segments
+    const seg = (text: RegExp) => segs.find((s) => text.test(s.text))!
+    const grant = await daemon.client.call('createAgentLease', {
+      params: { id: sessionId },
+      body: { name: 'claude', mode: 'suggest' },
+    })
+    const claude = createClient({ baseUrl: daemon.baseUrl, headers: { [LEASE_HEADER]: grant.token } })
+    const status = (text: string, body: Record<string, unknown>) =>
+      daemon.client.call('setAgendaItemStatus', {
+        params: { id: agendaId, itemId: ids[text]! },
+        body: body as never,
+      })
+    await status('Promo timeline', {
+      status: 'covered',
+      evidence: [
+        {
+          segmentId: seg(/March is realistic/).id,
+          quote: 'March is realistic if the scope is agreed by December.',
+          confidence: 0.9,
+        },
+      ],
+    })
+    await status('How is onboarding going', {
+      status: 'covered',
+      evidence: [
+        { segmentId: seg(/buddy setup works/).id, quote: 'The buddy setup works.', confidence: 0.9 },
+      ],
+    })
+    await status('Next review date', {
+      status: 'in-progress',
+      evidence: [
+        {
+          segmentId: seg(/28th could work/).id,
+          quote: 'The 28th could work, if Marta can join.',
+          confidence: 0.8,
+        },
+      ],
+    })
+    await claude.call('addSuggestion', {
+      params: { id: agendaId },
+      body: {
+        kind: 'next-point',
+        text: 'Can we lock the 28th? I’ll invite Marta.',
+        itemId: ids['Next review date'],
+        source: 'agent:claude',
+        ttlSec: 86_400,
+      } as never,
+    })
+    await daemon.client.call('putNotes', {
+      params: { id: sessionId },
+      body: {
+        markdown:
+          '## Promo timeline\n\n- Wants the lead role. Wants a date, not “soon”\n- Rubric gap: stakeholder updates. Pair her with Marta on the Q4 review\n\n## Onboarding\n\n- Buddy setup works. Keep it for the next two hires\n\n## Review\n\n- 28th? check Marta\n',
+        baseVersion: 0,
+      },
+    })
+    const started = Date.parse(
+      (await daemon.client.call('getSession', { params: { id: sessionId }, query: {} })).startedAt!,
+    )
+    await fix(started + (16 * 60 + 4) * 1000)
+    const suggestion = w().getByRole('region', { name: /^Suggestion: / })
+    await suggestion.getByRole('button', { name: 'Accept' }).waitFor({ timeout: 15_000 })
+    await w().getByText('28th? check Marta').waitFor({ timeout: 10_000 })
+    await w()
+      .getByRole('button', { name: /Your Claude · can suggest/ })
+      .waitFor({ timeout: 10_000 })
+    await atlas.shoot(w(), 'day__live__suggestion', {
+      expect: [suggestion, w().getByRole('timer', { name: 'Recording, 16:04' })],
+    })
+    // Ask (Ctrl+K) over the notepad, never a screen of its own
+    await w().keyboard.press('Control+k')
+    const ask = w().getByRole('region', { name: 'Ask about this meeting' })
+    await ask.getByRole('textbox').waitFor()
+    await atlas.shoot(w(), 'day__live__ask', { expect: ask, keepFocus: true })
+    await w().keyboard.press('Escape')
+    await ask.waitFor({ state: 'detached' })
+    // paused looks plainly different: no red, "Paused"
+    await w().getByRole('button', { name: 'Pause' }).click()
+    await w()
+      .getByRole('timer', { name: /^Paused/ })
+      .waitFor({ timeout: 10_000 })
+    await atlas.shoot(w(), 'day__live__paused', { expect: w().getByRole('button', { name: 'Resume' }) })
+    await w().getByRole('button', { name: 'Resume' }).click()
+    await w()
+      .getByRole('timer', { name: /^Recording/ })
+      .waitFor({ timeout: 10_000 })
+
+    // ---- the outcome: the review decided, actions, the conference budget carried over
+    await daemon.client.call('updateAgendaItem', {
+      params: { id: agendaId, itemId: ids['Next review date']! },
+      body: {
+        outcome:
+          'Review on 28 October.\nDecisions:\n- Review on 28 October, Marta joins\nActions:\n- me: Invite Marta to the review',
+      },
+    })
+    await status('Next review date', { status: 'covered' })
+    await daemon.client.call('updateAgendaItem', {
+      params: { id: agendaId, itemId: ids['How is onboarding going']! },
+      body: {
+        outcome: 'Buddy setup works.\nDecisions:\n- Buddy setup continues for the next two hires',
+      },
+    })
+    await daemon.client.call('updateAgendaItem', {
+      params: { id: agendaId, itemId: ids['Conference budget']! },
+      body: { outcome: 'Actions:\n- Ana: Send conference options' },
+    })
+    await w().getByRole('button', { name: 'Stop' }).click()
+    await w().getByRole('region', { name: 'Outcome' }).waitFor({ timeout: 20_000 })
+    await daemon.client.call('putNotes', {
+      params: { id: sessionId },
+      body: {
+        markdown:
+          '## Promo timeline\n\n- Ana wants the lead role and a date, not “soon”.\n- The rubric gap is stakeholder updates; she pairs with Marta on the Q4 review.\n\n## Onboarding\n\n- The buddy setup works; keep it for the next two hires.\n\n## Action items\n\n- [ ] Invite Marta to the review — owner: me — due: Friday\n- [ ] Send conference options — owner: Ana — due: next 1:1\n',
+        baseVersion: (await daemon.client.call('getNotes', { params: { id: sessionId }, query: {} })).note
+          .version,
+      },
+    })
+    // the recording took a couple of real minutes: dated and timed like the story (14:00–14:30), then
+    // the daemon and the window started again on the same data
+    expect(app.problems()).toEqual([])
+    await app.close()
+    await daemon.stop()
+    const again = Store.open(join(dataDir, 'gnomeola.db'))
+    again.updateSession(sessionId, (s) => ({
+      ...s,
+      createdAt: iso(at(14)),
+      startedAt: iso(at(14)),
+      endedAt: iso(at(14, 30)),
+      durationMs: 30 * 60_000,
+    }))
+    again.close()
+    daemon = await start()
+    await open(at(14, 31))
+    await w().evaluate(`location.hash = '#/sessions/${sessionId}'`)
+    const outcome = w().getByRole('region', { name: 'Outcome' })
+    await outcome.waitFor({ timeout: 20_000 })
+    await outcome.getByText('Invite Marta to the review').waitFor({ timeout: 10_000 })
+    await atlas.shoot(w(), 'day__outcome__outcome', {
+      expect: [
+        outcome.getByText('Review on 28 October, Marta joins'),
+        w().getByRole('button', { name: 'Share summary' }),
+      ],
+    })
+    // the evidence: the transcript opens beside the page at the cited line
+    await outcome.getByRole('button', { name: /^Show in transcript: “The 28th could work/ }).click()
+    const transcriptBox = transcriptList(w())
+    await transcriptBox.locator('[role=option][aria-selected=true]').waitFor({ timeout: 10_000 })
+    await atlas.shoot(w(), 'day__outcome__transcript-cited', {
+      expect: transcriptBox.locator('[role=option][aria-selected=true]'),
+    })
+    await w().getByRole('button', { name: 'Close the transcript' }).click()
+    await w().getByRole('button', { name: 'Share summary' }).click()
+    const share = w().getByRole('dialog', { name: 'Share Summary' })
+    await share.getByRole('button', { name: 'Copy Summary' }).waitFor()
+    await atlas.shoot(w(), 'day__outcome__share-summary', { expect: share })
+    await w().keyboard.press('Escape')
+    await share.waitFor({ state: 'detached' })
+    expect(app.problems()).toEqual([])
+  })
+})
+
 describe('atlas: first run (real daemon, models not downloaded, calendar off)', () => {
   let daemon: DaemonHandle
   let app: DesktopApp

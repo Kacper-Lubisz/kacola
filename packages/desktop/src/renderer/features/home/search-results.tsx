@@ -3,12 +3,12 @@ import { useNow } from '@gnomeola/ui-core/hooks'
 import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { useServices } from '../../data/services.tsx'
 import { Button, Card, Icon, Kbd, Spinner } from '../../design/primitives/index.ts'
 import { Turn, type useAsk } from '../ask/ask-answer.tsx'
 import { atLine } from '../meeting/search-params.ts'
-import { looksLikeQuestion, type Moment, toMoments } from './search.ts'
+import { looksLikeQuestion, type Moment, searchTerms, toMoments } from './search.ts'
 
 // Home's results, in place of the day while there is a query: an answer when the user asked (Enter, or
 // the Ask row), then the moments — meeting · day · time · speaker · the line — each opening the meeting
@@ -29,7 +29,7 @@ export function SearchResults({ query, ask }: { query: string; ask: ReturnType<t
   const { queries } = useServices()
   const navigate = useNavigate()
   const now = useNow(60_000).getTime()
-  const q = useSettled(query.trim())
+  const q = useSettled(searchTerms(query))
   const search = useQuery({ ...queries.search(q), enabled: q !== '' })
   const sessions = useQuery({ ...queries.sessions(), enabled: false }).data?.ordered ?? []
   const moments = toMoments(q, sessions, search.data?.hits ?? [], now)
@@ -135,15 +135,21 @@ function MomentRow({ m, onOpen }: { m: Moment; onOpen: () => void }) {
       }
       className="flex w-full cursor-default flex-col gap-1 rounded-md px-3 py-2.5 text-left outline-none hover:bg-bg-hover focus-visible:outline-(length:--focus-ring-width) focus-visible:outline-solid focus-visible:outline-(--focus-ring-color)"
     >
-      <span className="flex flex-wrap items-center gap-x-2 type-caption text-text-secondary">
+      <span className="flex flex-wrap items-center gap-x-1.5 type-caption text-text-secondary">
         <span className="font-semibold text-text-primary">{m.at ? m.title : _('Meeting')}</span>
-        {m.day ? <span>· {m.day}</span> : null}
-        {m.at ? <span className="font-mono text-[12px] tabular-nums">· {m.at}</span> : null}
-        {m.speaker ? <span>· {m.speaker}</span> : null}
+        {m.day ? <Sep>{m.day}</Sep> : null}
+        {m.at ? (
+          <Sep>
+            <span className="font-mono text-[12px] tabular-nums">{m.at}</span>
+          </Sep>
+        ) : null}
+        {m.speaker ? <Sep>{m.speaker}</Sep> : null}
         {m.private ? (
-          <span className="inline-flex items-center gap-1">
-            · <Icon name="lock" size={12} /> {_('Private')}
-          </span>
+          <Sep>
+            <span className="inline-flex items-center gap-1">
+              <Icon name="lock" size={12} /> {_('Private')}
+            </span>
+          </Sep>
         ) : null}
       </span>
       <span className="type-body break-words text-text-primary">
@@ -165,5 +171,14 @@ function MomentRow({ m, onOpen }: { m: Moment; onOpen: () => void }) {
         {m.at ? '”' : ''}
       </span>
     </button>
+  )
+}
+
+function Sep({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <span aria-hidden="true">·</span>
+      {children}
+    </>
   )
 }

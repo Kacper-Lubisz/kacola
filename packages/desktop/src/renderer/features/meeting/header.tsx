@@ -167,13 +167,13 @@ export function RecordingControls({ session }: { session: Session }) {
   return (
     <>
       {recorder.state === 'recording' ? (
-        <Button icon="pause" onPress={recorder.pause}>
-          {_('Pause')}
+        <Button icon="pause" onPress={recorder.pause} aria-label={_('Pause')}>
+          <span className="max-sm:hidden">{_('Pause')}</span>
         </Button>
       ) : null}
       {recorder.state === 'paused' ? (
-        <Button icon="play" onPress={recorder.resume}>
-          {_('Resume')}
+        <Button icon="play" onPress={recorder.resume} aria-label={_('Resume')}>
+          <span className="max-sm:hidden">{_('Resume')}</span>
         </Button>
       ) : null}
       <Button
@@ -181,9 +181,10 @@ export function RecordingControls({ session }: { session: Session }) {
         icon="stop"
         onPress={recorder.stop}
         isDisabled={recorder.state === 'stopping'}
+        aria-label={recorder.state === 'stopping' ? _('Stopping…') : _('Stop')}
         aria-description={_('Stop recording this meeting')}
       >
-        {recorder.state === 'stopping' ? _('Stopping…') : _('Stop')}
+        <span className="max-sm:hidden">{recorder.state === 'stopping' ? _('Stopping…') : _('Stop')}</span>
       </Button>
     </>
   )

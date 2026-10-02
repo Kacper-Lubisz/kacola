@@ -371,11 +371,11 @@ function NextMeeting({ entry: e, now }: { entry: Extract<DayEntry, { kind: 'meet
           <Button
             variant="record"
             pill
-            icon="record"
             isDisabled={join.busy}
             onPress={() => void join.join(m.id)}
             aria-label={fmt(_('Join and record {title}'), { title: m.title })}
           >
+            <span aria-hidden="true" className="size-2.5 rounded-full bg-text-on-accent" />
             {_('Join and record')}
           </Button>
         </div>
@@ -440,9 +440,9 @@ function EarlierSection({ day }: { day: EarlierDay }) {
     <section aria-labelledby={id} className="flex flex-col gap-2">
       <h2 id={id} className="m-0 flex items-baseline gap-3 type-title2 text-text-primary">
         {day.label}
-        {day.label !== day.date ? (
-          <span className="type-callout font-normal text-text-secondary">{day.date}</span>
-        ) : null}
+        <span className="type-callout font-normal text-text-secondary">
+          {day.date.startsWith(`${day.label} `) ? day.date.slice(day.label.length + 1) : day.date}
+        </span>
       </h2>
       <ol aria-label={day.label} className="relative m-0 flex list-none flex-col p-0">
         <Rail />

@@ -262,10 +262,10 @@ function PrepPage({ view }: { view: AgendaView }) {
                 <Button
                   variant="record"
                   pill
-                  icon="record"
                   isDisabled={join.busy}
                   onPress={() => void join.join(m.meetingId!)}
                 >
+                  <span aria-hidden="true" className="size-2.5 rounded-full bg-text-on-accent" />
                   {_('Join and record')}
                 </Button>
                 <span className="inline-flex items-center gap-1 type-caption text-text-secondary">

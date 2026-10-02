@@ -63,7 +63,9 @@ export function SuggestionCard({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <p
           className={`m-0 min-w-0 flex-1 break-words text-text-primary ${
-            slot.kind === 'say-next' ? 'font-editorial text-[19px] leading-7 italic' : 'type-headline'
+            slot.kind === 'say-next'
+              ? 'font-editorial text-[17px] leading-6 italic sm:text-[19px] sm:leading-7'
+              : 'type-headline'
           }`}
         >
           {slot.kind === 'say-next' ? `“${text}”` : text}

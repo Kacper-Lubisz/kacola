@@ -1,8 +1,18 @@
 import { defaultKeymap, history, historyKeymap, insertNewline } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
-import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
-import { EditorState, Prec } from '@codemirror/state'
-import { placeholder as cmPlaceholder, drawSelection, EditorView, keymap } from '@codemirror/view'
+import { HighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirror/language'
+import { EditorState, Prec, RangeSetBuilder } from '@codemirror/state'
+import {
+  placeholder as cmPlaceholder,
+  Decoration,
+  type DecorationSet,
+  drawSelection,
+  EditorView,
+  keymap,
+  ViewPlugin,
+  type ViewUpdate,
+  WidgetType,
+} from '@codemirror/view'
 import { tags as t } from '@lezer/highlight'
 import { useEffect, useRef } from 'react'
 
@@ -13,6 +23,8 @@ import { useEffect, useRef } from 'react'
 //
 // It is a plain text editor first: Enter inserts a bare newline (no list continuation, no auto-indent,
 // no auto-closed brackets), so what the user types is exactly what is saved — the notes' first rule.
+// What it shows is calmer than what it saves: a heading's `##` and a list's `-` are drawn as nothing and
+// as a bullet on every line but the one being edited (the text itself is untouched).
 
 const theme = EditorView.theme({
   '&': {
@@ -39,6 +51,7 @@ const theme = EditorView.theme({
   '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection':
     { backgroundColor: 'color-mix(in srgb, var(--k-color-accent-record) 22%, transparent)' },
   '.cm-placeholder': { color: 'var(--k-color-text-secondary)', fontStyle: 'normal' },
+  '.cm-bullet': { color: 'var(--k-color-text-secondary)' },
 })
 
 const heading = (size: string, lh: string, weight: string, tracking: string) => ({
@@ -83,6 +96,57 @@ const highlight = HighlightStyle.define([
   // list bullets, heading #s, emphasis marks, task boxes: present but quiet
   { tag: [t.processingInstruction, t.meta, t.contentSeparator], color: 'var(--k-color-text-secondary)' },
 ])
+
+class Bullet extends WidgetType {
+  toDOM() {
+    const s = document.createElement('span')
+    s.className = 'cm-bullet'
+    s.textContent = '•'
+    return s
+  }
+  override eq() {
+    return true
+  }
+}
+
+function quietMarks(view: EditorView): DecorationSet {
+  const b = new RangeSetBuilder<Decoration>()
+  const { state } = view
+  // the line being edited shows its marks; an editor without focus is being read, not edited
+  const editing = new Set(
+    view.hasFocus ? state.selection.ranges.map((r) => state.doc.lineAt(r.head).number) : [],
+  )
+  for (const { from, to } of view.visibleRanges)
+    syntaxTree(state).iterate({
+      from,
+      to,
+      enter: (n) => {
+        const line = state.doc.lineAt(n.from)
+        if (editing.has(line.number)) return
+        if (n.name === 'HeaderMark' && n.from === line.from) {
+          // the marks and the space after them
+          const end = Math.min(line.to, n.to + (state.sliceDoc(n.to, n.to + 1) === ' ' ? 1 : 0))
+          if (end > n.from) b.add(n.from, end, Decoration.replace({}))
+        } else if (n.name === 'ListMark' && /^[-*+]$/.test(state.sliceDoc(n.from, n.to)))
+          b.add(n.from, n.to, Decoration.replace({ widget: new Bullet() }))
+      },
+    })
+  return b.finish()
+}
+
+const quiet = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet
+    constructor(view: EditorView) {
+      this.decorations = quietMarks(view)
+    }
+    update(u: ViewUpdate) {
+      if (u.docChanged || u.viewportChanged || u.selectionSet || u.focusChanged)
+        this.decorations = quietMarks(u.view)
+    }
+  },
+  { decorations: (v) => v.decorations },
+)
 
 const reducedMotion = () =>
   typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -140,6 +204,7 @@ export function NotesEditor({
           keymap.of([...defaultKeymap, ...historyKeymap]),
           markdown({ addKeymap: false }),
           syntaxHighlighting(highlight),
+          quiet,
           theme,
           EditorView.theme({
             '.cm-content': {

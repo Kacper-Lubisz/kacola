@@ -38,18 +38,26 @@ export function HomePage() {
   // Back from a meeting returns to home as it was left (its query)
   useEffect(() => useHomeQuery.getState().set(q), [q])
   const setQuery = (v: string) => void navigate({ to: '/', search: v ? { q: v } : {}, replace: true })
-  const dark = typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark'
   return (
     <div className="flex h-full min-h-0 flex-col">
       <HeaderBar
         start={
-          <img
-            src={dark ? wordmarkDark : wordmarkLight}
-            alt="kacola"
-            height={20}
-            className="ml-2 h-5 w-auto select-none"
-            draggable={false}
-          />
+          <>
+            <img
+              src={wordmarkLight}
+              alt="kacola"
+              height={20}
+              className="ml-2 h-5 w-auto select-none [[data-theme=dark]_&]:hidden"
+              draggable={false}
+            />
+            <img
+              src={wordmarkDark}
+              alt=""
+              height={20}
+              className="ml-2 hidden h-5 w-auto select-none [[data-theme=dark]_&]:block"
+              draggable={false}
+            />
+          </>
         }
         end={
           <>
@@ -59,11 +67,11 @@ export function HomePage() {
             {recorder.state === 'idle' || recorder.state === 'starting' ? (
               <Button
                 size="sm"
-                icon="record"
                 isDisabled={recorder.state === 'starting'}
                 onPress={recorder.record}
                 aria-description={_('Start recording a call that is not in your calendar')}
               >
+                <span aria-hidden="true" className="size-2 rounded-full bg-accent-record" />
                 {recorder.state === 'starting' ? _('Starting…') : _('Record now')}
               </Button>
             ) : null}

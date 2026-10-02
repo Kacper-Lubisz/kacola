@@ -15,7 +15,13 @@ import {
   durationLabel,
   readiness,
 } from '../src/renderer/features/home/day.ts'
-import { looksLikeQuestion, markText, snippetParts, toMoments } from '../src/renderer/features/home/search.ts'
+import {
+  looksLikeQuestion,
+  markText,
+  searchTerms,
+  snippetParts,
+  toMoments,
+} from '../src/renderer/features/home/search.ts'
 import {
   captureWarning,
   meetingPhase,
@@ -382,12 +388,12 @@ describe('home: the day', () => {
 
 describe('home: search moments', () => {
   it('splits the daemon’s [marks] and marks a plain title', () => {
-    expect(snippetParts('…the [retry] [budget] is three')).toEqual([
+    // marks only a space apart read as one
+    expect(snippetParts('…the [retry] [budget] is [three]')).toEqual([
       { text: '…the ', mark: false },
-      { text: 'retry', mark: true },
-      { text: ' ', mark: false },
-      { text: 'budget', mark: true },
-      { text: ' is three', mark: false },
+      { text: 'retry budget', mark: true },
+      { text: ' is ', mark: false },
+      { text: 'three', mark: true },
     ])
     expect(snippetParts('no marks')).toEqual([{ text: 'no marks', mark: false }])
     expect(markText('Platform standup', 'STAND')).toEqual([
@@ -449,5 +455,9 @@ describe('home: search moments', () => {
     expect(looksLikeQuestion('what did we decide about retries')).toBe(true)
     expect(looksLikeQuestion('retry budget?')).toBe(true)
     expect(looksLikeQuestion('retry budget')).toBe(false)
+    // a question searches for its content words; anything else as typed
+    expect(searchTerms('What did we decide about the retry budget?')).toBe('retry budget')
+    expect(searchTerms('  retry budget ')).toBe('retry budget')
+    expect(searchTerms('who?')).toBe('who?')
   })
 })

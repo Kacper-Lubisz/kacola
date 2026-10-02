@@ -18,7 +18,7 @@ import { TranscriptPanel } from './transcript-panel.tsx'
 // bar over the bottom of the notepad), the transcript (Ctrl+T, a side panel), private context (Show).
 
 /** The strip under the notepad that the suggestion card appears in; always this tall. */
-const SLOT_HEIGHT = 'h-[132px]'
+const SLOT_HEIGHT = 'min-h-[132px]'
 
 export function LiveView({
   session,
@@ -40,7 +40,7 @@ export function LiveView({
     <div className="relative flex min-h-0 flex-1 flex-col md:flex-row">
       <aside
         aria-label={_('Agenda and context')}
-        className="flex max-h-[34vh] shrink-0 flex-col gap-4 overflow-y-auto border-b border-border-subtle p-3 md:max-h-none md:w-[272px] md:border-r md:border-b-0"
+        className="flex max-h-[24vh] shrink-0 flex-col gap-4 overflow-y-auto border-b border-border-subtle p-3 md:max-h-none md:w-[272px] md:border-r md:border-b-0"
       >
         {view ? <LiveChecklist view={view} /> : <NoAgenda session={session} />}
         <span className="flex-1" />
