@@ -178,61 +178,6 @@ export function activeSuggestions(view: AgendaView, now: number): Suggestion[] {
 const OPEN: ReadonlySet<AgendaItemStatus> = new Set(['open', 'in-progress'])
 export const isOpenItem = (i: AgendaItem) => OPEN.has(i.status)
 
-/**
- * The one "Next talking point" card: the newest open `next-point` suggestion (the tracker ranks items and
- * writes a bridge line; a connected agent may post one too); without one, the first open must-cover item,
- * else the first open item. Never an item already in progress (that one is being talked about).
- */
-export type NextPoint =
-  | { kind: 'suggestion'; suggestion: Suggestion; item: AgendaItem | null }
-  | { kind: 'item'; item: AgendaItem }
-
-export function nextTalkingPoint(view: AgendaView, now: number): NextPoint | null {
-  const byId = new Map(view.items.map((i) => [i.id, i]))
-  const sug = activeSuggestions(view, now).find((s) => s.kind === 'next-point')
-  if (sug) {
-    const item = sug.itemId ? (byId.get(sug.itemId) ?? null) : null
-    if (!item || isOpenItem(item)) return { kind: 'suggestion', suggestion: sug, item }
-  }
-  const open = [...view.items].sort(byOrder).filter((i) => i.status === 'open')
-  const pick = open.find((i) => i.kind === 'must-cover') ?? open[0]
-  return pick ? { kind: 'item', item: pick } : null
-}
-
-/** Minutes before the meeting's end at which "Not covered yet" appears. */
-export const NOT_COVERED_LEAD_MIN = 5
-
-/**
- * "Not covered yet": from T-5 min (the calendar end) while the meeting runs, the items still open or in
- * progress — must-cover first, then in agenda order. `null` when it is not time (or there is no end).
- */
-export function notCoveredYet(view: AgendaView, now: number): AgendaItem[] | null {
-  const end = view.agenda.meeting?.end
-  if (!end) return null
-  const endMs = Date.parse(end)
-  if (now < endMs - NOT_COVERED_LEAD_MIN * 60_000) return null
-  return [...view.items]
-    .sort(byOrder)
-    .filter(isOpenItem)
-    .sort((a, b) => Number(b.kind === 'must-cover') - Number(a.kind === 'must-cover'))
-}
-
-/** An agenda is an interview when it asks for information (candidate) or assesses competencies. */
-export function isInterview(view: AgendaView): boolean {
-  return view.items.some((i) => i.kind === 'info-to-get' || i.kind === 'competency')
-}
-
-/** The interview view: what the other side has told (with the answer heard) and what they have not yet. */
-export function interviewSplit(view: AgendaView): { told: AgendaItem[]; notYet: AgendaItem[] } {
-  const asks = [...view.items]
-    .sort(byOrder)
-    .filter((i) => i.kind === 'info-to-get' || i.kind === 'competency')
-  return {
-    told: asks.filter((i) => i.status === 'covered'),
-    notYet: asks.filter((i) => i.status !== 'covered' && i.status !== 'skipped'),
-  }
-}
-
 /** Counts per status, for the header ("3 of 7 covered"). */
 export function statusCounts(items: readonly AgendaItem[]): Record<AgendaItemStatus, number> {
   const c: Record<AgendaItemStatus, number> = { open: 0, 'in-progress': 0, covered: 0, skipped: 0, parked: 0 }
