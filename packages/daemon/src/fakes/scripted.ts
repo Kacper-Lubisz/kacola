@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { newId, type Track, type TrackKind } from '@gnomeola/protocol'
 import type { PipelineSink, PipelineStartOptions, RecordingHandle, SegmentUpsert } from '../interfaces.ts'
@@ -30,6 +30,13 @@ export type ScriptedOptions = {
   partialEveryMs: number
   /** Wall ms before a live segment is re-emitted as final. */
   finalizeAfterMs: number
+  /**
+   * Live scripts (the sandbox's `play`): watch this file while recording. Whatever is written to it after
+   * the recording started is spoken from that moment on (its times offset by the audio time reached),
+   * replacing the lines not yet started. What the file held before the recording started is ignored, so
+   * an old scenario never replays into a new recording.
+   */
+  watchFile?: string
 }
 
 /** Read a script file: `{utterances: [...]}` (a testkit fixture's truth.json has this shape). */
@@ -47,7 +54,10 @@ export class ScriptedRecording implements RecordingHandle {
   readonly tracks: Track[]
   private readonly sink: PipelineSink
   private readonly o: ScriptedOptions
-  private readonly lines: (ScriptLine & { id: string; sent: number; closed: boolean })[]
+  private lines: (ScriptLine & { id: string; sent: number; closed: boolean })[]
+  private readonly kinds: Set<TrackKind>
+  private watchedMtime = -1
+  private lastWatch = 0
   private timer: NodeJS.Timeout | null = null
   private readonly finalizers = new Set<NodeJS.Timeout>()
   private readonly pending = new Map<string, SegmentUpsert>()
@@ -61,9 +71,11 @@ export class ScriptedRecording implements RecordingHandle {
     this.sink = sink
     this.o = o
     const kinds = new Set(opts.tracks.map((t) => t.kind))
+    this.kinds = kinds
     this.lines = o.script.utterances
       .filter((u) => kinds.has(u.track))
       .map((u) => ({ ...u, id: newId('seg'), sent: 0, closed: false }))
+    if (o.watchFile) this.watchedMtime = this.mtime(o.watchFile)
     mkdirSync(opts.sessionDir, { recursive: true })
     this.tracks = opts.tracks.map((t) => {
       const audioPath = join(opts.sessionDir, `${t.kind}.wav`)
@@ -84,8 +96,49 @@ export class ScriptedRecording implements RecordingHandle {
     return l.track === 'mic' ? 'me' : l.speaker && l.speaker !== 'me' ? l.speaker : 'them'
   }
 
+  private mtime(path: string): number {
+    try {
+      return existsSync(path) ? statSync(path).mtimeMs : -2
+    } catch {
+      return -2
+    }
+  }
+
+  /** A live script: a new version of the watched file is spoken from the audio time reached. */
+  private watch(now: number): void {
+    const file = this.o.watchFile
+    if (!file || now - this.lastWatch < 200) return
+    this.lastWatch = now
+    const m = this.mtime(file)
+    if (m === this.watchedMtime) return
+    this.watchedMtime = m
+    if (m < 0) return
+    let script: MeetingScript
+    try {
+      script = loadScript(file)
+    } catch {
+      return // half-written or not a script: wait for the next version
+    }
+    const at = this.audioMs + 300
+    const first = script.utterances[0]?.startMs ?? 0
+    this.lines = [
+      ...this.lines.filter((l) => l.closed || this.audioMs >= l.startMs),
+      ...script.utterances
+        .filter((u) => this.kinds.has(u.track))
+        .map((u) => ({
+          ...u,
+          startMs: at + u.startMs - first,
+          endMs: at + u.endMs - first,
+          id: newId('seg'),
+          sent: 0,
+          closed: false,
+        })),
+    ]
+  }
+
   private tick(): void {
     const now = Date.now()
+    this.watch(now)
     if (!this.paused && !this.stopped) this.audioMs += (now - this.lastTick) * this.o.speed
     this.lastTick = now
     if (this.paused || this.stopped) return

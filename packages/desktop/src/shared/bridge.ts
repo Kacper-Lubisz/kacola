@@ -86,6 +86,8 @@ export type AppInfo = {
   daemonUrl: string
   /** Window buttons, from org.gnome.desktop.wm.preferences button-layout (e.g. "appmenu:close"). */
   buttonLayout: string
+  /** A separate profile of the window (`sandbox`), shown as a badge; absent for the everyday app. */
+  profile?: string | null
 }
 
 export type UiState = {

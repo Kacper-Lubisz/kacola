@@ -29,7 +29,8 @@
     "test:copilot-eval": "node packages/e2e/scripts/copilot-agent-eval.ts",
     "release-gate": "bash scripts/release-gate.sh",
     "atlas": "vitest run --project e2e --no-file-parallelism packages/e2e/test/atlas.e2e.test.ts packages/e2e/test/atlas-shell.e2e.test.ts packages/vercel/test/atlas-web.e2e.test.ts; code=$?; node scripts/build-atlas.ts && exit $code",
-    "atlas:build": "node scripts/build-atlas.ts"
+    "atlas:build": "node scripts/build-atlas.ts",
+    "sandbox": "node scripts/sandbox.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",

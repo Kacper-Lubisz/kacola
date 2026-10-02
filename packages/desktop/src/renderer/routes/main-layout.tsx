@@ -24,7 +24,30 @@ export function MainLayout() {
   return (
     <DialogsProvider>
       <Window />
+      <ProfileBadge />
     </DialogsProvider>
+  )
+}
+
+/**
+ * A separate profile of the window (`pnpm sandbox start`) says so in a corner, all the time, so it is
+ * never mistaken for the everyday window (the title says it too: `kacola · sandbox`).
+ */
+function ProfileBadge() {
+  const { appInfo } = useServices()
+  useEffect(() => {
+    if (appInfo.profile) document.title = `kacola · ${appInfo.profile}`
+  }, [appInfo.profile])
+  if (!appInfo.profile) return null
+  return (
+    <div
+      role="status"
+      aria-label={fmt(_('This is the {profile} window'), { profile: appInfo.profile })}
+      data-profile-badge={appInfo.profile}
+      className="pointer-events-none fixed bottom-3 left-3 z-50 rounded-full bg-accent-record px-2.5 py-0.5 type-caption font-semibold text-text-on-accent capitalize shadow-sm"
+    >
+      {appInfo.profile}
+    </div>
   )
 }
 

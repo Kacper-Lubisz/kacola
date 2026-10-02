@@ -93,6 +93,16 @@ protocol.registerSchemesAsPrivileged([
 
 // ---- single instance --------------------------------------------------------------------------------
 
+const config = readDesktopConfig(process.env, process.argv, {
+  resourcesPath: app.isPackaged ? process.resourcesPath : undefined,
+  appDir: HERE,
+})
+// A separate profile (the sandbox) has its own user-data dir, so its own single-instance lock: it starts
+// beside the everyday window instead of handing its arguments to it.
+if (config.profile)
+  app.setPath('userData', config.userDataDir ?? `${app.getPath('userData')}-${config.profile}`)
+const windowTitle = config.profile ? `kacola · ${config.profile}` : 'kacola'
+
 if (!app.requestSingleInstanceLock()) {
   // another instance owns the window and the daemon; it was told about us via 'second-instance'
   app.exit(0)
@@ -105,11 +115,6 @@ let buttonLayout = 'appmenu:close'
 const captureWindows = new Set<number>()
 /** Main's own garbage, collected after start-up and window bursts (memory.ts). */
 const idleGc = new IdleCollector({ settleMs: 10_000, periodMs: 5 * 60_000 })
-
-const config = readDesktopConfig(process.env, process.argv, {
-  resourcesPath: app.isPackaged ? process.resourcesPath : undefined,
-  appDir: HERE,
-})
 
 const cli = cliEntry(process.env, {
   resourcesPath: app.isPackaged ? process.resourcesPath : undefined,
@@ -440,6 +445,7 @@ function wireIpc(): void {
       platform: process.platform,
       daemonUrl: config.baseUrl,
       buttonLayout,
+      profile: config.profile,
     }),
   )
   handle(IPC.theme, () => theme)
@@ -576,8 +582,11 @@ function createWindow(): BrowserWindow {
       platform: process.platform,
       dark: theme.scheme === 'dark',
       icon: appIcon(),
+      title: windowTitle,
     }),
   )
+  // a profile's title says which window it is, whatever the page calls itself
+  if (config.profile) w.on('page-title-updated', (e) => e.preventDefault())
   w.once('ready-to-show', () => {
     process.stdout.write(`${JSON.stringify({ event: 'window-ready' })}\n`)
     w.show()
@@ -669,13 +678,16 @@ void app.whenReady().then(async () => {
   })
   if (process.platform === 'darwin') createTray()
   void supervisor.start()
-  const reg = schemeRegistration({
-    packaged: app.isPackaged,
-    platform: process.platform,
-    env: process.env,
-    execPath: process.execPath,
-    argv: process.argv,
-  })
+  // a separate profile never takes the kacola:// links from the everyday window
+  const reg = config.profile
+    ? null
+    : schemeRegistration({
+        packaged: app.isPackaged,
+        platform: process.platform,
+        env: process.env,
+        execPath: process.execPath,
+        argv: process.argv,
+      })
   if (reg) {
     const ok = reg.path
       ? app.setAsDefaultProtocolClient(reg.scheme, reg.path, reg.args ?? [])

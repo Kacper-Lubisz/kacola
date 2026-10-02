@@ -19,6 +19,14 @@ export type DesktopConfig = {
   /** Extra args for a spawned daemon (tests pass --data-dir, fakes…). */
   daemonArgs: string[]
   uiStatePath: string
+  /**
+   * A separate profile of the window (GNOMEOLA_PROFILE, e.g. `sandbox` from `pnpm sandbox start`): its own
+   * Electron user-data dir — so its own single-instance lock, and it never meets the everyday window —
+   * no kacola:// registration, and a title and badge that say which window it is. Null: the everyday app.
+   */
+  profile: string | null
+  /** The profile's user-data dir: GNOMEOLA_USER_DATA_DIR, else null (main derives `<userData>-<profile>`). */
+  userDataDir: string | null
 }
 
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '::1', '[::1]'])
@@ -63,6 +71,15 @@ export function daemonEntry(
   return candidates.find((p) => existsSync(p)) ?? null
 }
 
+/** GNOMEOLA_PROFILE: a short lower-case name, or null. Anything else is refused (it names a directory). */
+export function profileFrom(env: Record<string, string | undefined>): string | null {
+  const p = (env.GNOMEOLA_PROFILE ?? '').trim()
+  if (!p) return null
+  if (!/^[a-z0-9][a-z0-9-]{0,31}$/.test(p))
+    throw new Error(`GNOMEOLA_PROFILE must be a short lower-case name (got ${JSON.stringify(p)})`)
+  return p
+}
+
 export function readDesktopConfig(
   env: Record<string, string | undefined>,
   argv: readonly string[],
@@ -91,5 +108,7 @@ export function readDesktopConfig(
     daemonEntry: daemonEntry(env, o),
     daemonArgs,
     uiStatePath: uiStatePath(env),
+    profile: profileFrom(env),
+    userDataDir: (env.GNOMEOLA_USER_DATA_DIR ?? '').trim() || null,
   }
 }
