@@ -91,7 +91,7 @@ export function HomePage() {
               )}
               action={
                 <Button size="sm" onPress={() => dialogs.open('onboarding')}>
-                  {_('Set Up')}
+                  {_('Set up')}
                 </Button>
               }
             />

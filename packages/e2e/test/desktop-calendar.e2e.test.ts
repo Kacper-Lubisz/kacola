@@ -161,7 +161,7 @@ describe('desktop: calendar meetings and the calendar-based template suggestion'
       reason: 'keyword',
       matched: { keyword: 'interview', source: 'calendar' },
     })
-    await w().getByRole('button', { name: 'Choose a Template' }).click()
+    await w().getByRole('button', { name: 'Choose a template' }).click()
     await w()
       .getByRole('menuitem', { name: /Enhance as Interview \(suggested\)/ })
       .waitFor({ timeout: 5000 })

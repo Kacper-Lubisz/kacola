@@ -50,19 +50,19 @@ msgid "Record"
 msgstr ""
 
 #: src/renderer/design/primitives/record-button.tsx:63
-#: src/renderer/features/home/day-view.tsx:506
+#: src/renderer/features/home/day-view.tsx:516
 #: src/renderer/features/meeting/header.tsx:104
 msgid "Recording, {time}"
 msgstr ""
 
 #: src/renderer/design/primitives/record-button.tsx:63
-#: src/renderer/features/home/day-view.tsx:506
+#: src/renderer/features/home/day-view.tsx:516
 #: src/renderer/features/meeting/header.tsx:104
 msgid "Paused, {time}"
 msgstr ""
 
 #: src/renderer/design/primitives/record-button.tsx:73
-#: src/renderer/features/home/day-view.tsx:514
+#: src/renderer/features/home/day-view.tsx:524
 #: src/renderer/features/meeting/header.tsx:118 ../ui-core/src/format.ts:62
 msgid "Paused"
 msgstr ""
@@ -89,7 +89,7 @@ msgstr ""
 
 #: src/renderer/design/primitives/record-button.tsx:84
 #: src/renderer/design/primitives/record-button.tsx:89
-#: src/renderer/features/home/day-view.tsx:598
+#: src/renderer/features/home/day-view.tsx:608
 #: src/renderer/features/meeting/header.tsx:149
 #: src/renderer/features/meeting/header.tsx:152
 msgid "Stopping…"
@@ -97,7 +97,7 @@ msgstr ""
 
 #: src/renderer/design/primitives/record-button.tsx:84
 #: src/renderer/design/primitives/record-button.tsx:89
-#: src/renderer/features/home/day-view.tsx:598
+#: src/renderer/features/home/day-view.tsx:608
 #: src/renderer/features/home/search-results.tsx:73
 #: src/renderer/features/meeting/ask-bar.tsx:110
 #: src/renderer/features/meeting/header.tsx:149
@@ -354,8 +354,8 @@ msgid "Items"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-editor.tsx:171
-#: src/renderer/features/home/day-view.tsx:466
-#: src/renderer/features/home/day-view.tsx:576
+#: src/renderer/features/home/day-view.tsx:476
+#: src/renderer/features/home/day-view.tsx:586
 msgid "{n} item"
 msgid_plural "{n} items"
 msgstr[0] ""
@@ -443,11 +443,11 @@ msgid "More"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-editor.tsx:341
-msgid "Move Up"
+msgid "Move up"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-editor.tsx:348
-msgid "Move Down"
+msgid "Move down"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-editor.tsx:372
@@ -608,7 +608,7 @@ msgid "Shared"
 msgstr ""
 
 #: src/renderer/features/agendas/context-cards.tsx:62
-#: src/renderer/features/home/day-view.tsx:292
+#: src/renderer/features/home/day-view.tsx:302
 #: src/renderer/features/home/search-results.tsx:153
 #: src/renderer/features/meeting/meeting-page.tsx:160
 #: src/renderer/features/meeting/meeting-page.tsx:267
@@ -1336,16 +1336,16 @@ msgstr ""
 
 #: src/renderer/features/ask/ask-answer.tsx:109
 #: src/renderer/features/meeting/notepad.tsx:142
-msgid "Set Up a Provider"
+msgid "Set up a provider"
 msgstr ""
 
 #: src/renderer/features/ask/ask-answer.tsx:120
 #: src/renderer/features/meeting/notepad.tsx:147
-msgid "Add Credits"
+msgid "Add credits"
 msgstr ""
 
 #: src/renderer/features/ask/ask-answer.tsx:124
-msgid "Switch Provider"
+msgid "Switch provider"
 msgstr ""
 
 #: src/renderer/features/ask/ask-answer.tsx:134
@@ -1423,133 +1423,134 @@ msgstr ""
 msgid "Refresh calendar (F5)"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:150
+#: src/renderer/features/home/day-view.tsx:158
 msgid "Refreshing…"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:150
+#: src/renderer/features/home/day-view.tsx:158
 msgid "Refresh"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:163
-#: src/renderer/features/home/day-view.tsx:166
+#: src/renderer/features/home/day-view.tsx:172
+#: src/renderer/features/home/day-view.tsx:175
 msgid "All day"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:297
+#: src/renderer/features/home/day-view.tsx:307
 #: src/renderer/features/meeting/meeting-page.tsx:163
 msgid "Recovered after a crash"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:302
+#: src/renderer/features/home/day-view.tsx:312
 msgid "Recording failed"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:310
+#: src/renderer/features/home/day-view.tsx:320
 msgid "recording now"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:312
+#: src/renderer/features/home/day-view.tsx:322
 msgid "Agenda · {n} item"
 msgid_plural "Agenda · {n} items"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/home/day-view.tsx:330
-#: src/renderer/features/home/day-view.tsx:345
-#: src/renderer/features/home/day-view.tsx:369
+#: src/renderer/features/home/day-view.tsx:340
+#: src/renderer/features/home/day-view.tsx:355
+#: src/renderer/features/home/day-view.tsx:379
 msgid "{title}, {time}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:351
+#: src/renderer/features/home/day-view.tsx:361
 msgid "began yesterday {time}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:369
+#: src/renderer/features/home/day-view.tsx:379
 msgid "{title}, {time}, not recorded"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:407
+#: src/renderer/features/home/day-view.tsx:417
+#: src/renderer/features/home/home-page.tsx:94
 msgid "Set up"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:430
+#: src/renderer/features/home/day-view.tsx:440
 msgid "{n} person"
 msgid_plural "{n} people"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/home/day-view.tsx:448
+#: src/renderer/features/home/day-view.tsx:458
 msgid "Next: {title}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:464
-#: src/renderer/features/home/day-view.tsx:574
+#: src/renderer/features/home/day-view.tsx:474
+#: src/renderer/features/home/day-view.tsx:584
 msgid "Agenda ready"
-msgstr ""
-
-#: src/renderer/features/home/day-view.tsx:476
-#: src/renderer/features/home/day-view.tsx:616
-msgid "Open prep for {title}"
-msgstr ""
-
-#: src/renderer/features/home/day-view.tsx:476
-#: src/renderer/features/home/day-view.tsx:616
-msgid "Plan {title}"
-msgstr ""
-
-#: src/renderer/features/home/day-view.tsx:478
-#: src/renderer/features/home/day-view.tsx:618
-msgid "Open prep"
-msgstr ""
-
-#: src/renderer/features/home/day-view.tsx:478
-#: src/renderer/features/home/day-view.tsx:618
-msgid "Plan an agenda"
 msgstr ""
 
 #: src/renderer/features/home/day-view.tsx:486
 #: src/renderer/features/home/day-view.tsx:626
+msgid "Open prep for {title}"
+msgstr ""
+
+#: src/renderer/features/home/day-view.tsx:486
+#: src/renderer/features/home/day-view.tsx:626
+msgid "Plan {title}"
+msgstr ""
+
+#: src/renderer/features/home/day-view.tsx:488
+#: src/renderer/features/home/day-view.tsx:628
+msgid "Open prep"
+msgstr ""
+
+#: src/renderer/features/home/day-view.tsx:488
+#: src/renderer/features/home/day-view.tsx:628
+msgid "Plan an agenda"
+msgstr ""
+
+#: src/renderer/features/home/day-view.tsx:496
+#: src/renderer/features/home/day-view.tsx:636
 msgid "Join and record {title}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:489
-#: src/renderer/features/home/day-view.tsx:629
+#: src/renderer/features/home/day-view.tsx:499
+#: src/renderer/features/home/day-view.tsx:639
 #: src/renderer/features/meeting/meeting-page.tsx:283
 msgid "Join and record"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:514
+#: src/renderer/features/home/day-view.tsx:524
 #: src/renderer/features/meeting/header.tsx:118
 #: src/renderer/features/shell/shortcuts.tsx:24 ../ui-core/src/format.ts:61
 msgid "Recording"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:549
+#: src/renderer/features/home/day-view.tsx:559
 msgid "Recording now: {title}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:549
+#: src/renderer/features/home/day-view.tsx:559
 msgid "Now: {title}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:588
-#: src/renderer/features/home/day-view.tsx:607
+#: src/renderer/features/home/day-view.tsx:598
+#: src/renderer/features/home/day-view.tsx:617
 msgid "Open {title}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:589
-#: src/renderer/features/home/day-view.tsx:608
+#: src/renderer/features/home/day-view.tsx:599
+#: src/renderer/features/home/day-view.tsx:618
 #: src/renderer/features/meeting/outcome-view.tsx:91
 #: src/renderer/features/agendas/labels.ts:41
 msgid "Open"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:604
+#: src/renderer/features/home/day-view.tsx:614
 msgid "Recorded · {duration}"
 msgstr ""
 
-#: src/renderer/features/home/day-view.tsx:664
+#: src/renderer/features/home/day-view.tsx:674
 msgid "{title}, {day} {time}"
 msgstr ""
 
@@ -1571,10 +1572,6 @@ msgid_plural ""
 "Speech models are not downloaded yet, so recording can’t transcribe"
 msgstr[0] ""
 msgstr[1] ""
-
-#: src/renderer/features/home/home-page.tsx:94
-msgid "Set Up"
-msgstr ""
 
 #: src/renderer/features/home/home-page.tsx:100
 msgid "Your day"
@@ -1980,7 +1977,7 @@ msgid "Back to my draft"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:284
-msgid "Enhance Notes"
+msgid "Enhance notes"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:286
@@ -2000,7 +1997,7 @@ msgid "Templates"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:301
-msgid "Choose a Template"
+msgid "Choose a template"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:312
@@ -2017,7 +2014,7 @@ msgid "Custom"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:321
-msgid "Manage Templates…"
+msgid "Manage templates…"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:325
@@ -2025,7 +2022,7 @@ msgid "Notes actions"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:327
-msgid "Version History…"
+msgid "Version history…"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:332
@@ -2033,11 +2030,11 @@ msgid "Notes copied as Markdown"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:334
-msgid "Copy Notes as Markdown"
+msgid "Copy notes as markdown"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:337
-msgid "Export Notes…"
+msgid "Export notes…"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:352
@@ -2045,11 +2042,11 @@ msgid "A tidied version of these notes is waiting (made elsewhere)."
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:365
-msgid "Use It"
+msgid "Use it"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:376
-msgid "Keep Mine"
+msgid "Keep mine"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:390
@@ -3318,7 +3315,7 @@ msgid "Lines appear here as people speak."
 msgstr ""
 
 #: src/renderer/features/transcript/transcript-pane.tsx:150
-msgid "No Transcript"
+msgid "No transcript"
 msgstr ""
 
 #: src/renderer/features/transcript/transcript-pane.tsx:151
@@ -3327,6 +3324,7 @@ msgstr ""
 
 #: src/renderer/features/transcript/transcript-pane.tsx:178
 #: src/renderer/features/transcript/transcript-pane.tsx:180
+#: src/renderer/features/transcript/transcript-pane.tsx:225
 msgid "Search the transcript"
 msgstr ""
 
@@ -3339,19 +3337,15 @@ msgid "No matches"
 msgstr ""
 
 #: src/renderer/features/transcript/transcript-pane.tsx:208
-msgid "Previous Match"
+msgid "Previous match"
 msgstr ""
 
 #: src/renderer/features/transcript/transcript-pane.tsx:215
-msgid "Next Match"
+msgid "Next match"
 msgstr ""
 
 #: src/renderer/features/transcript/transcript-pane.tsx:219
-msgid "Close Search"
-msgstr ""
-
-#: src/renderer/features/transcript/transcript-pane.tsx:225
-msgid "Search the Transcript"
+msgid "Close search"
 msgstr ""
 
 #: src/renderer/features/transcript/transcript-pane.tsx:226

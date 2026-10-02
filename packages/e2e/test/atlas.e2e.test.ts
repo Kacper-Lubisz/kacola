@@ -170,7 +170,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
   const openTranscript = async () => {
     if ((await transcriptList(w()).count()) === 0) await w().keyboard.press('Control+t')
     await transcriptList(w())
-      .or(w().getByRole('heading', { name: /^(No Transcript|Listening…)$/ }))
+      .or(w().getByRole('heading', { name: /^(No transcript|Listening…)$/ }))
       .first()
       .waitFor({ timeout: 10_000 })
   }
@@ -500,7 +500,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       await atlas.shoot(w(), 'provider-errors__ask__no-credits', {
         expect: [
           w().getByText('No answer this time'),
-          w().getByRole('button', { name: /^(Add Credits|Switch Provider)$/ }),
+          w().getByRole('button', { name: /^(Add credits|Switch provider)$/ }),
         ],
       })
     } finally {
@@ -525,11 +525,11 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       await askBox().fill('What did we plan for hiring?')
       await askBox().press('Enter')
       await atlas.shoot(w(), 'provider-errors__ask__no-provider', {
-        expect: w().getByRole('button', { name: 'Set Up a Provider' }),
+        expect: w().getByRole('button', { name: 'Set up a provider' }),
       })
       await closeAsk()
       await w().getByRole('textbox', { name: 'Notes' }).waitFor({ timeout: 10_000 })
-      await w().getByRole('button', { name: 'Enhance Notes' }).click()
+      await w().getByRole('button', { name: 'Enhance notes' }).click()
       await atlas.shoot(w(), 'provider-errors__enhance__no-provider', {
         expect: w()
           .getByText(/^Your notes were not changed/)
@@ -548,9 +548,9 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     const actions = w().getByRole('list', { name: 'Action items' })
     await actions.scrollIntoViewIfNeeded()
     await atlas.shoot(w(), 'notes-write__actions__action-items', { expect: actions })
-    await w().getByRole('button', { name: 'Choose a Template' }).click()
+    await w().getByRole('button', { name: 'Choose a template' }).click()
     await atlas.shoot(w(), 'notes-templates__menu__open', { expect: w().getByRole('menu'), keepFocus: true })
-    await w().getByRole('menuitem', { name: 'Manage Templates…' }).click()
+    await w().getByRole('menuitem', { name: 'Manage templates…' }).click()
     const templates = w().getByRole('dialog', { name: 'Notes Templates' })
     await atlas.shoot(w(), 'notes-templates__manage__dialog', { expect: templates })
     await templates.getByRole('button', { name: 'New Template' }).click()
@@ -558,7 +558,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       expect: templates.getByRole('textbox', { name: 'Name' }),
     })
     await escapeUntilGone(templates)
-    await notesMenu('Version History…')
+    await notesMenu('Version history…')
     const history = w().getByRole('dialog', { name: 'Version History' })
     await atlas.shoot(w(), 'notes-history__dialog__versions', {
       expect: history,
@@ -569,7 +569,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
 
     api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
     const release = api.holdAfter(9)
-    await w().getByRole('button', { name: 'Enhance Notes' }).click()
+    await w().getByRole('button', { name: 'Enhance notes' }).click()
     try {
       // the stream is held, but the page reveals what arrived over a few frames: wait until it stops
       const words = w().getByText(/words written so far/)
@@ -602,7 +602,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       expect: [w().getByRole('textbox', { name: 'Notes' }), back],
     })
 
-    await notesMenu('Copy Notes as Markdown')
+    await notesMenu('Copy notes as markdown')
     await atlas.shoot(w(), 'notes-export__copied__toast', {
       expect: w().getByText('Notes copied as Markdown'),
     })
@@ -617,7 +617,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
         filePath: path,
       })) as typeof dialog.showSaveDialog
     }, out)
-    await notesMenu('Export Notes…')
+    await notesMenu('Export notes…')
     await atlas.shoot(w(), 'notes-export__exported__toast', {
       expect: w().getByText(/^Notes exported to /),
     })
@@ -2294,7 +2294,7 @@ describe('atlas: first run (real daemon, models not downloaded, calendar off)', 
     await atlas.shoot(app.window, 'first-run__skipped__empty-window', {
       expect: [
         app.window.getByText(/^Nothing recorded today/),
-        app.window.getByRole('button', { name: 'Set Up' }),
+        app.window.getByRole('button', { name: 'Set up' }),
       ],
     })
     const setUp = app.window.getByRole('button', { name: /Set Up/ }).first()

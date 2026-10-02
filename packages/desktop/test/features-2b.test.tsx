@@ -86,7 +86,7 @@ function app(o: {
 describe('Transcript pane states', () => {
   it('a finished session with nothing transcribed says so', async () => {
     const r = app({ path: `/sessions/${S}?panel=transcript` })
-    await screen.findByRole('heading', { name: 'No Transcript' })
+    await screen.findByRole('heading', { name: 'No transcript' })
     r.stop()
   })
 
@@ -213,10 +213,10 @@ describe('Ask errors and what was sent', () => {
     askWith(r, [question('r7'), { type: 'error', error: err }])
     const bar = await ask('Retry budget?')
     await within(bar).findByText(err.message)
-    fireEvent.click(within(bar).getByRole('button', { name: 'Add Credits' }))
+    fireEvent.click(within(bar).getByRole('button', { name: 'Add credits' }))
     await until(() => r.fb.bridge.openExternal.mock.calls.length === 1)
     expect((r.fb.bridge.openExternal.mock.calls as unknown as string[][])[0]![0]).toBe(err.link)
-    expect(within(bar).queryByRole('button', { name: 'Set Up a Provider' })).toBeNull()
+    expect(within(bar).queryByRole('button', { name: 'Set up a provider' })).toBeNull()
     // overloaded: Try Again asks the same question again
     let asked = 0
     ;(r.services.api as unknown as { ask: unknown }).ask = async function* (body: { question: string }) {

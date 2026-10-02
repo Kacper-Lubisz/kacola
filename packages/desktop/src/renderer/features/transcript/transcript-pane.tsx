@@ -147,7 +147,7 @@ export function TranscriptPane({ session }: PaneProps) {
         compact
         headingLevel={2}
         icon="transcript"
-        title={_('No Transcript')}
+        title={_('No transcript')}
         description={_('Nothing was transcribed in this session.')}
       />
     )
@@ -205,24 +205,24 @@ export function TranscriptPane({ session }: PaneProps) {
             <IconButton
               icon="chevronUp"
               size="sm"
-              label={_('Previous Match')}
+              label={_('Previous match')}
               isDisabled={!matches.length}
               onPress={() => goToMatch(matchAt - 1)}
             />
             <IconButton
               icon="chevronDown"
               size="sm"
-              label={_('Next Match')}
+              label={_('Next match')}
               isDisabled={!matches.length}
               onPress={() => goToMatch(matchAt + 1)}
             />
-            <IconButton icon="close" size="sm" label={_('Close Search')} onPress={closeSearch} />
+            <IconButton icon="close" size="sm" label={_('Close search')} onPress={closeSearch} />
           </div>
         ) : (
           <IconButton
             icon="search"
             size="sm"
-            label={_('Search the Transcript')}
+            label={_('Search the transcript')}
             tooltip={_('Search the transcript (Ctrl+F)')}
             isDisabled={!rows.length}
             onPress={() => setSearching(true)}

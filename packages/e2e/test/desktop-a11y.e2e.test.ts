@@ -335,10 +335,10 @@ describe('axe over every screen and state (seeded daemon, replayed provider)', (
     await openSession('Platform standup')
     await w().getByRole('textbox', { name: 'Notes' }).waitFor({ timeout: 10_000 })
     await s('notes: editor')
-    await w().getByRole('button', { name: 'Choose a Template' }).click()
+    await w().getByRole('button', { name: 'Choose a template' }).click()
     await w().getByRole('menu').waitFor()
     await s('notes: template menu open')
-    await w().getByRole('menuitem', { name: 'Manage Templates…' }).click()
+    await w().getByRole('menuitem', { name: 'Manage templates…' }).click()
     const templates = w().getByRole('dialog', { name: 'Notes Templates' })
     await templates.waitFor()
     await s('notes: templates dialog')
@@ -348,7 +348,7 @@ describe('axe over every screen and state (seeded daemon, replayed provider)', (
     await escapeUntilGone(templates)
 
     await w().getByRole('button', { name: 'Notes actions' }).click()
-    await w().getByRole('menuitem', { name: 'Version History…' }).click()
+    await w().getByRole('menuitem', { name: 'Version history…' }).click()
     const history = w().getByRole('dialog', { name: 'Version History' })
     await history.waitFor()
     await s('notes: version history')
@@ -356,7 +356,7 @@ describe('axe over every screen and state (seeded daemon, replayed provider)', (
 
     api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
     const release = api.holdAfter(9)
-    await w().getByRole('button', { name: 'Enhance Notes' }).click()
+    await w().getByRole('button', { name: 'Enhance notes' }).click()
     try {
       await w().getByRole('progressbar', { name: 'Enhancing' }).waitFor({ timeout: 10_000 })
       await w().getByRole('region', { name: 'Enhanced notes so far' }).waitFor()
@@ -369,7 +369,7 @@ describe('axe over every screen and state (seeded daemon, replayed provider)', (
     await s('notes: tidied, Back to my draft')
 
     api.enqueue(...loadCassette(join(CASSETTES, 'refusal.json')))
-    await w().getByRole('button', { name: 'Enhance Notes' }).click()
+    await w().getByRole('button', { name: 'Enhance notes' }).click()
     const banner = w().getByRole('status', { name: /Your notes were not changed/ })
     await banner.waitFor({ timeout: 20_000 })
     await s('notes: enhance refused banner')

@@ -338,14 +338,14 @@ function ItemRow({
           }
         >
           <MenuItem icon="arrowUp" isDisabled={index === 0} onAction={() => onMove(index, index - 1)}>
-            {_('Move Up')}
+            {_('Move up')}
           </MenuItem>
           <MenuItem
             icon="arrowDown"
             isDisabled={index === count - 1}
             onAction={() => onMove(index, index + 1)}
           >
-            {_('Move Down')}
+            {_('Move down')}
           </MenuItem>
           {onDelete ? <MenuSeparator /> : null}
           {onDelete ? (

@@ -106,7 +106,7 @@ function ErrorNotice({ error, onRetry }: { error: AskError; onRetry?: () => void
       ) : null}
       {action === 'set-up-provider' ? (
         <Button size="sm" className="mt-1" onPress={() => dialogs.open('preferences')}>
-          {_('Set Up a Provider')}
+          {_('Set up a provider')}
         </Button>
       ) : null}
       {action === 'add-credits' ? (
@@ -117,11 +117,11 @@ function ErrorNotice({ error, onRetry }: { error: AskError; onRetry?: () => void
             icon="external"
             onPress={() => void bridge.openExternal(error.link!)}
           >
-            {_('Add Credits')}
+            {_('Add credits')}
           </Button>
         ) : (
           <Button size="sm" className="mt-1" onPress={() => dialogs.open('preferences')}>
-            {_('Switch Provider')}
+            {_('Switch provider')}
           </Button>
         )
       ) : null}

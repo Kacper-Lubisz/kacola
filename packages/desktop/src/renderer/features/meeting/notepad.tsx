@@ -139,12 +139,12 @@ function EnhanceProblem({
         <div className="flex shrink-0 items-center gap-2">
           {action === 'set-up-provider' ? (
             <Button size="sm" onPress={() => dialogs.open('preferences')}>
-              {_('Set Up a Provider')}
+              {_('Set up a provider')}
             </Button>
           ) : null}
           {action === 'add-credits' && err.link ? (
             <Button size="sm" icon="external" onPress={() => void bridge.openExternal(err.link!)}>
-              {_('Add Credits')}
+              {_('Add credits')}
             </Button>
           ) : null}
           {action === 'retry' ? (
@@ -281,7 +281,7 @@ export function OutcomeNotes({
           <Button
             size="sm"
             icon="enhance"
-            aria-label={_('Enhance Notes')}
+            aria-label={_('Enhance notes')}
             aria-description={_(
               'Replaces your notes with a tidied version written from them and the transcript, which are sent to your AI provider. Your draft stays in the history.',
             )}
@@ -298,7 +298,7 @@ export function OutcomeNotes({
               <Button
                 size="sm"
                 icon="chevronDown"
-                aria-label={_('Choose a Template')}
+                aria-label={_('Choose a template')}
                 isDisabled={!canEnhance}
                 className="rounded-l-none border-l-0 !px-1.5"
               />
@@ -318,23 +318,23 @@ export function OutcomeNotes({
             ))}
             <MenuSeparator />
             <MenuItem icon="edit" onAction={() => setTemplatesOpen(true)}>
-              {_('Manage Templates…')}
+              {_('Manage templates…')}
             </MenuItem>
           </Menu>
         </div>
         <Menu label={_('Notes actions')} trigger={<IconButton icon="more" label={_('Notes actions')} />}>
           <MenuItem icon="history" onAction={() => setHistoryOpen(true)}>
-            {_('Version History…')}
+            {_('Version history…')}
           </MenuItem>
           <MenuItem
             icon="copy"
             isDisabled={!hasText}
             onAction={() => void copy(exportMarkdown(session, state.draft), _('Notes copied as Markdown'))}
           >
-            {_('Copy Notes as Markdown')}
+            {_('Copy notes as markdown')}
           </MenuItem>
           <MenuItem icon="exportFile" isDisabled={!hasText} onAction={() => void exportFile()}>
-            {_('Export Notes…')}
+            {_('Export notes…')}
           </MenuItem>
         </Menu>
       </div>
@@ -362,7 +362,7 @@ export function OutcomeNotes({
                   void feed.merge(all).finally(() => setApplying(false))
                 }}
               >
-                {_('Use It')}
+                {_('Use it')}
               </Button>
               <Button
                 size="sm"
@@ -373,7 +373,7 @@ export function OutcomeNotes({
                   )
                 }
               >
-                {_('Keep Mine')}
+                {_('Keep mine')}
               </Button>
             </div>
           }

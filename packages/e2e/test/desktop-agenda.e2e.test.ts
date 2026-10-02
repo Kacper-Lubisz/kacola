@@ -254,12 +254,12 @@ describe('desktop: agendas', () => {
     // keyboard reorder: the item menu's Move Up
     await w().getByRole('button', { name: 'More for “Hiring plan”' }).focus()
     await w().keyboard.press('Enter')
-    await w().getByRole('menuitem', { name: 'Move Up' }).waitFor()
+    await w().getByRole('menuitem', { name: 'Move up' }).waitFor()
     await w().keyboard.press('Enter')
     await until(
       () => texts(id),
       (t) => t[0] === 'Hiring plan',
-      'Move Up',
+      'Move up',
     )
 
     // drag reorder: the last item's grip onto the first row

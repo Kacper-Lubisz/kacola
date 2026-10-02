@@ -221,7 +221,7 @@ describe('onboarding', () => {
     const banner = await screen.findByRole('status', {
       name: 'A speech model is not downloaded yet, so recording can’t transcribe',
     })
-    fireEvent.click(within(banner).getByRole('button', { name: 'Set Up' }))
+    fireEvent.click(within(banner).getByRole('button', { name: 'Set up' }))
     await screen.findByRole('dialog', { name: 'Welcome to kacola' })
     app.stop()
   })

@@ -303,7 +303,7 @@ describe('agenda editor', () => {
   it('moves an item down from its menu (the keyboard path) and sends the full order', async () => {
     const { app } = mount({ view: agendaView(), path: '/agendas/agd_1' })
     fireEvent.click(await screen.findByRole('button', { name: 'More for “Promo timeline”' }))
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Move Down' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Move down' }))
     await until(() => app.daemon.calls.includes('reorderAgendaItems'))
     expect(app.daemon.log.find((c) => c.name === 'reorderAgendaItems')!.opts.body).toEqual({
       itemIds: ['Hiring plan', 'Promo timeline', 'Offsite dates'],

@@ -381,7 +381,7 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
       // the daemon's sentence, and ONE action that fixes it (add credits, or switch provider)
       await pane().getByText('No answer this time', { exact: true }).waitFor({ timeout: 15_000 })
       await pane()
-        .getByRole('button', { name: /^(Add Credits|Switch Provider)$/ })
+        .getByRole('button', { name: /^(Add credits|Switch provider)$/ })
         .waitFor()
       expect(await pane().getByRole('button', { name: 'Try Again' }).count()).toBe(0)
       expect(await answering().count()).toBe(0)
