@@ -92,9 +92,10 @@ describe('Preferences and About against the real daemon', () => {
     await app.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor()
   }
   const askPane = () => app.window.getByRole('region', { name: 'Ask about this meeting' })
-  const unavailable = () => askPane().getByText('Questions aren’t available right now', { exact: true })
+  // the daemon's own sentence, under one title, with the ONE action it names
+  const unavailable = () => askPane().getByText('No answer this time', { exact: true })
 
-  it('explains that questions and enhancing need a provider, and Open Preferences opens Preferences', async () => {
+  it('explains that questions and enhancing need a provider, and Set Up a Provider opens Preferences', async () => {
     await openSession('Platform standup')
     // Ask is the Ctrl+K bar over the page
     await app.window.keyboard.press('Control+k')
@@ -103,14 +104,12 @@ describe('Preferences and About against the real daemon', () => {
     await app.window.keyboard.type('Who owns the dashboard?')
     await app.window.keyboard.press('Enter')
     await unavailable().waitFor({ timeout: 10_000 })
-    await askPane()
-      .getByText(/API key.*Preferences/)
-      .waitFor()
+    await askPane().getByRole('button', { name: 'Set Up a Provider' }).waitFor()
     // nothing was sent anywhere: no key, no request
     expect(api.seen).toHaveLength(0)
     expect(await app.axe()).toEqual([])
     await app.screenshot(join(DESKTOP_ARTIFACTS, 'ask-unavailable.png'))
-    await askPane().getByRole('button', { name: 'Open Preferences' }).click()
+    await askPane().getByRole('button', { name: 'Set Up a Provider' }).click()
     await prefs().getByRole('region', { name: 'Questions and Answers' }).waitFor({ timeout: 5000 })
     await prefs().getByText('Not configured').waitFor()
     await closePrefs()
@@ -122,12 +121,12 @@ describe('Preferences and About against the real daemon', () => {
     await app.window.getByRole('button', { name: 'Enhance Notes' }).click()
     const banner = app.window.getByRole('status', { name: /Your notes were not changed/ })
     await banner.waitFor({ timeout: 10_000 })
-    expect(await banner.textContent()).toContain('Enhancing needs an AI provider')
+    expect(await banner.getByRole('button', { name: 'Set Up a Provider' }).count()).toBe(1)
     expect(api.seen).toHaveLength(0)
     expect(await daemon.client.call('listNoteVersions', { params: { id: SEED.standup } })).toEqual(before)
     expect(await app.axe()).toEqual([])
     await app.screenshot(join(DESKTOP_ARTIFACTS, 'notes-unavailable.png'))
-    await banner.getByRole('button', { name: 'Open Preferences' }).click()
+    await banner.getByRole('button', { name: 'Set Up a Provider' }).click()
     await prefs().getByRole('region', { name: 'Questions and Answers' }).waitFor({ timeout: 5000 })
     await closePrefs()
     await banner.getByRole('button', { name: 'Dismiss' }).click()

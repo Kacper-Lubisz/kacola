@@ -244,7 +244,7 @@ describe('desktop: team sharing', () => {
     s.link = st.link!
     expect(s.link).toMatch(new RegExp(`^${host.url}/a/[A-Za-z0-9_-]{32}$`))
     // the file calendar is read-only: the invitation text (web link first) is there to paste
-    await send.getByText('Paste this into it yourself:', { exact: false }).waitFor()
+    await send.getByText('Paste this into the invitation:', { exact: true }).waitFor()
     expect(await send.locator('pre').textContent()).toContain(s.link)
     await send.getByRole('button', { name: 'Copy Invitation Text' }).click()
     await w().getByText('Copied the invitation text').waitFor()
