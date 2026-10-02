@@ -9,6 +9,7 @@ import {
   hrefFor,
   markSnippet,
   parseRoute,
+  renderMarkdown,
   renderPairing,
   renderSearch,
   renderSession,
@@ -97,6 +98,18 @@ describe('views escape everything user-controlled', () => {
     expect(html).not.toContain('<img')
     expect(html).not.toContain('<b>')
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;&quot;&amp;&#39;')
+  })
+
+  it('renders the notes as reading text: headings, lists, task boxes; markup in them stays text', () => {
+    const html = renderMarkdown(
+      '## Decisions\n\n- Retry budget: **three** attempts\n- [ ] Own the dashboard\n- [x] Settle it\n\n1. first\n2. second\n\nA <b>line</b>',
+    )
+    expect(html).toBe(
+      '<h4>Decisions</h4><ul><li>Retry budget: <strong>three</strong> attempts</li>' +
+        '<li class="task"><span class="box" role="img" aria-label="To do"></span><span>Own the dashboard</span></li>' +
+        '<li class="task done"><span class="box" role="img" aria-label="Done"></span><span>Settle it</span></li></ul>' +
+        '<ol><li>first</li><li>second</li></ol><p>A &lt;b&gt;line&lt;/b&gt;</p>',
+    )
   })
 
   it('marks search matches, and only them', () => {

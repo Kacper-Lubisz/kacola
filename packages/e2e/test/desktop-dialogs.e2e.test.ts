@@ -171,7 +171,7 @@ describe('Preferences and About against the real daemon', () => {
       10_000,
       'the daemon to report a configured key',
     )
-    await prefs().getByText('Configured (kept in the keyring, never shown)').waitFor()
+    await prefs().getByText('Saved in your keyring, never shown').waitFor()
     await app.window.getByRole('status').filter({ hasText: 'API key saved' }).waitFor() // toast
     // cleared from the field, absent from the page and the screen
     await expect.poll(() => prefs().getByRole('textbox', { name: 'Replace API key' }).inputValue()).toBe('')
@@ -322,7 +322,7 @@ describe('Preferences and About against the real daemon', () => {
     await app.window.keyboard.press('Control+,')
     await prefs().getByRole('tab', { name: 'Integration' }).click()
     await prefs()
-      .getByText(`A different gnomeola is already installed at ${shim}`)
+      .getByText(`A different gnomeola command is already installed at ${shim}`)
       .waitFor({ timeout: 30_000 })
     expect(readFileSync(shim, 'utf8')).toContain('someone else')
     // the top-bar extension row is there (a stub until packaging implements it)

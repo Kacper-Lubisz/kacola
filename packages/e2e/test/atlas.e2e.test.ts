@@ -884,7 +884,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
   it('settings: provider and keys, speakers, capture, storage, integration', async () => {
     await openPrefs()
     await atlas.shoot(w(), 'settings-provider__general__anthropic', {
-      expect: prefs().getByText('Configured (kept in the keyring, never shown)').first(),
+      expect: prefs().getByText('Saved in your keyring, never shown').first(),
     })
     await prefs()
       .getByRole('button', { name: /Provider$/ })

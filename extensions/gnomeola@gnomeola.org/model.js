@@ -199,7 +199,7 @@ export function buildView(props, o) {
       kind: 'meeting',
       // the title leads; when and where sit quietly underneath
       text: m.title || _('Untitled meeting'),
-      detail: `${when} · ${provider}`,
+      detail: [when, provider].filter(Boolean).join(' · '),
       verb: recordingThis ? '' : verb,
       accessibleName: [m.title || _('Untitled meeting'), when, provider, recordingThis ? '' : verb].filter(Boolean).join(', '),
       // Joining a meeting while another session records would fail; the item stays usable to open the link.

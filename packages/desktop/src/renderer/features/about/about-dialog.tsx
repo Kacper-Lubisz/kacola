@@ -73,14 +73,17 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
           <div className="flex flex-col gap-3">
             <p className="m-0 type-body text-text-secondary select-text">
               {_('This program comes with absolutely no warranty. It is licensed under the')}{' '}
-              {/* an inline link that wraps with the sentence (the link button is a single red line) */}
-              <button
-                type="button"
-                className="inline cursor-pointer border-0 bg-transparent p-0 font-[inherit] text-text-primary underline underline-offset-2"
-                onClick={() => void bridge.openExternal(GPL)}
+              {/* a real inline link, so it wraps with the sentence (a button stays one block, in red) */}
+              <a
+                href={GPL}
+                className="text-text-primary underline underline-offset-2"
+                onClick={(e) => {
+                  e.preventDefault()
+                  void bridge.openExternal(GPL)
+                }}
               >
                 {_('GNU General Public License, version 3 or later')}
-              </button>
+              </a>
               .
             </p>
             <h3 className="m-0 type-headline">{_('Third-party components')}</h3>

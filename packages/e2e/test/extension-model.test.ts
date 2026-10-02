@@ -131,6 +131,7 @@ describe('buildView', () => {
     expect(m[1]!.action).toEqual({ type: 'join', meetingId: 'mtg_2', joinUrl: '' })
     expect(m[0]!.text).toBe('Standup')
     expect(m[0]!.detail).toBe('10:30–10:45 · Google Meet')
+    expect(m[1]!.detail).not.toMatch(/·\s*$/) // no app: no dangling separator
   })
 
   it('an in-progress current meeting leads even if the list does not carry it', () => {

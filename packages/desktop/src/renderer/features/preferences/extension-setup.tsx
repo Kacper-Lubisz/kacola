@@ -339,8 +339,9 @@ export function ExtensionCard() {
   if (card.dismissed || !ext.view.card) return null
   return (
     <section aria-label={_('Top-bar extension')}>
-      {/* one line: what it is, the one thing to do, dismiss; a narrow window wraps the button under */}
-      <Card className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+      {/* one line: what it is, the one thing to do, and dismiss in the corner; a narrow window wraps the
+          button under the text, and dismiss stays where it is */}
+      <Card className="relative flex flex-wrap items-center gap-x-3 gap-y-2 py-3 pr-12 pl-4">
         <Icon name="topBar" size={18} className="mt-0.5 shrink-0 self-start text-text-secondary" />
         <div className="flex min-w-0 flex-[1_1_14rem] flex-col gap-0.5">
           <h2 className="m-0 type-body-strong text-text-primary">{_('Top-bar extension')}</h2>
@@ -348,10 +349,14 @@ export function ExtensionCard() {
             <ExtensionSubtitle view={ext.view} />
           </p>
         </div>
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          {ext.view.act || ext.busy ? <ExtensionAction ext={ext} variant="secondary" /> : null}
+        {ext.view.act || ext.busy ? (
+          <div className="ml-auto flex shrink-0 items-center">
+            <ExtensionAction ext={ext} variant="secondary" />
+          </div>
+        ) : null}
+        <span className="absolute top-2.5 right-3">
           <IconButton icon="close" size="sm" label={_('Dismiss')} onPress={() => void card.dismiss()} />
-        </div>
+        </span>
       </Card>
     </section>
   )
