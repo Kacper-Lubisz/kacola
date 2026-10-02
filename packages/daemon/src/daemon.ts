@@ -30,6 +30,7 @@ import { type ShareConfig, SharingService } from './agendas/sharing.ts'
 import { sharingHandlers } from './agendas/sharing-handlers.ts'
 import { AgendaTracker, type TrackerOptions } from './agendas/tracker.ts'
 import { agendaLlm, trackerHandlers } from './agendas/tracker-wiring.ts'
+import { agendaTrustHandlers } from './agendas/trust-handlers.ts'
 import { AgentChannel, type AgentLimits } from './agents/channel.ts'
 import type { SpeechGuard } from './agents/guard.ts'
 import { liveHandlers } from './agents/handlers.ts'
@@ -53,6 +54,7 @@ import type { DeviceProvider, Keyring, ModelProvider, QaEngine, TranscriptionPip
 import { NoKeyring } from './keyring.ts'
 import { Logger } from './logger.ts'
 import type { MicActivitySource } from './mic-activity.ts'
+import { searchMoments } from './moments.ts'
 import type { NotesEngine } from './notes/engine.ts'
 import { notesHandlers } from './notes/handlers.ts'
 import { RestartControl, type RestartHook } from './restart.ts'
@@ -398,6 +400,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
     decisions: await decisions.health(),
   })
 
+  const agendaRoutes = agendaHandlers(agendas, agents)
   const handlers: Handlers = {
     health: () => health(),
     listDevices: async () => ({ devices: await devices.list() }),
@@ -441,6 +444,14 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
         since: since(query.since),
         sessionId: query.sessionId,
         speaker: query.speaker,
+        limit: query.limit,
+        includePrivate: query.includePrivate,
+      }),
+    // UX trust fixes: the home search box (titles, notes, transcripts as moments)
+    searchMoments: ({ query }) =>
+      searchMoments(store, {
+        q: query.q,
+        since: since(query.since),
         limit: query.limit,
         includePrivate: query.includePrivate,
       }),
@@ -516,7 +527,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
     // ---- P: platform — external capture ingest
     ...externalCaptureHandlers(o.externalCapture ?? null),
     // ---- agendas, deep links, the invite block; the agent channel (leases, live attach)
-    ...agendaHandlers(agendas, agents),
+    ...agendaRoutes,
     ...liveHandlers({
       store,
       bus,
@@ -537,6 +548,8 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
     daemonInfo: () => restart.info(),
     requestRestart: ({ body }) => restart.request(body),
     cancelRestart: () => restart.cancel(),
+    // ---- UX trust fixes: send the agenda, item history that restores, actors in words (wraps getAgenda)
+    ...agendaTrustHandlers(agendas, sharing, agents, agendaRoutes),
   }
 
   const table = (Object.entries(routes) as [RouteName, RouteDef][]).map(([name, def]) => ({ name, def }))

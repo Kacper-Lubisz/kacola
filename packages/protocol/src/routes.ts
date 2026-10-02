@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import { DraftAgendaBody } from './agenda-draft.ts'
+import { agendaHistoryRoutes } from './agenda-history.ts'
+import { agendaSendRoutes } from './agenda-send.ts'
 import { agendaRoutes } from './agendas.ts'
 import { CalendarStatus, JoinMeetingBody, ListMeetingsQuery, MeetingList, NextMeeting } from './calendar.ts'
 import { externalCaptureRoutes } from './capture.ts'
@@ -35,6 +37,7 @@ import {
   SettingsPatch,
   TrackKind,
 } from './schemas.ts'
+import { searchRoutes } from './search.ts'
 import { sharingRoutes } from './sharing.ts'
 import {
   MergeSpeakerBody,
@@ -314,6 +317,10 @@ export const routes = {
   ...sharingRoutes,
   // ---- sticky daemon: one owner per data dir, restarts that wait for the recording (./daemon-control.ts)
   ...daemonControlRoutes,
+  // ---- UX trust fixes: full-text search moments, send the agenda, item history restore
+  ...searchRoutes,
+  ...agendaSendRoutes,
+  ...agendaHistoryRoutes,
 } as const satisfies Record<string, RouteDef>
 
 export type Routes = typeof routes

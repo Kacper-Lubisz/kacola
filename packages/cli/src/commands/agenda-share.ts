@@ -1,6 +1,8 @@
 import {
   type AgendaView,
+  agentDisplayName,
   parseShareLink,
+  possessive,
   type SharedActor,
   type SharedChange,
   type ShareStatus,
@@ -67,10 +69,12 @@ const brief = (s: ShareStatus, v?: AgendaView) => {
   }
 }
 
-/** "Ben", "ben@example.com (tracker)", "Kacper (agent:claude)". */
+/** The five actors (protocol actors.ts): "Ben", "kacola" (Ben's tracker), "Ben's Claude". */
 function who(a: SharedActor): string {
   const name = a.name ?? a.label
-  return a.by === 'tracker' || a.by.startsWith('agent:') ? `${name} (${a.by})` : name
+  if (a.by === 'tracker') return `kacola (${possessive(name)} tracker)`
+  if (a.by.startsWith('agent:')) return `${possessive(name)} ${agentDisplayName(a.by.slice('agent:'.length))}`
+  return name
 }
 
 const briefChange = (c: SharedChange, v?: AgendaView) => ({

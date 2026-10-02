@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { agentDisplayName, possessive } from './actors.ts'
 import {
   AgendaItemKind,
   AgendaItemStatus,
@@ -71,11 +72,15 @@ export function peerAttribution(a: SharedActor): ChangedBy {
   return `peer:${label}`
 }
 
-/** What a public page shows for an actor: a name, or a masked email (invitees see each other). */
+/**
+ * What a public page shows for an actor, in the five-actor words (actors.ts): a person's name (or a
+ * masked email: invitees see each other), "kacola" for anyone's on-device tracker, "Ben's Claude" for
+ * someone's agent. Never "Kacper (tracker)", which makes a person read as a robot.
+ */
 export function publicActorLabel(a: SharedActor, ownerName: string): string {
   const who = a.role === 'owner' ? ownerName : (a.name ?? maskEmail(a.label))
-  if (a.by === 'tracker') return `${who} (tracker)`
-  if (a.by.startsWith('agent:')) return `${who} (${a.by.slice('agent:'.length)})`
+  if (a.by === 'tracker') return 'kacola'
+  if (a.by.startsWith('agent:')) return `${possessive(who)} ${agentDisplayName(a.by.slice('agent:'.length))}`
   return who
 }
 

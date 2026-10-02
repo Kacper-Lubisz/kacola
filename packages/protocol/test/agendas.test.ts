@@ -263,7 +263,7 @@ describe('invitation block', () => {
   const block = renderInviteBlock({ appLink: 'kacola://agenda/agd_1', webLink: 'https://k.example/a/agd_1' })
   it('renders a marked block with both links', () => {
     expect(block).toBe(
-      `${INVITE_BLOCK_START}\nAgenda: kacola://agenda/agd_1 · web: https://k.example/a/agd_1\n${INVITE_BLOCK_END}`,
+      `${INVITE_BLOCK_START}\nAgenda: https://k.example/a/agd_1\nOpen in kacola: kacola://agenda/agd_1\n${INVITE_BLOCK_END}`,
     )
     expect(renderInviteBlock({ appLink: 'kacola://agenda/x' })).toContain('Agenda: kacola://agenda/x\n')
   })

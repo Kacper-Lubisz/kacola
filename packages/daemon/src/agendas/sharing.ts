@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path'
 import {
   type Agenda,
   type AgendaMeeting,
+  type ChangedBy,
   createClient,
   type DurableEvent,
   formatShareLink,
@@ -39,6 +40,9 @@ import { changeKey, isLocalAuthor, memberOps, ownerOps } from './share-projectio
 // GNOMEOLA_SHARE_TOKEN, else the hybrid-sync ones). A member follows with the link and their email
 // (a magic-link code) and keeps a participant token. Secrets live in `<dataDir>/agenda-shares.json`
 // (0600), never in the event log.
+
+/** `peer:ana@x/tracker` → `peer:ana@x`: the person behind another device's change. */
+const peerPerson = (by: ChangedBy): ChangedBy => by.split('/')[0] as ChangedBy
 
 export type ShareConfig = {
   /** The owner's hosted server and its pairing token. */
@@ -281,6 +285,11 @@ export class SharingService {
   }
 
   // ------------------------------------------------------------------------------- owner: share
+
+  /** A hosted server to share on is configured (else sharing, and a link attendees can open, is impossible). */
+  hostConfigured(): boolean {
+    return Boolean(this.d.config.url && this.d.config.token)
+  }
 
   private requireHost(): { url: string; token: string } {
     const { url, token } = this.d.config
@@ -764,7 +773,8 @@ export class SharingService {
           const ownerCopyOfOwnerItem = rec.role === 'member' && !isLocalAuthor(li.createdBy)
           if (wasRemote || ownerCopyOfOwnerItem) {
             if (snapshots.has(li.id) && snapshots.get(li.id) !== JSON.stringify(li)) continue
-            store.deleteItem(agendaId, li.id)
+            // removed on the server: by its author (an attendee), as far as this device can tell
+            store.deleteItem(agendaId, li.id, isLocalAuthor(li.createdBy) ? 'user' : peerPerson(li.createdBy))
             seen.delete(li.id)
           }
         }

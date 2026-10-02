@@ -318,6 +318,72 @@ describe('agendas: privacy and session deletion', () => {
   })
 })
 
+describe('agendas: item history that restores', () => {
+  it('records adds, edits, status changes, removals and imports, and outlives the item', () => {
+    const { s, a } = setup()
+    const v = a.create({ title: 'x', items: [{ text: 'Budget' }, { text: 'Hiring' }] })
+    const id = v.items[0]!.id
+    a.updateItem(v.agenda.id, id, { text: 'Budget (Q4)' }, 'agent:claude')
+    a.setStatus(v.agenda.id, id, { status: 'covered', by: 'tracker' })
+    const md = `- [ ] Budget (Q4) (10m)\n- [ ] From markdown\n`
+    a.importMarkdown(v.agenda.id, md, a.get(v.agenda.id)!.version)
+    // the import reopened Budget, timeboxed it, added one item and removed Hiring
+    const kinds = (itemId: string) =>
+      a.itemEvents(v.agenda.id, itemId).map((e) => [e.data.type, e.data.cause ?? null])
+    expect(kinds(id)).toEqual([
+      ['agenda.item.upserted', null],
+      ['agenda.item.upserted', null],
+      ['agenda.item.status', null],
+      ['agenda.item.upserted', 'import'],
+      ['agenda.item.status', 'import'],
+    ])
+    const hiring = a.itemEvents(v.agenda.id, v.items[1]!.id)
+    const removed = hiring.at(-1)!.data
+    expect(removed).toMatchObject({ type: 'agenda.item.deleted', by: 'user', cause: 'import' })
+    expect(removed.type === 'agenda.item.deleted' && removed.item?.text).toBe('Hiring')
+    expect(replayed(s).dump()).toBe(s.dump())
+  })
+
+  it('restores an edited item to an earlier version, and a removed one with its id and place', () => {
+    const { s, a } = setup()
+    const v = a.create({
+      title: 'x',
+      items: [{ text: 'A' }, { text: 'Budget', owner: 'ana' }, { text: 'C' }],
+    })
+    const id = v.items[1]!.id
+    const first = a.itemEvents(v.agenda.id, id)[0]!
+    a.updateItem(
+      v.agenda.id,
+      id,
+      { text: 'Budget (Q4)', owner: null },
+      'peer:ben@x.com/agent:claude' as never,
+    )
+    a.setStatus(v.agenda.id, id, { status: 'covered', by: 'tracker' })
+    const back = a.restoreItem(v.agenda.id, id, first.seq)
+    expect(back).toMatchObject({ id, text: 'Budget', owner: 'ana', status: 'open', changedBy: 'user' })
+    // the restore is itself in the history, marked, and can be undone the same way
+    const evs = a.itemEvents(v.agenda.id, id)
+    expect(evs.slice(-2).map((e) => e.data.cause)).toEqual(['restore', 'restore'])
+    const beforeRestore = evs.at(-3)!
+    expect(a.restoreItem(v.agenda.id, id, beforeRestore.seq)).toMatchObject({
+      text: 'Budget (Q4)',
+      status: 'covered',
+    })
+
+    // removed, then put back: same id, same position
+    a.deleteItem(v.agenda.id, id)
+    expect(a.items(v.agenda.id).map((i) => i.text)).toEqual(['A', 'C'])
+    const gone = a.itemEvents(v.agenda.id, id).at(-1)!
+    const again = a.restoreItem(v.agenda.id, id, gone.seq)
+    expect(again).toMatchObject({ id, text: 'Budget (Q4)', status: 'covered' })
+    expect(a.items(v.agenda.id).map((i) => i.text)).toEqual(['A', 'Budget (Q4)', 'C'])
+    expect(() => a.restoreItem(v.agenda.id, id, 999_999)).toThrow(/no version/)
+    assertNoViolations(checkAgendaLog(s.eventsAfter(0)))
+    assertNoViolations(checkEventLog(s.eventsAfter(0)))
+    expect(replayed(s).dump()).toBe(s.dump())
+  })
+})
+
 describe('agendas: replay == state', () => {
   const EVERY = [
     'agenda.upserted',

@@ -294,6 +294,11 @@ describe('hosted contract: every route', () => {
       daemonInfo: () => notHere(c.call('daemonInfo')),
       requestRestart: () => notHere(c.call('requestRestart', { body: {} })),
       cancelRestart: () => notHere(c.call('cancelRestart')),
+      searchMoments: () => notHere(c.call('searchMoments', { query: { q: 'x' } })),
+      sendAgenda: () => notHere(c.call('sendAgenda', { params: { id: 'agd_x' }, body: {} })),
+      getAgendaItemHistory: () => notHere(c.call('getAgendaItemHistory', { params: { id: 'agd_x' } })),
+      restoreAgendaItem: () =>
+        notHere(c.call('restoreAgendaItem', { params: { id: 'agd_x', itemId: 'itm_x' }, body: { seq: 1 } })),
       // ---- team sharing (in this order: each step uses the previous one)
       createShare: async () => {
         const r = await c.call('createShare', {

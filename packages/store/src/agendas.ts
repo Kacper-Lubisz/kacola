@@ -11,6 +11,7 @@ import {
   type ContextSource,
   type DurableEventData,
   type Evidence,
+  type ItemCause,
   isForwardMove,
   isPeer,
   isPeerHuman,
@@ -115,6 +116,21 @@ export type ItemPatch = {
   timeboxMin?: number | null
   outcome?: string | null
 }
+
+/** One item event from the log, with its seq (item history; see AgendaStore.itemEvents). */
+export type ItemEvent = {
+  seq: number
+  data: Extract<
+    DurableEventData,
+    { type: 'agenda.item.upserted' | 'agenda.item.status' | 'agenda.item.deleted' }
+  >
+}
+
+const ITEM_EVENTS: ReadonlySet<string> = new Set([
+  'agenda.item.upserted',
+  'agenda.item.status',
+  'agenda.item.deleted',
+])
 
 export type ListAgendasOptions = {
   eventUid?: string
@@ -315,8 +331,24 @@ export class AgendaStore {
     this.store.commit(() => {
       const cur = this.require(agendaId)
       const at = this.nowIso()
-      return { sessionId: cur.sessionId, data: build(cur.version + 1, at) }
+      const data = build(cur.version + 1, at)
+      // item history: an import or a restore marks every item event it makes
+      if (this.cause && ITEM_EVENTS.has(data.type))
+        return { sessionId: cur.sessionId, data: { ...data, cause: this.cause } }
+      return { sessionId: cur.sessionId, data }
     })
+  }
+
+  /** Set while an import or a restore runs: its item events carry this `cause`. */
+  private cause: ItemCause | null = null
+  private withCause<T>(cause: ItemCause, fn: () => T): T {
+    const prev = this.cause
+    this.cause = cause
+    try {
+      return fn()
+    } finally {
+      this.cause = prev
+    }
   }
 
   private clock: (() => Date) | null = null
@@ -541,10 +573,19 @@ export class AgendaStore {
     return out!
   }
 
-  deleteItem(agendaId: string, itemId: string): void {
+  deleteItem(agendaId: string, itemId: string, by: ChangedBy = 'user'): void {
     this.store.transaction(() => {
-      this.requireItem(agendaId, itemId)
-      this.scoped(agendaId, (version, at) => ({ type: 'agenda.item.deleted', agendaId, version, at, itemId }))
+      const item = this.requireItem(agendaId, itemId)
+      // the item as it was rides along, so its history can show what was removed and put it back
+      this.scoped(agendaId, (version, at) => ({
+        type: 'agenda.item.deleted',
+        agendaId,
+        version,
+        at,
+        itemId,
+        by,
+        item,
+      }))
       // close the gap so positions stay 0..n-1
       const rest = this.items(agendaId)
       if (rest.some((i, n) => i.order !== n))
@@ -953,6 +994,17 @@ export class AgendaStore {
     by: ChangedBy = 'user',
   ): AgendaView {
     const md = parseAgendaMarkdown(markdown)
+    this.withCause('import', () => this.importIn(agendaId, md, baseVersion, mode, by))
+    return this.view(agendaId)!
+  }
+
+  private importIn(
+    agendaId: string,
+    md: ReturnType<typeof parseAgendaMarkdown>,
+    baseVersion: number,
+    mode: 'replace' | 'merge',
+    by: ChangedBy,
+  ): void {
     this.store.transaction(() => {
       const a = this.require(agendaId)
       if (a.version !== baseVersion)
@@ -989,11 +1041,85 @@ export class AgendaStore {
         }
         order.push(id)
       }
-      if (mode === 'replace') for (const i of unused.values()) this.deleteItem(agendaId, i.id)
+      if (mode === 'replace') for (const i of unused.values()) this.deleteItem(agendaId, i.id, by)
       else order.push(...[...unused.values()].map((i) => i.id))
       const now = this.items(agendaId).map((i) => i.id)
       if (order.length === now.length && order.some((id, n) => now[n] !== id)) this.reorder(agendaId, order)
     })
-    return this.view(agendaId)!
+  }
+
+  // ------------------------------------------------------------------------------ item history
+
+  /**
+   * Every add, edit, status change and removal of an agenda's items, oldest first, from the event log
+   * (removed items included: the history outlives the item). `seq` identifies a version for restore.
+   */
+  itemEvents(agendaId: string, itemId?: string): ItemEvent[] {
+    const rows = this.rows(
+      `SELECT seq, data FROM events
+        WHERE type IN ('agenda.item.upserted', 'agenda.item.status', 'agenda.item.deleted')
+          AND json_extract(data, '$.agendaId') = ?
+        ORDER BY seq`,
+      agendaId,
+    ) as { seq: number; data: string }[]
+    const out: ItemEvent[] = []
+    for (const r of rows) {
+      const data = JSON.parse(r.data) as ItemEvent['data']
+      const id = data.type === 'agenda.item.deleted' ? data.itemId : data.item.id
+      if (itemId === undefined || id === itemId) out.push({ seq: r.seq, data })
+    }
+    return out
+  }
+
+  /**
+   * Put an item back as it was after event `seq` (its text, kind, owner, timebox, outcome and status),
+   * as `by`. A removed item comes back with its id, at its old position. Every change it makes is an
+   * ordinary item event marked `restore`, so the history shows the restore and it can be undone too.
+   */
+  restoreItem(agendaId: string, itemId: string, seq: number, by: ChangedBy = 'user'): AgendaItem {
+    return this.withCause('restore', () => {
+      let out: AgendaItem | undefined
+      this.store.transaction(() => {
+        this.require(agendaId)
+        const ev = this.itemEvents(agendaId, itemId).find((e) => e.seq === seq)
+        if (!ev) throw new StoreError('not_found', `no version ${seq} of item ${itemId}`)
+        const target = ev.data.type === 'agenda.item.deleted' ? ev.data.item : ev.data.item
+        if (!target)
+          throw new StoreError('bad_request', `version ${seq} of item ${itemId} has no content to restore`)
+        let cur = this.item(agendaId, itemId)
+        if (!cur) {
+          // re-add it with its id (open, then its status as a recorded change), at its old position
+          const at = Math.min(target.order, this.items(agendaId).length)
+          this.scoped(agendaId, (version, now) => {
+            cur = {
+              ...target,
+              order: this.items(agendaId).length,
+              status: 'open',
+              evidence: [],
+              changedBy: by,
+              updatedAt: now,
+            }
+            return { type: 'agenda.item.upserted', agendaId, version, at: now, item: cur }
+          })
+          const ids = this.items(agendaId)
+            .map((i) => i.id)
+            .filter((i) => i !== itemId)
+          ids.splice(at, 0, itemId)
+          if (ids.some((id, n) => this.items(agendaId)[n]?.id !== id)) this.reorder(agendaId, ids)
+          cur = this.item(agendaId, itemId)!
+        }
+        const patch: ItemPatch = {}
+        if (cur.text !== target.text) patch.text = target.text
+        if (cur.kind !== target.kind) patch.kind = target.kind
+        if (cur.owner !== target.owner) patch.owner = target.owner
+        if (cur.timeboxMin !== target.timeboxMin) patch.timeboxMin = target.timeboxMin
+        if (cur.outcome !== target.outcome) patch.outcome = target.outcome
+        if (Object.keys(patch).length) this.updateItem(agendaId, itemId, patch, by)
+        if (cur.status !== target.status)
+          this.setStatus(agendaId, itemId, { status: target.status, by, note: 'restored from history' })
+        out = this.item(agendaId, itemId)!
+      })
+      return out!
+    })
   }
 }
