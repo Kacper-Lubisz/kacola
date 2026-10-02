@@ -201,7 +201,7 @@ describe('Ask errors and what was sent', () => {
     r.stop()
   })
 
-  it('shows the daemon’s message with its one action: Add Credits opens the billing page; Try Again keeps the question', async () => {
+  it('shows the daemon’s message with its one action: Add credits opens the billing page; Try again keeps the question', async () => {
     const r = app({})
     const err = {
       code: 'unavailable',
@@ -217,7 +217,7 @@ describe('Ask errors and what was sent', () => {
     await until(() => r.fb.bridge.openExternal.mock.calls.length === 1)
     expect((r.fb.bridge.openExternal.mock.calls as unknown as string[][])[0]![0]).toBe(err.link)
     expect(within(bar).queryByRole('button', { name: 'Set up a provider' })).toBeNull()
-    // overloaded: Try Again asks the same question again
+    // overloaded: Try again asks the same question again
     let asked = 0
     ;(r.services.api as unknown as { ask: unknown }).ask = async function* (body: { question: string }) {
       asked++
@@ -238,7 +238,7 @@ describe('Ask errors and what was sent', () => {
     })
     fireEvent.click(within(bar).getByRole('button', { name: 'Ask' }))
     await within(bar).findByText('Anthropic is busy right now. Try again in a minute.')
-    fireEvent.click(within(bar).getByRole('button', { name: 'Try Again' }))
+    fireEvent.click(within(bar).getByRole('button', { name: 'Try again' }))
     await until(() => asked === 2)
     r.stop()
   })
@@ -258,7 +258,7 @@ describe('Ask errors and what was sent', () => {
     ])
     const bar = await ask('Retry budget?')
     await within(bar).findByText('Private meetings stay on this computer')
-    expect(within(bar).queryByRole('button', { name: 'Try Again' })).toBeNull()
+    expect(within(bar).queryByRole('button', { name: 'Try again' })).toBeNull()
     r.stop()
   })
 })

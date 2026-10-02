@@ -17,13 +17,13 @@ export function PrimaryMenu() {
         {_('Preferences')}
       </MenuItem>
       <MenuItem icon="speakers" onAction={() => useFollow.getState().show()}>
-        {_('Follow a Shared Agenda…')}
+        {_('Follow a shared agenda…')}
       </MenuItem>
       <MenuItem icon="download" onAction={() => dialogs.open('onboarding')}>
-        {_('Set Up Speech Models…')}
+        {_('Set up speech models…')}
       </MenuItem>
       <MenuItem icon="keyboard" shortcut="Ctrl+?" onAction={() => dialogs.open('shortcuts')}>
-        {_('Keyboard Shortcuts')}
+        {_('Keyboard shortcuts')}
       </MenuItem>
       <MenuSeparator />
       <MenuItem icon="info" onAction={() => dialogs.open('about')}>

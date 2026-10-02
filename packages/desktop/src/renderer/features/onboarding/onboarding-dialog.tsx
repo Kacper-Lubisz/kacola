@@ -81,7 +81,7 @@ function captureText(h: Health | undefined): { subtitle: string; ok: boolean | n
   const c = h?.capture
   if (!c) return { subtitle: _('Checking…'), ok: null }
   return c.available
-    ? { subtitle: fmt(_('Available ({backend})'), { backend: c.backend }), ok: true }
+    ? { subtitle: _('Working'), ok: true }
     : { subtitle: fmt(_('Not available: {detail}'), { detail: c.detail ?? c.backend }), ok: false }
 }
 
@@ -183,7 +183,7 @@ export function OnboardingDialog({ onFinished }: { onFinished: (skippedMissing: 
           </Button>
         ) : (
           <>
-            <Button onPress={() => finish(true)}>{_('Skip for Now')}</Button>
+            <Button onPress={() => finish(true)}>{_('Skip for now')}</Button>
             <Button
               variant="primary"
               aria-label={_('Download all models')}
@@ -210,18 +210,16 @@ export function OnboardingDialog({ onFinished }: { onFinished: (skippedMissing: 
             )}
           </p>
         </div>
-        <Section title={_('Speech Models')} label={_('Speech models')}>
+        <Section title={_('Speech models')} label={_('Speech models')}>
           {list === null && !error ? (
             <li className="flex justify-center py-4">
               <Spinner label={_('Loading models')} />
             </li>
           ) : (
             required.map((m) => (
-              <Item key={m.id} name={m.title}>
-                <Row
-                  title={m.title}
-                  subtitle={`${roleLabel(m.role)} · ${formatBytes(m.sizeBytes)} · ${stateText(m)}`}
-                >
+              // what the model is for leads; its file name is only in the accessible name
+              <Item key={m.id} name={`${roleLabel(m.role)} (${m.title})`}>
+                <Row title={roleLabel(m.role)} subtitle={`${formatBytes(m.sizeBytes)} · ${stateText(m)}`}>
                   {m.state === 'ready' ? (
                     <span className="text-status-success">
                       <Icon name="success" label={_('Ready')} />
@@ -251,7 +249,7 @@ export function OnboardingDialog({ onFinished }: { onFinished: (skippedMissing: 
             {fmt(_('Something went wrong: {reason}'), { reason: error })}
           </p>
         ) : null}
-        <Section title={_('Audio Capture')} label={_('Audio capture')}>
+        <Section title={_('Audio capture')} label={_('Audio capture')}>
           <Item name={_('Microphone and system audio')}>
             <Row title={_('Microphone and system audio')} subtitle={capture.subtitle}>
               <StatusMark
@@ -275,7 +273,7 @@ export function OnboardingDialog({ onFinished }: { onFinished: (skippedMissing: 
             </Row>
           </Item>
         </Section>
-        <Section title={_('For Agents')} label={_('Command-line tool')}>
+        <Section title={_('For agents')} label={_('Command-line tool')}>
           <Item name={_('Install command-line tool and Claude skill')}>
             <Row
               title={_('Install command-line tool and Claude skill')}
@@ -300,7 +298,7 @@ export function OnboardingDialog({ onFinished }: { onFinished: (skippedMissing: 
           </Item>
         </Section>
         {showExtension ? (
-          <Section title={_('Top Bar')} label={_('Top-bar extension')}>
+          <Section title={_('Top bar')} label={_('Top-bar extension')}>
             <Item name={_('Top-bar extension')}>
               <Row title={_('Top-bar extension')} subtitle={<ExtensionSubtitle view={ext.view} />}>
                 {ext.view.on ? (

@@ -53,16 +53,18 @@ export function Dialog({
         <AriaDialog aria-label={title} className={`flex min-h-0 flex-1 flex-col outline-none ${className}`}>
           {({ close }) => (
             <>
-              <header className="flex shrink-0 items-center gap-2 px-5 pt-4 pb-2">
+              <header className="flex shrink-0 items-center gap-2 px-4 pt-4 pb-2 sm:px-5">
                 {headerStart}
                 <Heading slot="title" className="m-0 min-w-0 flex-1 truncate type-title2">
                   {title}
                 </Heading>
                 <IconButton icon="close" label={_('Close')} tooltip={null} onPress={close} />
               </header>
-              <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-1 pb-5">{children}</div>
+              <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-1 pb-5 sm:px-5">
+                {children}
+              </div>
               {footer ? (
-                <footer className="flex shrink-0 justify-end gap-2 border-t border-border-subtle px-5 py-3">
+                <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border-subtle px-4 py-3 sm:px-5">
                   {footer}
                 </footer>
               ) : null}

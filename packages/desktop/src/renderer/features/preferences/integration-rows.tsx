@@ -22,7 +22,7 @@ export function cliSubtitle(s: CliInstallState | undefined): string {
     case 'installed': {
       const where = fmt(_('Installed at {path}'), { path: s.path })
       if (s.shadowedBy)
-        return `${where}. ${fmt(_('Another gnomeola at {path} comes first on your PATH.'), { path: s.shadowedBy })}`
+        return `${where}. ${fmt(_('Another gnomeola command at {path} comes first on your PATH.'), { path: s.shadowedBy })}`
       if (s.needsAdmin)
         return `${where}. ${fmt(_('{dir} needed administrator rights.'), { dir: s.needsAdmin })}`
       if (!s.onPath) return `${where}. ${_('That folder is not on your PATH yet.')}`
@@ -34,7 +34,7 @@ export function cliSubtitle(s: CliInstallState | undefined): string {
       return _('Lets agents like Claude Code read your meetings through the gnomeola command')
     case 'foreign':
       return s.path
-        ? fmt(_('A different gnomeola is already installed at {path}'), { path: s.path })
+        ? fmt(_('A different gnomeola command is already installed at {path}'), { path: s.path })
         : s.detail
     case 'error':
     case 'unavailable':
@@ -113,7 +113,7 @@ export function CliInstallRow() {
         </Button>
       ) : null}
       <AlertDialog
-        title={_('Replace the Other gnomeola?')}
+        title={_('Replace the other gnomeola command?')}
         isOpen={confirmReplace}
         onOpenChange={setConfirmReplace}
         confirmLabel={_('Replace')}

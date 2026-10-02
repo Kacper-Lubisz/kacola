@@ -253,7 +253,7 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
       ).toBe(true)
     // Ctrl+? — the shortcuts help
     await app.window.keyboard.press('Control+?')
-    const help = app.window.getByRole('dialog', { name: 'Keyboard Shortcuts' })
+    const help = app.window.getByRole('dialog', { name: 'Keyboard shortcuts' })
     await help.getByText('Preferences').waitFor()
     expect(await app.axe()).toEqual([])
     await shot(app, 'shell-shortcuts')
@@ -313,7 +313,7 @@ describe('the main window against the protocol stub', () => {
     await stub?.close()
   })
 
-  it('explains an unreachable daemon instead of hanging, then connects on Try Again', async () => {
+  it('explains an unreachable daemon instead of hanging, then connects on Try again', async () => {
     const port = await closedPort()
     const url = `http://127.0.0.1:${port}`
     // a remote-looking URL is never replaced by a spawned daemon: point at a loopback one with no entry
@@ -322,14 +322,14 @@ describe('the main window against the protocol stub', () => {
       env: { GNOMEOLA_URL: url, GNOMEOLA_DAEMON_ENTRY: '/nonexistent' },
     })
     try {
-      await app.window.getByRole('heading', { name: 'Can’t Reach kacola' }).waitFor({ timeout: 30_000 })
-      await app.window.getByText(`it is not answering at ${url}.`, { exact: false }).waitFor()
+      await app.window.getByRole('heading', { name: 'Can’t reach kacola' }).waitFor({ timeout: 30_000 })
+      await app.window.getByText(`${url} · `, { exact: false }).waitFor() // where it looked, in the detail line
       expect(await app.axe()).toEqual([])
       await shot(app, 'shell-unreachable')
       stub = await startStubDaemon([makeSession('Board meeting')], port)
-      await app.window.getByRole('button', { name: 'Try Again' }).click()
+      await app.window.getByRole('button', { name: 'Try again' }).click()
       await expect.poll(() => rowNames(app), { timeout: 15_000 }).toContain('Board meeting')
-      expect(await app.window.getByRole('heading', { name: 'Can’t Reach kacola' }).count()).toBe(0)
+      expect(await app.window.getByRole('heading', { name: 'Can’t reach kacola' }).count()).toBe(0)
     } finally {
       await app.close()
       await stub?.close()

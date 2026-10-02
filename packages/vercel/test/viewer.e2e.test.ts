@@ -126,7 +126,7 @@ describe.skipIf(!CHROME)(`web viewer in headless Chrome (${CHROME ?? 'no browser
     expect(rows[0]).toContain('retry budget is three attempts')
     expect(rows[1]).toContain('<script>alert("not html")</script>')
     expect(await page.locator('ol.transcript script').count()).toBe(0)
-    expect(await page.locator('.notes pre').textContent()).toContain('Ana: retry budget doc')
+    expect(await page.locator('.notes .prose').textContent()).toContain('Ana: retry budget doc')
 
     // 4. search, with the match highlighted
     await page.fill('#search input', 'retry budget')

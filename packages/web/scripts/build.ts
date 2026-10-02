@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Build the web viewer into a static directory: index.html, app.css and one bundled app.js (esbuild),
-// and the shared agenda page (L-19): agenda.html, agenda.css, agenda.js, with the kacola brand tokens,
-// favicon and the two typefaces it uses (served at /a/<token> by a rewrite to agenda.html).
+// and the shared agenda page (L-19): agenda.html, agenda.css, agenda.js; both use the kacola brand tokens,
+// favicon and the typefaces they use (served at /a/<token> by a rewrite to agenda.html).
 //   node packages/web/scripts/build.ts [OUT_DIR]      (default packages/web/dist)
 // packages/vercel/scripts/build.ts calls buildViewer() to place it in the deployment's static output.
 import { copyFileSync, mkdirSync } from 'node:fs'
@@ -49,7 +49,11 @@ export async function buildViewer(outDir: string): Promise<{ bytes: number }> {
   mkdirSync(join(outDir, 'fonts'), { recursive: true })
   copyFileSync(join(brand, 'tokens', 'tokens.css'), join(outDir, 'brand', 'tokens.css'))
   copyFileSync(join(brand, 'icons', 'favicon.svg'), join(outDir, 'brand', 'favicon.svg'))
-  for (const f of ['BricolageGrotesque-Variable.woff2', 'InstrumentSans-Variable.woff2'])
+  for (const f of [
+    'BricolageGrotesque-Variable.woff2',
+    'InstrumentSans-Variable.woff2',
+    'JetBrainsMono-Variable.woff2',
+  ])
     copyFileSync(join(brand, 'fonts', f), join(outDir, 'fonts', f))
   const bytes = Object.values(r.metafile.outputs).reduce((n, o) => n + o.bytes, 0)
   return { bytes }

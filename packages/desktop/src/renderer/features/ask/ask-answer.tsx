@@ -76,7 +76,7 @@ function Notice({
 
 /**
  * In place of an answer when asking failed: the daemon's message as written, and the ONE action its
- * `action` names — Try Again (the question is kept), Set Up a Provider (Preferences), Add Credits (the
+ * `action` names — Try again (the question is kept), Set up a provider (Preferences), Add credits (the
  * provider's billing page). A private meeting with a cloud provider is not a failure: it says so calmly.
  */
 function ErrorNotice({ error, onRetry }: { error: AskError; onRetry?: () => void }) {
@@ -101,7 +101,7 @@ function ErrorNotice({ error, onRetry }: { error: AskError; onRetry?: () => void
       <p className="m-0 type-callout text-text-secondary select-text">{error.message}</p>
       {action === 'retry' && onRetry ? (
         <Button size="sm" className="mt-1" icon="refresh" onPress={onRetry}>
-          {_('Try Again')}
+          {_('Try again')}
         </Button>
       ) : null}
       {action === 'set-up-provider' ? (

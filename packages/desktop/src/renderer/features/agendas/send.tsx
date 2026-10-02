@@ -65,16 +65,15 @@ function SendDialog({ view, onClose }: { view: AgendaView; onClose: () => void }
   const copy = (text: string) => void bridge.copyText(text).then(() => toast(_('Copied the invitation text')))
   return (
     <Dialog
-      title={_('Send the Agenda')}
+      title={_('Send the agenda')}
       isOpen
       onOpenChange={(o) => !o && onClose()}
-      size="lg"
       footer={
         result ? (
           <>
             {result.state === 'ready' && !result.written && result.inviteText ? (
               <Button icon="copy" onPress={() => copy(result.inviteText!)}>
-                {_('Copy Invitation Text')}
+                {_('Copy invitation text')}
               </Button>
             ) : null}
             {result.state === 'no-share-host' ? (
@@ -84,7 +83,7 @@ function SendDialog({ view, onClose }: { view: AgendaView; onClose: () => void }
                   dialogs.open('preferences')
                 }}
               >
-                {_('Set Up Sharing')}
+                {_('Set up sharing')}
               </Button>
             ) : null}
             <Button variant="primary" onPress={onClose}>
@@ -143,7 +142,7 @@ function SendDialog({ view, onClose }: { view: AgendaView; onClose: () => void }
                 ))}
               </ul>
             ) : null}
-            <ol className="m-0 flex flex-col gap-1 pl-5 type-body text-text-primary">
+            <ol className="m-0 flex list-decimal flex-col gap-1 pl-5 type-body text-text-primary marker:font-mono marker:text-[13px] marker:text-text-tertiary">
               {items.map((i) => (
                 <li key={i.id}>{i.text}</li>
               ))}

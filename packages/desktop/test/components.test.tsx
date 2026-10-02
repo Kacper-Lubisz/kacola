@@ -132,7 +132,7 @@ describe('the first screen', () => {
   it('shows can’t-reach, then home with the meetings by day; a new one appears live; pressing it opens it', async () => {
     const app = renderApp({ sessions: [session('ses_a', { title: 'Standup', status: 'stopped' })] })
     app.daemon.state.fail = new Error('not yet')
-    await screen.findByRole('heading', { name: 'Can’t Reach kacola' })
+    await screen.findByRole('heading', { name: 'Can’t reach kacola' })
     app.daemon.state.fail = null
     await screen.findByRole('searchbox', { name: 'Search or ask' })
     await screen.findByRole('button', { name: /^Standup, / })

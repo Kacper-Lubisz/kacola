@@ -212,7 +212,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     )
   const openPrefs = async () => {
     await w().keyboard.press('Control+,')
-    await prefs().getByRole('region', { name: 'Questions and Answers' }).waitFor({ timeout: 10_000 })
+    await prefs().getByRole('region', { name: 'Questions and answers' }).waitFor({ timeout: 10_000 })
   }
   const recording = () =>
     poll(
@@ -410,7 +410,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     await atlas.shoot(w(), 'help-about__menu__main-menu', { expect: w().getByRole('menu'), keepFocus: true })
     await escapeUntilGone(w().getByRole('menu'))
     await w().keyboard.press('Control+?')
-    const help = w().getByRole('dialog', { name: 'Keyboard Shortcuts' })
+    const help = w().getByRole('dialog', { name: 'Keyboard shortcuts' })
     await atlas.shoot(w(), 'help-about__shortcuts__dialog', { expect: help })
     await escapeUntilGone(help)
     await w().getByRole('button', { name: 'Main menu' }).click()
@@ -422,7 +422,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       .or(about.getByRole('button', { name: 'Legal' }))
       .click()
     await atlas.shoot(w(), 'help-about__legal__notices', {
-      expect: about.getByRole('list', { name: 'Third-Party Notices' }),
+      expect: about.getByRole('list', { name: 'Third-party notices' }),
     })
     await escapeUntilGone(about)
   })
@@ -512,7 +512,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     await askBox().press('Enter')
     try {
       await atlas.shoot(w(), 'provider-errors__ask__overloaded', {
-        expect: [w().getByText('No answer this time'), w().getByRole('button', { name: 'Try Again' })],
+        expect: [w().getByText('No answer this time'), w().getByRole('button', { name: 'Try again' })],
       })
     } finally {
       api.always(null)
@@ -551,15 +551,15 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     await w().getByRole('button', { name: 'Choose a template' }).click()
     await atlas.shoot(w(), 'notes-templates__menu__open', { expect: w().getByRole('menu'), keepFocus: true })
     await w().getByRole('menuitem', { name: 'Manage templates…' }).click()
-    const templates = w().getByRole('dialog', { name: 'Notes Templates' })
+    const templates = w().getByRole('dialog', { name: 'Notes templates' })
     await atlas.shoot(w(), 'notes-templates__manage__dialog', { expect: templates })
-    await templates.getByRole('button', { name: 'New Template' }).click()
+    await templates.getByRole('button', { name: 'New template' }).click()
     await atlas.shoot(w(), 'notes-templates__new__form', {
       expect: templates.getByRole('textbox', { name: 'Name' }),
     })
     await escapeUntilGone(templates)
     await notesMenu('Version history…')
-    const history = w().getByRole('dialog', { name: 'Version History' })
+    const history = w().getByRole('dialog', { name: 'Version history' })
     await atlas.shoot(w(), 'notes-history__dialog__versions', {
       expect: history,
       // version times are the daemon's wall clock
@@ -691,7 +691,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     await held(live.id)
     await openTranscript()
     await w()
-      .getByRole('button', { name: 'Jump to Live' })
+      .getByRole('button', { name: 'Jump to live' })
       .waitFor({ state: 'detached', timeout: 5000 })
       .catch(() => {})
     await atlas.shoot(w(), 'record-now__recording__live-transcript', {
@@ -714,10 +714,10 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     await transcriptList(w()).hover()
     for (let i = 0; i < 6; i++) await w().mouse.wheel(0, -400)
     await atlas.shoot(w(), 'live-transcript__detached__jump-to-live', {
-      expect: w().getByRole('button', { name: 'Jump to Live' }),
+      expect: w().getByRole('button', { name: 'Jump to live' }),
       masks: [timer()],
     })
-    await w().getByRole('button', { name: 'Jump to Live' }).click()
+    await w().getByRole('button', { name: 'Jump to live' }).click()
     await w().keyboard.press('Control+t')
     await transcriptList(w()).waitFor({ state: 'detached', timeout: 5000 })
     await openAsk()
@@ -802,7 +802,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     await openPrefs()
     const auto = prefs().getByRole('region', { name: 'Auto-record' })
     await auto.scrollIntoViewIfNeeded()
-    const calRule = prefs().getByRole('switch', { name: 'When a Calendar Meeting Starts' })
+    const calRule = prefs().getByRole('switch', { name: 'When a calendar meeting starts' })
     await calRule.focus()
     await w().keyboard.press('Space')
     await poll(
@@ -811,9 +811,9 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       'calendar rule on',
     )
     await atlas.shoot(w(), 'auto-record-calendar__preferences__rule-on', {
-      expect: prefs().getByRole('switch', { name: 'When a Calendar Meeting Starts', checked: true }),
+      expect: prefs().getByRole('switch', { name: 'When a calendar meeting starts', checked: true }),
     })
-    const micRule = prefs().getByRole('switch', { name: 'When Another App Uses the Microphone' })
+    const micRule = prefs().getByRole('switch', { name: 'When another app uses the microphone' })
     await micRule.focus()
     await w().keyboard.press('Space')
     await poll(
@@ -822,7 +822,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       'mic rule on',
     )
     await atlas.shoot(w(), 'auto-record-mic__preferences__rule-on', {
-      expect: prefs().getByRole('switch', { name: 'When Another App Uses the Microphone', checked: true }),
+      expect: prefs().getByRole('switch', { name: 'When another app uses the microphone', checked: true }),
     })
     await micRule.focus()
     await w().keyboard.press('Space')
@@ -884,7 +884,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
   it('settings: provider and keys, speakers, capture, storage, integration', async () => {
     await openPrefs()
     await atlas.shoot(w(), 'settings-provider__general__anthropic', {
-      expect: prefs().getByText('Configured (kept in the keyring, never shown)').first(),
+      expect: prefs().getByText('Saved in your keyring, never shown').first(),
     })
     await prefs()
       .getByRole('button', { name: /Provider$/ })
@@ -929,7 +929,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     })
     await prefs().getByRole('tab', { name: 'Storage' }).click()
     await atlas.shoot(w(), 'settings-storage__preferences__retention', {
-      expect: prefs().getByRole('region', { name: 'Recorded Audio' }),
+      expect: prefs().getByRole('region', { name: 'Recorded audio' }),
     })
     await prefs().getByRole('tab', { name: 'Integration' }).click()
     await atlas.shoot(w(), 'integrations__preferences__integration-page', {
@@ -1116,7 +1116,7 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
     await atlas.shoot(w(), 'agenda-plan__saved__agenda', { expect: items, masks: clock() })
 
     await w().getByRole('button', { name: 'Edit “Next review date”' }).click()
-    const edit = w().getByRole('dialog', { name: 'Edit Item' })
+    const edit = w().getByRole('dialog', { name: 'Edit item' })
     await atlas.shoot(w(), 'agenda-plan__edit__items', {
       expect: edit.getByRole('textbox', { name: 'Item' }),
       masks: clock(),
@@ -1411,7 +1411,7 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
     // Send the agenda: first exactly what attendees get, then shared; the calendar file is read-only,
     // so the invitation text comes back to paste
     await w().getByRole('button', { name: 'Send the agenda' }).click()
-    const send = w().getByRole('dialog', { name: 'Send the Agenda' })
+    const send = w().getByRole('dialog', { name: 'Send the agenda' })
     await atlas.shoot(w(), 'agenda-share__share__dialog', {
       expect: [
         send.getByRole('region', { name: 'What attendees see' }),
@@ -1420,7 +1420,7 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
       masks: clock(),
     })
     await send.getByRole('button', { name: 'Send' }).click()
-    const copyText = send.getByRole('button', { name: 'Copy Invitation Text' })
+    const copyText = send.getByRole('button', { name: 'Copy invitation text' })
     await copyText.waitFor({ timeout: 20_000 })
     await atlas.shoot(w(), 'agenda-invite__fallback__copy-link', {
       expect: copyText,
@@ -1433,7 +1433,7 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
     await w()
       .getByRole('button', { name: /^Shared: / })
       .click({ timeout: 20_000 })
-    const dlg = w().getByRole('dialog', { name: 'Share Agenda' })
+    const dlg = w().getByRole('dialog', { name: 'Share the agenda' })
     await dlg.getByRole('textbox', { name: 'Your name' }).fill('Kacper')
     await dlg.getByRole('textbox', { name: 'Attendees who use kacola' }).fill('ben@example.com')
     await dlg.getByRole('button', { name: 'Save' }).click()
@@ -1442,7 +1442,7 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
     const link = await field.inputValue()
     await dlg.getByText('Up to date').waitFor({ timeout: 20_000 })
     await atlas.shoot(w(), 'agenda-share__shared__link', {
-      expect: [field, dlg.getByRole('button', { name: 'Copy Link' })],
+      expect: [field, dlg.getByRole('button', { name: 'Copy link' })],
       masks: [field, ...clock()],
     })
     if ((await dlg.count()) > 0) {
@@ -1464,12 +1464,12 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
     // ---- an attendee's window follows it, adds an item, moves one in person
     await launch(B)
     await w().getByRole('button', { name: 'Main menu' }).click({ timeout: 20_000 })
-    await w().getByRole('menuitem', { name: 'Follow a Shared Agenda…' }).click()
-    const follow = w().getByRole('dialog', { name: 'Follow a Shared Agenda' })
+    await w().getByRole('menuitem', { name: 'Follow a shared agenda…' }).click()
+    const follow = w().getByRole('dialog', { name: 'Follow a shared agenda' })
     await follow.getByRole('textbox', { name: 'Link' }).fill(link)
     await follow.getByRole('textbox', { name: 'Your email' }).fill('ben@example.com')
     await follow.getByRole('textbox', { name: 'Your name (optional)' }).fill('Ben')
-    await follow.getByRole('button', { name: 'Send Code' }).click()
+    await follow.getByRole('button', { name: 'Send code' }).click()
     const code = follow.getByRole('textbox', { name: 'Code' })
     await code.waitFor({ timeout: 20_000 })
     await code.fill(host.codeFor('ben@example.com'))
@@ -1534,7 +1534,7 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
       ],
       masks: clock(),
     })
-    const merged = w().getByRole('list', { name: 'Merge history' })
+    const merged = w().getByRole('list', { name: 'Status changes' })
     await merged.getByRole('listitem', { name: /Roadmap: Open → Covered by Ben’s Claude, Applied/ }).waitFor()
     await merged.scrollIntoViewIfNeeded()
     await atlas.shoot(w(), 'agenda-share__history__merge', {
@@ -1585,13 +1585,16 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
     await w()
       .getByRole('button', { name: /^Shared: / })
       .click({ timeout: 20_000 })
-    await w().getByRole('dialog', { name: 'Share Agenda' }).getByRole('button', { name: 'Unshare…' }).click()
+    await w()
+      .getByRole('dialog', { name: 'Share the agenda' })
+      .getByRole('button', { name: 'Unshare…' })
+      .click()
     await w()
       .getByRole('alertdialog', { name: 'Stop sharing this agenda?' })
       .getByRole('button', { name: 'Unshare', exact: true })
       .click()
     // unshared (the meeting has been recorded: its outcome page no longer offers the share)
-    const shareDlg = w().getByRole('dialog', { name: 'Share Agenda' })
+    const shareDlg = w().getByRole('dialog', { name: 'Share the agenda' })
     if ((await shareDlg.count()) > 0) {
       await w().keyboard.press('Escape')
       await shareDlg.waitFor({ state: 'detached', timeout: 5000 })
@@ -2278,15 +2281,18 @@ describe('atlas: first run (real daemon, models not downloaded, calendar off)', 
     app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl, ...WINDOW_ENV } })
     await freeze(app)
     const welcome = app.window.getByRole('dialog', { name: 'Welcome to kacola' })
-    await welcome.getByText('Available (fake)').waitFor({ timeout: 20_000 })
+    await welcome.getByText('Working', { exact: true }).waitFor({ timeout: 20_000 })
     await welcome.getByText(/Lets agents like Claude Code/).waitFor({ timeout: 20_000 })
     await atlas.shoot(app.window, 'first-run__welcome__checks', {
-      expect: [welcome.getByText('Available (fake)'), welcome.getByText(/Lets agents like Claude Code/)],
+      expect: [
+        welcome.getByText('Working', { exact: true }),
+        welcome.getByText(/Lets agents like Claude Code/),
+      ],
     })
     const cal = welcome.getByText(/Calendar reading is turned off|Calendar not available/).first()
     await cal.scrollIntoViewIfNeeded()
     await atlas.shoot(app.window, 'calendar-offline__onboarding__calendar-status', { expect: cal })
-    await welcome.getByRole('button', { name: 'Skip for Now' }).click()
+    await welcome.getByRole('button', { name: 'Skip for now' }).click()
     await welcome.waitFor({ state: 'detached', timeout: 5000 })
     // closing onboarding runs its default-on "Install command-line tool and Claude skill" (into the
     // display's private HOME); its toast would come and go between shots, so it is dismissed first
@@ -2347,11 +2353,11 @@ describe('atlas: the top-bar extension (fake gdbus / gsettings on PATH)', () => 
     const refocus = () => app.window.evaluate(`window.dispatchEvent(new Event('focus'))`)
     try {
       await freeze(app)
-      await card.getByRole('button', { name: 'Install & Enable' }).waitFor({ timeout: 20_000 })
+      await card.getByRole('button', { name: 'Install and turn on' }).waitFor({ timeout: 20_000 })
       await atlas.shoot(app.window, 'integrations__sidebar__extension-card', {
-        expect: card.getByRole('button', { name: 'Install & Enable' }),
+        expect: card.getByRole('button', { name: 'Install and turn on' }),
       })
-      await card.getByRole('button', { name: 'Install & Enable' }).click()
+      await card.getByRole('button', { name: 'Install and turn on' }).click()
       const login = 'Installed — log out and back in to turn it on'
       await card.getByText(login).waitFor({ timeout: 20_000 })
       await dismissToast(app, login)
@@ -2399,10 +2405,10 @@ describe('atlas: the top-bar extension (fake gdbus / gsettings on PATH)', () => 
       // GNOME Extensions' main switch turned off: asked before turning every extension back on
       writeFakeShell(statePath, { ...readFakeShell(statePath), disableUserExtensions: true })
       await refocus()
-      await prefs.getByRole('button', { name: 'Enable' }).click({ timeout: 10_000 })
-      const ask = app.window.getByRole('alertdialog', { name: 'Turn On GNOME Extensions?' })
+      await prefs.getByRole('button', { name: 'Turn on', exact: true }).click({ timeout: 10_000 })
+      const ask = app.window.getByRole('alertdialog', { name: 'Turn on GNOME extensions?' })
       await atlas.shoot(app.window, 'integrations__enable__ask-extensions', {
-        expect: ask.getByRole('button', { name: 'Turn On Extensions' }),
+        expect: ask.getByRole('button', { name: 'Turn on extensions' }),
         keepFocus: true,
       })
       await ask.getByRole('button', { name: 'Cancel' }).click()
@@ -2432,8 +2438,8 @@ describe('atlas: the daemon unreachable, and the connection lost', () => {
       await freeze(app)
       await atlas.shoot(app.window, 'daemon-down__window__cant-reach', {
         expect: [
-          app.window.getByRole('heading', { name: 'Can’t Reach kacola' }),
-          app.window.getByRole('button', { name: 'Try Again' }),
+          app.window.getByRole('heading', { name: 'Can’t reach kacola' }),
+          app.window.getByRole('button', { name: 'Try again' }),
         ],
         // the port is picked per run
         masks: [app.window.getByText(/127\.0\.0\.1:\d+/)],

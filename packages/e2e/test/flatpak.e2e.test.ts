@@ -404,7 +404,7 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
     expect(
       await welcome.getByRole('switch', { name: 'Install command-line tool and Claude skill' }).isChecked(),
     ).toBe(true)
-    await welcome.getByRole('button', { name: 'Skip for Now' }).click()
+    await welcome.getByRole('button', { name: 'Skip for now' }).click()
     const shim = join(home, '.local', 'bin', 'gnomeola')
     await waitFor(() => existsSync(shim), 30_000, 'the host shim from onboarding')
     expect(readFileSync(shim, 'utf8')).toContain(`'flatpak' 'run' '--command=gnomeola' '${APP}'`)
@@ -430,7 +430,7 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
     const prefs = cdp.window.getByRole('dialog', { name: 'Preferences' })
     await prefs.getByRole('tab', { name: 'Integration' }).click()
     const row = prefs.getByText('Top-bar extension', { exact: true }).locator('../..')
-    await row.getByRole('button', { name: 'Install & Enable' }).click()
+    await row.getByRole('button', { name: 'Install and turn on' }).click()
     // the sandbox cannot reach the Shell (no --talk-name=org.gnome.Shell), so: the command to run
     await row.getByText('Installed. To turn it on, run this in a terminal:').waitFor({ timeout: 20_000 })
     await row.getByText('gnome-extensions enable gnomeola@gnomeola.org', { exact: true }).waitFor()

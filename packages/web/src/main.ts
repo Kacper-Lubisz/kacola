@@ -86,7 +86,7 @@ async function render(): Promise<void> {
     if (route.view === 'pair' && route.code && token) return approve(route.code)
     if (!token || route.view === 'pair') return pairThisBrowser(signal)
     if (route.view === 'sessions') {
-      show('<p class="meta">Loading…</p>')
+      show('<p class="meta">Loading your meetings…</p>')
       show(renderSessions(await data.sessions(signal)))
     } else if (route.view === 'session') {
       show(renderSession(await data.session(route.id, signal)))
@@ -111,7 +111,7 @@ async function pairThisBrowser(signal: AbortSignal): Promise<void> {
     body: { name: `Browser (${navigator.userAgent.slice(0, 60)})` },
   })
   show(
-    `${renderPairing(start)}<details><summary>Have a token?</summary><form id="paste"><input name="t" aria-label="Token" autocomplete="off"><button>Use token</button></form></details>`,
+    `${renderPairing(start)}<details class="token"><summary>Have an access token instead?</summary><form id="paste"><input name="t" aria-label="Access token" autocomplete="off"><button>Use token</button></form></details>`,
   )
   document.querySelector<HTMLFormElement>('#paste')?.addEventListener('submit', (e) => {
     e.preventDefault()
@@ -138,7 +138,7 @@ async function pairThisBrowser(signal: AbortSignal): Promise<void> {
 /** A signed-in browser approving someone else's code (the verification link `gnomeola pair` prints). */
 function approve(code: string): void {
   show(
-    `<div class="pairing"><p>Approve the device showing code</p><p class="code">${esc(code)}</p><button id="approve">Approve</button></div>`,
+    `<div class="pairing"><h1>Approve a device</h1><p>Only approve it if this code is showing on your own screen:</p><p class="code">${esc(code)}</p><button id="approve">Approve</button></div>`,
   )
   document.querySelector('#approve')?.addEventListener('click', async () => {
     try {

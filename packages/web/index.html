@@ -5,16 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="referrer" content="no-referrer" />
     <title>kacola</title>
+    <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/brand/tokens.css" />
     <link rel="stylesheet" href="/app.css" />
   </head>
   <body>
-    <header>
-      <a class="brand" href="#/">kacola</a>
+    <header class="bar">
+      <a class="wordmark" href="#/" aria-label="kacola, all meetings">kacola<span class="dot" aria-hidden="true">.</span></a>
       <search><form id="search">
         <input name="q" type="search" placeholder="Search every meeting" aria-label="Search" />
       </form></search>
-      <span id="status" class="meta" aria-live="polite"></span>
-      <button id="signout" type="button" hidden>Sign out</button>
+      <span id="status" class="live-state" aria-live="polite"></span>
+      <button id="signout" class="quiet" type="button" hidden>Sign out</button>
     </header>
     <main id="app" aria-live="polite"><noscript>The kacola viewer needs JavaScript.</noscript></main>
     <script type="module" src="/app.js"></script>

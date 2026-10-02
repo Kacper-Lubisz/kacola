@@ -280,7 +280,7 @@ describe('the top-bar extension’s states and its one button', () => {
     expect(await w.m.status()).toMatchObject({ state: 'needs-login', reason: 'updated' })
   })
 
-  it('a crashed extension or one for another Shell version is an error; Try Again reinstalls it', async () => {
+  it('a crashed extension or one for another Shell version is an error; Try again reinstalls it', async () => {
     const w = world()
     await w.m.turnOn()
     w.relogin()

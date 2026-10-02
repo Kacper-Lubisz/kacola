@@ -18,7 +18,7 @@ import {
 // The top-bar extension, wherever the window offers it: Preferences › Integration (ExtensionRow), a
 // dismissible card at the foot of the sidebar (ExtensionCard: GNOME only, while the extension is not
 // on), and onboarding (ExtensionAction inside its own row). One button does the right thing for the
-// state main reports (src/main/extension.ts): Install & Enable, Update, Enable, Try Again — and when
+// state main reports (src/main/extension.ts): Install and turn on, Update, Turn on, Try again — and when
 // GNOME has every user extension switched off it asks first, because switching them back on affects
 // the user's other extensions too. Re-checked whenever the window regains focus (the user may have
 // logged in again, or used GNOME Extensions meanwhile).
@@ -45,10 +45,10 @@ export type ExtensionView = {
 }
 
 const LABEL: Record<ExtensionAct, () => string> = {
-  install: () => _('Install & Enable'),
+  install: () => _('Install and turn on'),
   update: () => _('Update'),
-  enable: () => _('Enable'),
-  retry: () => _('Try Again'),
+  enable: () => _('Turn on'),
+  retry: () => _('Try again'),
 }
 
 /** What the row / card / onboarding show for a state (undefined: still checking). */
@@ -238,10 +238,10 @@ export function ExtensionAction({
         {view.label}
       </Button>
       <AlertDialog
-        title={_('Turn On GNOME Extensions?')}
+        title={_('Turn on GNOME extensions?')}
         isOpen={asking}
         onOpenChange={setAsking}
-        confirmLabel={_('Turn On Extensions')}
+        confirmLabel={_('Turn on extensions')}
         onConfirm={() => void go()}
       >
         {_(
@@ -285,7 +285,7 @@ export function ExtensionRow() {
             if (next.state !== 'enabled') toast(_('The top-bar extension is off'))
           }}
         >
-          {_('Disable')}
+          {_('Turn off')}
         </Button>
       ) : null}
       {view.removable && !ext.busy ? (
@@ -294,7 +294,7 @@ export function ExtensionRow() {
         </Button>
       ) : null}
       <AlertDialog
-        title={_('Remove the Top-Bar Extension?')}
+        title={_('Remove the top-bar extension?')}
         isOpen={confirmRemove}
         onOpenChange={setConfirmRemove}
         confirmLabel={_('Remove')}
@@ -338,23 +338,25 @@ export function ExtensionCard() {
   const card = useCardDismissed()
   if (card.dismissed || !ext.view.card) return null
   return (
-    <section aria-label={_('Top-bar extension')} className="px-3 pb-3">
-      <Card className="flex flex-col gap-2 p-3">
-        <div className="flex items-start gap-2">
-          <Icon name="topBar" size={16} className="mt-0.5 shrink-0 text-text-secondary" />
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <h2 className="m-0 type-body-strong text-text-primary">{_('Top-bar extension')}</h2>
-            <p className="m-0 type-caption text-text-secondary">
-              <ExtensionSubtitle view={ext.view} />
-            </p>
-          </div>
-          <IconButton icon="close" size="sm" label={_('Dismiss')} onPress={() => void card.dismiss()} />
+    <section aria-label={_('Top-bar extension')}>
+      {/* one line: what it is, the one thing to do, and dismiss in the corner; a narrow window wraps the
+          button under the text, and dismiss stays where it is */}
+      <Card className="relative flex flex-wrap items-center gap-x-3 gap-y-2 py-3 pr-12 pl-4">
+        <Icon name="topBar" size={18} className="mt-0.5 shrink-0 self-start text-text-secondary" />
+        <div className="flex min-w-0 flex-[1_1_14rem] flex-col gap-0.5">
+          <h2 className="m-0 type-body-strong text-text-primary">{_('Top-bar extension')}</h2>
+          <p className="m-0 type-callout text-text-secondary">
+            <ExtensionSubtitle view={ext.view} />
+          </p>
         </div>
         {ext.view.act || ext.busy ? (
-          <div className="flex justify-end">
-            <ExtensionAction ext={ext} />
+          <div className="ml-auto flex shrink-0 items-center">
+            <ExtensionAction ext={ext} variant="secondary" />
           </div>
         ) : null}
+        <span className="absolute top-2.5 right-3">
+          <IconButton icon="close" size="sm" label={_('Dismiss')} onPress={() => void card.dismiss()} />
+        </span>
       </Card>
     </section>
   )

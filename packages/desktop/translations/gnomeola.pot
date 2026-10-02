@@ -22,12 +22,12 @@ msgstr ""
 msgid "Close"
 msgstr ""
 
-#: src/renderer/design/primitives/dialog.tsx:108
+#: src/renderer/design/primitives/dialog.tsx:110
 #: src/renderer/features/agendas/agenda-actions.tsx:146
 #: src/renderer/features/agendas/agenda-editor.tsx:528
 #: src/renderer/features/agendas/context-cards.tsx:159
 #: src/renderer/features/agendas/follow.tsx:122
-#: src/renderer/features/agendas/send.tsx:96
+#: src/renderer/features/agendas/send.tsx:95
 #: src/renderer/features/agendas/share.tsx:247
 msgid "Cancel"
 msgstr ""
@@ -115,7 +115,7 @@ msgstr ""
 
 #: src/renderer/design/primitives/toast.tsx:97
 #: src/renderer/features/meeting/notepad.tsx:157
-#: src/renderer/features/preferences/extension-setup.tsx:351
+#: src/renderer/features/preferences/extension-setup.tsx:358
 msgid "Dismiss"
 msgstr ""
 
@@ -177,26 +177,26 @@ msgid ""
 "This program comes with absolutely no warranty. It is licensed under the"
 msgstr ""
 
-#: src/renderer/features/about/about-dialog.tsx:77
+#: src/renderer/features/about/about-dialog.tsx:85
 msgid "GNU General Public License, version 3 or later"
 msgstr ""
 
-#: src/renderer/features/about/about-dialog.tsx:81
-msgid "Third-Party Components"
+#: src/renderer/features/about/about-dialog.tsx:89
+msgid "Third-party components"
 msgstr ""
 
-#: src/renderer/features/about/about-dialog.tsx:84
+#: src/renderer/features/about/about-dialog.tsx:92
 msgid ""
 "kacola includes the following components under their own licences. The full "
 "list, with homepages, is in THIRD_PARTY_NOTICES.md."
 msgstr ""
 
-#: src/renderer/features/about/about-dialog.tsx:88
+#: src/renderer/features/about/about-dialog.tsx:96
 msgid "Loading"
 msgstr ""
 
-#: src/renderer/features/about/about-dialog.tsx:93
-msgid "Third-Party Notices"
+#: src/renderer/features/about/about-dialog.tsx:101
+msgid "Third-party notices"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-actions.tsx:42
@@ -210,7 +210,7 @@ msgid "Agenda actions"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-actions.tsx:55
-msgid "Export Agenda"
+msgid "Export agenda"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-actions.tsx:61
@@ -242,7 +242,7 @@ msgid "Import Markdown…"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-actions.tsx:84
-msgid "Delete Agenda…"
+msgid "Delete agenda…"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-actions.tsx:90
@@ -506,7 +506,7 @@ msgstr ""
 #: src/renderer/features/meeting/notepad.tsx:60
 #: src/renderer/features/meeting/notepad.tsx:217
 #: src/renderer/features/meeting/notepad.tsx:398
-#: src/renderer/features/notes/version-history.tsx:129
+#: src/renderer/features/notes/version-history.tsx:133
 msgid "Loading…"
 msgstr ""
 
@@ -515,7 +515,7 @@ msgid "No changes yet."
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-editor.tsx:439
-#: src/renderer/features/notes/version-history.tsx:140
+#: src/renderer/features/notes/version-history.tsx:144
 msgid "Versions"
 msgstr ""
 
@@ -542,7 +542,7 @@ msgid "Could not save the item"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-editor.tsx:521
-msgid "Edit Item"
+msgid "Edit item"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-editor.tsx:530
@@ -663,9 +663,6 @@ msgid "Share with attendees"
 msgstr ""
 
 #: src/renderer/features/agendas/context-cards.tsx:167
-msgid "Add Card"
-msgstr ""
-
 #: src/renderer/features/agendas/context-cards.tsx:174
 msgid "Add card"
 msgstr ""
@@ -698,7 +695,7 @@ msgid ""
 msgstr ""
 
 #: src/renderer/features/agendas/follow.tsx:94
-msgid "Follow a Shared Agenda"
+msgid "Follow a shared agenda"
 msgstr ""
 
 #: src/renderer/features/agendas/follow.tsx:110
@@ -710,7 +707,7 @@ msgid "Follow"
 msgstr ""
 
 #: src/renderer/features/agendas/follow.tsx:129
-msgid "Send Code"
+msgid "Send code"
 msgstr ""
 
 #: src/renderer/features/agendas/follow.tsx:140
@@ -871,6 +868,7 @@ msgid "{label}. Show agent"
 msgstr ""
 
 #: src/renderer/features/agendas/send.tsx:29
+#: src/renderer/features/agendas/send.tsx:68
 msgid "Send the agenda"
 msgstr ""
 
@@ -878,65 +876,61 @@ msgstr ""
 msgid "Copied the invitation text"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:68
-msgid "Send the Agenda"
+#: src/renderer/features/agendas/send.tsx:76
+msgid "Copy invitation text"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:77
-msgid "Copy Invitation Text"
+#: src/renderer/features/agendas/send.tsx:86
+msgid "Set up sharing"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:87
-msgid "Set Up Sharing"
-msgstr ""
-
-#: src/renderer/features/agendas/send.tsx:91
+#: src/renderer/features/agendas/send.tsx:90
 #: src/renderer/features/agendas/share.tsx:230
 #: src/renderer/features/meeting/outcome-view.tsx:91
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:182
 msgid "Done"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:98
+#: src/renderer/features/agendas/send.tsx:97
 msgid "Sending…"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:98
+#: src/renderer/features/agendas/send.tsx:97
 msgid "Send"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:110
+#: src/renderer/features/agendas/send.tsx:109
 msgid "The link is in the calendar invitation now."
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:115
+#: src/renderer/features/agendas/send.tsx:114
 msgid "Paste this into the invitation:"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:132
+#: src/renderer/features/agendas/send.tsx:131
 msgid "Attendees get a page anyone can open, with exactly this:"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:135
+#: src/renderer/features/agendas/send.tsx:134
 msgid "What attendees see"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:142
+#: src/renderer/features/agendas/send.tsx:141
 msgid "Goal: {goal}"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:158
+#: src/renderer/features/agendas/send.tsx:157
 msgid "Include the goals"
 msgstr ""
 
-#: src/renderer/features/agendas/send.tsx:165
+#: src/renderer/features/agendas/send.tsx:164
 msgid "{n} private note stays on this computer: attendees never see it."
 msgid_plural ""
 "{n} private notes stay on this computer: attendees never see them."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/agendas/send.tsx:174
+#: src/renderer/features/agendas/send.tsx:173
 msgid "The agenda was not sent: {reason}"
 msgstr ""
 
@@ -1035,24 +1029,24 @@ msgid "Copied the link"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:210
-msgid "Shared Agenda"
+msgid "Shared agenda"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:210
-msgid "Share Agenda"
+msgid "Share the agenda"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:222
-msgid "Remove Sharing Details"
+msgid "Remove sharing details"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:222
-msgid "Stop Following…"
+msgid "Stop following…"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:226
 #: src/renderer/features/agendas/share.tsx:239
-msgid "Sync Now"
+msgid "Sync now"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:236
@@ -1078,7 +1072,7 @@ msgid "Web link"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:290
-msgid "Copy Link"
+msgid "Copy link"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:298
@@ -1156,7 +1150,7 @@ msgid "Stop sharing this agenda?"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:365
-msgid "Stop Following"
+msgid "Stop following"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:365
@@ -1195,9 +1189,10 @@ msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:411
 #: src/renderer/features/ask/ask-answer.tsx:104
+#: src/renderer/features/meeting/notepad.tsx:152
 #: src/renderer/features/preferences/extension-setup.tsx:51
-#: src/renderer/routes/main-layout.tsx:95
-msgid "Try Again"
+#: src/renderer/routes/main-layout.tsx:100
+msgid "Try again"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:446
@@ -1215,7 +1210,7 @@ msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:473
 #: src/renderer/features/agendas/share.tsx:572
-msgid "Merge history"
+msgid "Status changes"
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:477
@@ -1268,9 +1263,8 @@ msgstr[1] ""
 
 #: src/renderer/features/agendas/share.tsx:589
 msgid ""
-"Every status change from every device, and what became of it: the "
-"organizer’s own changes win, then each attendee’s, then trackers and agents "
-"(forward only)."
+"Who changed each item’s status, and whether it stuck. The organizer’s "
+"changes win, then attendees’, then kacola’s and agents’."
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:593
@@ -1664,8 +1658,8 @@ msgstr ""
 
 #: src/renderer/features/meeting/agenda-rail.tsx:172
 #: src/renderer/features/meeting/agenda-rail.tsx:214
-#: src/renderer/features/meeting/agenda-rail.tsx:316
-#: src/renderer/features/meeting/agenda-rail.tsx:317
+#: src/renderer/features/meeting/agenda-rail.tsx:319
+#: src/renderer/features/meeting/agenda-rail.tsx:320
 #: src/renderer/features/meeting/prep-view.tsx:123
 msgid "Agenda"
 msgstr ""
@@ -1706,47 +1700,47 @@ msgstr ""
 msgid "Recap per item"
 msgstr ""
 
-#: src/renderer/features/meeting/agenda-rail.tsx:257
+#: src/renderer/features/meeting/agenda-rail.tsx:260
 msgid "Private context"
 msgstr ""
 
-#: src/renderer/features/meeting/agenda-rail.tsx:264
+#: src/renderer/features/meeting/agenda-rail.tsx:267
 msgid "{n} private notes"
 msgstr ""
 
-#: src/renderer/features/meeting/agenda-rail.tsx:267
+#: src/renderer/features/meeting/agenda-rail.tsx:270
 msgid "Only you. Never in what others get."
 msgstr ""
 
-#: src/renderer/features/meeting/agenda-rail.tsx:267
+#: src/renderer/features/meeting/agenda-rail.tsx:270
 msgid "Hidden in case you share your screen"
 msgstr ""
 
-#: src/renderer/features/meeting/agenda-rail.tsx:272
+#: src/renderer/features/meeting/agenda-rail.tsx:275
 msgid "Hide"
 msgstr ""
 
-#: src/renderer/features/meeting/agenda-rail.tsx:272
+#: src/renderer/features/meeting/agenda-rail.tsx:275
 msgid "Show"
 msgstr ""
 
-#: src/renderer/features/meeting/agenda-rail.tsx:305
+#: src/renderer/features/meeting/agenda-rail.tsx:308
 msgid "Agenda for {title}"
 msgstr ""
 
-#: src/renderer/features/meeting/agenda-rail.tsx:305
+#: src/renderer/features/meeting/agenda-rail.tsx:308
 msgid "this meeting"
 msgstr ""
 
-#: src/renderer/features/meeting/agenda-rail.tsx:310
+#: src/renderer/features/meeting/agenda-rail.tsx:313
 msgid "Could not create the agenda: {reason}"
 msgstr ""
 
-#: src/renderer/features/meeting/agenda-rail.tsx:318
+#: src/renderer/features/meeting/agenda-rail.tsx:321
 msgid "No agenda for this meeting."
 msgstr ""
 
-#: src/renderer/features/meeting/agenda-rail.tsx:321
+#: src/renderer/features/meeting/agenda-rail.tsx:324
 msgid "Add an agenda"
 msgstr ""
 
@@ -1881,7 +1875,7 @@ msgid "Saving…"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:41
-#: src/renderer/features/notes/version-history.tsx:136
+#: src/renderer/features/notes/version-history.tsx:140
 msgid "Nothing written yet"
 msgstr ""
 
@@ -1929,10 +1923,6 @@ msgstr ""
 msgid "Your notes were not changed. {reason}"
 msgstr ""
 
-#: src/renderer/features/meeting/notepad.tsx:152
-msgid "Try again"
-msgstr ""
-
 #: src/renderer/features/meeting/notepad.tsx:169
 msgid "{template} template, suggested by the calendar event (“{keyword}”)"
 msgstr ""
@@ -1950,7 +1940,7 @@ msgid "Could not copy: {reason}"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:246
-msgid "Export Notes"
+msgid "Export notes"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:250
@@ -1972,7 +1962,7 @@ msgstr ""
 #: src/renderer/features/meeting/notepad.tsx:272
 msgid ""
 "Saved on top of a newer version from elsewhere; that one is in Version "
-"History."
+"history."
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:277
@@ -1995,7 +1985,7 @@ msgid "Enhance"
 msgstr ""
 
 #: src/renderer/features/meeting/notepad.tsx:295
-#: src/renderer/features/notes/template-editor.tsx:105
+#: src/renderer/features/notes/template-editor.tsx:106
 msgid "Templates"
 msgstr ""
 
@@ -2240,7 +2230,7 @@ msgid "Accept"
 msgstr ""
 
 #: src/renderer/features/meeting/transcript-panel.tsx:27
-#: src/renderer/features/preferences/preferences-dialog.tsx:324
+#: src/renderer/features/preferences/preferences-dialog.tsx:327
 #: src/renderer/features/speakers/speakers-dialog.tsx:207
 #: src/renderer/features/speakers/speakers-dialog.tsx:234
 #: src/renderer/features/speakers/speakers-dialog.tsx:257
@@ -2274,6 +2264,7 @@ msgid "{name} (copy)"
 msgstr ""
 
 #: src/renderer/features/notes/template-editor.tsx:82
+#: src/renderer/features/notes/template-editor.tsx:103
 msgid "New template"
 msgstr ""
 
@@ -2286,54 +2277,50 @@ msgid "Built-in"
 msgstr ""
 
 #: src/renderer/features/notes/template-editor.tsx:98
-msgid "Notes Templates"
+msgid "Notes templates"
 msgstr ""
 
-#: src/renderer/features/notes/template-editor.tsx:102
-msgid "New Template"
-msgstr ""
-
-#: src/renderer/features/notes/template-editor.tsx:121
+#: src/renderer/features/notes/template-editor.tsx:122
 msgid ""
 "Built-in templates cannot be changed. Duplicate one to make it your own."
 msgstr ""
 
-#: src/renderer/features/notes/template-editor.tsx:125
+#: src/renderer/features/notes/template-editor.tsx:126
 msgid "Name"
 msgstr ""
 
-#: src/renderer/features/notes/template-editor.tsx:131
+#: src/renderer/features/notes/template-editor.tsx:132
 msgid "Keywords"
 msgstr ""
 
-#: src/renderer/features/notes/template-editor.tsx:133
+#: src/renderer/features/notes/template-editor.tsx:134
 msgid ""
 "Comma-separated. A meeting whose title (or calendar event) contains one gets "
 "this template."
 msgstr ""
 
-#: src/renderer/features/notes/template-editor.tsx:140
+#: src/renderer/features/notes/template-editor.tsx:141
 msgid "Template"
 msgstr ""
 
-#: src/renderer/features/notes/template-editor.tsx:141
+#: src/renderer/features/notes/template-editor.tsx:142
 msgid "The structure and guidance the notes should follow, in Markdown."
 msgstr ""
 
-#: src/renderer/features/notes/template-editor.tsx:149
+#: src/renderer/features/notes/template-editor.tsx:150
 msgid "The template could not be saved: {reason}"
 msgstr ""
 
-#: src/renderer/features/notes/template-editor.tsx:155
-msgid "Delete Template"
+#: src/renderer/features/notes/template-editor.tsx:156
+msgid "Delete template"
 msgstr ""
 
-#: src/renderer/features/notes/template-editor.tsx:159
+#: src/renderer/features/notes/template-editor.tsx:160
 msgid "Duplicate"
 msgstr ""
 
-#: src/renderer/features/notes/template-editor.tsx:164
-msgid "Save Template"
+#: src/renderer/features/notes/template-editor.tsx:165
+msgid "Save template"
 msgstr ""
 
 #: src/renderer/features/notes/version-history.tsx:17
@@ -2357,7 +2344,7 @@ msgid "Restored version {n}"
 msgstr ""
 
 #: src/renderer/features/notes/version-history.tsx:71
-#: src/renderer/features/notes/version-history.tsx:157
+#: src/renderer/features/notes/version-history.tsx:161
 msgid "Version {n}"
 msgstr ""
 
@@ -2366,32 +2353,32 @@ msgid "Current"
 msgstr ""
 
 #: src/renderer/features/notes/version-history.tsx:101
-msgid "Version History"
+msgid "Version history"
 msgstr ""
 
-#: src/renderer/features/notes/version-history.tsx:107
+#: src/renderer/features/notes/version-history.tsx:110
 msgid "The version could not be restored: {reason}"
 msgstr ""
 
-#: src/renderer/features/notes/version-history.tsx:111
+#: src/renderer/features/notes/version-history.tsx:114
 msgid "Restoring adds a new version; nothing in this list is ever removed."
 msgstr ""
 
-#: src/renderer/features/notes/version-history.tsx:120
-msgid "Restore This Version"
+#: src/renderer/features/notes/version-history.tsx:123
+msgid "Restore this version"
 msgstr ""
 
-#: src/renderer/features/notes/version-history.tsx:150
+#: src/renderer/features/notes/version-history.tsx:154
 msgid "Text of version {n}"
 msgstr ""
 
-#: src/renderer/features/notes/version-history.tsx:160
+#: src/renderer/features/notes/version-history.tsx:164
 msgid "(empty)"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:34
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:227
-#: src/renderer/features/preferences/preferences-dialog.tsx:216
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:225
+#: src/renderer/features/preferences/preferences-dialog.tsx:222
 msgid "Ready"
 msgstr ""
 
@@ -2416,7 +2403,7 @@ msgid "Checking…"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:84
-msgid "Available ({backend})"
+msgid "Working"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:85
@@ -2456,7 +2443,7 @@ msgid "Welcome to kacola"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:186
-msgid "Skip for Now"
+msgid "Skip for now"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:189
@@ -2478,10 +2465,6 @@ msgid ""
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:213
-msgid "Speech Models"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:213
 msgid "Speech models"
 msgstr ""
 
@@ -2489,116 +2472,112 @@ msgstr ""
 msgid "Loading models"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:232
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:230
 msgid "{model} download progress"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:238
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:236
 msgid "Download {model}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:241
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:239
 msgid "Download"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:251
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:249
 msgid "Something went wrong: {reason}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:254
-msgid "Audio Capture"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:254
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:252
 msgid "Audio capture"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:255
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:256
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:253
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:254
 msgid "Microphone and system audio"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:259
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:257
 msgid "Capture available"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:260
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:258
 msgid "Capture not available"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:261
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:259
 msgid "Checking audio capture"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:266
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:264
 msgid "Meetings"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:266
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:264
 msgid "Calendar access"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:267
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:268
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:265
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:266
 msgid "Calendar"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:271
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:269
 msgid "Calendar available"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:272
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:270
 msgid "Calendar not available"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:273
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:271
 msgid "Checking calendar access"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:278
-msgid "For Agents"
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:276
+msgid "For agents"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:278
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:276
 msgid "Command-line tool"
 msgstr ""
 
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:277
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:279
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:281
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:294
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:292
 msgid "Install command-line tool and Claude skill"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:285
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:283
 #: src/renderer/features/preferences/integration-rows.tsx:34
 msgid ""
 "Lets agents like Claude Code read your meetings through the gnomeola command"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:290
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:288
 msgid "Installed"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:303
-msgid "Top Bar"
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:301
+msgid "Top bar"
 msgstr ""
 
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:301
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:302
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:303
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:304
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:305
 #: src/renderer/features/preferences/extension-setup.tsx:272
 #: src/renderer/features/preferences/extension-setup.tsx:341
-#: src/renderer/features/preferences/extension-setup.tsx:346
+#: src/renderer/features/preferences/extension-setup.tsx:347
 msgid "Top-bar extension"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:308
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:306
 #: src/renderer/features/preferences/extension-setup.tsx:276
 msgid "On"
 msgstr ""
 
 #: src/renderer/features/preferences/extension-setup.tsx:48
-msgid "Install & Enable"
+msgid "Install and turn on"
 msgstr ""
 
 #: src/renderer/features/preferences/extension-setup.tsx:49
@@ -2607,7 +2586,7 @@ msgid "Update"
 msgstr ""
 
 #: src/renderer/features/preferences/extension-setup.tsx:50
-msgid "Enable"
+msgid "Turn on"
 msgstr ""
 
 #: src/renderer/features/preferences/extension-setup.tsx:73
@@ -2700,11 +2679,11 @@ msgid "Working…"
 msgstr ""
 
 #: src/renderer/features/preferences/extension-setup.tsx:241
-msgid "Turn On GNOME Extensions?"
+msgid "Turn on GNOME extensions?"
 msgstr ""
 
 #: src/renderer/features/preferences/extension-setup.tsx:244
-msgid "Turn On Extensions"
+msgid "Turn on extensions"
 msgstr ""
 
 #: src/renderer/features/preferences/extension-setup.tsx:248
@@ -2718,11 +2697,11 @@ msgid "The top-bar extension is off"
 msgstr ""
 
 #: src/renderer/features/preferences/extension-setup.tsx:288
-msgid "Disable"
+msgid "Turn off"
 msgstr ""
 
 #: src/renderer/features/preferences/extension-setup.tsx:297
-msgid "Remove the Top-Bar Extension?"
+msgid "Remove the top-bar extension?"
 msgstr ""
 
 #: src/renderer/features/preferences/extension-setup.tsx:304
@@ -2739,7 +2718,7 @@ msgid "Installed at {path}"
 msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:25
-msgid "Another gnomeola at {path} comes first on your PATH."
+msgid "Another gnomeola command at {path} comes first on your PATH."
 msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:27
@@ -2755,7 +2734,7 @@ msgid "An older version is installed at {path}"
 msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:37
-msgid "A different gnomeola is already installed at {path}"
+msgid "A different gnomeola command is already installed at {path}"
 msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:82
@@ -2783,7 +2762,7 @@ msgid "Replace…"
 msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:116
-msgid "Replace the Other gnomeola?"
+msgid "Replace the other gnomeola command?"
 msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:119
@@ -2838,7 +2817,7 @@ msgid "API key"
 msgstr ""
 
 #: src/renderer/features/preferences/preferences-dialog.tsx:109
-msgid "Configured (kept in the keyring, never shown)"
+msgid "Saved in your keyring, never shown"
 msgstr ""
 
 #: src/renderer/features/preferences/preferences-dialog.tsx:109
@@ -2873,231 +2852,238 @@ msgstr ""
 msgid "Ollama"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:217
-msgid "Not ready"
+#: src/renderer/features/preferences/preferences-dialog.tsx:218
+msgid "Ollama is not answering"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:219
+msgid "Needs an API key"
 msgstr ""
 
 #: src/renderer/features/preferences/preferences-dialog.tsx:221
-msgid "Live decisions"
+msgid "Ready. More accurate once its on-device model is downloaded"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:223
-msgid ""
-"Checks agenda items off, picks the next talking point and hears answers "
-"during a meeting."
+#: src/renderer/features/preferences/preferences-dialog.tsx:226
+msgid "Agenda during meetings"
 msgstr ""
 
 #: src/renderer/features/preferences/preferences-dialog.tsx:227
-msgid "Decisions provider"
+msgid ""
+"Ticks off agenda items as they are covered and suggests what to raise next."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:234
-#: src/renderer/features/preferences/preferences-dialog.tsx:236
-msgid "Decision model"
+#: src/renderer/features/preferences/preferences-dialog.tsx:230
+msgid "Runs on"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:234
-#: src/renderer/features/preferences/preferences-dialog.tsx:288
+#: src/renderer/features/preferences/preferences-dialog.tsx:237
+#: src/renderer/features/preferences/preferences-dialog.tsx:239
+msgid "Agenda model"
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:237
+#: src/renderer/features/preferences/preferences-dialog.tsx:291
 msgid "The provider’s default"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:247
+#: src/renderer/features/preferences/preferences-dialog.tsx:250
 msgid "TypeSafe API key"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:251
-#: src/renderer/features/preferences/preferences-dialog.tsx:307
+#: src/renderer/features/preferences/preferences-dialog.tsx:254
+#: src/renderer/features/preferences/preferences-dialog.tsx:310
 msgid "OpenAI API key"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:251
-#: src/renderer/features/preferences/preferences-dialog.tsx:307
+#: src/renderer/features/preferences/preferences-dialog.tsx:254
+#: src/renderer/features/preferences/preferences-dialog.tsx:310
 msgid "Anthropic API key"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:254
-msgid "Shared with the language model (configured)"
+#: src/renderer/features/preferences/preferences-dialog.tsx:257
+msgid "Configured: the same key as for questions and answers"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:255
-msgid "Not configured: set it above, under Questions and Answers"
+#: src/renderer/features/preferences/preferences-dialog.tsx:258
+msgid "Not configured: add it above, under Questions and answers"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:278
-msgid "Questions and Answers"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:279
-msgid "The language model that answers questions about your meetings."
+#: src/renderer/features/preferences/preferences-dialog.tsx:281
+msgid "Questions and answers"
 msgstr ""
 
 #: src/renderer/features/preferences/preferences-dialog.tsx:282
+msgid "The AI that answers questions about your meetings and writes up notes."
+msgstr ""
+
+#: src/renderer/features/preferences/preferences-dialog.tsx:285
 msgid "Provider"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:288
-#: src/renderer/features/preferences/preferences-dialog.tsx:289
+#: src/renderer/features/preferences/preferences-dialog.tsx:291
+#: src/renderer/features/preferences/preferences-dialog.tsx:292
 msgid "Model"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:293
-#: src/renderer/features/preferences/preferences-dialog.tsx:295
+#: src/renderer/features/preferences/preferences-dialog.tsx:296
+#: src/renderer/features/preferences/preferences-dialog.tsx:298
 msgid "Ollama URL"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:313
+#: src/renderer/features/preferences/preferences-dialog.tsx:316
 msgid "Transcription"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:314
+#: src/renderer/features/preferences/preferences-dialog.tsx:317
 msgid "A second, more accurate pass replaces the live transcript line by line."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:317
-msgid "Accurate pass"
+#: src/renderer/features/preferences/preferences-dialog.tsx:320
+msgid "Accurate transcript"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:325
+#: src/renderer/features/preferences/preferences-dialog.tsx:328
 msgid ""
 "Your microphone is always you. These decide what happens to the other side."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:328
+#: src/renderer/features/preferences/preferences-dialog.tsx:331
 msgid "Tell far-end speakers apart"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:329
+#: src/renderer/features/preferences/preferences-dialog.tsx:332
 msgid "Label each voice on the other side as its own speaker"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:334
+#: src/renderer/features/preferences/preferences-dialog.tsx:337
 msgid "Recognise people across meetings"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:336
+#: src/renderer/features/preferences/preferences-dialog.tsx:339
 msgid ""
 "Remember the voices of people you name, so they are named in later meetings. "
 "Voices are stored only on this computer; turning this off forgets them all."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:342
+#: src/renderer/features/preferences/preferences-dialog.tsx:345
 msgid "Capture"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:342
+#: src/renderer/features/preferences/preferences-dialog.tsx:345
 msgid "Used for recordings started from now on."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:344
+#: src/renderer/features/preferences/preferences-dialog.tsx:347
 #: src/renderer/features/sessions/session-details.tsx:19
 msgid "Microphone"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:350
+#: src/renderer/features/preferences/preferences-dialog.tsx:353
 #: src/renderer/features/sessions/session-details.tsx:20
 msgid "System audio"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:351
+#: src/renderer/features/preferences/preferences-dialog.tsx:354
 msgid "What the other people in the call sound like"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:358
+#: src/renderer/features/preferences/preferences-dialog.tsx:361
 msgid "Auto-record"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:360
+#: src/renderer/features/preferences/preferences-dialog.tsx:363
 msgid ""
 "Start recording on its own. A recording that is already running is never "
 "interrupted."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:364
-msgid "When a Calendar Meeting Starts"
+#: src/renderer/features/preferences/preferences-dialog.tsx:367
+msgid "When a calendar meeting starts"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:365
+#: src/renderer/features/preferences/preferences-dialog.tsx:368
 msgid "Meetings you declined, and all-day events, are skipped"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:370
-msgid "When Another App Uses the Microphone"
+#: src/renderer/features/preferences/preferences-dialog.tsx:373
+msgid "When another app uses the microphone"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:371
+#: src/renderer/features/preferences/preferences-dialog.tsx:374
 msgid "Stops again once the call has ended"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:384
-msgid "Recorded Audio"
+#: src/renderer/features/preferences/preferences-dialog.tsx:387
+msgid "Recorded audio"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:385
+#: src/renderer/features/preferences/preferences-dialog.tsx:388
 msgid ""
 "Transcripts are always kept. This only decides what happens to the audio."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:388
+#: src/renderer/features/preferences/preferences-dialog.tsx:391
 msgid "Audio"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:394
-#: src/renderer/features/preferences/preferences-dialog.tsx:396
+#: src/renderer/features/preferences/preferences-dialog.tsx:397
+#: src/renderer/features/preferences/preferences-dialog.tsx:399
 msgid "Days to keep audio"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:409
+#: src/renderer/features/preferences/preferences-dialog.tsx:412
 msgid "Archive audio"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:410
-msgid "Keep a compressed copy (Opus) of each recording"
+#: src/renderer/features/preferences/preferences-dialog.tsx:413
+msgid "Keep a small compressed copy of each recording"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:420
-msgid "Desktop Integration"
+#: src/renderer/features/preferences/preferences-dialog.tsx:423
+msgid "Desktop integration"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:420
+#: src/renderer/features/preferences/preferences-dialog.tsx:423
 msgid "Make kacola available outside this window."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:439
+#: src/renderer/features/preferences/preferences-dialog.tsx:442
 msgid "Could not save the setting: {reason}"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:463
-msgid "Settings Unavailable"
+#: src/renderer/features/preferences/preferences-dialog.tsx:466
+msgid "Settings unavailable"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:464
-msgid "The daemon did not return its settings."
+#: src/renderer/features/preferences/preferences-dialog.tsx:467
+msgid "kacola’s background service did not answer. Close this and try again."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:470
+#: src/renderer/features/preferences/preferences-dialog.tsx:473
 msgid "Loading settings"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:476
+#: src/renderer/features/preferences/preferences-dialog.tsx:479
 #: src/renderer/features/shell/primary-menu.tsx:17
 #: src/renderer/features/shell/shortcuts.tsx:28
 msgid "Preferences"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:479
+#: src/renderer/features/preferences/preferences-dialog.tsx:482
 msgid "Preferences pages"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:482
+#: src/renderer/features/preferences/preferences-dialog.tsx:485
 #: src/renderer/features/shell/shortcuts.tsx:23
 msgid "General"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:483
+#: src/renderer/features/preferences/preferences-dialog.tsx:486
 msgid "Storage"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:484
+#: src/renderer/features/preferences/preferences-dialog.tsx:487
 msgid "Integration"
 msgstr ""
 
@@ -3163,19 +3149,16 @@ msgid "Main menu"
 msgstr ""
 
 #: src/renderer/features/shell/primary-menu.tsx:20
-msgid "Follow a Shared Agenda…"
+msgid "Follow a shared agenda…"
 msgstr ""
 
 #: src/renderer/features/shell/primary-menu.tsx:23
-msgid "Set Up Speech Models…"
+msgid "Set up speech models…"
 msgstr ""
 
 #: src/renderer/features/shell/primary-menu.tsx:26
-#: src/renderer/features/shell/shortcuts.tsx:81
-msgid "Keyboard Shortcuts"
-msgstr ""
-
 #: src/renderer/features/shell/shortcuts.tsx:29
+#: src/renderer/features/shell/shortcuts.tsx:81
 msgid "Keyboard shortcuts"
 msgstr ""
 
@@ -3231,7 +3214,7 @@ msgstr ""
 msgid "colour {n}"
 msgstr ""
 
-#: src/renderer/features/speakers/speaker-chip.tsx:54
+#: src/renderer/features/speakers/speaker-chip.tsx:56
 msgid "{speaker}, {colour}"
 msgstr ""
 
@@ -3298,15 +3281,15 @@ msgid "Scroll to the newest line and keep following"
 msgstr ""
 
 #: src/renderer/features/transcript/transcript-list.tsx:336
-msgid "Jump to Live"
+msgid "Jump to live"
 msgstr ""
 
 #: src/renderer/features/transcript/transcript-pane.tsx:123
-msgid "Loading Transcript…"
+msgid "Loading transcript…"
 msgstr ""
 
 #: src/renderer/features/transcript/transcript-pane.tsx:132
-msgid "Could Not Load the Transcript"
+msgid "Could not load the transcript"
 msgstr ""
 
 #: src/renderer/features/transcript/transcript-pane.tsx:142
@@ -3369,27 +3352,27 @@ msgstr ""
 msgid "This is the {profile} window"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:75
-#: src/renderer/routes/main-layout.tsx:78
+#: src/renderer/routes/main-layout.tsx:81
+#: src/renderer/routes/main-layout.tsx:84
 msgid "Connecting…"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:76
+#: src/renderer/routes/main-layout.tsx:82
 msgid "Reaching kacola at {origin}"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:88
-msgid "Can’t Reach kacola"
+#: src/renderer/routes/main-layout.tsx:94
+msgid "Can’t reach kacola"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:90
+#: src/renderer/routes/main-layout.tsx:96
 msgid ""
-"kacola records and transcribes in a background service, and it is not "
-"answering at {origin}."
+"kacola records and transcribes in a background service, and it isn’t "
+"answering. It may still be starting."
 msgstr ""
 
 #: src/renderer/routes/router.tsx:67
-msgid "Meeting Not Found"
+msgid "Meeting not found"
 msgstr ""
 
 #: src/renderer/routes/router.tsx:67
@@ -3397,7 +3380,7 @@ msgid "It may have been deleted."
 msgstr ""
 
 #: src/renderer/routes/router.tsx:82
-msgid "Agenda Not Found"
+msgid "Agenda not found"
 msgstr ""
 
 #: src/renderer/routes/router.tsx:83

@@ -139,6 +139,17 @@ h4 {
   margin: var(--k-space-12) 0 0;
 }
 
+/* goals hang from the same left edge as the headings, with quiet markers */
+.goals {
+  margin: 0;
+  padding-left: var(--k-space-20);
+  display: grid;
+  gap: var(--k-space-4);
+}
+.goals li::marker {
+  color: var(--k-color-text-tertiary);
+}
+
 .items {
   list-style: none;
   padding: 0;
@@ -195,6 +206,15 @@ h4 {
   margin: var(--k-space-4) 0 0 calc(88px + var(--k-space-12));
 }
 @media (max-width: 520px) {
+  /* a narrow page puts the status above the item, so what hangs under it lines up with the text */
+  .item-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--k-space-4);
+  }
+  .status {
+    min-width: 0;
+  }
   .item-meta {
     margin-left: 0;
   }
@@ -207,12 +227,16 @@ h4 {
 .tag-quiet {
   color: var(--k-color-text-tertiary);
 }
+/* the outcome reads as part of its item: a quiet label and the text, no box inside the card */
 .outcome {
   margin: var(--k-space-12) 0 0;
-  padding: var(--k-space-8) var(--k-space-12);
-  border-left: 3px solid var(--k-color-border-strong);
-  background: var(--k-color-bg-raised);
-  border-radius: var(--k-radius-sm);
+}
+.outcome h4 {
+  font-size: var(--k-typography-caption-size);
+  line-height: var(--k-typography-caption-line-height);
+  font-weight: var(--k-typography-body-strong-weight);
+  color: var(--k-color-text-secondary);
+  margin: 0 0 var(--k-space-2);
 }
 .outcome p {
   margin: 0;
@@ -296,10 +320,18 @@ fieldset.kind {
 }
 fieldset.kind label {
   font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--k-space-8);
+}
+input[type="radio"] {
+  accent-color: var(--k-color-ink-primary);
+  margin: 0;
 }
 button {
   font: inherit;
-  font-weight: var(--k-typography-body-strong-weight);
+  font-family: var(--k-font-family-display);
+  font-weight: 600;
   min-height: var(--k-size-control-md);
   padding: 0 var(--k-space-16);
   border-radius: var(--k-radius-sm);

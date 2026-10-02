@@ -94,7 +94,8 @@ export function TabList<T extends string>({
     <AriaTabList aria-label={label} className={`${CONTAINER} self-start ${className}`}>
       {tabs.map((t) => (
         <AriaTab key={t.id} id={t.id} className={SEGMENT}>
-          {t.icon ? <Icon name={t.icon} size={16} /> : null}
+          {/* a narrow window keeps the words and drops the icons, so every tab still fits */}
+          {t.icon ? <Icon name={t.icon} size={16} className="max-sm:hidden" /> : null}
           {t.label}
         </AriaTab>
       ))}

@@ -78,7 +78,7 @@ const display = (keys: string, mac: boolean) => (mac ? keys.replace(/Ctrl/g, 'âŒ
 export function ShortcutsDialog({ onClose, mac }: { onClose: () => void; mac: boolean }) {
   const groups = [...new Set(SHORTCUTS.map((s) => s.group()))]
   return (
-    <Dialog title={_('Keyboard Shortcuts')} isOpen onOpenChange={(o) => !o && onClose()} size="sm">
+    <Dialog title={_('Keyboard shortcuts')} isOpen onOpenChange={(o) => !o && onClose()} size="sm">
       <div className="flex flex-col gap-5">
         {groups.map((g) => (
           <section key={g} aria-label={g} className="flex flex-col gap-2">

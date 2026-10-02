@@ -64,7 +64,7 @@ const sessionRoute = createRoute({
     const { sessionId } = sessionRoute.useParams()
     return <MeetingPage key={sessionId} sessionId={sessionId} />
   },
-  errorComponent: notFound(_('Meeting Not Found'), _('It may have been deleted.')),
+  errorComponent: notFound(_('Meeting not found'), _('It may have been deleted.')),
 })
 
 const agendaRoute = createRoute({
@@ -79,7 +79,7 @@ const agendaRoute = createRoute({
     return <MeetingPage key={agendaId} agendaId={agendaId} />
   },
   errorComponent: notFound(
-    _('Agenda Not Found'),
+    _('Agenda not found'),
     _('It may have been deleted, or the link is for another computer.'),
   ),
 })

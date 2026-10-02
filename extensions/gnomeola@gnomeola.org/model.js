@@ -178,8 +178,8 @@ export function buildView(props, o) {
   if (cal === 'off') {
     items.push({ key: 'calendar-state', kind: 'status', text: _('Calendar access is off') })
   } else if (cal === 'unavailable') {
-    const detail = props.CalendarDetail ? ` — ${props.CalendarDetail}` : ''
-    items.push({ key: 'calendar-state', kind: 'status', text: `${_('Calendar unavailable')}${detail}` })
+    // the daemon's detail ("evolution-data-server is not running") is for logs, not this menu
+    items.push({ key: 'calendar-state', kind: 'status', text: _('Can’t read your calendar right now') })
   } else if (cal === 'starting') {
     items.push({ key: 'calendar-state', kind: 'status', text: _('Reading calendars…') })
   }
@@ -197,10 +197,13 @@ export function buildView(props, o) {
     items.push({
       key: `meeting:${m.id}`,
       kind: 'meeting',
-      text: `${when}  ${m.title || _('Untitled meeting')}`,
-      detail: provider,
+      // the title leads; when and where sit quietly underneath
+      text: m.title || _('Untitled meeting'),
+      detail: [when, provider].filter(Boolean).join(' · '),
       verb: recordingThis ? '' : verb,
-      accessibleName: [when, m.title, provider, recordingThis ? '' : verb].filter(Boolean).join(', '),
+      accessibleName: [m.title || _('Untitled meeting'), when, provider, recordingThis ? '' : verb]
+        .filter(Boolean)
+        .join(', '),
       // Joining a meeting while another session records would fail; the item stays usable to open the link.
       action: { type: 'join', meetingId: m.id, joinUrl: m.joinUrl || '' },
       inProgress,

@@ -140,7 +140,7 @@ function wire(): void {
         : 'topic'
     try {
       await data().addItem(value(f, 'text'), kind)
-      step = { ...step, message: 'Added. The organiser sees it in their agenda.' }
+      step = { ...step, message: 'Added. The organizer sees it in their agenda.' }
     } catch (err) {
       step = { ...step, message: failure(err) }
     }

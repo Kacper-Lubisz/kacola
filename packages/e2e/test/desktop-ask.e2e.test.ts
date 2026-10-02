@@ -383,7 +383,7 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
       await pane()
         .getByRole('button', { name: /^(Add credits|Switch provider)$/ })
         .waitFor()
-      expect(await pane().getByRole('button', { name: 'Try Again' }).count()).toBe(0)
+      expect(await pane().getByRole('button', { name: 'Try again' }).count()).toBe(0)
       expect(await answering().count()).toBe(0)
       const { messages } = await daemon.client.call('getQaHistory', { params: { id: SEED.standup } })
       expect(messages.at(-1)).toMatchObject({ role: 'user', text: 'Anything?' })

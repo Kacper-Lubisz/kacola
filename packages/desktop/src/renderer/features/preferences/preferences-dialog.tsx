@@ -106,7 +106,7 @@ function ApiKeyRows({
     <>
       <Row
         title={title}
-        subtitle={configured ? _('Configured (kept in the keyring, never shown)') : _('Not configured')}
+        subtitle={configured ? _('Saved in your keyring, never shown') : _('Not configured')}
       >
         {configured ? (
           <Button
@@ -186,7 +186,7 @@ function SelectRow<T extends string>({
         options={options}
         value={value}
         onChange={onChange}
-        className="w-[230px] max-w-[50vw]"
+        className="w-[230px] max-w-[calc(100vw-96px)]"
       />
     </Row>
   )
@@ -210,30 +210,33 @@ function DecisionsGroup({ settings, patch }: { settings: Settings; patch: (p: Se
   const health = useQuery({ ...queries.health(), refetchOnMount: 'always' })
   const d = settings.decisions ?? { provider: 'local' as const, model: '', apiKeyConfigured: false }
   const status = health.data?.decisions
+  // in plain words, from the structured fields: the daemon's own `detail` is written for logs
   const ready =
     status && status.provider === d.provider
-      ? status.ready
-        ? (status.detail ?? _('Ready'))
-        : (status.detail ?? _('Not ready'))
+      ? !status.ready
+        ? d.provider === 'ollama'
+          ? _('Ollama is not answering')
+          : _('Needs an API key')
+        : d.provider === 'local' && status.detail
+          ? _('Ready. More accurate once its on-device model is downloaded')
+          : _('Ready')
       : undefined
   return (
     <RowGroup
-      title={_('Live decisions')}
-      description={_(
-        'Checks agenda items off, picks the next talking point and hears answers during a meeting.',
-      )}
+      title={_('Agenda during meetings')}
+      description={_('Ticks off agenda items as they are covered and suggests what to raise next.')}
     >
       <SelectRow
-        title={_('Decisions provider')}
+        title={_('Runs on')}
         subtitle={ready}
         options={decisionProviders()}
         value={d.provider}
         onChange={(provider) => patch({ decisions: { provider } })}
       />
       {d.provider !== 'local' ? (
-        <Row title={_('Decision model')} subtitle={d.model ? undefined : _('The provider’s default')} stacked>
+        <Row title={_('Agenda model')} subtitle={d.model ? undefined : _('The provider’s default')} stacked>
           <ApplyField
-            label={_('Decision model')}
+            label={_('Agenda model')}
             value={d.model}
             onApply={(model) => patch({ decisions: { model } })}
           />
@@ -251,8 +254,8 @@ function DecisionsGroup({ settings, patch }: { settings: Settings; patch: (p: Se
           title={d.provider === 'openai' ? _('OpenAI API key') : _('Anthropic API key')}
           subtitle={
             d.apiKeyConfigured
-              ? _('Shared with the language model (configured)')
-              : _('Not configured: set it above, under Questions and Answers')
+              ? _('Configured: the same key as for questions and answers')
+              : _('Not configured: add it above, under Questions and answers')
           }
         />
       ) : null}
@@ -275,8 +278,8 @@ function General({
   return (
     <div className="flex flex-col gap-6">
       <RowGroup
-        title={_('Questions and Answers')}
-        description={_('The language model that answers questions about your meetings.')}
+        title={_('Questions and answers')}
+        description={_('The AI that answers questions about your meetings and writes up notes.')}
       >
         <SelectRow
           title={_('Provider')}
@@ -314,7 +317,7 @@ function General({
         description={_('A second, more accurate pass replaces the live transcript line by line.')}
       >
         <SelectRow
-          title={_('Accurate pass')}
+          title={_('Accurate transcript')}
           options={finalPasses()}
           value={stt.finalPass}
           onChange={(finalPass) => patch({ stt: { finalPass } })}
@@ -361,13 +364,13 @@ function General({
         )}
       >
         <SwitchRow
-          title={_('When a Calendar Meeting Starts')}
+          title={_('When a calendar meeting starts')}
           subtitle={_('Meetings you declined, and all-day events, are skipped')}
           value={autoRecord.calendar}
           onChange={(calendar) => patch({ autoRecord: { calendar } })}
         />
         <SwitchRow
-          title={_('When Another App Uses the Microphone')}
+          title={_('When another app uses the microphone')}
           subtitle={_('Stops again once the call has ended')}
           value={autoRecord.micActivity}
           onChange={(micActivity) => patch({ autoRecord: { micActivity } })}
@@ -381,7 +384,7 @@ function Storage({ settings, patch }: { settings: Settings; patch: (p: SettingsP
   const { retention } = settings
   return (
     <RowGroup
-      title={_('Recorded Audio')}
+      title={_('Recorded audio')}
       description={_('Transcripts are always kept. This only decides what happens to the audio.')}
     >
       <SelectRow
@@ -407,7 +410,7 @@ function Storage({ settings, patch }: { settings: Settings; patch: (p: SettingsP
       ) : null}
       <SwitchRow
         title={_('Archive audio')}
-        subtitle={_('Keep a compressed copy (Opus) of each recording')}
+        subtitle={_('Keep a small compressed copy of each recording')}
         value={retention.archive}
         onChange={(archive) => patch({ retention: { archive } })}
       />
@@ -417,7 +420,7 @@ function Storage({ settings, patch }: { settings: Settings; patch: (p: SettingsP
 
 function Integration() {
   return (
-    <RowGroup title={_('Desktop Integration')} description={_('Make kacola available outside this window.')}>
+    <RowGroup title={_('Desktop integration')} description={_('Make kacola available outside this window.')}>
       <CliInstallRow />
       <ExtensionRow />
       <BackgroundRow />
@@ -460,8 +463,8 @@ export function PreferencesDialog({ onClose }: { onClose: () => void }) {
         compact
         headingLevel={2}
         icon="warning"
-        title={_('Settings Unavailable')}
-        description={_('The daemon did not return its settings.')}
+        title={_('Settings unavailable')}
+        description={_('kacola’s background service did not answer. Close this and try again.')}
       />
     )
   } else {

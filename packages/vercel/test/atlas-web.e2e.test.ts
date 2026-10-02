@@ -146,7 +146,7 @@ describe.skipIf(!CHROME)('atlas: the web viewer in headless Chrome', () => {
     await code.waitFor({ timeout: 10_000 })
     expect((await code.textContent())!.trim()).toMatch(/^[A-Z]{4}-[A-Z]{4}$/)
     await atlas.shoot(page, 'web-viewer__pair__code', {
-      expect: [code, page.getByText('Approve this browser from a device that is already paired')],
+      expect: [code, page.getByText('Approve this code from kacola on a computer that is already signed in')],
       // the code (twice: big, and in the approve command) is random; the expiry is the wall clock
       masks: [code, page.locator('.pairing pre'), page.locator('.pairing .meta'), page.locator('#status')],
     })
