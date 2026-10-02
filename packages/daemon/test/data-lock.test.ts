@@ -1,5 +1,13 @@
 import { spawn } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -12,6 +20,7 @@ import {
   type LockOwner,
   lockOwner,
   openWriters,
+  PREV_LOCK_SUFFIX,
   procStartTime,
   realDataDirs,
 } from '../src/data-lock.ts'
@@ -117,6 +126,43 @@ describe('the data dir lock', () => {
     expect(again.takenOverFrom).toMatchObject({ owner: null })
     again.release()
   })
+
+  it('the winner reports the stale lock another contender moved aside (.prev), and consumes it', () => {
+    const dir = tmp()
+    // what a takeover by someone else leaves: no lock, the stale one at .prev with its last heartbeat
+    const prev = join(dir, `${LOCK_FILE}${PREV_LOCK_SUFFIX}`)
+    writeFileSync(prev, JSON.stringify(owner({ pid: 999_999_998 })))
+    const lastAlive = new Date('2026-10-01T16:39:00.000Z')
+    utimesSync(prev, lastAlive, lastAlive)
+    const l = acquireDataDirLock(dir)
+    expect(l.takenOverFrom?.owner?.pid).toBe(999_999_998)
+    expect(l.takenOverFrom?.lastAliveAt.toISOString()).toBe(lastAlive.toISOString())
+    expect(existsSync(prev)).toBe(false)
+    l.release()
+    expect(readdirSync(dir)).toEqual([])
+  })
+
+  it.skipIf(process.platform !== 'linux')(
+    'a takeover claim is never stolen from a live holder however old, and skipped once it dies',
+    () => {
+      const dir = tmp()
+      writeFileSync(join(dir, LOCK_FILE), JSON.stringify(owner({ token: 'tok-old' })))
+      // another contender, mid-takeover (stalled: its claim is a minute old), that dies in ~600 ms —
+      // and, unreaped while we block, lingers as a zombie, which must count as dead
+      const child = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 600)'])
+      const claim = join(dir, `${LOCK_FILE}.takeover.t-tok-old.0`)
+      writeFileSync(claim, JSON.stringify({ pid: child.pid, procStart: procStartTime(child.pid!) }))
+      const old = new Date(Date.now() - 60_000)
+      utimesSync(claim, old, old)
+      const t0 = Date.now()
+      const l = acquireDataDirLock(dir)
+      // we waited for it (it never removed the lock, so we moved it ourselves via the next claim)
+      expect(Date.now() - t0).toBeGreaterThanOrEqual(400)
+      expect(l.takenOverFrom?.owner?.token).toBe('tok-old')
+      expect(readdirSync(dir)).toEqual([LOCK_FILE]) // claims cleaned up
+      l.release()
+    },
+  )
 
   it('release() never removes a lock that is no longer ours', () => {
     const dir = tmp()
