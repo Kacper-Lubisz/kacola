@@ -145,10 +145,12 @@ function CalendarNoticeLine() {
     >
       <Icon name="calendar" size={15} className="shrink-0 text-text-tertiary" />
       <span>{notice.text}</span>
-      {notice.detail ? <span className="text-text-tertiary">{notice.detail}</span> : null}
       <Button size="sm" variant="link" isDisabled={running} onPress={() => void refresh(api, queryClient)}>
         {running ? _('Refreshing…') : _('Refresh')}
       </Button>
+      {notice.detail ? (
+        <span className="basis-full pl-[23px] type-caption text-text-tertiary">{notice.detail}</span>
+      ) : null}
     </p>
   )
 }
