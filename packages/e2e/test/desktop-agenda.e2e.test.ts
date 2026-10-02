@@ -400,7 +400,7 @@ describe('desktop: agendas', () => {
       recurring: true,
     })
     await w()
-      .getByText(/^· now, (just started|started .+ ago)$/)
+      .getByText(/^(just started|started .+ ago)$/)
       .waitFor()
 
     // Send the agenda without a sharing server: it says so, with one action — and never hands out a

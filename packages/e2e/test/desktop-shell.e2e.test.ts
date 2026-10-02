@@ -114,7 +114,7 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
     await row(app, 'Platform standup').click()
     await app.window.getByRole('heading', { level: 1, name: 'Platform standup' }).waitFor()
     await app.window.getByRole('region', { name: 'Outcome' }).waitFor()
-    await app.window.getByText('· 12 min').first().waitFor()
+    await app.window.getByText('12 min', { exact: true }).first().waitFor()
     expect(app.window.url()).toContain(`/sessions/${SEED.standup}`)
     expect(await app.axe()).toEqual([]) // the outcome page
     const details = await openDetails(app)
@@ -130,7 +130,7 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
     await backToToday(app)
     await row(app, 'Sprint retro').click()
     await app.window.getByRole('heading', { level: 1, name: 'Sprint retro' }).waitFor()
-    await app.window.getByText('· 20 min').first().waitFor()
+    await app.window.getByText('20 min', { exact: true }).first().waitFor()
 
     // the page stays put while meetings are created elsewhere; home lists them
     const url = app.window.url()

@@ -229,12 +229,15 @@ export function OutcomeRecap({ view }: { view: AgendaView }) {
               size={16}
               className={`mt-0.5 shrink-0 ${i.status === 'covered' ? 'text-status-success' : 'text-text-tertiary'}`}
             />
-            <span
-              className={`min-w-0 flex-1 type-callout break-words ${i.status === 'covered' ? 'text-text-secondary' : 'text-text-primary'}`}
-            >
-              {i.text}
+            {/* the state word sits at the end of the item's line, and drops under it when there is no room */}
+            <span className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-2">
+              <span
+                className={`min-w-[7rem] flex-1 type-callout break-words ${i.status === 'covered' ? 'text-text-secondary' : 'text-text-primary'}`}
+              >
+                {i.text}
+              </span>
+              <span className="type-caption text-text-tertiary">{RECAP_WORD[i.status]()}</span>
             </span>
-            <span className="shrink-0 pt-px type-caption text-text-tertiary">{RECAP_WORD[i.status]()}</span>
           </li>
         ))}
       </ol>
