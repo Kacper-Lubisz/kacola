@@ -1,6 +1,7 @@
 import { LlmError, type LlmProvider, type RecapResult, recapItem } from '@gnomeola/llm'
 import type { AgendaItem, Session } from '@gnomeola/protocol'
 import { type AgendaStore, type Store, StoreError } from '@gnomeola/store'
+import { toWireError } from '../engines/llm.ts'
 import type { Logger } from '../logger.ts'
 import type { RecapHook } from './service.ts'
 import type { AgendaTracker } from './tracker.ts'
@@ -85,8 +86,14 @@ export function agendaRecapHook(d: RecapDeps): RecapHook {
         })
       } catch (err) {
         failed++
-        lastError = err instanceof Error ? err.message : String(err)
-        d.logger.warn('agenda recap failed for an item', { agendaId, itemId: it.id, err: lastError })
+        // the provider's words, not its raw body ("Anthropic is busy right now…", not a JSON 529)
+        const wire = toWireError(err, provider.id, 'The recap')
+        lastError = wire instanceof Error ? wire.message : String(err)
+        d.logger.warn('agenda recap failed for an item', {
+          agendaId,
+          itemId: it.id,
+          err: err instanceof Error ? err.message : String(err),
+        })
         if (err instanceof LlmError && STOP_CODES.has(err.code)) break
         continue
       }

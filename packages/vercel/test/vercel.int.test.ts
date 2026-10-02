@@ -155,7 +155,7 @@ for (const dialect of ['sqlite', 'postgres'] as const) {
       const page = await fetch(`${h.url}/`)
       expect(page.headers.get('content-type')).toMatch(/text\/html/)
       expect(page.headers.get('x-frame-options')).toBe('DENY')
-      expect(await page.text()).toContain('gnomeola')
+      expect(await page.text()).toContain('kacola')
       expect((await fetch(`${h.url}/app.js`)).headers.get('content-type')).toMatch(/javascript/)
 
       const bare = await harness(dialect, { GNOMEOLA_AUTH_SECRET: '' })

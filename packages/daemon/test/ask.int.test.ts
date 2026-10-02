@@ -21,7 +21,16 @@ describe('/ask', () => {
     const s = await d.client.call('createSession', {})
     const events = await collect(d.client.ask({ question: 'what did we decide?', sessionId: s.id }))
     expect(events.map((e) => e.type)).toEqual(['question', 'error'])
-    expect(events[1]).toEqual({ type: 'error', error: { code: 'unavailable', message: expect.any(String) } })
+    expect(events[1]).toEqual({
+      type: 'error',
+      error: {
+        code: 'unavailable',
+        message: expect.any(String),
+        reason: expect.stringMatching(/^no-(provider|key)$/),
+        action: 'set-up-provider',
+        ...(events[1]?.type === 'error' && events[1].error.provider ? { provider: expect.any(String) } : {}),
+      },
+    })
     const { messages } = await d.client.call('getQaHistory', { params: { id: s.id } })
     expect(messages.map((m) => m.role)).toEqual(['user'])
   })
