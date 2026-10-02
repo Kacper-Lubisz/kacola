@@ -10,6 +10,7 @@ import { join } from 'node:path'
 delete process.env.OPENAI_API_KEY
 delete process.env.OPENAI_BASE_URL
 delete process.env.TYPESAFE_API_KEY
+delete process.env.TYPESAFE_AI_API_KEY
 delete process.env.TYPESAFE_BASE_URL
 
 // 2. Nothing a test runs may resolve the user's real gnomeola directories. On 2026-10-01 a daemon that

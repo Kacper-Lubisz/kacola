@@ -57,6 +57,7 @@ export default defineConfig({
           ...common,
           name: 'eval',
           include: ['packages/*/**/*.eval.test.ts'],
+          setupFiles: ['scripts/eval-env.ts'],
           testTimeout: 900_000,
           hookTimeout: 900_000,
           fileParallelism: false,

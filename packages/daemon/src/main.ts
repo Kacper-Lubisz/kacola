@@ -64,6 +64,9 @@ function keyringFor(kind: string, service: string): Keyring {
 }
 
 async function main(): Promise<void> {
+  // TYPESAFE_AI_API_KEY is accepted as another name for TYPESAFE_API_KEY
+  if (!process.env.TYPESAFE_API_KEY?.trim() && process.env.TYPESAFE_AI_API_KEY?.trim())
+    process.env.TYPESAFE_API_KEY = process.env.TYPESAFE_AI_API_KEY
   let cfg: ReturnType<typeof parseConfig>
   try {
     // GNOMEOLA_PLATFORM: resolve the config as another platform would (tests run the macOS setup here)
