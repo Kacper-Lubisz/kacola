@@ -56,7 +56,7 @@ export function trackerStatusRunner(
   provider: DecisionProvider,
   o: { mode: Mode; name?: string; heartbeatMs?: number; options?: TrackerOptions },
 ) {
-  const beatMs = o.heartbeatMs ?? 30_000
+  const beatMs = o.heartbeatMs ?? o.options?.heartbeatMs ?? 30_000
   return {
     ...meta(provider, o.name ?? 'tracker', o.mode),
     start(meeting: { id: string; agenda: AgendaItemInput[]; durationMs: number; scheduledEndMs: number }) {
@@ -131,7 +131,14 @@ export function trackerStatusRunner(
       agendas.attachSession(view.agenda.id, session.id)
       let nextBeat = beatMs
       return {
-        async onSegment(u: { index: number; speaker: string; text: string; startMs: number; endMs: number }) {
+        async onSegment(u: {
+          index: number
+          speaker: string
+          text: string
+          startMs: number
+          endMs: number
+          quality?: 'live' | 'final'
+        }) {
           results.length = 0
           rounds.length = 0
           await settle()
@@ -145,12 +152,13 @@ export function trackerStatusRunner(
           store.upsertSegment({
             id: `u${u.index}`,
             sessionId: session.id,
-            track: 'system',
-            speaker: u.speaker === 'me' ? 'them' : u.speaker,
+            // the user's own voice is the mic track, labelled `me`, exactly as the pipeline commits it
+            track: u.speaker === 'me' ? 'mic' : 'system',
+            speaker: u.speaker,
             startMs: u.startMs,
             endMs: u.endMs,
             text: u.text,
-            quality: 'final',
+            quality: u.quality ?? 'final',
             confidence: null,
           })
           await settle()

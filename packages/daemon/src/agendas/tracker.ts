@@ -1,13 +1,14 @@
 import type { DecisionProvider, DecisionResult, TranscriptLine } from '@gnomeola/decisions'
 import { bridgeLine, LlmError, type LlmProvider } from '@gnomeola/llm'
-import type {
-  Agenda,
-  DurableEvent,
-  Evidence,
-  RecapState,
-  Segment,
-  Session,
-  TrackerStatus,
+import {
+  type Agenda,
+  type DurableEvent,
+  type Evidence,
+  ME,
+  type RecapState,
+  type Segment,
+  type Session,
+  type TrackerStatus,
 } from '@gnomeola/protocol'
 import { type AgendaStore, type Store, StoreError } from '@gnomeola/store'
 import type { EventBus } from '../bus.ts'
@@ -15,7 +16,11 @@ import type { Logger } from '../logger.ts'
 import { contextTerms, findPastContext } from './past-context.ts'
 import { type DecisionSpeechGuard, decisionSpeechGuard } from './speech-guard.ts'
 import {
+  type AggregateOptions,
+  type AggregateState,
+  aggregate,
   correctedAnswer,
+  type GateResult,
   gateSegment,
   INTERVIEW_KINDS,
   type ItemVerdict,
@@ -36,7 +41,9 @@ import {
 //                           → relevant: one batched status round over the open items (tracker-logic.ts)
 //                           → the policy: covered ≥ 0.8 with evidence = auto check-off (marked auto,
 //                             undoable), 0.5–0.8 = a "looks covered?" suggestion, else in-progress;
-//                             forward-only and manual-wins are the store's rules (a 409 = stay quiet)
+//                             forward-only and manual-wins are the store's rules (a 409 = stay quiet);
+//                             on what the user asks (info-to-get, question), evidence in their own line
+//                             (`me`, the mic track) counts one step less (tracker-logic.ts ownerDemoted)
 //   every 30 s            → a status round if something was said since the last one (catches what the
 //                           per-segment gate missed), and the timers below
 //   after a round         → the next talking point (one suggestion, replaced when the ranking changes,
@@ -51,8 +58,17 @@ import {
 export type TrackerOptions = {
   /** 0 = no heartbeat (the eval drives rounds itself). */
   heartbeatMs?: number
-  /** Transcript lines per decision state. */
+  /**
+   * Transcript lines per status round (the gate, next point and bridge line read the last few of them).
+   * 30: an answer given over several turns stays in view until it adds up (10 kept diffuse answers under
+   * the check-off threshold and let P fall as the talk moved on; see docs/decisions.md, "Cadence").
+   */
   window?: number
+  /**
+   * The status round's window on the on-device provider: its rules take the latest question → answer pair
+   * in view, so a longer window gives them more wrong pairs to pick (measured), not more evidence.
+   */
+  localWindow?: number
   /** Pending segment triggers per recording before the oldest is dropped. */
   queueMax?: number
   nextPointEveryMs?: number
@@ -66,11 +82,30 @@ export type TrackerOptions = {
   guard?: boolean
   /** Least time between two `agenda.tracker` events for one recording (state changes always go out). */
   statusEveryMs?: number
+  /**
+   * The relevance pre-check before a segment's status round (one call). false = every non-trivial closed
+   * segment gets a status round directly: more rounds, no better recall on the real interview, and a
+   * slower, costlier segment (status calls are the heavy ones), so on by default.
+   */
+  gate?: boolean
+  /**
+   * Tell the status question that `me` (the mic track) is the agenda's owner: for things they want to find
+   * out, their own question raises the item and another speaker's answer covers it.
+   */
+  owner?: boolean
+  /** Sustained-evidence check-off across rounds (tracker-logic.ts `aggregate`); null = off. */
+  aggregate?: AggregateOptions | null
+  /**
+   * Re-judge a segment still being spoken once its text has grown by this many words, and when it goes
+   * final (0 = only its first publication triggers a round; see #maybeRecheck).
+   */
+  recheckWords?: number
 }
 
 const DEFAULTS: Required<TrackerOptions> = {
   heartbeatMs: 30_000,
-  window: 10,
+  window: 30,
+  localWindow: 10,
   queueMax: 8,
   nextPointEveryMs: 60_000,
   nudgeBeforeEndMin: 5,
@@ -80,6 +115,10 @@ const DEFAULTS: Required<TrackerOptions> = {
   bridgeTimeoutMs: 8_000,
   guard: true,
   statusEveryMs: 2_000,
+  gate: true,
+  owner: true,
+  aggregate: null,
+  recheckWords: 12,
 }
 
 export type TrackerDecisions = {
@@ -124,13 +163,15 @@ export type TrackerDeps = {
   }
 }
 
+type TimedLine = TranscriptLine & { startMs: number; endMs: number }
+
 type Task = { kind: 'segment'; segmentId: string } | { kind: 'heartbeat' } | { kind: 'after' }
 
 type Live = {
   sessionId: string
   agendaId: string
   session: Session
-  lines: (TranscriptLine & { startMs: number; endMs: number })[]
+  lines: TimedLine[]
   flagged: Set<string>
   tasks: Task[]
   running: Promise<void> | null
@@ -146,6 +187,10 @@ type Live = {
   lastContextAt: number
   contextSkip: Set<string>
   lastDiscussed: Map<string, number>
+  /** Sustained-evidence runs per item (`aggregate` option). */
+  runs: AggregateState
+  /** Segment id → the text its last segment round judged (re-checks). */
+  judged: Map<string, string>
   ended: boolean
 }
 
@@ -294,6 +339,8 @@ export class AgendaTracker {
       lastContextAt: Number.NEGATIVE_INFINITY,
       contextSkip: new Set(),
       lastDiscussed: new Map(),
+      runs: new Map(),
+      judged: new Map(),
       ended: false,
     }
     this.#live.set(sessionId, live)
@@ -322,30 +369,48 @@ export class AgendaTracker {
     })
   }
 
-  #addLine(live: Live, s: Segment): boolean {
+  /** 'new' line, 'changed' (text or speaker revised), or null (nothing to do). */
+  #addLine(live: Live, s: Segment): 'new' | 'changed' | null {
     const text = s.text.replace(/\s+/g, ' ').trim()
     const i = live.lines.findIndex((l) => l.id === s.id)
     if (i >= 0) {
-      if (live.lines[i]!.text !== text || live.lines[i]!.speaker !== s.speaker) {
-        live.lines[i] = { ...live.lines[i]!, text, speaker: s.speaker }
-        live.flagged.delete(s.id)
-        live.dirty = true
-      }
-      return false
+      if (live.lines[i]!.text === text && live.lines[i]!.speaker === s.speaker) return null
+      // a flagged line stays flagged until its new text has been judged (the re-check below)
+      live.lines[i] = { ...live.lines[i]!, text, speaker: s.speaker }
+      live.dirty = true
+      return 'changed'
     }
-    if (!text) return false
+    if (!text) return null
     const line = { id: s.id, speaker: s.speaker, text, startMs: s.startMs, endMs: s.endMs }
     let at = live.lines.length
     while (at > 0 && live.lines[at - 1]!.endMs > line.endMs) at--
     live.lines.splice(at, 0, line)
     if (live.lines.length > 400) live.lines.splice(0, live.lines.length - 400)
     live.dirty = true
-    return true
+    return 'new'
   }
 
   #onSegment(live: Live, s: Segment): void {
-    if (!this.#addLine(live, s)) return
-    live.status.segments++
+    const r = this.#addLine(live, s)
+    if (r === 'new') {
+      live.status.segments++
+      this.#push(live, { kind: 'segment', segmentId: s.id })
+    } else if (r === 'changed' || s.quality === 'final') this.#maybeRecheck(live, s)
+  }
+
+  /**
+   * The pipeline publishes a segment while it is spoken (its first committed words, then more, then the
+   * final text): the first publication triggers the segment's round, often on a few words. Its text is
+   * judged again — guard, gate, round — once it has grown by `recheckWords` words, and when it goes final
+   * with text not judged yet, so a long answer is decided while and when it is given, not at the next
+   * heartbeat, and no words reach a round unguarded for longer than that.
+   */
+  #maybeRecheck(live: Live, s: Segment): void {
+    if (this.#o.recheckWords <= 0) return
+    const line = live.lines.find((l) => l.id === s.id)
+    const judged = live.judged.get(s.id)
+    if (!line || judged === undefined || judged === line.text) return
+    if (s.quality !== 'final' && wordCount(line.text) - wordCount(judged) < this.#o.recheckWords) return
     this.#push(live, { kind: 'segment', segmentId: s.id })
   }
 
@@ -354,6 +419,9 @@ export class AgendaTracker {
   #push(live: Live, t: Task): void {
     if (live.ended && t.kind !== 'segment') return
     if (t.kind !== 'segment' && live.tasks.some((x) => x.kind === t.kind)) return
+    // a segment already waiting reads its latest text when it runs
+    if (t.kind === 'segment' && live.tasks.some((x) => x.kind === 'segment' && x.segmentId === t.segmentId))
+      return
     live.tasks.push(t)
     const segs = live.tasks.filter((x) => x.kind === 'segment')
     if (segs.length > this.#o.queueMax) {
@@ -484,7 +552,7 @@ export class AgendaTracker {
     })
   }
 
-  #window(live: Live, upTo?: string): TranscriptLine[] {
+  #window(live: Live, upTo?: string): TimedLine[] {
     let lines = live.lines.filter((l) => !live.flagged.has(l.id))
     if (upTo) {
       const i = lines.findIndex((l) => l.id === upTo)
@@ -496,6 +564,7 @@ export class AgendaTracker {
   async #segmentTask(live: Live, segmentId: string): Promise<void> {
     const line = live.lines.find((l) => l.id === segmentId)
     if (!line || !this.#d.agendas.get(live.agendaId)) return
+    live.judged.set(segmentId, line.text)
     const items = this.#items(live)
     const asked = items.filter(
       (it) =>
@@ -515,9 +584,13 @@ export class AgendaTracker {
             kind: 'segment',
           })
         : null,
-      this.#decide(live, (p) => gateSegment(p, { items: asked, recent, segment: line })),
+      this.#o.gate
+        ? this.#decide(live, (p) => gateSegment(p, { items: asked, recent, segment: line }))
+        : ungated(line.text, asked),
     ])
     this.#count(live, gate.result)
+    // judged clean (its latest text): a flag from an earlier revision no longer holds
+    if (guard && !guard.flags.includes('injection')) live.flagged.delete(segmentId)
     if (guard?.flags.includes('injection')) {
       live.flagged.add(segmentId)
       this.#d.logger.info('tracker: segment flagged as an injection attempt', {
@@ -547,7 +620,21 @@ export class AgendaTracker {
     const items = this.#items(live)
     const window = this.#window(live)
     live.dirty = false
-    const { verdicts, results } = await this.#decide(live, (p) => statusRound(p, { items, window, focus }))
+    const round = await this.#decide(live, (p) =>
+      statusRound(p, {
+        items,
+        window: p.id === 'local' ? window.slice(-this.#o.localWindow) : window,
+        focus,
+        ...(this.#o.owner ? { owner: ME } : {}),
+      }),
+    )
+    const { results } = round
+    const verdicts = this.#o.aggregate
+      ? aggregate(live.runs, round.verdicts, this.#o.aggregate, {
+          items: new Map(items.map((it) => [it.id, it])),
+          speakerOf: new Map(window.map((l) => [l.id, l.speaker])),
+        })
+      : round.verdicts
     for (const r of results) this.#count(live, r)
     live.status.rounds++
     live.status.lastRoundAt = new Date(this.#now()).toISOString()
@@ -802,5 +889,12 @@ export class AgendaTracker {
     })
   }
 }
+
+/** Without the relevance pre-check: every non-trivial segment is worth a round (no call, no item hint). */
+function ungated(text: string, items: readonly LiveItem[]): GateResult {
+  return { relevant: items.length > 0 && !trivialLine(text), p: 1, itemIds: [], result: null }
+}
+
+const wordCount = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0)
 
 const round2 = (x: number) => Math.round(Math.min(1, Math.max(0, x)) * 100) / 100
