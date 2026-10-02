@@ -46,7 +46,7 @@ const PROPS = [
 const Indicator = GObject.registerClass(
   class GnomeolaIndicator extends PanelMenu.Button {
     _init(ext) {
-      super._init(0.0, 'gnomeola', false)
+      super._init(0.0, 'kacola', false)
       this._ext = ext
       this._settings = ext.getSettings()
       this._interface = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' })
@@ -128,7 +128,7 @@ const Indicator = GObject.registerClass(
     _call(method, args = null) {
       return new Promise((resolve, reject) => {
         if (!this._proxy) {
-          reject(new Error(_('gnomeola is not running')))
+          reject(new Error(_('kacola is not running')))
           return
         }
         this._proxy.call(method, args, Gio.DBusCallFlags.NONE, 15_000, this._cancellable, (p, res) => {
@@ -148,7 +148,7 @@ const Indicator = GObject.registerClass(
       if (!n) return
       if (!this._source) {
         this._source = new MessageTray.Source({
-          title: 'gnomeola',
+          title: 'kacola',
           iconName: 'audio-input-microphone-symbolic',
         })
         this._source.connect('destroy', () => {
@@ -174,7 +174,7 @@ const Indicator = GObject.registerClass(
         url = returned || joinUrl
       } catch (e) {
         // Recording could not start (e.g. another session is recording). The call still happens: open it.
-        Main.notify(_('gnomeola could not start recording'), errorText(e))
+        Main.notify(_('kacola could not start recording'), errorText(e))
       }
       if (url) this._openUri(url)
     }
@@ -195,7 +195,7 @@ const Indicator = GObject.registerClass(
       }
       const info = Gio.DesktopAppInfo.new(APP_ID)
       if (info) info.launch([], global.create_app_launch_context(0, -1))
-      else Main.notify(_('gnomeola is not installed'), _('The gnomeola application could not be found.'))
+      else Main.notify(_('kacola is not installed'), _('The kacola application could not be found.'))
     }
 
     _run(action) {
@@ -211,7 +211,7 @@ const Indicator = GObject.registerClass(
           return
         case 'call': {
           const args = action.method === 'Start' ? new GLib.Variant('(s)', ['']) : null
-          this._call(action.method, args).catch((e) => Main.notify(_('gnomeola'), errorText(e)))
+          this._call(action.method, args).catch((e) => Main.notify(_('kacola'), errorText(e)))
           return
         }
       }

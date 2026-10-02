@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ErrorDetail } from './ai.ts'
 import { AutoRecordSettings, DEFAULT_AUTO_RECORD, SessionMeeting } from './calendar.ts'
 import { DecisionsHealth, DecisionsSettings, StoredDecisionsSettings } from './decisions.ts'
 
@@ -236,10 +237,17 @@ export const Health = z.object({
 })
 export type Health = z.infer<typeof Health>
 
+/**
+ * Every error body. `code` is the HTTP family; `message` is human copy a client may show as is. The
+ * optional detail (ai.ts: `reason`, `action`, `provider`, `link`, `retryAfterMs`) is the stable part a
+ * client branches on to offer the one action that fixes it (Retry, Set up a provider, Add credits).
+ */
 export const ApiError = z.object({
-  error: z.object({
-    code: z.enum(['bad_request', 'not_found', 'conflict', 'unavailable', 'internal', 'unauthorized']),
-    message: z.string(),
-  }),
+  error: z
+    .object({
+      code: z.enum(['bad_request', 'not_found', 'conflict', 'unavailable', 'internal', 'unauthorized']),
+      message: z.string(),
+    })
+    .extend(ErrorDetail.shape),
 })
 export type ApiError = z.infer<typeof ApiError>

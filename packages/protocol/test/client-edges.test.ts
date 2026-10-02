@@ -137,7 +137,7 @@ describe('client requests', () => {
     })
     const err = await c.call('health').catch((e) => e)
     expect(err.name).toBe('DaemonUnreachableError')
-    expect(err.message).toBe('gnomeola daemon is not reachable at http://x:1')
+    expect(err.message).toBe("kacola's background service is not reachable at http://x:1")
     expect(err.cause).toBe(cause)
     expect(new GnomeolaApiError(400, 'bad_request', 'm').name).toBe('GnomeolaApiError')
   })

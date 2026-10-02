@@ -220,7 +220,7 @@ for (const dialect of dialects) {
       expect(s.link).toMatch(new RegExp(`^${proxy.url}/a/[A-Za-z0-9_-]{32}$`))
       const block = await a.call('agendaInviteBlock', { params: { id: s.agenda }, body: {} })
       expect(block.webLink).toBe(s.link)
-      expect(block.block).toContain(`web: ${s.link}`)
+      expect(block.block).toContain(`Agenda: ${s.link}\nOpen in kacola: kacola://`)
       // what the page shows: items, the shared card only, no goals
       const page = await createClient({ baseUrl: hosted.url }).call('getSharedPage', {
         params: { token: s.link.split('/a/')[1]! },

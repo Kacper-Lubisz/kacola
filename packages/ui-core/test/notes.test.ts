@@ -521,4 +521,13 @@ describe('enhanceProblem', () => {
     ).toBe('unavailable')
     expect(enhanceProblem({ code: 'internal', message: 'the model returned no notes' })).toBe('other')
   })
+
+  it("trusts the daemon's reason over the message: busy is retry, never set-up", () => {
+    const busy = { code: 'unavailable', message: 'Anthropic is busy right now. Try again in a minute.' }
+    expect(enhanceProblem({ ...busy, reason: 'overloaded', action: 'retry' })).toBe('quota')
+    expect(enhanceProblem({ code: 'unavailable', message: 'x', reason: 'no-credits' })).toBe('quota')
+    expect(enhanceProblem({ code: 'unavailable', message: 'x', reason: 'no-provider' })).toBe('unavailable')
+    expect(enhanceProblem({ code: 'unavailable', message: 'x', reason: 'refused' })).toBe('refused')
+    expect(enhanceProblem({ code: 'conflict', message: 'x', reason: 'private-meeting' })).toBe('other')
+  })
 })

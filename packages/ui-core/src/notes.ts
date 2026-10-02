@@ -4,6 +4,7 @@ import {
   defaultChoices,
   diffNoteBlocks,
   type EnhanceStreamEvent,
+  type ErrorDetail,
   type Hunk,
   isChoice,
   type MergeChoice,
@@ -24,7 +25,7 @@ import {
 // re-saves the draft on top of the newer head (whose text stays in history), an enhancement never
 // touches the head, and a merge is computed by the daemon from exactly the hunks the review showed.
 
-export type NotesError = { code: string; message: string }
+export type NotesError = { code: string; message: string } & ErrorDetail
 
 export type Enhancing = { templateId: string; text: string }
 
@@ -81,10 +82,12 @@ const emptyNote = (sessionId: string): Note => ({
 })
 
 const errorOf = (err: unknown): NotesError => {
-  const e = err as { code?: unknown; message?: unknown } | null
+  const e = err as { code?: unknown; message?: unknown; detail?: ErrorDetail } | null
   return {
     code: typeof e?.code === 'string' ? e.code : 'internal',
     message: typeof e?.message === 'string' ? e.message : String(err),
+    // a GnomeolaApiError carries the structured detail (reason, action, provider, link)
+    ...(e?.detail && typeof e.detail === 'object' ? e.detail : {}),
   }
 }
 
@@ -428,6 +431,22 @@ export type EnhanceProblem =
   | 'other'
 
 export function enhanceProblem(e: NotesError): EnhanceProblem {
+  // the daemon's stable reason wins over guessing from the message
+  switch (e.reason) {
+    case 'refused':
+      return 'refused'
+    case 'no-credits':
+    case 'rate-limited':
+    case 'overloaded':
+    case 'provider-down':
+      return 'quota'
+    case 'no-provider':
+    case 'no-key':
+    case 'bad-key':
+      return 'unavailable'
+    case 'private-meeting':
+      return 'other'
+  }
   if (/declin|refus/i.test(e.message)) return 'refused'
   if (/rate.?limit|quota|credit|429|overloaded|too many requests/i.test(e.message)) return 'quota'
   if (e.code === 'unavailable') return 'unavailable'

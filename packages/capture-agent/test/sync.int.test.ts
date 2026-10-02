@@ -64,12 +64,15 @@ async function meeting(
   await c.call('startSession', { params: { id: s.id } })
   await new Promise((r) => setTimeout(r, opts.ms ?? 250))
   await c.call('stopSession', { params: { id: s.id } })
+  // a private meeting is only ever asked about on-device (private never goes to the cloud)
+  if (opts.private) await c.call('updateSettings', { body: { llm: { provider: 'ollama' } } })
   for await (const _ of c.ask({
     question: `what happened in ${title}?`,
     sessionId: s.id,
     includePrivate: true,
   })) {
   }
+  if (opts.private) await c.call('updateSettings', { body: { llm: { provider: 'anthropic' } } })
   await c.call('putNotes', {
     params: { id: s.id },
     body: { markdown: `# ${title}\n\n- [ ] Ana: follow up\n`, baseVersion: 0 },

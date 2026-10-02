@@ -32,8 +32,11 @@ export interface SpeechGuard {
 export const INJECTION_FLAG = 'injection'
 
 export type DecisionGuardOptions = {
-  /** The provider to ask (the tracker's selection: the settings' provider, or local while degraded). */
-  provider: () => Promise<DecisionProvider>
+  /**
+   * The provider to ask for a line of this session (the tracker's selection: the settings' provider, or
+   * local while degraded or when the session is private and the selected provider is in the cloud).
+   */
+  provider: (sessionId: string) => Promise<DecisionProvider>
   /** Asked when `provider` throws (e.g. quota). Without it the error propagates (the seam fails closed). */
   fallback?: () => DecisionProvider | Promise<DecisionProvider>
   onError?: (err: unknown) => void
@@ -55,7 +58,7 @@ export function decisionSpeechGuard(o: DecisionGuardOptions): DecisionSpeechGuar
     const line = { speaker: i.speaker, text: i.text }
     let r: Awaited<ReturnType<typeof guardLine>>
     try {
-      r = await guardLine(await o.provider(), line, o.threshold)
+      r = await guardLine(await o.provider(i.sessionId), line, o.threshold)
     } catch (err) {
       if (!o.fallback) throw err
       o.onError?.(err)

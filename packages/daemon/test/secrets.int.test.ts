@@ -64,7 +64,8 @@ async function hitEverything(d: DaemonHandle, sessionId: string, question: strin
 
 async function exercise(d: DaemonHandle): Promise<string> {
   const c = d.client
-  const s = await c.call('createSession', { body: { title: 'secret test', private: true } })
+  // public: a private meeting is never sent to a cloud provider, so it could not exercise the key
+  const s = await c.call('createSession', { body: { title: 'secret test' } })
   await c.call('startSession', { params: { id: s.id } })
   await waitFor(
     async () =>

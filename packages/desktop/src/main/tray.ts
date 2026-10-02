@@ -24,7 +24,7 @@ export type TrayModelInput = {
 const up = (d: DaemonStatus) => d.kind === 'attached' || d.kind === 'spawned'
 
 export function trayStatusLine(i: TrayModelInput): string {
-  if (!up(i.daemon)) return i.daemon.kind === 'unreachable' ? 'gnomeola is not reachable' : 'Starting…'
+  if (!up(i.daemon)) return i.daemon.kind === 'unreachable' ? 'kacola is not reachable' : 'Starting…'
   if (!i.active) return 'Not recording'
   const title = i.active.private ? 'Private meeting' : i.active.title || 'Untitled meeting'
   return i.active.status === 'paused' ? `Paused: ${title}` : `Recording: ${title}`
@@ -44,13 +44,13 @@ export function trayMenuModel(i: TrayModelInput): TrayItem[] {
   } else items.push({ type: 'item', id: 'record', label: 'Record', enabled: ready })
   items.push(
     { type: 'separator' },
-    { type: 'item', id: 'open', label: 'Open gnomeola', enabled: true },
-    { type: 'item', id: 'quit', label: 'Quit gnomeola', enabled: true },
+    { type: 'item', id: 'open', label: 'Open kacola', enabled: true },
+    { type: 'item', id: 'quit', label: 'Quit kacola', enabled: true },
   )
   return items
 }
 
 /** The tray icon's tooltip / title. */
 export function trayTooltip(i: TrayModelInput): string {
-  return `gnomeola — ${trayStatusLine(i)}`
+  return `kacola — ${trayStatusLine(i)}`
 }

@@ -115,7 +115,16 @@ export function randomHistory(seed: number, steps: number) {
           if (ag && item) a.updateItem(ag, item.id, { text: `edited ${i}`, owner: rnd() < 0.5 ? null : 'bo' })
           break
         case 7:
-          if (ag && item && rnd() < 0.5) a.deleteItem(ag, item.id)
+          if (ag && item && rnd() < 0.5) a.deleteItem(ag, item.id, i % 3 ? 'user' : 'tracker')
+          else if (ag) {
+            // restore some item (possibly a removed one) to some earlier version (no rnd(): the other
+            // seeds' histories stay as they were)
+            const evs = a.itemEvents(ag)
+            if (evs.length) {
+              const e = evs[i % evs.length]!
+              a.restoreItem(ag, e.data.type === 'agenda.item.deleted' ? e.data.itemId : e.data.item.id, e.seq)
+            }
+          }
           break
         case 8:
           if (ag && items.length > 1) a.reorder(ag, [...items.map((x) => x.id)].reverse())

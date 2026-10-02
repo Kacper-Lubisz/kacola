@@ -430,7 +430,7 @@ export function buildMcpServer(
     {
       title: 'The agenda link for the invitation',
       description:
-        'The "Agenda: kacola://… · web: …" block for the calendar invitation. write: true puts it into the event ' +
+        'The "Agenda: https://… / Open in kacola: kacola://…" block for the calendar invitation. write: true puts it into the event ' +
         "(only when the user asked; read-only calendars return the block to paste). Never changes the organiser's text.",
       inputSchema: { agenda: agendaRef, write: z.boolean().optional() },
     },

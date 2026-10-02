@@ -154,7 +154,7 @@ export class KeychainKeyring implements Keyring {
       '-s',
       quote(this.service, 'keychain service'),
       '-l',
-      quote(`gnomeola: ${LABELS[account]} API key`, 'label'),
+      quote(`kacola: ${LABELS[account]} API key`, 'label'),
       '-w',
       quote(key, 'API key'),
       ...this.trailing().map((k) => quote(k, 'keychain path')),

@@ -59,6 +59,10 @@ function rig(o: {
   endMin?: number | null
   store?: Store
   clock?: { now: number }
+  /** Record a private session. */
+  private?: boolean
+  /** The selected decisions provider runs on this computer. */
+  onDevice?: boolean
 }) {
   const t0 = Date.parse('2026-03-02T09:00:00.000Z')
   const clock = o.clock ?? { now: t0 }
@@ -77,6 +81,7 @@ function rig(o: {
       provider: async () => o.provider ?? loc,
       localProvider: async () => loc,
       selected: () => o.provider?.id ?? 'local',
+      ...(o.onDevice !== undefined ? { onDevice: () => o.onDevice! } : {}),
     },
     llm: async () => o.llm ?? null,
     now: () => clock.now,
@@ -84,7 +89,7 @@ function rig(o: {
   })
   tracker.start()
   const start = clock.now
-  const session = store.createSession({ title: 'Weekly 1:1 with Ana' })
+  const session = store.createSession({ title: 'Weekly 1:1 with Ana', private: o.private ?? false })
   store.updateSession(session.id, (s) => ({
     ...s,
     status: 'recording',
@@ -147,6 +152,43 @@ function rig(o: {
 }
 
 describe('the live tracker', () => {
+  it('a private meeting never reaches a cloud decisions provider: on-device decisions, not a degradation', async () => {
+    const jev = new Wrapped(local(), 'jev')
+    const r = rig({
+      items: [{ text: 'Budget for the Berlin conference', kind: 'question' }],
+      provider: jev,
+      private: true,
+    })
+    await r.say('me', 'Can we talk about the budget for the Berlin conference?', 10)
+    await r.say('Ana', 'Yes, the Berlin conference budget is approved, book it.', 20)
+    expect(r.item('Budget for the Berlin conference').status).toBe('covered')
+    // the guard (every closed line) and the rounds all stayed on this computer
+    await r.tracker.guard.check({
+      sessionId: r.session.id,
+      segmentId: 'x',
+      speaker: 'Ana',
+      text: 'hello',
+      kind: 'segment',
+    })
+    expect(jev.calls).toBe(0)
+    expect(r.tracker.status(r.agendaId)).toMatchObject({ provider: 'local' })
+    expect(r.tracker.status(r.agendaId)?.state).not.toBe('degraded')
+    r.tracker.stop()
+
+    // the same provider is used for a public meeting, and for a private one when it is on-device
+    for (const o of [{ private: false }, { private: true, onDevice: true }]) {
+      const p = new Wrapped(local(), 'jev')
+      const pub = rig({
+        items: [{ text: 'Budget for the Berlin conference', kind: 'question' }],
+        provider: p,
+        ...o,
+      })
+      await pub.say('me', 'Can we talk about the budget for the Berlin conference?', 10)
+      expect(p.calls).toBeGreaterThan(0)
+      pub.tracker.stop()
+    }
+  })
+
   it('checks an item off with evidence when it is settled, in progress before; statuses by tracker, auto', async () => {
     const r = rig({
       items: [{ text: 'Budget for the Berlin conference', kind: 'question' }, { text: 'Offsite dates' }],

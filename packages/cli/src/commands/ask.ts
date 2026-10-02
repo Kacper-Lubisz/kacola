@@ -40,7 +40,8 @@ export async function ask(ctx: Ctx, question: string | undefined, o: AskOpts) {
             : ev.error.code === 'not_found'
               ? EXIT.NOT_FOUND
               : EXIT.ERROR
-        throw new CliError(code, ev.error.message)
+        // the daemon's copy names the provider and the fix; a billing page rides along as the hint
+        throw new CliError(code, ev.error.message, ev.error.link)
       }
     }
   } catch (err) {

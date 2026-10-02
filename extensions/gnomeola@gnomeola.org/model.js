@@ -105,12 +105,12 @@ export function buildView(props, o) {
         icon: 'microphone-disabled-symbolic',
         styleClass: 'gnomeola-offline',
         label: '',
-        accessibleName: _('gnomeola: not running'),
+        accessibleName: _('kacola: not running'),
       },
       items: [
-        { key: 'offline', kind: 'status', text: _('gnomeola is not running') },
+        { key: 'offline', kind: 'status', text: _('kacola is not running') },
         { key: 'separator-app', kind: 'separator' },
-        { key: 'open', kind: 'action', text: _('Open gnomeola'), action: { type: 'open-window' } },
+        { key: 'open', kind: 'action', text: _('Open kacola'), action: { type: 'open-window' } },
         { key: 'prefs', kind: 'action', text: _('Preferences'), action: { type: 'preferences' } },
       ],
     }
@@ -133,10 +133,10 @@ export function buildView(props, o) {
     label: active && o.prefs.showElapsed ? elapsed : '',
     accessibleName:
       state === 'recording'
-        ? _('gnomeola: recording {title}, {elapsed}').replace('{title}', title).replace('{elapsed}', elapsed)
+        ? _('kacola: recording {title}, {elapsed}').replace('{title}', title).replace('{elapsed}', elapsed)
         : state === 'paused'
-          ? _('gnomeola: paused {title}, {elapsed}').replace('{title}', title).replace('{elapsed}', elapsed)
-          : _('gnomeola: not recording'),
+          ? _('kacola: paused {title}, {elapsed}').replace('{title}', title).replace('{elapsed}', elapsed)
+          : _('kacola: not recording'),
   }
 
   const items = []
@@ -210,7 +210,7 @@ export function buildView(props, o) {
     items.push({ key: 'no-meetings', kind: 'status', text: _('No upcoming meetings') })
 
   items.push({ key: 'separator-app', kind: 'separator' })
-  items.push({ key: 'open', kind: 'action', text: _('Open gnomeola'), action: { type: 'open-window' } })
+  items.push({ key: 'open', kind: 'action', text: _('Open kacola'), action: { type: 'open-window' } })
   items.push({ key: 'prefs', kind: 'action', text: _('Preferences'), action: { type: 'preferences' } })
   return { panel, items }
 }

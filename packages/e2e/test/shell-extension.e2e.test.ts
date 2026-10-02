@@ -100,10 +100,10 @@ describe('the extension in a nested GNOME Shell 50', () => {
       const i = await indicator()
       return i?.icon === 'microphone-disabled-symbolic' && i
     }, 'offline indicator')
-    expect(ind.accessibleName).toBe('gnomeola: not running')
+    expect(ind.accessibleName).toBe('kacola: not running')
     expect(ind.styles).toContain('gnomeola-offline')
     expect(ind.items.map((i) => i.key)).toEqual(['offline', 'separator-app', 'open', 'prefs'])
-    expect(ind.items[0]!.text).toBe('gnomeola is not running')
+    expect(ind.items[0]!.text).toBe('kacola is not running')
   })
 
   it('recovers when the daemon appears, and renders idle with upcoming meetings', async () => {
@@ -144,7 +144,7 @@ describe('the extension in a nested GNOME Shell 50', () => {
       return i?.items.some((x) => x.key === 'meeting:mtg_review') && i
     }, 'meetings in the menu')
     expect(ind.icon).toBe('audio-input-microphone-symbolic')
-    expect(ind.accessibleName).toBe('gnomeola: not recording')
+    expect(ind.accessibleName).toBe('kacola: not recording')
     expect(ind.label).toBe('')
     const keys = ind.items.map((i) => i.key)
     expect(keys).toEqual([
@@ -212,7 +212,7 @@ describe('the extension in a nested GNOME Shell 50', () => {
     }, 'recording indicator')
     expect(ind.styles).toContain('gnomeola-recording')
     expect(ind.label).toMatch(/^1:0\d$/)
-    expect(ind.accessibleName).toMatch(/^gnomeola: recording Platform standup, 1:0\d$/)
+    expect(ind.accessibleName).toMatch(/^kacola: recording Platform standup, 1:0\d$/)
     const keys = ind.items.map((i) => i.key)
     expect(keys.slice(0, 4)).toEqual(['session', 'last-line', 'pause', 'stop'])
     expect(ind.items[0]!.text).toMatch(/^Recording · Platform standup · 1:0\d$/)
@@ -301,7 +301,7 @@ describe('the extension in a nested GNOME Shell 50', () => {
       ],
     })
     await shellEval(d.env, `Main.panel.statusArea['${GNOMEOLA_UUID}'].menu.open(); true`)
-    const button = await d.findOne({ app: 'gnome-shell', name: 'gnomeola: not recording' }, 10_000)
+    const button = await d.findOne({ app: 'gnome-shell', name: 'kacola: not recording' }, 10_000)
     expect(button.role).toBe('menu')
     const item = await d.findOne({ app: 'gnome-shell', nameContains: 'Accessibility sync' }, 10_000)
     expect(item.role).toBe('menu item')
@@ -332,7 +332,7 @@ describe('the extension in a nested GNOME Shell 50', () => {
         shellEval<{ title: string; body: string; actions: string[] } | null>(
           d.env,
           `(() => {
-            const src = Main.messageTray.getSources().find((s) => s.title === 'gnomeola')
+            const src = Main.messageTray.getSources().find((s) => s.title === 'kacola')
             const n = src?.notifications.at(-1)
             return n ? { title: n.title, body: n.body, actions: n.actions.map((a) => a.label) } : null
           })()`,

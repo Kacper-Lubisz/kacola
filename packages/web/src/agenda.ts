@@ -117,7 +117,7 @@ function itemRow(i: PublicItem, comments: PublicComment[], recap: boolean, st: V
   const statusBy =
     i.status === 'open'
       ? ''
-      : `<span class="meta status-by">${i.auto ? 'Checked off automatically' : `Set by ${esc(i.changedBy)}`}</span>`
+      : `<span class="meta status-by">${i.auto ? `Checked off by ${esc(i.changedBy)}` : `Set by ${esc(i.changedBy)}`}</span>`
   const outcome =
     recap && i.outcome
       ? `<div class="outcome"><h4>Outcome</h4><p>${esc(i.outcome).replace(/\n/g, '<br>')}</p></div>`

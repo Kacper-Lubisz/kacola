@@ -88,7 +88,7 @@ describe('the install-cli shim', () => {
     expect(first.code, first.stderr).toBe(0)
     expect(JSON.parse(first.stdout)).toEqual({ sessions: [] })
     expect(first.stderr).toMatch(/daemon is not running/)
-    expect(first.stderr).toMatch(/starting the gnomeola app in the background/)
+    expect(first.stderr).toMatch(/starting the kacola app in the background/)
     expect(first.stderr).not.toMatch(/systemctl/) // the shim owns the recovery, not the user
     expect(Date.now() - t0).toBeLessThan(20_000)
     expect(existsSync(pidFile)).toBe(true)
