@@ -536,7 +536,7 @@ describe('axe on the error screen (daemon unreachable)', () => {
       env: { GNOMEOLA_URL: `http://127.0.0.1:${port}`, GNOMEOLA_DAEMON_ENTRY: '/nonexistent' },
     })
     try {
-      await app.window.getByRole('heading', { name: 'Can’t Reach kacola' }).waitFor({ timeout: 30_000 })
+      await app.window.getByRole('heading', { name: 'Can’t reach kacola' }).waitFor({ timeout: 30_000 })
       const found: string[] = []
       await sweep(app, 'daemon unreachable', found)
       expect(found).toEqual([])

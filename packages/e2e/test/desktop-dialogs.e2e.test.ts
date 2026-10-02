@@ -398,7 +398,7 @@ describe('first-run onboarding (slow fake model downloads)', () => {
       const whisper = models.find((m) => m.state === 'missing')!
       const row = welcome.getByRole('listitem', { name: whisper.title })
       await row.getByText('Accurate transcription · 1 MB · Not downloaded').waitFor()
-      await welcome.getByText('Available (fake)').waitFor() // capture check from health()
+      await welcome.getByText('Working', { exact: true }).waitFor() // capture check from health()
       // calendar access: which calendars are read, and a broken calendar shows live
       await welcome.getByText('Reading Work').waitFor({ timeout: 10_000 })
       writeFileSync(calendarFile, '{ broken')

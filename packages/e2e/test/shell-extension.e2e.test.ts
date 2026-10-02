@@ -158,8 +158,8 @@ describe('the extension in a nested GNOME Shell 50', () => {
       'prefs',
     ])
     const standup = ind.items.find((i) => i.key === 'meeting:mtg_standup')!
-    expect(standup.text).toMatch(/^\d\d:\d\d–\d\d:\d\d {2}Platform standup$/)
-    expect(standup.name).toMatch(/Platform standup, Google Meet, Join$/)
+    expect(standup.text).toBe('Platform standup')
+    expect(standup.name).toMatch(/^Platform standup, \d\d:\d\d–\d\d:\d\d, Google Meet, Join$/)
     expect(ind.items.find((i) => i.key === 'meeting:mtg_review')!.name).toMatch(/Design review, Record$/)
   })
 
@@ -268,7 +268,7 @@ describe('the extension in a nested GNOME Shell 50', () => {
       return i?.items.some((x) => x.key === 'calendar-state') && i
     }, 'calendar state line')
     expect(ind.items.find((i) => i.key === 'calendar-state')!.text).toBe(
-      'Calendar unavailable — evolution-data-server is not running',
+      'Can’t read your calendar right now',
     )
     fake!.setProps({ CalendarState: 'off' })
     ind = await until(async () => {

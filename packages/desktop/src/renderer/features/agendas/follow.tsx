@@ -91,7 +91,7 @@ function FollowDialog({ initialLink }: { initialLink: string }) {
   }
   return (
     <Dialog
-      title={_('Follow a Shared Agenda')}
+      title={_('Follow a shared agenda')}
       isOpen
       onOpenChange={(o) => {
         if (!o) hide()
@@ -126,7 +126,7 @@ function FollowDialog({ initialLink }: { initialLink: string }) {
               onPress={() => void send()}
               isDisabled={busy || !linkOk || !emailOk}
             >
-              {_('Send Code')}
+              {_('Send code')}
             </Button>
           </>
         )

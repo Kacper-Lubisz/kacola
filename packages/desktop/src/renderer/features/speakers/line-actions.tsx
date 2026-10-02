@@ -48,7 +48,7 @@ export function LineActions({
               )
             }
           >
-            {_('Someone Else Said This')}
+            {_('Someone else said this')}
           </Button>
         )}
       </div>

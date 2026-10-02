@@ -322,14 +322,14 @@ describe('the main window against the protocol stub', () => {
       env: { GNOMEOLA_URL: url, GNOMEOLA_DAEMON_ENTRY: '/nonexistent' },
     })
     try {
-      await app.window.getByRole('heading', { name: 'Can’t Reach kacola' }).waitFor({ timeout: 30_000 })
+      await app.window.getByRole('heading', { name: 'Can’t reach kacola' }).waitFor({ timeout: 30_000 })
       await app.window.getByText(`it is not answering at ${url}.`, { exact: false }).waitFor()
       expect(await app.axe()).toEqual([])
       await shot(app, 'shell-unreachable')
       stub = await startStubDaemon([makeSession('Board meeting')], port)
       await app.window.getByRole('button', { name: 'Try Again' }).click()
       await expect.poll(() => rowNames(app), { timeout: 15_000 }).toContain('Board meeting')
-      expect(await app.window.getByRole('heading', { name: 'Can’t Reach kacola' }).count()).toBe(0)
+      expect(await app.window.getByRole('heading', { name: 'Can’t reach kacola' }).count()).toBe(0)
     } finally {
       await app.close()
       await stub?.close()

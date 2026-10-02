@@ -201,7 +201,7 @@ describe('onboarding', () => {
     })
     const welcome = await screen.findByRole('dialog', { name: 'Welcome to kacola' }, { timeout: 3000 })
     await within(welcome).findByRole('listitem', { name: 'whisper' })
-    await within(welcome).findByText('Available (fake)')
+    await within(welcome).findByText('Working')
     expect(
       (
         within(welcome).getByRole('switch', {

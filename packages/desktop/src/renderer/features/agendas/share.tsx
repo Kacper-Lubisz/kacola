@@ -207,7 +207,7 @@ function ShareDialog({
     if (!status.link) return
     void bridge.copyText(status.link).then(() => toast(_('Copied the link')))
   }
-  const title = member ? _('Shared Agenda') : _('Share Agenda')
+  const title = member ? _('Shared agenda') : _('Share the agenda')
   return (
     <Dialog
       title={title}
@@ -219,11 +219,11 @@ function ShareDialog({
         member ? (
           <>
             <Button variant="destructive" onPress={() => setConfirm(true)} className="mr-auto">
-              {status.state === 'revoked' ? _('Remove Sharing Details') : _('Stop Following…')}
+              {status.state === 'revoked' ? _('Remove sharing details') : _('Stop following…')}
             </Button>
             {status.state !== 'revoked' ? (
               <Button icon="refresh" onPress={() => sync.mutate({ agendaId })}>
-                {_('Sync Now')}
+                {_('Sync now')}
               </Button>
             ) : null}
             <Button variant="primary" onPress={onClose}>
@@ -236,7 +236,7 @@ function ShareDialog({
               {_('Unshare…')}
             </Button>
             <Button icon="refresh" onPress={() => sync.mutate({ agendaId })}>
-              {_('Sync Now')}
+              {_('Sync now')}
             </Button>
             <Button variant="primary" onPress={submit} isDisabled={bad.length > 0 || share.isPending}>
               {_('Save')}
@@ -287,7 +287,7 @@ function ShareDialog({
                   inputClassName="font-mono text-[13px]"
                 />
                 <Button icon="copy" onPress={copy}>
-                  {_('Copy Link')}
+                  {_('Copy link')}
                 </Button>
               </div>
             ) : null}
@@ -362,7 +362,7 @@ function ShareDialog({
         isOpen={confirm}
         onOpenChange={setConfirm}
         title={member ? _('Stop following this agenda?') : _('Stop sharing this agenda?')}
-        confirmLabel={member ? _('Stop Following') : _('Unshare')}
+        confirmLabel={member ? _('Stop following') : _('Unshare')}
         destructive
         onConfirm={() => {
           unshare.mutate(
@@ -408,7 +408,7 @@ export function ShareBanner({ view, status }: { view: AgendaView; status: ShareS
         title={fmt(_('Sharing could not sync: {reason}'), { reason: status.error ?? _('unknown error') })}
         action={
           <Button size="sm" icon="refresh" onPress={() => sync.mutate({ agendaId: view.agenda.id })}>
-            {_('Try Again')}
+            {_('Try again')}
           </Button>
         }
       />
@@ -470,7 +470,7 @@ function HistoryList({
   if (!changes.length)
     return <p className="m-0 type-callout text-text-secondary">{_('No status changes yet.')}</p>
   return (
-    <ol aria-label={_('Merge history')} className="m-0 flex list-none flex-col gap-2 p-0">
+    <ol aria-label={_('Status changes')} className="m-0 flex list-none flex-col gap-2 p-0">
       {[...changes].reverse().map((c) => (
         <li
           key={c.id}
@@ -569,7 +569,7 @@ export function SharingTab({ view, status }: { view: AgendaView; status: ShareSt
       <section aria-labelledby="share-history" className="flex flex-col gap-2">
         <div className="flex items-baseline justify-between gap-2">
           <h2 id="share-history" className="m-0 type-overline text-text-secondary">
-            {_('Merge history')}
+            {_('Status changes')}
           </h2>
           {status.refused ? (
             <span className="type-caption text-text-secondary">
@@ -586,7 +586,7 @@ export function SharingTab({ view, status }: { view: AgendaView; status: ShareSt
         </div>
         <p className="m-0 type-callout text-text-secondary">
           {_(
-            'Every status change from every device, and what became of it: the organizer’s own changes win, then each attendee’s, then trackers and agents (forward only).',
+            'Who changed each item’s status, and whether it stuck. The organizer’s changes win, then attendees’, then kacola’s and agents’.',
           )}
         </p>
         {!status.shared ? (

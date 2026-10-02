@@ -168,9 +168,9 @@ export function renderAgenda(p: SharedAgendaPage, st: ViewState, locale?: string
         .join('')}</ul></nav>`
     : ''
   const recapNote = recap
-    ? '<p class="note">The organiser shared what came of each item.</p>'
+    ? '<p class="note">The organizer shared what came of each item.</p>'
     : !isCurrent
-      ? '<p class="note">The organiser has not shared a recap of this meeting.</p>'
+      ? '<p class="note">The organizer has not shared a recap of this meeting.</p>'
       : ''
   return `<div class="page-head"><p class="overline">Shared agenda · ${esc(p.ownerName)}</p><h1>${esc(occ.title)}</h1>${time ? `<p class="when">${esc(time)}</p>` : ''}${recapNote}</div>${goals}<section aria-labelledby="items-h"><h2 id="items-h">${recap ? 'Agenda and outcomes' : 'Agenda'}</h2>${items}</section>${cards}${
     general.length
@@ -190,15 +190,15 @@ export function renderContribute(
     return `<section class="contribute" aria-labelledby="add-h"><h2 id="add-h">Add to the agenda</h2><p class="meta">As ${esc(p.you?.name ?? p.you?.email ?? s.email ?? '')}</p><form id="add-item"><label for="new-item">Item</label><input id="new-item" name="text" required maxlength="500" autocomplete="off"><fieldset class="kind"><legend class="sr">Kind</legend><label><input type="radio" name="kind" value="topic" checked> Topic</label><label><input type="radio" name="kind" value="question"> Question</label></fieldset><button type="submit">Add item</button></form><form id="add-comment"><label for="new-comment">Comment on the agenda</label><textarea id="new-comment" name="text" required maxlength="1000" rows="2"></textarea><button type="submit">Post comment</button></form>${msg}</section>`
   if (s.step === 'code')
     return `<section class="contribute" aria-labelledby="add-h"><h2 id="add-h">Check your email</h2><p>We sent a code to ${esc(s.email ?? '')}. It expires in 15 minutes.</p><form id="code-form"><label for="code">Code</label><input id="code" name="code" required autocomplete="one-time-code" inputmode="text" placeholder="ABCD-EFGH" maxlength="20"><button type="submit">Confirm</button></form><p><button type="button" id="restart" class="link">Use another address</button></p>${msg}</section>`
-  return `<section class="contribute" aria-labelledby="add-h"><h2 id="add-h">Add an item or a comment</h2><p class="meta">Confirm your email first — we send a one-time code. The organiser sees your address.</p><form id="email-form"><label for="email">Email</label><input id="email" name="email" type="email" required autocomplete="email"><label for="name">Name <span class="meta">(optional, shown to others)</span></label><input id="name" name="name" maxlength="100" autocomplete="name"><button type="submit">Send code</button></form>${msg}</section>`
+  return `<section class="contribute" aria-labelledby="add-h"><h2 id="add-h">Add an item or a comment</h2><p class="meta">Confirm your email first — we send a one-time code. The organizer sees your address.</p><form id="email-form"><label for="email">Email</label><input id="email" name="email" type="email" required autocomplete="email"><label for="name">Name <span class="meta">(optional, shown to others)</span></label><input id="name" name="name" maxlength="100" autocomplete="name"><button type="submit">Send code</button></form>${msg}</section>`
 }
 
 export function renderGone(status: number): string {
   if (status === 410)
-    return '<div class="gone"><h1>This agenda is no longer shared</h1><p>The organiser stopped sharing it.</p></div>'
+    return '<div class="gone"><h1>This agenda is no longer shared</h1><p>The organizer stopped sharing it.</p></div>'
   return '<div class="gone"><h1>No agenda here</h1><p>This link does not lead to a shared agenda. Check that it was copied whole.</p></div>'
 }
 
 /** The quiet prompt at the foot of the page. */
 export const PROMO =
-  '<p>Made with <strong>kacola</strong> — meeting notes, agendas and a live copilot that run on your own computer.</p>'
+  '<p>Made with <strong>kacola</strong>: meeting notes and agendas that stay on your own computer.</p>'

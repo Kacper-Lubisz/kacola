@@ -52,6 +52,12 @@ function ProfileBadge() {
   )
 }
 
+/** "kacola's background service is not reachable at <url>: fetch failed: fetch failed" → "fetch failed". */
+export function connectionDetail(error: string): string {
+  const rest = error.replace(/^.*?not reachable at \S+?:\s+/, '')
+  return [...new Set(rest.split(/:\s+/))].join(': ') || error
+}
+
 function Window() {
   const { store, events, appInfo, queries } = useServices()
   const connection = useStore(store, (s) => s.connection)
@@ -85,16 +91,18 @@ function Window() {
       <Page>
         <EmptyState
           icon="offline"
-          title={_('Can’t Reach kacola')}
-          description={fmt(
-            _('kacola records and transcribes in a background service, and it is not answering at {origin}.'),
-            { origin: appInfo.daemonUrl },
+          title={_('Can’t reach kacola')}
+          description={_(
+            'kacola records and transcribes in a background service, and it isn’t answering. It may still be starting.',
           )}
         >
           <Button variant="primary" size="lg" onPress={() => events.start()}>
-            {_('Try Again')}
+            {_('Try again')}
           </Button>
-          <p className="m-0 max-w-[50ch] type-caption text-text-secondary select-text">{connection.error}</p>
+          {/* the technical detail, once and quietly: where it looked and what the system said */}
+          <p className="m-0 max-w-[60ch] font-mono text-[12px] leading-5 [overflow-wrap:anywhere] text-text-tertiary select-text">
+            {appInfo.daemonUrl} · {connectionDetail(connection.error)}
+          </p>
         </EmptyState>
       </Page>
     )

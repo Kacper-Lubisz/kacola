@@ -1165,7 +1165,7 @@ describe('team sharing', () => {
     expect(screen.getByRole('list', { name: 'People' }).textContent).toMatch(
       /Ivy · ivy@example.com.*Invitee.*ben@example.com.*Follows in kacola/,
     )
-    const merged = await screen.findByRole('list', { name: 'Merge history' })
+    const merged = await screen.findByRole('list', { name: 'Status changes' })
     const entries = within(merged)
       .getAllByRole('listitem')
       .map((l) => l.getAttribute('aria-label'))

@@ -1534,7 +1534,7 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
       ],
       masks: clock(),
     })
-    const merged = w().getByRole('list', { name: 'Merge history' })
+    const merged = w().getByRole('list', { name: 'Status changes' })
     await merged.getByRole('listitem', { name: /Roadmap: Open → Covered by Ben’s Claude, Applied/ }).waitFor()
     await merged.scrollIntoViewIfNeeded()
     await atlas.shoot(w(), 'agenda-share__history__merge', {
@@ -2278,10 +2278,10 @@ describe('atlas: first run (real daemon, models not downloaded, calendar off)', 
     app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl, ...WINDOW_ENV } })
     await freeze(app)
     const welcome = app.window.getByRole('dialog', { name: 'Welcome to kacola' })
-    await welcome.getByText('Available (fake)').waitFor({ timeout: 20_000 })
+    await welcome.getByText('Working', { exact: true }).waitFor({ timeout: 20_000 })
     await welcome.getByText(/Lets agents like Claude Code/).waitFor({ timeout: 20_000 })
     await atlas.shoot(app.window, 'first-run__welcome__checks', {
-      expect: [welcome.getByText('Available (fake)'), welcome.getByText(/Lets agents like Claude Code/)],
+      expect: [welcome.getByText('Working', { exact: true }), welcome.getByText(/Lets agents like Claude Code/)],
     })
     const cal = welcome.getByText(/Calendar reading is turned off|Calendar not available/).first()
     await cal.scrollIntoViewIfNeeded()
@@ -2432,7 +2432,7 @@ describe('atlas: the daemon unreachable, and the connection lost', () => {
       await freeze(app)
       await atlas.shoot(app.window, 'daemon-down__window__cant-reach', {
         expect: [
-          app.window.getByRole('heading', { name: 'Can’t Reach kacola' }),
+          app.window.getByRole('heading', { name: 'Can’t reach kacola' }),
           app.window.getByRole('button', { name: 'Try Again' }),
         ],
         // the port is picked per run

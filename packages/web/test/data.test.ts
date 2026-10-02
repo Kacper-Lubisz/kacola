@@ -191,7 +191,9 @@ describe('the static build', () => {
       expect(js).not.toMatch(/require\(["']node:/)
       expect(html).toContain('<script type="module" src="/app.js"></script>')
       expect(html).toContain('id="app"')
-      expect(readFileSync(join(out, 'app.css'), 'utf8')).toContain('prefers-color-scheme: dark')
+      // light, dark and high contrast come from the brand tokens, which the viewer links
+      expect(html).toContain('/brand/tokens.css')
+      expect(readFileSync(join(out, 'brand', 'tokens.css'), 'utf8')).toContain('prefers-color-scheme: dark')
     } finally {
       rmSync(out, { recursive: true, force: true })
     }

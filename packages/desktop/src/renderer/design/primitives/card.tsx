@@ -76,14 +76,15 @@ export function Row({
 }) {
   return (
     <div
-      className={`flex min-h-14 gap-3 px-4 py-3 ${stacked ? 'flex-col' : 'items-center justify-between'} ${className}`}
+      className={`flex min-h-14 gap-3 px-4 py-3 ${stacked ? 'flex-col' : 'flex-wrap items-center justify-between gap-y-2'} ${className}`}
     >
-      <div className="flex min-w-0 flex-col gap-0.5">
+      {/* beside the control while there is room; in a narrow window the control wraps below */}
+      <div className={`flex min-w-0 flex-col gap-0.5 ${stacked ? '' : 'flex-[1_1_14rem]'}`}>
         <span id={labelId} className="font-sans text-[15px] leading-[22px] font-medium text-text-primary">
           {title}
         </span>
         {subtitle ? (
-          <span id={descriptionId} className="type-callout text-text-secondary select-text">
+          <span id={descriptionId} className="type-callout [overflow-wrap:anywhere] text-text-secondary select-text">
             {subtitle}
           </span>
         ) : null}

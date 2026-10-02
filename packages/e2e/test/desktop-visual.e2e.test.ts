@@ -276,7 +276,7 @@ describe('Preferences and onboarding (real daemon, no sessions)', () => {
     try {
       await freeze(app)
       const welcome = app.window.getByRole('dialog', { name: 'Welcome to kacola' })
-      await welcome.getByText('Available (fake)').waitFor({ timeout: 20_000 })
+      await welcome.getByText('Working', { exact: true }).waitFor({ timeout: 20_000 })
       await welcome.getByText(/Lets agents like Claude Code/).waitFor({ timeout: 20_000 })
       await app.window.evaluate('document.activeElement?.blur()')
       expect(await axeAllModes(app)).toEqual([])

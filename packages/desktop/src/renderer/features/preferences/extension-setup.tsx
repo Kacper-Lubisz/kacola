@@ -45,10 +45,10 @@ export type ExtensionView = {
 }
 
 const LABEL: Record<ExtensionAct, () => string> = {
-  install: () => _('Install & Enable'),
+  install: () => _('Install and turn on'),
   update: () => _('Update'),
-  enable: () => _('Enable'),
-  retry: () => _('Try Again'),
+  enable: () => _('Turn on'),
+  retry: () => _('Try again'),
 }
 
 /** What the row / card / onboarding show for a state (undefined: still checking). */
@@ -238,10 +238,10 @@ export function ExtensionAction({
         {view.label}
       </Button>
       <AlertDialog
-        title={_('Turn On GNOME Extensions?')}
+        title={_('Turn on GNOME extensions?')}
         isOpen={asking}
         onOpenChange={setAsking}
-        confirmLabel={_('Turn On Extensions')}
+        confirmLabel={_('Turn on extensions')}
         onConfirm={() => void go()}
       >
         {_(
@@ -285,7 +285,7 @@ export function ExtensionRow() {
             if (next.state !== 'enabled') toast(_('The top-bar extension is off'))
           }}
         >
-          {_('Disable')}
+          {_('Turn off')}
         </Button>
       ) : null}
       {view.removable && !ext.busy ? (
@@ -294,7 +294,7 @@ export function ExtensionRow() {
         </Button>
       ) : null}
       <AlertDialog
-        title={_('Remove the Top-Bar Extension?')}
+        title={_('Remove the top-bar extension?')}
         isOpen={confirmRemove}
         onOpenChange={setConfirmRemove}
         confirmLabel={_('Remove')}
@@ -338,23 +338,20 @@ export function ExtensionCard() {
   const card = useCardDismissed()
   if (card.dismissed || !ext.view.card) return null
   return (
-    <section aria-label={_('Top-bar extension')} className="px-3 pb-3">
-      <Card className="flex flex-col gap-2 p-3">
-        <div className="flex items-start gap-2">
-          <Icon name="topBar" size={16} className="mt-0.5 shrink-0 text-text-secondary" />
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <h2 className="m-0 type-body-strong text-text-primary">{_('Top-bar extension')}</h2>
-            <p className="m-0 type-caption text-text-secondary">
-              <ExtensionSubtitle view={ext.view} />
-            </p>
-          </div>
+    <section aria-label={_('Top-bar extension')}>
+      {/* one line: what it is, the one thing to do, dismiss; a narrow window wraps the button under */}
+      <Card className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+        <Icon name="topBar" size={18} className="mt-0.5 shrink-0 self-start text-text-secondary" />
+        <div className="flex min-w-0 flex-[1_1_14rem] flex-col gap-0.5">
+          <h2 className="m-0 type-body-strong text-text-primary">{_('Top-bar extension')}</h2>
+          <p className="m-0 type-callout text-text-secondary">
+            <ExtensionSubtitle view={ext.view} />
+          </p>
+        </div>
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          {ext.view.act || ext.busy ? <ExtensionAction ext={ext} variant="secondary" /> : null}
           <IconButton icon="close" size="sm" label={_('Dismiss')} onPress={() => void card.dismiss()} />
         </div>
-        {ext.view.act || ext.busy ? (
-          <div className="flex justify-end">
-            <ExtensionAction ext={ext} />
-          </div>
-        ) : null}
       </Card>
     </section>
   )

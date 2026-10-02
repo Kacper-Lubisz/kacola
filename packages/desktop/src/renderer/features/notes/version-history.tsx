@@ -82,10 +82,10 @@ export function VersionHistory({
               </span>
             ) : null}
           </span>
-          <span className="flex gap-2 type-caption text-text-secondary">
-            <span>{title}</span>
+          <span className="flex min-w-0 gap-2 type-caption whitespace-nowrap text-text-secondary">
+            <span className="min-w-0 truncate">{title}</span>
             <span aria-hidden="true">·</span>
-            <time dateTime={v.createdAt} className="font-mono text-[12px] tabular-nums">
+            <time dateTime={v.createdAt} className="shrink-0 font-mono text-[12px] tabular-nums">
               {formatClockTime(v.createdAt)}
             </time>
           </span>
@@ -98,16 +98,16 @@ export function VersionHistory({
     <Dialog
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title={_('Version History')}
+      title={_('Version history')}
       size="lg"
       footer={
         <>
           {failed ? (
-            <p role="alert" className="m-0 flex-1 self-center type-callout text-status-danger-text">
+            <p role="alert" className="m-0 min-w-[12rem] flex-1 self-center type-callout text-status-danger-text">
               {fmt(_('The version could not be restored: {reason}'), { reason: failed })}
             </p>
           ) : (
-            <p className="m-0 flex-1 self-center type-caption text-text-secondary">
+            <p className="m-0 min-w-[12rem] flex-1 self-center type-caption text-text-secondary">
               {_('Restoring adds a new version; nothing in this list is ever removed.')}
             </p>
           )}
@@ -117,13 +117,14 @@ export function VersionHistory({
             isDisabled={!selected || busy || selected.version === headVersion}
             onPress={() => selected && void restore(selected)}
           >
-            {_('Restore This Version')}
+            {_('Restore this version')}
           </Button>
         </>
       }
     >
-      <div className="flex h-[min(60vh,520px)] min-h-0 overflow-hidden rounded-lg border border-border-subtle">
-        <div className="w-60 shrink-0 overflow-y-auto border-r border-border-subtle py-1">
+      {/* side by side; a narrow window stacks the list above the text */}
+      <div className="flex h-[min(60vh,520px)] min-h-0 overflow-hidden rounded-lg border border-border-subtle max-sm:h-[min(70vh,560px)] max-sm:flex-col">
+        <div className="w-60 shrink-0 overflow-y-auto border-r border-border-subtle py-1 max-sm:max-h-[40%] max-sm:w-full max-sm:border-r-0 max-sm:border-b">
           {!versions && !error ? (
             <div className="p-3">
               <Spinner label={_('Loading…')} size={20} />

@@ -370,7 +370,7 @@ describe('desktop: team sharing', () => {
 
     const sharing = w().getByRole('region', { name: 'Sharing', exact: true })
     await sharing.scrollIntoViewIfNeeded()
-    const merged = sharing.getByRole('list', { name: 'Merge history' })
+    const merged = sharing.getByRole('list', { name: 'Status changes' })
     await merged
       .getByRole('listitem', { name: 'Roadmap: In progress → Covered by Ben, Refused' })
       .waitFor({ timeout: 20_000 })

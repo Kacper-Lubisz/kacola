@@ -95,11 +95,11 @@ export function TemplateEditor({
     }))
 
   return (
-    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} title={_('Notes Templates')} size="lg">
+    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} title={_('Notes templates')} size="lg">
       <div className="flex h-[min(64vh,560px)] min-h-0 overflow-hidden rounded-lg border border-border-subtle">
         <div className="flex w-56 shrink-0 flex-col gap-2 overflow-y-auto border-r border-border-subtle py-2">
           <Button size="sm" icon="add" onPress={() => startFrom(null)} className="mx-3 self-start">
-            {_('New Template')}
+            {_('New template')}
           </Button>
           <NavigationList
             label={_('Templates')}
@@ -152,7 +152,7 @@ export function TemplateEditor({
           <div className="flex items-center gap-2">
             {current && !current.builtIn ? (
               <Button variant="destructive" icon="delete" isDisabled={del.isPending} onPress={remove}>
-                {_('Delete Template')}
+                {_('Delete template')}
               </Button>
             ) : null}
             {readOnly && current ? (
@@ -161,7 +161,7 @@ export function TemplateEditor({
             <span className="flex-1" />
             {!readOnly ? (
               <Button type="submit" variant="primary" isDisabled={!valid || put.isPending}>
-                {_('Save Template')}
+                {_('Save template')}
               </Button>
             ) : null}
           </div>

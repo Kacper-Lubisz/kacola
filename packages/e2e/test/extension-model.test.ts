@@ -129,8 +129,8 @@ describe('buildView', () => {
       joinUrl: 'https://meet.google.com/abc-defg-hij',
     })
     expect(m[1]!.action).toEqual({ type: 'join', meetingId: 'mtg_2', joinUrl: '' })
-    expect(m[0]!.text).toBe('10:30–10:45  Standup')
-    expect(m[0]!.detail).toBe('Google Meet')
+    expect(m[0]!.text).toBe('Standup')
+    expect(m[0]!.detail).toBe('10:30–10:45 · Google Meet')
   })
 
   it('an in-progress current meeting leads even if the list does not carry it', () => {
@@ -141,7 +141,8 @@ describe('buildView', () => {
     )
     const m = v.items.filter((i: { kind: string }) => i.kind === 'meeting')
     expect(m.map((i: { key: string }) => i.key)).toEqual(['meeting:mtg_now', 'meeting:mtg_1'])
-    expect(m[0]!.text).toBe('Now  Now thing')
+    expect(m[0]!.text).toBe('Now thing')
+    expect(m[0]!.detail).toMatch(/^Now · /)
     expect(m[0]!.inProgress).toBe(true)
   })
 
@@ -212,10 +213,11 @@ describe('buildView', () => {
         (i: { key: string }) => i.key === 'calendar-state',
       )?.text
     expect(text({ CalendarState: 'off' })).toBe('Calendar access is off')
+    // the daemon's detail is for logs: the menu says it plainly either way
     expect(text({ CalendarState: 'unavailable', CalendarDetail: 'no EDS' })).toBe(
-      'Calendar unavailable — no EDS',
+      'Can’t read your calendar right now',
     )
-    expect(text({ CalendarState: 'unavailable' })).toBe('Calendar unavailable')
+    expect(text({ CalendarState: 'unavailable' })).toBe('Can’t read your calendar right now')
     expect(text({ CalendarState: 'starting' })).toBe('Reading calendars…')
     expect(text({ CalendarState: 'ok' })).toBeUndefined()
   })
