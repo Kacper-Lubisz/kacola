@@ -254,7 +254,7 @@ function Row({
         <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5">
           <span
             title={title}
-            className={`max-w-full truncate leading-6 ${quiet ? 'type-body text-text-secondary' : 'type-body-strong text-text-primary'}`}
+            className={`line-clamp-2 max-w-full break-words leading-6 ${quiet ? 'type-body text-text-secondary' : 'type-body-strong text-text-primary'}`}
           >
             {title}
           </span>

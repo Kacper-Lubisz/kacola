@@ -52,7 +52,12 @@ const theme = EditorView.theme({
     { backgroundColor: 'color-mix(in srgb, var(--k-color-accent-record) 22%, transparent)' },
   '.cm-placeholder': { color: 'var(--k-color-text-secondary)', fontStyle: 'normal' },
   // a bullet is a fixed-width box, so a list line can hang: wrapped lines start under the text, not the dot
-  '.cm-bullet': { color: 'var(--k-color-text-secondary)', display: 'inline-block', width: '1.1em' },
+  '.cm-bullet': {
+    color: 'var(--k-color-text-secondary)',
+    display: 'inline-block',
+    width: '1.1em',
+    textIndent: '0',
+  },
   '.cm-line.cm-list': { paddingLeft: 'calc(24px + 1.1em)', textIndent: '-1.1em' },
   // a blank line is paragraph space, not a full empty line: a heading sits close to what follows it
   '.cm-line.cm-blank': { lineHeight: '12px' },

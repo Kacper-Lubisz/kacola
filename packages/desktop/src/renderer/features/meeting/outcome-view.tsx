@@ -65,7 +65,7 @@ function OutcomeBlock({ outcome, sessionId }: { outcome: Outcome; sessionId: str
                     onPress={() => cite(d.evidence!.segmentId!)}
                     aria-label={fmt(_('Show in transcript: “{quote}”'), { quote: d.evidence.quote })}
                   >
-                    {_('Where')}
+                    <span className="max-sm:hidden">{_('Where')}</span>
                   </Button>
                 ) : null}
               </li>

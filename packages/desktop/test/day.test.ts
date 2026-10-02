@@ -269,7 +269,7 @@ describe('home: the day', () => {
     expect(dayLabel(at(9, 0, -8), now)).toBe('4 March')
     expect(dayLabel(new Date(2025, 11, 1).getTime(), now)).toBe('1 December 2025')
     expect(countdown(iso(at(16)), iso(at(16, 30)), now)).toBe('starting in 30 min')
-    expect(countdown(iso(at(15)), iso(at(16)), now)).toBe('now, started 30 min ago')
+    expect(countdown(iso(at(15)), iso(at(16)), now)).toBe('started 30 min ago')
     expect(countdown(iso(at(14)), iso(at(15)), now)).toBe('ended')
   })
 
@@ -474,9 +474,9 @@ describe('home: the day', () => {
     const now = at(15, 30)
     expect(countdown(iso(at(15, 32)), iso(at(16)), now)).toBe('starting in 2 min')
     expect(countdown(iso(at(16, 35)), iso(at(17)), now)).toBe('starting in 1 h 5 min')
-    expect(countdown(iso(at(15, 30)), iso(at(16)), now + 20_000)).toBe('now, just started')
-    expect(countdown(iso(at(15, 20)), iso(at(16)), now)).toBe('now, started 10 min ago')
-    expect(countdown(iso(at(14)), iso(at(16)), now)).toBe('now, started 1 h 30 min ago')
+    expect(countdown(iso(at(15, 30)), iso(at(16)), now + 20_000)).toBe('just started')
+    expect(countdown(iso(at(15, 20)), iso(at(16)), now)).toBe('started 10 min ago')
+    expect(countdown(iso(at(14)), iso(at(16)), now)).toBe('started 1 h 30 min ago')
     expect(countdown(iso(at(14)), iso(at(15)), now)).toBe('ended')
   })
 

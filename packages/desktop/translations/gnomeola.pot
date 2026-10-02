@@ -24,7 +24,7 @@ msgstr ""
 
 #: src/renderer/design/primitives/dialog.tsx:108
 #: src/renderer/features/agendas/agenda-actions.tsx:146
-#: src/renderer/features/agendas/agenda-editor.tsx:525
+#: src/renderer/features/agendas/agenda-editor.tsx:528
 #: src/renderer/features/agendas/context-cards.tsx:159
 #: src/renderer/features/agendas/follow.tsx:122
 #: src/renderer/features/agendas/send.tsx:96
@@ -250,7 +250,7 @@ msgid "Delete this agenda?"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-actions.tsx:91
-#: src/renderer/features/agendas/agenda-editor.tsx:350
+#: src/renderer/features/agendas/agenda-editor.tsx:353
 #: src/renderer/features/meeting/agenda-rail.tsx:118
 msgid "Delete"
 msgstr ""
@@ -385,7 +385,7 @@ msgid "Add an item…"
 msgstr ""
 
 #: src/renderer/features/agendas/agenda-editor.tsx:206
-#: src/renderer/features/agendas/agenda-editor.tsx:535
+#: src/renderer/features/agendas/agenda-editor.tsx:538
 msgid "Kind"
 msgstr ""
 
@@ -414,94 +414,94 @@ msgstr ""
 msgid "carried over"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:310
+#: src/renderer/features/agendas/agenda-editor.tsx:313
 msgid "Edit “{item}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:311
+#: src/renderer/features/agendas/agenda-editor.tsx:314
 msgid "Edit"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:319
+#: src/renderer/features/agendas/agenda-editor.tsx:322
 msgid "Delete “{item}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:320
+#: src/renderer/features/agendas/agenda-editor.tsx:323
 msgid "Delete (Del)"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:326
-#: src/renderer/features/agendas/agenda-editor.tsx:331
+#: src/renderer/features/agendas/agenda-editor.tsx:329
+#: src/renderer/features/agendas/agenda-editor.tsx:334
 #: src/renderer/features/meeting/agenda-rail.tsx:107
 #: src/renderer/features/meeting/agenda-rail.tsx:112
 msgid "More for “{item}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:332
+#: src/renderer/features/agendas/agenda-editor.tsx:335
 #: src/renderer/features/meeting/agenda-rail.tsx:113
 msgid "More"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:338
+#: src/renderer/features/agendas/agenda-editor.tsx:341
 msgid "Move Up"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:345
+#: src/renderer/features/agendas/agenda-editor.tsx:348
 msgid "Move Down"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:369
+#: src/renderer/features/agendas/agenda-editor.tsx:372
 #: src/renderer/features/meeting/suggestion-card.tsx:39
 msgid "Could not change the status"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:370
+#: src/renderer/features/agendas/agenda-editor.tsx:373
 msgid "Status of “{item}”: {status}"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:373
+#: src/renderer/features/agendas/agenda-editor.tsx:376
 msgid "Set the status of “{item}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:408
+#: src/renderer/features/agendas/agenda-editor.tsx:411
 msgid "Added"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:409
+#: src/renderer/features/agendas/agenda-editor.tsx:412
 msgid "Edited"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:410
+#: src/renderer/features/agendas/agenda-editor.tsx:413
 msgid "Status changed"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:411
+#: src/renderer/features/agendas/agenda-editor.tsx:414
 #: src/renderer/features/agendas/share.tsx:557
 msgid "Removed"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:412
+#: src/renderer/features/agendas/agenda-editor.tsx:415
 msgid "Imported"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:413
+#: src/renderer/features/agendas/agenda-editor.tsx:416
 msgid "Restored"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:418
+#: src/renderer/features/agendas/agenda-editor.tsx:421
 #: src/renderer/features/agendas/share.tsx:491
 msgid "{from} → {to} by {who}"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:423
+#: src/renderer/features/agendas/agenda-editor.tsx:426
 msgid "{what} by {who}"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:429
+#: src/renderer/features/agendas/agenda-editor.tsx:432
 msgid "Could not restore the item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:431
+#: src/renderer/features/agendas/agenda-editor.tsx:434
 #: src/renderer/features/meeting/notepad.tsx:37
 #: src/renderer/features/meeting/notepad.tsx:60
 #: src/renderer/features/meeting/notepad.tsx:217
@@ -510,64 +510,64 @@ msgstr ""
 msgid "Loading…"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:434
+#: src/renderer/features/agendas/agenda-editor.tsx:437
 msgid "No changes yet."
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:436
+#: src/renderer/features/agendas/agenda-editor.tsx:439
 #: src/renderer/features/notes/version-history.tsx:140
 msgid "Versions"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:450
+#: src/renderer/features/agendas/agenda-editor.tsx:453
 msgid "Restore “{item}” to this version"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:452
+#: src/renderer/features/agendas/agenda-editor.tsx:455
 msgid "Restore"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:472
-#: src/renderer/features/agendas/agenda-editor.tsx:478
+#: src/renderer/features/agendas/agenda-editor.tsx:475
+#: src/renderer/features/agendas/agenda-editor.tsx:481
 msgid "History of “{item}”"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:479
-#: src/renderer/features/agendas/agenda-editor.tsx:483
+#: src/renderer/features/agendas/agenda-editor.tsx:482
+#: src/renderer/features/agendas/agenda-editor.tsx:486
 msgid "History"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:498
+#: src/renderer/features/agendas/agenda-editor.tsx:501
 msgid "Could not save the item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:518
+#: src/renderer/features/agendas/agenda-editor.tsx:521
 msgid "Edit Item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:527
+#: src/renderer/features/agendas/agenda-editor.tsx:530
 #: src/renderer/features/agendas/share.tsx:242
 #: src/renderer/features/preferences/preferences-dialog.tsx:142
 msgid "Save"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:533
+#: src/renderer/features/agendas/agenda-editor.tsx:536
 msgid "Item"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:537
+#: src/renderer/features/agendas/agenda-editor.tsx:540
 msgid "Owner"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:538
+#: src/renderer/features/agendas/agenda-editor.tsx:541
 msgid "me, them, or a name"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:545
+#: src/renderer/features/agendas/agenda-editor.tsx:548
 msgid "Answer heard"
 msgstr ""
 
-#: src/renderer/features/agendas/agenda-editor.tsx:545
+#: src/renderer/features/agendas/agenda-editor.tsx:548
 #: src/renderer/features/meeting/outcome-view.tsx:30
 #: src/renderer/features/meeting/outcome-view.tsx:31
 #: src/renderer/features/meeting/outcome-view.tsx:47
@@ -3570,11 +3570,11 @@ msgid "ended"
 msgstr ""
 
 #: src/renderer/features/home/day.ts:79
-msgid "now, just started"
+msgid "just started"
 msgstr ""
 
 #: src/renderer/features/home/day.ts:80
-msgid "now, started {duration} ago"
+msgid "started {duration} ago"
 msgstr ""
 
 #: src/renderer/features/home/day.ts:82

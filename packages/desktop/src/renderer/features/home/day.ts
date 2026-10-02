@@ -66,8 +66,8 @@ export function dayLabel(t: number, now: number): string {
 }
 
 /**
- * When a meeting is, said plainly: "starting in 2 min", "starting in 1 h 5 min"; "now, just started",
- * "now, started 10 min ago" once under way; "ended".
+ * When a meeting is, said plainly: "starting in 2 min", "starting in 1 h 5 min"; "just started",
+ * "started 10 min ago" once under way; "ended".
  */
 export function countdown(startIso: string, endIso: string, now: number): string {
   const start = Date.parse(startIso)
@@ -76,8 +76,8 @@ export function countdown(startIso: string, endIso: string, now: number): string
   if (now >= start) {
     const ago = Math.floor((now - start) / 60_000) * 60_000
     return ago < 60_000
-      ? _('now, just started')
-      : fmt(_('now, started {duration} ago'), { duration: durationLabel(ago) })
+      ? _('just started')
+      : fmt(_('started {duration} ago'), { duration: durationLabel(ago) })
   }
   return fmt(_('starting in {duration}'), {
     duration: durationLabel(Math.ceil((start - now) / 60_000) * 60_000),
