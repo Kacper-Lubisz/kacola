@@ -1,7 +1,7 @@
 import { defaultKeymap, history, historyKeymap, insertNewline } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirror/language'
-import { EditorState, Prec, RangeSetBuilder } from '@codemirror/state'
+import { EditorState, Prec } from '@codemirror/state'
 import {
   placeholder as cmPlaceholder,
   Decoration,
@@ -51,7 +51,12 @@ const theme = EditorView.theme({
   '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection':
     { backgroundColor: 'color-mix(in srgb, var(--k-color-accent-record) 22%, transparent)' },
   '.cm-placeholder': { color: 'var(--k-color-text-secondary)', fontStyle: 'normal' },
-  '.cm-bullet': { color: 'var(--k-color-text-secondary)' },
+  // a bullet is a fixed-width box, so a list line can hang: wrapped lines start under the text, not the dot
+  '.cm-bullet': { color: 'var(--k-color-text-secondary)', display: 'inline-block', width: '1.1em' },
+  '.cm-line.cm-list': { paddingLeft: 'calc(24px + 1.1em)', textIndent: '-1.1em' },
+  // a blank line is paragraph space, not a full empty line: a heading sits close to what follows it
+  '.cm-line.cm-blank': { lineHeight: '12px' },
+  '.cm-line.cm-heading:not(:first-child)': { paddingTop: '8px' },
 })
 
 const heading = (size: string, lh: string, weight: string, tracking: string) => ({
@@ -109,29 +114,46 @@ class Bullet extends WidgetType {
   }
 }
 
+const LIST_LINE = Decoration.line({ class: 'cm-list' })
+const BLANK_LINE = Decoration.line({ class: 'cm-blank' })
+const HEADING_LINE = Decoration.line({ class: 'cm-heading' })
+
 function quietMarks(view: EditorView): DecorationSet {
-  const b = new RangeSetBuilder<Decoration>()
+  const out: ReturnType<Decoration['range']>[] = []
   const { state } = view
   // the line being edited shows its marks; an editor without focus is being read, not edited
   const editing = new Set(
     view.hasFocus ? state.selection.ranges.map((r) => state.doc.lineAt(r.head).number) : [],
   )
-  for (const { from, to } of view.visibleRanges)
+  for (const { from, to } of view.visibleRanges) {
+    // line shapes (every line, the edited one too, so nothing jumps as the caret moves)
+    for (let pos = from; pos <= to; ) {
+      const line = state.doc.lineAt(pos)
+      if (!line.text.trim()) out.push(BLANK_LINE.range(line.from))
+      pos = line.to + 1
+    }
     syntaxTree(state).iterate({
       from,
       to,
       enter: (n) => {
         const line = state.doc.lineAt(n.from)
+        if (n.name === 'ListMark' && /^[-*+]$/.test(state.sliceDoc(n.from, n.to)))
+          out.push(LIST_LINE.range(line.from))
+        if (/^ATXHeading\d$/.test(n.name)) out.push(HEADING_LINE.range(line.from))
         if (editing.has(line.number)) return
         if (n.name === 'HeaderMark' && n.from === line.from) {
           // the marks and the space after them
           const end = Math.min(line.to, n.to + (state.sliceDoc(n.to, n.to + 1) === ' ' ? 1 : 0))
-          if (end > n.from) b.add(n.from, end, Decoration.replace({}))
-        } else if (n.name === 'ListMark' && /^[-*+]$/.test(state.sliceDoc(n.from, n.to)))
-          b.add(n.from, n.to, Decoration.replace({ widget: new Bullet() }))
+          if (end > n.from) out.push(Decoration.replace({}).range(n.from, end))
+        } else if (n.name === 'ListMark' && /^[-*+]$/.test(state.sliceDoc(n.from, n.to))) {
+          // the mark and the space after it: the bullet's box is the gap
+          const end = Math.min(line.to, n.to + (state.sliceDoc(n.to, n.to + 1) === ' ' ? 1 : 0))
+          out.push(Decoration.replace({ widget: new Bullet() }).range(n.from, end))
+        }
       },
     })
-  return b.finish()
+  }
+  return Decoration.set(out, true)
 }
 
 const quiet = ViewPlugin.fromClass(
@@ -163,6 +185,7 @@ export function NotesEditor({
   handle,
   bottomSpace = 48,
   size = 'body',
+  flush = false,
 }: {
   initial: string
   onChange: (text: string) => void
@@ -175,6 +198,8 @@ export function NotesEditor({
   bottomSpace?: number
   /** `large`: the live notepad's calmer, bigger type. */
   size?: 'body' | 'large'
+  /** Text flush with the container's edges (in a page column), not a centred, padded sheet. */
+  flush?: boolean
 }) {
   const host = useRef<HTMLDivElement>(null)
   const change = useRef(onChange)
@@ -212,6 +237,17 @@ export function NotesEditor({
               ...(size === 'large' ? { fontSize: '17px', lineHeight: '28px' } : {}),
             },
           }),
+          ...(flush
+            ? [
+                Prec.highest(
+                  EditorView.theme({
+                    '.cm-content': { maxWidth: 'none', margin: '0' },
+                    '.cm-line': { paddingLeft: '0', paddingRight: '0' },
+                    '.cm-line.cm-list': { paddingLeft: '1.1em' },
+                  }),
+                ),
+              ]
+            : []),
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({
             'aria-label': label,

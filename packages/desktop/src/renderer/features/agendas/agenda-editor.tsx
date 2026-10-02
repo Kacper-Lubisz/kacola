@@ -104,7 +104,7 @@ export function GoalsEditor({ view }: { view: AgendaView }) {
           className="flex-1"
         />
         <Button onPress={add} isDisabled={!draft.trim()} icon="add">
-          {_('Add Goal')}
+          {_('Add goal')}
         </Button>
       </div>
     </section>
@@ -205,7 +205,7 @@ export function ItemsEditor({ view, readOnly = false }: { view: AgendaView; read
           />
           <Select label={_('Kind')} labelHidden options={kindOptions()} value={kind} onChange={setKind} />
           <Button variant="primary" icon="add" onPress={submit} isDisabled={!text.trim()}>
-            {_('Add Item')}
+            {_('Add item')}
           </Button>
         </div>
       )}

@@ -282,7 +282,7 @@ describe('desktop: agendas', () => {
 
     // goals
     await w().getByRole('textbox', { name: 'Add a goal' }).fill('settle the offsite')
-    await w().getByRole('button', { name: 'Add Goal' }).click()
+    await w().getByRole('button', { name: 'Add goal' }).click()
     await until(
       async () => (await view(id)).agenda.goals,
       (g) => g.length === 2,
@@ -314,7 +314,7 @@ describe('desktop: agendas', () => {
     await shot('editor', w().getByRole('region', { name: 'Agenda', exact: true }))
 
     // context (beside the agenda, no tabs): a private card, then shared
-    await w().getByRole('button', { name: 'Add a Card' }).click()
+    await w().getByRole('button', { name: 'Add card' }).click()
     await w().getByRole('textbox', { name: 'Card title' }).fill('Last quarter numbers')
     await w().getByRole('textbox', { name: 'Card text' }).fill('Revenue up 12%, hiring behind by two.')
     await w().getByRole('button', { name: 'Add Card' }).click()

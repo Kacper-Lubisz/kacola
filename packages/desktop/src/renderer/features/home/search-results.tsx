@@ -57,13 +57,16 @@ export function SearchResults({ query, ask }: { query: string; ask: ReturnType<t
             <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-bg-sidebar">
               <Icon name="ask" size={16} className="text-text-secondary" />
             </span>
-            <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
               <Turn
                 turn={asked}
                 onCite={onCite}
                 scope={ask.scopeOf(asked.requestId)}
                 onRetry={() => ask.ask(asked.question)}
               />
+              <p className="m-0 type-caption text-text-tertiary">
+                {_('Written by your AI provider from the matching parts of your meetings.')}
+              </p>
             </div>
             {ask.streaming ? (
               <Button size="sm" variant="ghost" icon="stop" onPress={ask.stop}>
@@ -71,9 +74,6 @@ export function SearchResults({ query, ask }: { query: string; ask: ReturnType<t
               </Button>
             ) : null}
           </div>
-          <p className="m-0 type-caption text-text-secondary">
-            {_('Written by your AI provider from the matching parts of your meetings.')}
-          </p>
         </Card>
       ) : (
         <button

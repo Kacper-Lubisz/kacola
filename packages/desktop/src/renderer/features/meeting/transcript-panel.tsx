@@ -20,7 +20,7 @@ export function TranscriptPanel({ session, onClose }: { session: Session; onClos
     (s) => s.id !== 'me' && s.id !== 'them' && !s.named && s.segments > 0,
   )
   return (
-    <div className="flex h-full min-h-0 w-full flex-col border-l border-border-subtle bg-bg-sidebar md:w-[400px]">
+    <div className="flex h-full min-h-0 w-full flex-col border-l border-border-subtle bg-bg-sidebar md:w-[360px] xl:w-[400px]">
       <div className="flex h-12 shrink-0 items-center gap-2 px-4">
         <h2 className="m-0 flex-1 type-headline text-text-primary">{_('Transcript')}</h2>
         <Button size="sm" variant="ghost" icon="speakers" onPress={() => setNaming(true)}>

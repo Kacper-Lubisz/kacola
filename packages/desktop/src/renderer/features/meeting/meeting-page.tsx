@@ -31,6 +31,7 @@ import {
   BackButton,
   CaptureWarning,
   MeetingHeader,
+  MetaDot,
   PanelToggle,
   RecordingControls,
   RecordingPill,
@@ -107,7 +108,7 @@ function LivePage({
       <HeaderBar start={<BackButton />} />
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-border-subtle px-4 pb-3 sm:px-6">
         <div className="flex min-w-[min(100%,14rem)] flex-1 flex-col">
-          <h1 className="m-0 type-title2 break-words text-text-primary">{displayTitle(session)}</h1>
+          <h1 className="m-0 type-title1 break-words text-text-primary">{displayTitle(session)}</h1>
           <CaptureWarning session={session} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -149,9 +150,11 @@ function OutcomePage({
         meta={
           <>
             <span className="font-mono text-[13px] tabular-nums">{when}</span>
-            <span>· {durationLabel(session.durationMs)}</span>
+            <MetaDot />
+            <span>{durationLabel(session.durationMs)}</span>
+            <MetaDot />
             <span className="inline-flex items-center gap-1">
-              · <Icon name="success" size={14} className="text-status-success" />{' '}
+              <Icon name="success" size={14} className="text-status-success" />
               {_('saved on this computer')}
             </span>
             {session.private ? <Chip icon="lock">{_('Private')}</Chip> : null}
@@ -239,9 +242,24 @@ function PrepPage({ view }: { view: AgendaView }) {
             {m ? (
               <>
                 <span className="font-mono text-[13px] tabular-nums">{meetingWhen(m)}</span>
-                {m.calendar ? <span>· {m.calendar}</span> : null}
-                {m.recurring ? <span>· {_('Repeats')}</span> : null}
-                {m.end && !ended ? <span>· {countdown(m.start, m.end, now)}</span> : null}
+                {m.calendar ? (
+                  <>
+                    <MetaDot />
+                    <span>{m.calendar}</span>
+                  </>
+                ) : null}
+                {m.recurring ? (
+                  <>
+                    <MetaDot />
+                    <span>{_('Repeats')}</span>
+                  </>
+                ) : null}
+                {m.end && !ended ? (
+                  <>
+                    <MetaDot />
+                    <span>{countdown(m.start, m.end, now)}</span>
+                  </>
+                ) : null}
               </>
             ) : (
               <span>{_('Not linked to a calendar meeting')}</span>

@@ -8,6 +8,7 @@ import { type ReactNode, useState } from 'react'
 import { useStore } from 'zustand'
 import { useServices } from '../../data/services.tsx'
 import { Button, Card, Icon, IconButton, type IconName } from '../../design/primitives/index.ts'
+import { MetaDot } from '../meeting/header.tsx'
 import { providerLabel, useJoin, useOpenPrep } from '../meeting/join.ts'
 import { useMissingModels } from '../onboarding/onboarding-state.ts'
 import { useRecorder } from '../sessions/recorder.ts'
@@ -413,13 +414,21 @@ function ReadinessLine() {
 function MeetingFacts({ m }: { m: Meeting }) {
   const provider = providerLabel(m.join?.provider)
   return (
-    <p className="m-0 flex flex-wrap items-center gap-x-2 type-callout text-text-secondary">
+    <p className="m-0 flex flex-wrap items-center gap-x-1.5 type-callout text-text-secondary">
       <span className="font-mono text-[13px] tabular-nums">
         {clock(m.start)}–{clock(m.end)}
       </span>
-      {provider ? <span>· {provider}</span> : null}
+      {provider ? (
+        <>
+          <MetaDot />
+          <span>{provider}</span>
+        </>
+      ) : null}
       {m.attendees > 1 ? (
-        <span>· {fmt(ngettext('{n} person', '{n} people', m.attendees), { n: m.attendees })}</span>
+        <>
+          <MetaDot />
+          <span>{fmt(ngettext('{n} person', '{n} people', m.attendees), { n: m.attendees })}</span>
+        </>
       ) : null}
     </p>
   )
@@ -444,7 +453,9 @@ function NextMeeting({ entry: e, now }: { entry: Extract<DayEntry, { kind: 'meet
             <h3 className="m-0 type-title1 break-words text-text-primary">{m.title}</h3>
             <MeetingFacts m={m} />
           </div>
-          <p className="m-0 type-headline text-text-primary">{countdown(m.start, m.end, now)}</p>
+          <p className="m-0 type-headline text-text-primary first-letter:uppercase">
+            {countdown(m.start, m.end, now)}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-md bg-bg-sidebar px-3 py-2 type-callout">
           {e.agenda ? (
@@ -550,7 +561,9 @@ function CurrentEntry({
           {live ? (
             <RecordingClock s={s!} />
           ) : m ? (
-            <p className="m-0 type-headline text-text-primary">{countdown(m.start, m.end, now)}</p>
+            <p className="m-0 type-headline text-text-primary first-letter:uppercase">
+              {countdown(m.start, m.end, now)}
+            </p>
           ) : null}
         </div>
         {!live && m && !s && (e.agenda || (sayReadiness && !ready.ok)) ? (

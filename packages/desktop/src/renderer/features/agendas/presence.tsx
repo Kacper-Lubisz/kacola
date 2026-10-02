@@ -200,7 +200,13 @@ export function PresenceChip({ session }: { session: Session }) {
             </span>
           }
         >
-          <Button size="sm" pill aria-label={fmt(_('{label}. Show agent'), { label })}>
+          {/* as tall as the recording pill and the controls beside it in the live header */}
+          <Button
+            size="sm"
+            pill
+            className="!h-9 !px-3.5"
+            aria-label={fmt(_('{label}. Show agent'), { label })}
+          >
             <span aria-hidden="true" className="relative flex size-2">
               {reading ? (
                 <span className="record-pulse absolute inset-0 rounded-full bg-status-info" />

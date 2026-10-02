@@ -418,7 +418,7 @@ describe('desktop: team sharing', () => {
     await w().getByRole('list', { name: 'Recap per item' }).waitFor({ timeout: 20_000 })
     // a shared agenda's Share summary also offers the recap to everyone with the link
     await w().getByRole('button', { name: 'Share summary' }).click()
-    const recap = w().getByRole('dialog', { name: 'Share Summary' })
+    const recap = w().getByRole('dialog', { name: 'Share summary' })
     const sw = recap.getByRole('switch', { name: /Share recap/ })
     expect(await sw.isChecked()).toBe(false)
     expect((await page(s.agenda)).items.find((i) => i.text === 'Budget')?.outcome).toBeNull()

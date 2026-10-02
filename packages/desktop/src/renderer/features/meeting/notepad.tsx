@@ -166,12 +166,12 @@ function EnhanceProblem({
 
 function suggestionHint(s: TemplateSuggestion | undefined, name: string): string {
   if (s?.matched?.source === 'calendar')
-    return fmt(_('{template} template, suggested by the calendar event ("{keyword}")'), {
+    return fmt(_('{template} template, suggested by the calendar event (“{keyword}”)'), {
       template: name,
       keyword: s.matched.keyword,
     })
   if (s?.matched)
-    return fmt(_('{template} template, suggested by the meeting title ("{keyword}")'), {
+    return fmt(_('{template} template, suggested by the meeting title (“{keyword}”)'), {
       template: name,
       keyword: s.matched.keyword,
     })
@@ -390,6 +390,7 @@ export function OutcomeNotes({
             placeholder={_('Nothing written. Enhance writes notes from the transcript.')}
             onChange={(md) => feed.edit(md)}
             handle={handle}
+            flush
           />
         ) : state.status === 'error' ? (
           <p className="m-0 type-body text-status-danger-text">{saveStatus(state)}</p>

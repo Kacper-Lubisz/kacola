@@ -648,7 +648,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     await escapeUntilGone(dialog)
     await transcriptList(w()).locator('[role=option][aria-label^="Speaker 1 at "]').first().click()
     await atlas.shoot(w(), 'speakers__line__someone-else', {
-      expect: w().getByRole('button', { name: 'Someone Else Said This' }),
+      expect: w().getByRole('button', { name: 'Someone else said this' }),
     })
     await w().keyboard.press('Control+t')
   })
@@ -1569,7 +1569,7 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
     await w().getByRole('list', { name: 'Recap per item' }).waitFor({ timeout: 20_000 })
     // the outcome's Share summary: exactly what goes out, and the recap shared through the link
     await w().getByRole('button', { name: 'Share summary' }).click()
-    const summary = w().getByRole('dialog', { name: 'Share Summary' })
+    const summary = w().getByRole('dialog', { name: 'Share summary' })
     await summary.getByText('Share recap', { exact: true }).click()
     await summary.getByText('People with the link see each item’s outcome.').waitFor({ timeout: 20_000 })
     await atlas.shoot(w(), 'agenda-share__recap__shared', {
@@ -2147,8 +2147,8 @@ describe('atlas: the Day story (a 1:1 with Ana, from home through prep and live 
     })
     await w().getByRole('button', { name: 'Close the transcript' }).click()
     await w().getByRole('button', { name: 'Share summary' }).click()
-    const share = w().getByRole('dialog', { name: 'Share Summary' })
-    await share.getByRole('button', { name: 'Copy Summary' }).waitFor()
+    const share = w().getByRole('dialog', { name: 'Share summary' })
+    await share.getByRole('button', { name: 'Copy summary' }).waitFor()
     await atlas.shoot(w(), 'day__outcome__share-summary', { expect: share })
     await w().keyboard.press('Escape')
     await share.waitFor({ state: 'detached' })

@@ -280,7 +280,7 @@ export const ATLAS: AtlasEntry[] = [
   win('speakers', 'dialog', 'list', 'The Speakers dialog: everyone in the meeting and how much they said'),
   win('speakers', 'rename', 'field', 'Naming a speaker inline'),
   win('speakers', 'merge', 'menu', 'Merging two speakers who are the same person'),
-  win('speakers', 'line', 'someone-else', 'A far-end line selected: "Someone Else Said This" splits it off'),
+  win('speakers', 'line', 'someone-else', 'A far-end line selected: "Someone else said this" splits it off'),
   win(
     'speakers',
     'preferences',

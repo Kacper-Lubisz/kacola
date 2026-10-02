@@ -286,8 +286,8 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     expect(await list.getByRole('listitem').count()).toBe(3)
     // Share summary → Copy Summary: the action items as a task list
     await h.w().getByRole('button', { name: 'Share summary' }).click()
-    const share = h.w().getByRole('dialog', { name: 'Share Summary' })
-    await share.getByRole('button', { name: 'Copy Summary' }).click()
+    const share = h.w().getByRole('dialog', { name: 'Share summary' })
+    await share.getByRole('button', { name: 'Copy summary' }).click()
     await h.toast('Summary copied').waitFor({ timeout: 5000 })
     await share.waitFor({ state: 'detached' })
     const copied = await ctx.app.evaluateMain(({ clipboard }) => clipboard.readText())
@@ -481,7 +481,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     // "Sprint retro" now matches its keyword: suggested, and the default for Enhance
     await h
       .w()
-      .getByText('Retrospective template, suggested by the meeting title ("retro")')
+      .getByText('Retrospective template, suggested by the meeting title (“retro”)')
       .waitFor({ timeout: 10_000 })
     await h.w().getByRole('button', { name: 'Choose a Template' }).click()
     await h
