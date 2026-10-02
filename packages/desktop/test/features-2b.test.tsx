@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { renderApp } from './app-harness.tsx'
 import { segment, session, until } from './helpers.ts'
 
-// Transcript / Ask / Speakers through the real router and panes (jsdom, fake daemon): the states and
-// names the e2e suite relies on, without a window. (The virtualised list itself needs layout, so its
+// Transcript / Ask / Speakers through the real router and the meeting page (jsdom, fake daemon): the
+// states and names the e2e suite relies on, without a window. (The virtualised list itself needs layout, so its
 // rows are covered by the Playwright e2e.)
 
 afterEach(() => cleanup())
@@ -66,6 +66,7 @@ function app(o: {
         total: o.segments?.length ?? 0,
       }),
       getQaHistory: () => ({ messages: o.messages ?? [] }),
+      listAgendas: () => ({ agendas: [] }),
       listSpeakers: () => ({
         speakers: [
           summary('me', 'me', null),
@@ -79,30 +80,38 @@ function app(o: {
 
 describe('Transcript pane states', () => {
   it('a finished session with nothing transcribed says so', async () => {
-    const r = app({})
+    const r = app({ path: `/sessions/${S}?panel=transcript` })
     await screen.findByRole('heading', { name: 'No Transcript' })
     r.stop()
   })
 
-  it('a live session waiting for speech shows the live badge and “Listening…”', async () => {
-    const r = app({ status: 'recording' })
+  it('a live session waiting for speech says “Listening…” (the recording state is the header’s alone)', async () => {
+    const r = app({ status: 'recording', path: `/sessions/${S}?panel=transcript` })
     await screen.findByRole('heading', { name: 'Listening…' })
-    expect(within(screen.getByRole('region', { name: 'Transcript' })).getByText('Live')).toBeTruthy()
+    expect(within(screen.getByRole('region', { name: 'Transcript' })).queryByText('Live')).toBeNull()
     r.stop()
   })
 
   it('has a transcript listbox once there are lines', async () => {
-    const r = app({ segments: [segment('g1', S, { text: 'Hello', quality: 'final' })] })
+    const r = app({
+      path: `/sessions/${S}?panel=transcript`,
+      segments: [segment('g1', S, { text: 'Hello', quality: 'final' })],
+    })
     await screen.findByRole('listbox', { name: 'Transcript' })
     r.stop()
   })
 })
 
-describe('Ask pane', () => {
-  it('shows the history: answers with named citation chips, and a refusal as a notice (no partial text)', async () => {
+describe('Ask (Ctrl+K)', () => {
+  const askBar = async () => {
+    await screen.findByRole('heading', { level: 1, name: 'Weekly sync' })
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    return screen.findByRole('region', { name: 'Ask about this meeting' })
+  }
+
+  it('shows the latest answer with named citation chips; a chip opens the transcript and the answer stays', async () => {
     const cite = { sessionId: S, segmentId: 'g1', startMs: 66_000, endMs: 70_000, speaker: 'Ana' }
     const r = app({
-      path: `/sessions/${S}?tab=ask`,
       segments: [
         segment('g1', S, {
           text: 'Three attempts.',
@@ -116,30 +125,39 @@ describe('Ask pane', () => {
       messages: [
         qa('r1', 'user', 'Retry budget?'),
         qa('r1', 'assistant', 'Three attempts [1].', { citations: [cite] }),
+      ],
+    })
+    const bar = await askBar()
+    await within(bar).findByText('Retry budget?')
+    const chip = within(bar).getByRole('button', { name: 'Citation 1: Ana at 1:06' })
+    expect(chip.textContent).toBe('[1]')
+    // the paragraph reads as the answer text, markers included
+    expect(chip.closest('p')!.textContent).toBe('Three attempts [1].')
+    expect(within(bar).getByRole('button', { name: 'Pin to notes' })).toBeTruthy()
+    // following the chip opens the transcript beside the page at the cited line; the answer stays
+    fireEvent.click(chip)
+    await until(() => r.router.state.location.search.panel === 'transcript')
+    expect(r.router.state.location.search).toMatchObject({ panel: 'transcript', segment: 'g1', t: 66 })
+    expect(screen.getByRole('region', { name: 'Ask about this meeting' })).toBeTruthy()
+    r.stop()
+  })
+
+  it('a refusal is a notice (no partial text); no scope or effort to choose; Escape closes it', async () => {
+    const r = app({
+      messages: [
         qa('r2', 'user', 'Refuse this'),
         qa('r2', 'assistant', 'The retry', { stopReason: 'refusal' }),
       ],
     })
-    await screen.findByText('Retry budget?')
-    const chip = screen.getByRole('button', { name: 'Citation 1: Ana at 1:06' })
-    expect(chip.textContent).toBe('[1]')
-    // the paragraph reads as the answer text, markers included
-    expect(chip.closest('p')!.textContent).toBe('Three attempts [1].')
-    expect(screen.getByText(/The model declined to answer this question/)).toBeTruthy()
-    expect(screen.queryByText('The retry')).toBeNull()
-    // following the chip opens the transcript at the cited line
-    fireEvent.click(chip)
-    await until(() => r.router.state.location.search.tab === 'transcript')
-    expect(r.router.state.location.search).toMatchObject({ tab: 'transcript', segment: 'g1', t: 66 })
-    r.stop()
-  })
-
-  it('an empty history explains what Ask does; the composer offers scope and effort', async () => {
-    const r = app({ path: `/sessions/${S}?tab=ask` })
-    await screen.findByRole('heading', { name: 'Ask About This Meeting' })
-    expect(screen.getByRole('textbox', { name: 'Question' })).toBeTruthy()
-    for (const g of ['Scope', 'Effort']) expect(screen.getByRole('radiogroup', { name: g })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Ask' }).hasAttribute('disabled')).toBe(true)
+    const bar = await askBar()
+    await within(bar).findByText(/The model declined to answer this question/)
+    expect(within(bar).queryByText('The retry')).toBeNull()
+    expect(within(bar).queryByRole('button', { name: 'Pin to notes' })).toBeNull()
+    expect(screen.queryByRole('radiogroup')).toBeNull()
+    const box = within(bar).getByRole('textbox', { name: 'Ask about this meeting' })
+    expect(within(bar).getByRole('button', { name: 'Ask' }).hasAttribute('disabled')).toBe(true)
+    fireEvent.keyDown(box, { key: 'Escape' })
+    await until(() => screen.queryByRole('region', { name: 'Ask about this meeting' }) === null)
     r.stop()
   })
 })
@@ -147,9 +165,10 @@ describe('Ask pane', () => {
 describe('Speakers dialog', () => {
   it('lists me first, far-end speakers with rename and merge, and a voiceprint link as “Recognised”', async () => {
     const r = app({})
-    fireEvent.click(await screen.findByRole('button', { name: 'Speakers' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Meeting actions' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Speakers…' }))
     const list = await screen.findByRole('list', { name: 'Speakers' })
-    const rows = within(list).getAllByRole('listitem')
+    const rows = await within(list).findAllByRole('listitem')
     expect(rows.map((x) => x.getAttribute('aria-label'))).toEqual(['Me', 'Ana', 'Speaker 2'])
     expect(within(rows[0]!).queryByRole('button', { name: /Rename/ })).toBeNull()
     expect(within(rows[1]!).getByText('Recognised from an earlier meeting')).toBeTruthy()

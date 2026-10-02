@@ -6,7 +6,7 @@ import type { ExtensionState } from '../src/shared/bridge.ts'
 import { fakeBridge, renderApp } from './app-harness.tsx'
 import { until } from './helpers.ts'
 
-// The top-bar extension in the window: what each state says and offers (extensionView), the sidebar card
+// The top-bar extension in the window: what each state says and offers (extensionView), home's card
 // (GNOME only, until on or dismissed — the dismissal kept in ui-state), the "turn GNOME extensions back
 // on?" question, the Preferences row's On / Disable / Remove, and the re-check on window focus. Main's
 // side (the state machine against a faked Shell) is packages/e2e/test/extension-setup.test.ts.
@@ -169,7 +169,7 @@ function extensionBridge(start: ExtensionState, next: ExtensionState) {
 
 const card = () => screen.findByRole('region', { name: 'Top-bar extension' })
 
-describe('the sidebar card', () => {
+describe('home’s card', () => {
   it('Install & Enable, then the log-in-again copy; dismissed for good', async () => {
     const { fb } = extensionBridge({ state: 'not-installed', userExtensionsOff: false }, login())
     const app = renderApp({ bridge: fb })
@@ -191,7 +191,7 @@ describe('the sidebar card', () => {
     cleanup()
     // a new window remembers
     const again = renderApp({ bridge: fb })
-    await screen.findByRole('searchbox', { name: 'Search sessions' })
+    await screen.findByRole('searchbox', { name: 'Search or ask' })
     await new Promise((r) => setTimeout(r, 50))
     expect(screen.queryByRole('region', { name: 'Top-bar extension' })).toBeNull()
     again.stop()
@@ -199,7 +199,7 @@ describe('the sidebar card', () => {
 
   it('is not shown off GNOME, or once the extension is on; window focus re-checks', async () => {
     const off = renderApp()
-    await screen.findByRole('searchbox', { name: 'Search sessions' })
+    await screen.findByRole('searchbox', { name: 'Search or ask' })
     await new Promise((r) => setTimeout(r, 50))
     expect(screen.queryByRole('region', { name: 'Top-bar extension' })).toBeNull()
     off.stop()
@@ -252,7 +252,7 @@ describe('the sidebar card', () => {
 
 describe('Preferences › Integration', () => {
   async function integration() {
-    await screen.findByRole('searchbox', { name: 'Search sessions' })
+    await screen.findByRole('searchbox', { name: 'Search or ask' })
     fireEvent.keyDown(window, { key: ',', ctrlKey: true })
     const prefs = await screen.findByRole('dialog', { name: 'Preferences' })
     fireEvent.mouseDown(within(prefs).getByRole('tab', { name: 'Integration' }))
@@ -291,7 +291,7 @@ describe('Preferences › Integration', () => {
 
   it('is not there off GNOME', async () => {
     const app = renderApp()
-    await screen.findByRole('searchbox', { name: 'Search sessions' })
+    await screen.findByRole('searchbox', { name: 'Search or ask' })
     fireEvent.keyDown(window, { key: ',', ctrlKey: true })
     const prefs = await screen.findByRole('dialog', { name: 'Preferences' })
     fireEvent.mouseDown(within(prefs).getByRole('tab', { name: 'Integration' }))

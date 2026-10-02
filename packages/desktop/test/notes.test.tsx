@@ -1,102 +1,22 @@
 // @vitest-environment jsdom
-import { defaultChoices, diffNoteBlocks, isChoice, type NoteTemplate } from '@gnomeola/protocol'
+import type { NoteTemplate } from '@gnomeola/protocol'
 import { MutationObserver, QueryClient } from '@tanstack/react-query'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { keys } from '../src/renderer/data/keys.ts'
 import type { Api } from '../src/renderer/data/queries.ts'
-import { ActionItems, actionItemsMarkdown } from '../src/renderer/features/notes/action-items.tsx'
 import {
   parseKeywords,
   putTemplateMutation,
   templateIdFor,
 } from '../src/renderer/features/notes/notes-data.ts'
-import { NotesReview } from '../src/renderer/features/notes/notes-review.tsx'
 import { versionTitle } from '../src/renderer/features/notes/version-history.tsx'
 
-// The notes pane's pieces without a daemon: the review (choices in, choices out), the live action
-// items, template helpers and the optimistic template mutation. The whole pane runs against the real
-// daemon in packages/e2e/test/desktop-notes.e2e.test.ts.
+// The notes' pieces without a daemon: template helpers, version titles and the optimistic template
+// mutation. The notes on the meeting page run against the real daemon in
+// packages/e2e/test/desktop-notes.e2e.test.ts; the outcome built from them is in day.test.ts.
 
 afterEach(cleanup)
-
-const HEAD = '- retry budgt\n- my aside\n'
-const ENHANCED = '## Decisions\n\n- retry budget: three attempts\n- Ana owns the dashboard\n'
-
-describe('NotesReview', () => {
-  it('shows one switch per change with the safe defaults, and applies exactly the choices made', () => {
-    const onApply = vi.fn()
-    render(
-      <NotesReview head={HEAD} enhanced={ENHANCED} templateName="General" busy={false} onApply={onApply} />,
-    )
-    const hunks = diffNoteBlocks(HEAD, ENHANCED)
-    const defaults = defaultChoices(hunks)
-    const changes = hunks.filter(isChoice)
-    const switches = screen.getAllByRole('switch')
-    expect(switches).toHaveLength(changes.length)
-    // defaults: additions / rewrites on, the user's dropped lines kept (switch off)
-    let n = 0
-    hunks.forEach((h, i) => {
-      if (!isChoice(h)) return
-      n++
-      const sw = screen.getByRole('switch', { name: `Use enhanced text for change ${n}` }) as HTMLInputElement
-      expect(sw.checked).toBe(defaults[i] === 'enhanced')
-    })
-    // flip change 1, apply: the choices are the defaults with that one hunk flipped
-    fireEvent.click(screen.getByRole('switch', { name: 'Use enhanced text for change 1' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
-    const first = hunks.findIndex(isChoice)
-    const expected = [...defaults]
-    expected[first] = defaults[first] === 'enhanced' ? 'mine' : 'enhanced'
-    expect(onApply).toHaveBeenCalledWith(expected)
-  })
-
-  it('Use All Enhanced / Keep All Mine / Discard', () => {
-    const onApply = vi.fn()
-    render(
-      <NotesReview head={HEAD} enhanced={ENHANCED} templateName="General" busy={false} onApply={onApply} />,
-    )
-    const hunks = diffNoteBlocks(HEAD, ENHANCED)
-    fireEvent.click(screen.getByRole('button', { name: 'Keep All Mine' }))
-    expect(screen.getAllByRole('switch').every((s) => !(s as HTMLInputElement).checked)).toBe(true)
-    screen.getByText(/0 using the enhanced text/)
-    fireEvent.click(screen.getByRole('button', { name: 'Use All Enhanced' }))
-    expect(screen.getAllByRole('switch').every((s) => (s as HTMLInputElement).checked)).toBe(true)
-    fireEvent.click(screen.getByRole('button', { name: 'Discard' }))
-    expect(onApply).toHaveBeenLastCalledWith(hunks.map(() => 'mine'))
-  })
-
-  it('says so when the enhanced text is the same, and disables apply while busy', () => {
-    render(<NotesReview head={HEAD} enhanced={HEAD} templateName="General" busy onApply={() => {}} />)
-    screen.getByText('The enhanced notes are the same as yours.')
-    expect(screen.getByRole('button', { name: 'Apply' }).hasAttribute('disabled')).toBe(true)
-  })
-})
-
-describe('ActionItems', () => {
-  it('lists items live from the markdown with owner and due, and copies them as a task list', () => {
-    const onCopy = vi.fn()
-    const md = '## Action items\n\n- [ ] Book the room — owner: Carla — due: Monday\n- [x] Send the deck\n'
-    const { rerender } = render(<ActionItems markdown={md} onCopy={onCopy} />)
-    const list = screen.getByRole('list', { name: 'Action items' })
-    expect(
-      within(list)
-        .getAllByRole('listitem')
-        .map((li) => li.getAttribute('aria-label')),
-    ).toEqual(['Book the room', 'Send the deck'])
-    screen.getByText('Owner: Carla · Due: Monday')
-    fireEvent.click(screen.getByRole('button', { name: 'Copy Action Items' }))
-    expect(onCopy).toHaveBeenCalledWith(
-      '- [ ] Book the room — owner: Carla — due: Monday\n- [x] Send the deck\n',
-    )
-    rerender(<ActionItems markdown="no tasks here" onCopy={onCopy} />)
-    expect(screen.queryByRole('list', { name: 'Action items' })).toBeNull()
-  })
-
-  it('formats owners and dues only where stated', () => {
-    expect(actionItemsMarkdown([{ text: 'A', owner: null, due: null, done: false }])).toBe('- [ ] A\n')
-  })
-})
 
 describe('templates', () => {
   it('derives ids and keywords', () => {

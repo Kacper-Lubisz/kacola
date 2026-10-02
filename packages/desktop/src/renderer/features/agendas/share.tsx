@@ -94,7 +94,7 @@ const OUTCOME_TONE: Record<ChangeOutcome, ChipTone> = {
   superseded: 'warning',
 }
 
-/** Who did something on the share: "you", "Ben", "Ben’s tracker", "Ivy (invitee)". */
+/** Who did something on the share: "you", "Ben", "Ben’s kacola" (their tracker), "Ivy (invitee)". */
 export function actorLabel(a: SharedActor, s: ShareStatus | undefined, names?: ReadonlyMap<string, string>) {
   const mine = a.role === 'owner' && s?.role === 'owner'
   const who = mine
@@ -102,7 +102,7 @@ export function actorLabel(a: SharedActor, s: ShareStatus | undefined, names?: R
     : a.role === 'owner'
       ? (s?.ownerName ?? a.name ?? personName(a.label, names))
       : (a.name ?? personName(a.label, names))
-  if (a.by === 'tracker') return mine ? _('your tracker') : fmt(_('{name}’s tracker'), { name: who })
+  if (a.by === 'tracker') return mine ? _('your kacola') : fmt(_('{name}’s kacola'), { name: who })
   if (a.by.startsWith('agent:')) {
     const agent = displayAgent(a.by.slice('agent:'.length))
     return mine ? fmt(_('your {agent}'), { agent }) : fmt(_('{name}’s {agent}'), { name: who, agent })

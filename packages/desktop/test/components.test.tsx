@@ -129,28 +129,30 @@ describe('i18n and theme', () => {
 })
 
 describe('the first screen', () => {
-  it('shows can’t-reach, then the session list; a new session appears live; selecting routes to it', async () => {
-    const app = renderApp({ sessions: [session('ses_a', { title: 'Standup' })] })
+  it('shows can’t-reach, then home with the meetings by day; a new one appears live; pressing it opens it', async () => {
+    const app = renderApp({ sessions: [session('ses_a', { title: 'Standup', status: 'stopped' })] })
     app.daemon.state.fail = new Error('not yet')
-    await screen.findByRole('heading', { name: 'Can’t Reach gnomeola' })
+    await screen.findByRole('heading', { name: 'Can’t Reach kacola' })
     app.daemon.state.fail = null
-    const list = await screen.findByRole('listbox', { name: 'Sessions' })
-    expect(
-      within(list)
-        .getAllByRole('option')
-        .map((o) => o.textContent),
-    ).toEqual([expect.stringContaining('Standup')])
-    screen.getByRole('heading', { name: 'No Session Selected' })
+    await screen.findByRole('searchbox', { name: 'Search or ask' })
+    await screen.findByRole('button', { name: /^Standup, / })
+    // no sidebar, no "nothing selected" page: home is the day
+    expect(screen.queryByRole('listbox', { name: 'Sessions' })).toBeNull()
 
     act(() =>
       app.daemon.emit(
-        upserted(2, session('ses_b', { title: 'Design review', createdAt: '2026-09-29T00:00:00.000Z' })),
+        upserted(
+          2,
+          session('ses_b', {
+            title: 'Design review',
+            status: 'stopped',
+            createdAt: '2026-09-29T00:00:00.000Z',
+          }),
+        ),
       ),
     )
-    await until(() => within(list).queryAllByRole('option').length === 2)
-    expect(within(list).getAllByRole('option')[0]!.textContent).toContain('Design review')
-
-    fireEvent.click(within(list).getByRole('option', { name: /Design review/ }))
+    const row = await screen.findByRole('button', { name: /^Design review, / })
+    fireEvent.click(row)
     await until(() => app.router.state.location.pathname === '/sessions/ses_b')
     await screen.findByRole('heading', { level: 1, name: 'Design review' })
     app.stop()

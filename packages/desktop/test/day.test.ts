@@ -23,6 +23,12 @@ import {
   toMoments,
 } from '../src/renderer/features/home/search.ts'
 import {
+  buildOutcome,
+  notesSection,
+  ownerLabel,
+  summaryMarkdown,
+} from '../src/renderer/features/meeting/outcome.ts'
+import {
   captureWarning,
   meetingPhase,
   SILENT_FOR_MS,
@@ -459,5 +465,84 @@ describe('home: search moments', () => {
     expect(searchTerms('What did we decide about the retry budget?')).toBe('retry budget')
     expect(searchTerms('  retry budget ')).toBe('retry budget')
     expect(searchTerms('who?')).toBe('who?')
+  })
+})
+
+describe('the outcome', () => {
+  const NOTES =
+    '## Promo timeline\n\n- Ana wants a date\n\n## Decisions\n\n- Review on 28 October\n- [ ] Check the slides\n\n## Action items\n\n' +
+    '- [ ] Send conference options — owner: Ana — due: next 1:1\n- [x] Book the room — owner: me\n- [ ] Invite Marta to the review — owner: me — due: Friday\n'
+
+  it('reads a notes section by its heading', () => {
+    expect(notesSection(NOTES, /^decisions?\b/i)).toEqual(['Review on 28 October'])
+    expect(notesSection('no headings\n- a\n', /decisions/i)).toEqual([])
+  })
+
+  it('gathers decisions and actions from the recap and the notes, once each; yours first, done last', () => {
+    const ev = { segmentId: 'seg9', quote: 'The 28th could work.', confidence: 0.8 }
+    const v = view([
+      item('Next review date', 0, {
+        status: 'covered',
+        evidence: [ev],
+        outcome:
+          'Review on 28 October.\nDecisions:\n- Review on 28 October\nActions:\n- me: Invite Marta to the review',
+      }),
+      item('Conference budget', 1, { status: 'open' }),
+      item('Parking lot', 2, { status: 'skipped' }),
+    ])
+    const o = buildOutcome(v, NOTES)
+    // the recap's decision carries its evidence; the notes' copy of it is not repeated
+    expect(o.decisions).toEqual([{ text: 'Review on 28 October', evidence: ev }])
+    expect(o.actions.map((a) => [a.text, a.owner, a.due, a.done, a.mine])).toEqual([
+      ['Invite Marta to the review', 'me', null, false, true],
+      // a task anywhere in the notes is an action item (the daemon's parser), not a decision
+      ['Check the slides', null, null, false, false],
+      ['Send conference options', 'Ana', 'next 1:1', false, false],
+      ['Book the room', 'me', null, true, true],
+    ])
+    // not a recurring meeting: what is open is "not settled", skipped is settled
+    expect(o.recurring).toBe(false)
+    expect(o.carried).toEqual([{ text: 'Conference budget' }])
+    expect(ownerLabel('me')).toBe('You')
+    expect(ownerLabel('Ana')).toBe('Ana')
+    expect(ownerLabel(null)).toBeNull()
+  })
+
+  it('a recording without an agenda has only what its notes say', () => {
+    const o = buildOutcome(null, NOTES)
+    expect(o.decisions.map((d) => d.text)).toEqual(['Review on 28 October'])
+    expect(o.carried).toEqual([])
+    expect(buildOutcome(null, '')).toEqual({ decisions: [], actions: [], carried: [], recurring: false })
+  })
+
+  it('the shared summary is the outcome and the notes, never private context', () => {
+    const v = view([item('Conference budget', 0, { status: 'open' })])
+    v.context = [
+      {
+        id: 'c1',
+        agendaId: 'agd_1',
+        title: 'My notes on Ana',
+        body: 'nervous about the timeline',
+        source: { kind: 'user', ref: null },
+        visibility: 'private',
+        pinned: false,
+        createdBy: 'user',
+        createdAt: T,
+        updatedAt: T,
+      },
+    ]
+    const md = summaryMarkdown({
+      title: '1:1 with Ana',
+      when: '14:00–14:30',
+      outcome: buildOutcome(v, NOTES),
+      notes: NOTES,
+    })
+    expect(md).toContain('# 1:1 with Ana')
+    expect(md).toContain('## Decisions\n\n- Review on 28 October')
+    expect(md).toContain('- [ ] Send conference options — owner: Ana — due: next 1:1')
+    expect(md).toContain('- [x] Book the room — owner: You')
+    expect(md).toContain('## Not settled\n\n- Conference budget')
+    expect(md).toContain('## Notes')
+    expect(md).not.toContain('nervous')
   })
 })
