@@ -67,8 +67,8 @@ describe('KeychainKeyring', () => {
     expect(await k.get()).toBe('sk-ant-api03-abc_DEF.123')
     // labels as documented
     const db = JSON.parse(readFileSync(join(dir, 'db.json'), 'utf8'))
-    expect(db['<default>']['gnomeola-test\u0000anthropic'].label).toBe('gnomeola: Anthropic API key')
-    expect(db['<default>']['gnomeola-test\u0000openai'].label).toBe('gnomeola: OpenAI API key')
+    expect(db['<default>']['gnomeola-test\u0000anthropic'].label).toBe('kacola: Anthropic API key')
+    expect(db['<default>']['gnomeola-test\u0000openai'].label).toBe('kacola: OpenAI API key')
   })
 
   it('set replaces an existing key (-U)', async () => {

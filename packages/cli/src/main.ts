@@ -19,6 +19,7 @@ import {
 import {
   agendaFollow,
   agendaFollowConfirm,
+  agendaSend,
   agendaShareHistory,
   agendaShareOn,
   agendaShareRecap,
@@ -47,7 +48,7 @@ import { type Io, resolveFormat } from './output.ts'
 
 export const VERSION = '0.1.0'
 
-export const HELP = `gnomeola — read and search your recorded meetings, and plan the next ones
+export const HELP = `gnomeola — kacola's command-line tool: read and search your recorded meetings, and plan the next ones
 
 usage: gnomeola <command> [options]
 
@@ -88,12 +89,15 @@ usage: gnomeola <command> [options]
   agenda export <agenda> | import <agenda> (--from FILE | --stdin) [--merge]
                                               the markdown form: - [ ] item (10m, @ana) [kind]
   agenda link <agenda> --meeting <ref> [--start ISO]
-  agenda invite <agenda> [--write | --remove] the invitation block (kacola:// link, + the web link once
-                                              shared); --write puts it in the calendar event where allowed
+  agenda invite <agenda> [--write | --remove] the invitation block (the web link first once shared, then
+                                              the kacola:// link); --write puts it in the calendar event
  team sharing (the user's decision: share, unshare, share-recap and follow only when they ask):
   agenda share <agenda> [--name N] [--members a@x,b@y] [--goals] [--no-invitees]
                                               share on your hosted server: a web link for invitees;
                                               listed attendees may follow it in their own kacola
+  agenda send <agenda> [--no-write] [--name N] [--members a@x,b@y] [--goals] [--no-invitees]
+                                              share it and put the web link in the invitation (or print it
+                                              to paste); exit 6 when no sharing server is set up
   agenda unshare <agenda>                     the link stops working (a follower: stop following)
   agenda share-status <agenda>                link, sync state, comments, who joined
   agenda share-recap <agenda> [--off]         let people with the link see the outcomes
@@ -119,13 +123,13 @@ usage: gnomeola <command> [options]
  lease explicitly, GNOMEOLA_LEASE=none acts as the user.
   skill install [--dir DIR] [--force]         install the Claude Code skill
   install-cli [--mode auto|flatpak|macos|dev] [--bin-dir DIR] [--launch CMD] [--no-skill] [--force]
-                                              put this gnomeola on PATH (+ the Claude skill)
+                                              put this command on PATH (+ the Claude skill)
   uninstall-cli [--mode M] [--bin-dir DIR] [--keep-skill]
                                               remove what install-cli wrote
   bug-report [--out FILE]                     write a diagnostics bundle
   mcp                                         serve the same tools over MCP (stdio)
   pair [--name N] | pair approve <CODE> | pair token | pair revoke <DEVICE>
-                                              pair with a remote gnomeola (device code → token)
+                                              pair with a remote kacola server (device code → token)
 
 ids: a full id, an unambiguous prefix, or latest / current.
 global: --url URL (or GNOMEOLA_URL), --token T (or GNOMEOLA_TOKEN; else the one saved by
@@ -319,6 +323,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
           merge: { type: 'boolean' },
           write: { type: 'boolean' },
           remove: { type: 'boolean' },
+          'no-write': { type: 'boolean' },
           // team sharing
           name: { type: 'string' },
           members: { type: 'string' },
@@ -406,6 +411,15 @@ export async function run(argv: string[], io: Io): Promise<number> {
               noInvitees: v['no-invitees'],
             })
             break
+          case 'send':
+            await agendaSend(ctx, args[0], {
+              name: v.name,
+              members: v.members,
+              goals: v.goals,
+              noInvitees: v['no-invitees'],
+              noWrite: v['no-write'],
+            })
+            break
           case 'unshare':
             await agendaUnshare(ctx, args[0])
             break
@@ -427,7 +441,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
           default:
             throw usage(
               sub ? `unknown subcommand: agenda ${sub}` : 'agenda what?',
-              'agenda create|list|show|add|edit|remove|status|export|import|link|invite|share|unshare|share-status|share-recap|share-history|follow|follow-confirm — see gnomeola --help',
+              'agenda create|list|show|add|edit|remove|status|export|import|link|invite|send|share|unshare|share-status|share-recap|share-history|follow|follow-confirm — see gnomeola --help',
             )
         }
         break
@@ -660,7 +674,7 @@ function report(err: unknown, io: Io): number {
     return err.exitCode
   }
   if (err instanceof DaemonUnreachableError) {
-    io.stderr(`gnomeola: the daemon is not running at ${err.baseUrl}\n`)
+    io.stderr(`gnomeola: the kacola daemon is not running at ${err.baseUrl}\n`)
     // under the install-cli shim, the shim starts the app next and says so
     if (!io.env.GNOMEOLA_SHIM)
       io.stderr('  start it with `systemctl --user start gnomeolad`, or pass --url / set GNOMEOLA_URL\n')

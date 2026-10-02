@@ -298,6 +298,7 @@ export class SharingService {
         'unavailable',
         'sharing needs a hosted server: set GNOMEOLA_SHARE_URL and GNOMEOLA_SHARE_TOKEN (from `gnomeola pair --url …`)',
         503,
+        { reason: 'no-share-host', action: 'set-up-sharing' },
       )
     return { url: url.replace(/\/+$/, ''), token }
   }

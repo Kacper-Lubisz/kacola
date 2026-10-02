@@ -120,7 +120,7 @@ describe('buildView', () => {
       { daemon: true, now: NOW, prefs },
     )
     expect(v.panel.icon).toBe('audio-input-microphone-symbolic')
-    expect(v.panel.accessibleName).toBe('gnomeola: not recording')
+    expect(v.panel.accessibleName).toBe('kacola: not recording')
     const m = v.items.filter((i: { kind: string }) => i.kind === 'meeting')
     expect(m.map((i) => i.verb)).toEqual(['Join', 'Record'])
     expect(m[0]!.action).toEqual({
@@ -201,7 +201,7 @@ describe('buildView', () => {
       { daemon: true, now: NOW, prefs },
     )
     expect(v.panel.label).toBe('2:05')
-    expect(v.panel.accessibleName).toBe('gnomeola: paused Untitled meeting, 2:05')
+    expect(v.panel.accessibleName).toBe('kacola: paused Untitled meeting, 2:05')
     expect(v.items.map((i: { key: string }) => i.key)).toContain('resume')
     expect(v.items.map((i: { key: string }) => i.key)).not.toContain('pause')
   })

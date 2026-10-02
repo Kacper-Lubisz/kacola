@@ -95,24 +95,16 @@ describe('the macOS Tray menu', () => {
       '—',
       'Record',
       '—',
-      'Open gnomeola',
-      'Quit gnomeola',
+      'Open kacola',
+      'Quit kacola',
     ])
   })
   it('recording: Pause and Stop, the title in the status line; a private meeting stays private', () => {
     expect(labels({ daemon: up, active: { status: 'recording', title: 'Standup', private: false } })).toEqual(
-      [
-        '[Recording: Standup]',
-        '—',
-        'Pause Recording',
-        'Stop Recording',
-        '—',
-        'Open gnomeola',
-        'Quit gnomeola',
-      ],
+      ['[Recording: Standup]', '—', 'Pause Recording', 'Stop Recording', '—', 'Open kacola', 'Quit kacola'],
     )
     expect(trayTooltip({ daemon: up, active: { status: 'recording', title: 'Secret', private: true } })).toBe(
-      'gnomeola — Recording: Private meeting',
+      'kacola — Recording: Private meeting',
     )
   })
   it('paused: Resume and Stop', () => {
@@ -126,11 +118,11 @@ describe('the macOS Tray menu', () => {
       '—',
       'Record (disabled)',
       '—',
-      'Open gnomeola',
-      'Quit gnomeola',
+      'Open kacola',
+      'Quit kacola',
     ])
     expect(labels({ daemon: { kind: 'unreachable', error: 'x' }, active: null })[0]).toBe(
-      '[gnomeola is not reachable]',
+      '[kacola is not reachable]',
     )
   })
 })

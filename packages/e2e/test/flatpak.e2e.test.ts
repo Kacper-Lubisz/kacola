@@ -268,7 +268,7 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
       90_000,
     )
     expect(r.code, r.stderr).toBe(0)
-    expect(r.stderr).toMatch(/starting the gnomeola app in the background/)
+    expect(r.stderr).toMatch(/starting the kacola app in the background/)
     expect(JSON.parse(r.stdout).sessions.length).toBeGreaterThan(0)
     expect(await healthy()).toBe(true)
   }, 120_000)

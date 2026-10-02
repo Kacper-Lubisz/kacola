@@ -17,7 +17,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 // fake capture pipeline). The user clicks Join in the top-bar menu (activated through the item's
 // `activate` signal, as a click does) and we check both halves of the one action: the meeting link reached
 // the desktop's URL handler (a fake one that records it) AND the daemon is recording a session linked to
-// that meeting. Then live state in the panel, Stop from the menu, and "Open gnomeola".
+// that meeting. Then live state in the panel, Stop from the menu, and "Open kacola".
 
 const ARTIFACTS = join(import.meta.dirname, '__artifacts__')
 const MEET = 'https://meet.google.com/abc-defg-hij'
@@ -67,7 +67,7 @@ beforeAll(async () => {
       urlLog = join(dirs.home, 'opened-urls.log')
       launchLog = join(dirs.home, 'launched.log')
       fakeUrlHandler(dirs.data, dirs.config, urlLog)
-      // a stand-in for the installed app, so "Open gnomeola" has something to launch
+      // a stand-in for the installed app, so "Open kacola" has something to launch
       const script = join(dirs.data, 'applications', 'fake-gnomeola-ui.sh')
       writeFileSync(script, `#!/bin/sh\necho launched >> '${launchLog}'\n`, { mode: 0o755 })
       writeFileSync(
@@ -145,7 +145,7 @@ describe('the extension against the real daemon', () => {
       const i = await indicator()
       return i?.items.some((x) => x.key === `meeting:${meetingId}`) && i
     }, 'meetings from the daemon')
-    expect(ind.accessibleName).toBe('gnomeola: not recording')
+    expect(ind.accessibleName).toBe('kacola: not recording')
     const standup = ind.items.find((i) => i.key === `meeting:${meetingId}`)!
     expect(standup.text).toBe(`${clock(start)}–${clock(start + 15 * 60_000)}  Platform standup`)
     expect(standup.name).toMatch(/Platform standup, Google Meet, Join$/)
@@ -173,7 +173,7 @@ describe('the extension against the real daemon', () => {
       return i?.icon === 'media-record-symbolic' && i.items.some((x) => x.key === 'last-line') && i
     }, 'recording with a transcript line')
     expect(ind.label).toMatch(/^0:\d\d$/)
-    expect(ind.accessibleName).toMatch(/^gnomeola: recording Platform standup, 0:\d\d$/)
+    expect(ind.accessibleName).toMatch(/^kacola: recording Platform standup, 0:\d\d$/)
     expect(ind.items[0]!.text).toMatch(/^Recording · Platform standup · 0:\d\d$/)
     expect(ind.items.find((i) => i.key === 'last-line')!.text).toMatch(/^(me|them): \S/)
     expect(ind.items.find((i) => i.key === `meeting:${meetingId}`)!.name).not.toMatch(/Join$/)
@@ -206,7 +206,7 @@ describe('the extension against the real daemon', () => {
     }, 'stopped')
   })
 
-  it('"Open gnomeola" launches the app', async () => {
+  it('"Open kacola" launches the app', async () => {
     await shellEval(display.env, activate('open'))
     await until(
       async () => existsSync(launchLog) && readFileSync(launchLog, 'utf8').includes('launched'),

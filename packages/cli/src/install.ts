@@ -106,7 +106,7 @@ code=$?
 case "\${GNOMEOLA_URL:-}" in "" | http://127.0.0.1:* | http://localhost:* | "http://[::1]:"*) ;; *) exit 3 ;; esac
 case " $* " in *" --url "* | *" --url="*) exit 3 ;; esac
 [ -n "\${GNOMEOLA_APP_LAUNCH:-}" ] || ${spec.launch ? 'true' : 'exit 3'}
-echo "gnomeola: starting the gnomeola app in the background…" >&2
+echo "gnomeola: starting the kacola app in the background…" >&2
 (gnomeola_launch </dev/null >/dev/null 2>&1 &)
 waited=0
 while [ "$waited" -lt "\${GNOMEOLA_START_TIMEOUT:-30}" ]; do

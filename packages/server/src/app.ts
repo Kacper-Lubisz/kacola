@@ -413,7 +413,7 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     const principal = await principalFor(req, name, ctx)
     const handler = handlers[name]
     if (handler === 'unsupported')
-      throw new HttpError('unavailable', `${name} is not available on a hosted gnomeola server`, 501)
+      throw new HttpError('unavailable', `${name} is not available on a hosted kacola server`, 501)
     const query = def.query ? def.query.parse(Object.fromEntries(url.searchParams)) : {}
     const body = def.body ? def.body.parse((await readBody(req)) ?? {}) : undefined
     const c = { params, query, body, principal, req }
