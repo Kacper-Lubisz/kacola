@@ -35,6 +35,11 @@ export type ReplayUtterance = {
   text: string
   startMs: number
   endMs: number
+  /**
+   * `live`: the segment is still open and this is its text so far (the pipeline publishes committed
+   * words while someone speaks); a later call with the same index grows it, `final` (default) closes it.
+   */
+  quality?: 'live' | 'final'
 }
 
 export type StatusAction = 'auto-covered' | 'suggest-covered' | 'in-progress' | 'none'

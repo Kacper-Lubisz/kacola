@@ -159,7 +159,53 @@ export function replayOrder(t: RealTranscript): ReplayUtterance[] {
     .sort((a, b) => a.endMs - b.endMs || a.index - b.index)
 }
 
-export async function replayReal(runner: StatusRunner, fx: RealFixture): Promise<ReplayResult> {
+/**
+ * How the pipeline publishes segments while they are spoken (packages/stt/src/reconciler.ts): an open
+ * segment is upserted with its committed words as they come (quality live), then closed with all of them.
+ * The fixture has no word times, so words are spread evenly over the segment and published every
+ * `chunkMs`; the full text lands at the segment's end as final.
+ */
+export function livePublications(t: RealTranscript, chunkMs: number): ReplayUtterance[] {
+  const out: ReplayUtterance[] = []
+  t.segments.forEach((s, index) => {
+    const words = s.text.trim().split(/\s+/).filter(Boolean)
+    const dur = s.endMs - s.startMs
+    let shown = 0
+    for (let at = s.startMs + chunkMs; dur > 0 && at < s.endMs; at += chunkMs) {
+      const n = Math.floor((words.length * (at - s.startMs)) / dur)
+      if (n <= shown || n >= words.length) continue
+      shown = n
+      out.push({
+        index,
+        speaker: s.speaker,
+        text: words.slice(0, n).join(' '),
+        startMs: s.startMs,
+        endMs: at,
+        quality: 'live',
+      })
+    }
+    out.push({
+      index,
+      speaker: s.speaker,
+      text: s.text,
+      startMs: s.startMs,
+      endMs: s.endMs,
+      quality: 'final',
+    })
+  })
+  return out.sort((a, b) => a.endMs - b.endMs || a.index - b.index)
+}
+
+export type ReplayOptions = {
+  /** Publish segments as the live pipeline does, growing every `chunkMs` (null: each once, complete). */
+  liveChunkMs?: number | null
+}
+
+export async function replayReal(
+  runner: StatusRunner,
+  fx: RealFixture,
+  opts: ReplayOptions = {},
+): Promise<ReplayResult> {
   const meter = new Meter()
   const agenda: AgendaItemInput[] = fx.labels.items.map((it) => ({
     id: it.id,
@@ -188,7 +234,10 @@ export async function replayReal(runner: StatusRunner, fx: RealFixture): Promise
     ]),
   )
   const history: ReplayUtterance[] = []
-  for (const u of replayOrder(fx.transcript)) {
+  const order = opts.liveChunkMs
+    ? livePublications(fx.transcript, opts.liveChunkMs)
+    : replayOrder(fx.transcript)
+  for (const u of order) {
     history.push(u)
     const t0 = performance.now()
     const { reports, usage } = await session.onSegment(u, history)
@@ -207,7 +256,7 @@ export async function replayReal(runner: StatusRunner, fx: RealFixture): Promise
       if (r.answer) o.answer = r.answer
     }
   }
-  return { outcomes: [...state.values()], meter, segments: history.length }
+  return { outcomes: [...state.values()], meter, segments: fx.transcript.segments.length }
 }
 
 // ------------------------------------------------------------------------------ scoring
@@ -319,8 +368,8 @@ export function scoreReal(fx: RealFixture, outcomes: readonly RealOutcome[]) {
 }
 
 /** Replay every fixture through the runner and grade it: one scorecard per fixture. */
-export async function runRealCoverageSuite(runner: StatusRunner, fx: RealFixture) {
-  const { outcomes, meter, segments } = await replayReal(runner, fx)
+export async function runRealCoverageSuite(runner: StatusRunner, fx: RealFixture, opts: ReplayOptions = {}) {
+  const { outcomes, meter, segments } = await replayReal(runner, fx, opts)
   const { metrics, items } = scoreReal(fx, outcomes)
   const hours = fx.transcript.durationMs / 3_600_000
   metrics.costUsd = meter.usd === null ? null : round(meter.usd, 4)
@@ -328,7 +377,7 @@ export async function runRealCoverageSuite(runner: StatusRunner, fx: RealFixture
   metrics.decisionCalls = meter.calls
   const sc = card(REAL_SUITE, runner, `private:${fx.name}`, items.length, metrics, meter, {
     notes: [
-      `${segments} segments replayed over ${(fx.transcript.durationMs / 60_000).toFixed(1)} min`,
+      `${segments} segments replayed over ${(fx.transcript.durationMs / 60_000).toFixed(1)} min${opts.liveChunkMs ? `, published live every ${opts.liveChunkMs} ms` : ''}`,
       `labels: ${fx.labels.labelledBy}${fx.labels.reviewed ? ', reviewed' : ', NOT reviewed'}`,
     ],
     details: items,
@@ -347,7 +396,7 @@ export type RealRun = Awaited<ReturnType<typeof runRealCoverageSuite>>
 export async function runRealSuites(
   setup: ProviderSetup,
   makeRunner: (p: DecisionProvider, mode: EvalMode) => StatusRunner,
-  opts: { root?: string; onRun?: (fx: RealFixture, r: RealRun) => void } = {},
+  opts: { root?: string; onRun?: (fx: RealFixture, r: RealRun) => void; replay?: ReplayOptions } = {},
 ): Promise<Scorecard[]> {
   const meta = {
     provider: setup.provider?.id ?? setup.label,
@@ -365,7 +414,7 @@ export async function runRealSuites(
   for (const dir of listRealFixtures(root)) {
     const fx = loadRealFixture(dir)
     try {
-      const r = await runRealCoverageSuite(makeRunner(setup.provider, setup.mode), fx)
+      const r = await runRealCoverageSuite(makeRunner(setup.provider, setup.mode), fx, opts.replay)
       opts.onRun?.(fx, r)
       cards.push(r.card)
     } catch (err) {

@@ -1,6 +1,8 @@
 // Run the decision eval suites and print scorecards (also written to __artifacts__/evals):
 //
-//   node packages/evals/scripts/run-evals.ts [offline|fake|live]… [--real-only]     (default: offline)
+//   node packages/evals/scripts/run-evals.ts [offline|fake|live]… [--real-only] [--synthetic]
+//                                            [--tracker='<TrackerOptions json>'] [--label=<name>]
+//   (default: offline)
 //
 // offline = the on-device provider (hashing, and MiniLM when installed); fake = hosted providers against
 // local fakes (plumbing only); live = hosted providers whose keys are in the environment.
@@ -19,8 +21,10 @@ import {
   summaryTable,
   writeScorecard,
 } from '@gnomeola/testkit/evals'
+import type { TrackerOptions } from '../../daemon/src/agendas/tracker.ts'
 import { trackerStatusRunner } from '../../daemon/src/agendas/tracker-eval.ts'
 import {
+  agendaFixtures,
   extractiveDraftRunner,
   extractiveRecapRunner,
   fakeProviders,
@@ -31,11 +35,24 @@ import {
   runDraftSuite,
   runRealSuites,
   runRecapSuite,
+  runStatusSuite,
   writeRealResults,
 } from '../src/index.ts'
 
 const args = process.argv.slice(2)
 const realOnly = args.includes('--real-only')
+// --tracker='<json>': TrackerOptions for the real-meeting replay (cadence / window experiments)
+const trackerOpts = JSON.parse(
+  args.find((a) => a.startsWith('--tracker='))?.slice('--tracker='.length) ?? '{}',
+) as TrackerOptions
+// --synthetic: also replay the synthetic agenda meetings through the tracker (its status suite)
+const synthetic = args.includes('--synthetic')
+// --live-publish[=ms]: publish the real meeting's segments as the live pipeline does (growing while
+// spoken, every ms, default 3000) instead of once each when complete
+const pub = args.find((a) => a.startsWith('--live-publish'))
+const liveChunkMs = pub ? Number(pub.split('=')[1] ?? 3000) : null
+// --label=<name>: the per-item results file's suffix (results-<label>.json), default the provider label
+const label = args.find((a) => a.startsWith('--label='))?.slice('--label='.length)
 const modes = args.filter((a) => !a.startsWith('--'))
 const want = modes.length ? modes : ['offline']
 const setups: ProviderSetup[] = []
@@ -47,14 +64,25 @@ const cards: Scorecard[] = []
 for (const s of setups) {
   const t0 = performance.now()
   const cs = realOnly ? [] : await runDecisionSuites(s)
+  if (synthetic && s.provider && !s.skip)
+    cs.push(
+      (
+        await runStatusSuite(
+          trackerStatusRunner(s.provider, { mode: s.mode, name: 'tracker', options: trackerOpts }),
+          agendaFixtures(),
+        )
+      ).card,
+    )
   if (s.mode !== 'fake') {
     const dead = cs.find((c) => c.skipped)?.skipped
     cs.push(
       ...(await runRealSuites(
         dead ? { ...s, skip: dead } : s,
-        (p, mode) => trackerStatusRunner(p, { mode }),
+        (p, mode) => trackerStatusRunner(p, { mode, options: trackerOpts }),
         {
-          onRun: (fx, r) => console.log(`   per-item results (private): ${writeRealResults(fx, r, s.label)}`),
+          replay: { liveChunkMs },
+          onRun: (fx, r) =>
+            console.log(`   per-item results (private): ${writeRealResults(fx, r, label ?? s.label)}`),
         },
       )),
     )
