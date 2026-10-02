@@ -102,7 +102,13 @@ async function realSnapshot() {
 
 describe('pnpm sandbox', () => {
   it('start: an isolated daemon with the mock day, the sharing server, providers named', async () => {
-    const r = await sandbox('start', '--no-window', '--port', String(port), '--share-port', String(sharePort))
+    // a port picked free can be taken by another process before the sandbox binds it: pick again
+    let r = await sandbox('start', '--no-window', '--port', String(port), '--share-port', String(sharePort))
+    for (let tries = 0; r.code !== 0 && /already listens/.test(r.out) && tries < 3; tries++) {
+      port = await freePort()
+      sharePort = await freePort()
+      r = await sandbox('start', '--no-window', '--port', String(port), '--share-port', String(sharePort))
+    }
     expect(r.code, r.out).toBe(0)
     expect(r.out).toContain(`export GNOMEOLA_URL=http://127.0.0.1:${port}`)
     expect(r.out).toMatch(/Live check-offs:\s+on-device/)
