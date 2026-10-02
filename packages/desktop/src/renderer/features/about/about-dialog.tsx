@@ -15,7 +15,7 @@ import { noticeLine, parseNotices } from './notices.ts'
 
 export const granolaCredit = (): string =>
   _(
-    'gnomeola is an independent clean-room project inspired by Granola. It is not affiliated with or endorsed by Granola.',
+    'kacola is an independent clean-room project inspired by Granola. It is not affiliated with or endorsed by Granola.',
   )
 
 const GRANOLA = 'https://www.granola.ai/'
@@ -32,11 +32,11 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
   const translators = _('translator-credits')
   const dark = document.documentElement.dataset.theme === 'dark'
   return (
-    <Dialog title={_('About gnomeola')} isOpen onOpenChange={(o) => !o && onClose()}>
+    <Dialog title={_('About kacola')} isOpen onOpenChange={(o) => !o && onClose()}>
       <div className="flex flex-col gap-5">
         <div className="flex flex-col items-center gap-2 pt-2 text-center">
           <img src={dark ? iconDark : iconLight} alt="" width={88} height={88} />
-          <span className="type-title1">gnomeola</span>
+          <span className="type-title1">kacola</span>
           <span className="type-mono text-text-secondary">{appInfo.version}</span>
         </div>
         <SegmentedControl
@@ -57,7 +57,7 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
               )}
             </p>
             <p className="m-0 text-text-primary">{granolaCredit()}</p>
-            <p className="m-0">{_('The gnomeola contributors')}</p>
+            <p className="m-0">{_('The kacola contributors')}</p>
             {translators !== 'translator-credits' ? (
               <p className="m-0">
                 {_('Translated by')} {translators}
@@ -81,7 +81,7 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
             <h3 className="m-0 type-headline">{_('Third-Party Components')}</h3>
             <p className="m-0 type-callout text-text-secondary">
               {_(
-                'gnomeola includes the following components under their own licences. The full list, with homepages, is in THIRD_PARTY_NOTICES.md.',
+                'kacola includes the following components under their own licences. The full list, with homepages, is in THIRD_PARTY_NOTICES.md.',
               )}
             </p>
             {notices.data === undefined ? (

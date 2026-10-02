@@ -78,7 +78,7 @@ describe('translation template', () => {
   it('finds the messages at all (the scanner works)', () => {
     expect(src.messages.size).toBeGreaterThan(100)
     expect(src.messages).toContain('Jump to Live')
-    expect(src.messages).toContain('A speech model is not downloaded yet')
+    expect(src.messages).toContain('A speech model is not downloaded yet, so recording can’t transcribe')
   })
 
   it('wraps only literals, so every message can be extracted', () => {

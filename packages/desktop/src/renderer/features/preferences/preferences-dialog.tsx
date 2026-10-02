@@ -417,10 +417,7 @@ function Storage({ settings, patch }: { settings: Settings; patch: (p: SettingsP
 
 function Integration() {
   return (
-    <RowGroup
-      title={_('Desktop Integration')}
-      description={_('Make gnomeola available outside this window.')}
-    >
+    <RowGroup title={_('Desktop Integration')} description={_('Make kacola available outside this window.')}>
       <CliInstallRow />
       <ExtensionRow />
       <BackgroundRow />

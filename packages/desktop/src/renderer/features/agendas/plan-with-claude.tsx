@@ -177,9 +177,6 @@ export function PlanWithClaudeDialog({ view, onClose }: { view: AgendaView; onCl
                       <span className="flex flex-wrap gap-1">
                         {p.kind !== 'topic' ? <Chip>{kindLabel(p.kind)}</Chip> : null}
                         {p.owner ? <Chip icon="person">{p.owner}</Chip> : null}
-                        {p.timeboxMin ? (
-                          <Chip icon="clock">{fmt(_('{n} min'), { n: p.timeboxMin })}</Chip>
-                        ) : null}
                       </span>
                     </span>
                   </Checkbox>

@@ -1,5 +1,4 @@
 import type { AgendaItem, AgendaItemKind, AgendaView, StatusChange } from '@gnomeola/protocol'
-import { MAX_TIMEBOX_MIN } from '@gnomeola/protocol'
 import { itemHistory, lastChange } from '@gnomeola/ui-core/agendas'
 import { formatClockTime } from '@gnomeola/ui-core/format'
 import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
@@ -13,7 +12,6 @@ import {
   Menu,
   MenuItem,
   MenuSeparator,
-  NumberField,
   Popover,
   Select,
   type SortableItem,
@@ -226,7 +224,9 @@ export function ItemMeta({
     <div className="flex flex-wrap items-center gap-1">
       {item.kind !== 'topic' ? <Chip>{kindLabel(item.kind)}</Chip> : null}
       {item.owner ? <Chip icon="person">{item.owner === 'me' ? _('me') : item.owner}</Chip> : null}
-      {item.timeboxMin ? <Chip icon="clock">{fmt(_('{n} min'), { n: item.timeboxMin })}</Chip> : null}
+      {item.timeboxMin ? (
+        <span className="type-caption text-text-tertiary">{fmt(_('{n} min'), { n: item.timeboxMin })}</span>
+      ) : null}
       {item.carriedFrom ? (
         <Chip icon="carry" label={_('Carried over from the last meeting')}>
           {_('carried over')}
@@ -442,7 +442,6 @@ function EditItemDialog({
   const [text, setText] = useState(item.text)
   const [kind, setKind] = useState<AgendaItemKind>(item.kind)
   const [owner, setOwner] = useState(item.owner ?? '')
-  const [timebox, setTimebox] = useState(item.timeboxMin ?? 0)
   const [outcome, setOutcome] = useState(item.outcome ?? '')
   const save = () => {
     update.mutate({
@@ -452,7 +451,6 @@ function EditItemDialog({
         text: text.trim() || item.text,
         kind,
         owner: owner.trim() || null,
-        timeboxMin: timebox > 0 ? Math.min(timebox, MAX_TIMEBOX_MIN) : null,
         outcome: outcome.trim() || null,
       },
     })
@@ -484,14 +482,6 @@ function EditItemDialog({
             value={owner}
             onChange={setOwner}
             className="min-w-[160px] flex-1"
-          />
-          <NumberField
-            label={_('Timebox (minutes)')}
-            description={_('0 for none')}
-            value={timebox}
-            onChange={(v) => setTimebox(Number.isFinite(v) ? v : 0)}
-            minValue={0}
-            maxValue={MAX_TIMEBOX_MIN}
           />
         </div>
         <TextArea
