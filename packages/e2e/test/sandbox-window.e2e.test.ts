@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -30,12 +30,13 @@ let dir = ''
 let real: DaemonHandle
 let everyday: DesktopApp | undefined
 let sandboxWin: DesktopApp | undefined
-const sandbox = (...args: string[]) =>
+const run = (env: Record<string, string | undefined>, args: string[]) =>
   spawnSync(process.execPath, [join(REPO, 'scripts', 'sandbox.ts'), '--dir', dir, ...args], {
     cwd: REPO,
     encoding: 'utf8',
-    env: { ...process.env, ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '', TYPESAFE_API_KEY: '' },
+    env: { ...env, ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '', TYPESAFE_API_KEY: '' },
   })
+const sandbox = (...args: string[]) => run(process.env, args)
 
 beforeAll(async () => {
   buildDesktop()
@@ -105,5 +106,47 @@ describe('the sandbox window', () => {
     await sandboxWin.screenshot(join(DESKTOP_ARTIFACTS, 'sandbox-window.png'))
     expect(sandboxWin.problems()).toEqual([])
     expect(everyday.problems()).toEqual([])
+  }, 180_000)
+
+  it('start opens it by itself (here: in the headless Shell), and stop closes it', async () => {
+    await sandboxWin?.close()
+    sandboxWin = undefined
+    expect(sandbox('stop').status).toBe(0)
+    // as the user runs it, on this display: the build, the separate profile, the detached window
+    const r = run(display.env, [
+      'start',
+      '--port',
+      String(await freePort()),
+      '--share-port',
+      String(await freePort()),
+    ])
+    expect(r.status, r.stdout + r.stderr).toBe(0)
+    expect(r.stdout).toContain('"kacola · sandbox" (a separate window; your everyday one is untouched)')
+    const st = JSON.parse(readFileSync(join(dir, 'state.json'), 'utf8')) as { pids: { window?: number } }
+    expect(st.pids.window).toBeGreaterThan(0)
+    const log = join(dir, 'logs', 'window.log')
+    const end = Date.now() + 30_000
+    while (!(existsSync(log) && readFileSync(log, 'utf8').includes('"event":"window-ready"'))) {
+      if (Date.now() > end)
+        throw new Error(`the sandbox window never got ready:\n${readFileSync(log, 'utf8')}`)
+      await new Promise((res) => setTimeout(res, 200))
+    }
+    expect(readFileSync(log, 'utf8')).toMatch(/"event":"daemon","kind":"attached"/)
+    // the everyday window is still the one it was
+    expect(everyday!.app.process().exitCode).toBeNull()
+    expect(await everyday!.window.title()).toBe('kacola')
+
+    const stop = sandbox('stop')
+    expect(stop.status, stop.stdout + stop.stderr).toBe(0)
+    const alive = (pid: number) => {
+      try {
+        process.kill(pid, 0)
+        return true
+      } catch {
+        return false
+      }
+    }
+    expect(alive(st.pids.window!)).toBe(false)
+    expect(everyday!.app.process().exitCode).toBeNull()
   }, 180_000)
 })

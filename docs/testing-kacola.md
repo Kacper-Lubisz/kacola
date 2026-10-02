@@ -376,6 +376,18 @@ a false tick.
   http://127.0.0.1:8790/agendas/<agenda>/tracker` shows the tracker's own state: provider, degraded
   fallbacks, and dropped triggers.
 
+**A baseline: what the on-device provider did.** These are the results of the scripted scenarios with
+on-device decisions and the hashing embedder (no key), on 2026-10-02:
+
+| scenario | right | false or premature ticks | missed ticks |
+| --- | --- | --- | --- |
+| one-on-one | promotion ✓, demo ✓, conference left in progress, vacation left open | handover ticked at "Next, the handover …", before it was settled | none |
+| intro-call | all five answered and ticked, despite the order | none | none |
+| pm-feedback | home screen ✓, beta date left in progress | "Top three changes before the beta" ticked from the *home screen* lines, before the question was asked | "live checklist distracting?" and "send the link to customers?" were answered but left in progress |
+
+In the pm-feedback false tick, the evidence chip quotes "The home screen is great …", which plainly does
+not settle "top three changes". That mismatch is exactly what to look for.
+
 To compare providers, run the same scenario once per provider and score each item as right, false tick
 or missed tick:
 
