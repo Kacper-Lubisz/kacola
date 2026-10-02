@@ -19,7 +19,7 @@ async function openPreferences() {
   await screen.findByRole('searchbox', { name: 'Search or ask' })
   fireEvent.keyDown(window, { key: ',', ctrlKey: true })
   const prefs = await screen.findByRole('dialog', { name: 'Preferences' })
-  await within(prefs).findByRole('region', { name: 'Questions and Answers' })
+  await within(prefs).findByRole('region', { name: 'Questions and answers' })
   return prefs
 }
 
@@ -34,11 +34,11 @@ describe('Preferences', () => {
       }),
     })
     const prefs = await openPreferences()
-    expect(within(prefs).getByRole('button', { name: /Accurate pass/ }).textContent).toContain(
+    expect(within(prefs).getByRole('button', { name: /Accurate transcript/ }).textContent).toContain(
       'Off (live transcript only)',
     )
     expect(
-      (within(prefs).getByRole('switch', { name: 'When a Calendar Meeting Starts' }) as HTMLInputElement)
+      (within(prefs).getByRole('switch', { name: 'When a calendar meeting starts' }) as HTMLInputElement)
         .checked,
     ).toBe(true)
     await new Promise((r) => setTimeout(r, 50))
@@ -63,7 +63,7 @@ describe('Preferences', () => {
       },
     })
     const prefs = await openPreferences()
-    fireEvent.click(within(prefs).getByRole('switch', { name: 'When Another App Uses the Microphone' }))
+    fireEvent.click(within(prefs).getByRole('switch', { name: 'When another app uses the microphone' }))
     await until(() => app.daemon.calls.includes('updateSettings'))
     expect(app.daemon.log.find((c) => c.name === 'updateSettings')!.opts.body).toEqual({
       autoRecord: { micActivity: true },
@@ -72,7 +72,7 @@ describe('Preferences', () => {
     const key = within(prefs).getByLabelText('API key') as HTMLInputElement
     fireEvent.change(key, { target: { value: 'sk-secret-123' } })
     fireEvent.click(within(prefs).getByRole('button', { name: 'Save' }))
-    await within(prefs).findByText('Configured (kept in the keyring, never shown)')
+    await within(prefs).findByText('Saved in your keyring, never shown')
     expect(stored).toBe('sk-secret-123')
     expect((within(prefs).getByLabelText('Replace API key') as HTMLInputElement).value).toBe('')
     expect(document.body.innerHTML).not.toContain('sk-secret-123')
@@ -115,9 +115,9 @@ describe('Preferences', () => {
     const prefs = await openPreferences()
     fireEvent.mouseDown(within(prefs).getByRole('tab', { name: 'Integration' }))
     fireEvent.click(within(prefs).getByRole('tab', { name: 'Integration' }))
-    await within(prefs).findByText('A different gnomeola is already installed at /usr/bin/gnomeola')
+    await within(prefs).findByText('A different gnomeola command is already installed at /usr/bin/gnomeola')
     fireEvent.click(within(prefs).getByRole('button', { name: 'Replace…' }))
-    const confirm = await screen.findByRole('alertdialog', { name: 'Replace the Other gnomeola?' })
+    const confirm = await screen.findByRole('alertdialog', { name: 'Replace the other gnomeola command?' })
     expect(fb.bridge.installCli).not.toHaveBeenCalled()
     fireEvent.click(within(confirm).getByRole('button', { name: 'Replace' }))
     await until(() => fb.bridge.installCli.mock.calls.length === 1)
@@ -200,7 +200,7 @@ describe('onboarding', () => {
       },
     })
     const welcome = await screen.findByRole('dialog', { name: 'Welcome to kacola' }, { timeout: 3000 })
-    await within(welcome).findByRole('listitem', { name: 'whisper' })
+    await within(welcome).findByRole('listitem', { name: /whisper/ })
     await within(welcome).findByText('Working')
     expect(
       (
@@ -209,7 +209,7 @@ describe('onboarding', () => {
         }) as HTMLInputElement
       ).checked,
     ).toBe(true)
-    fireEvent.click(within(welcome).getByRole('button', { name: 'Skip for Now' }))
+    fireEvent.click(within(welcome).getByRole('button', { name: 'Skip for now' }))
     await until(() => fb.bridge.setUiState.mock.calls.length === 1)
     expect(fb.bridge.setUiState).toHaveBeenCalledWith({
       version: 1,
@@ -252,7 +252,7 @@ describe('shell', () => {
     const app = renderApp()
     await screen.findByRole('searchbox', { name: 'Search or ask' })
     fireEvent.keyDown(window, { key: '?', ctrlKey: true, shiftKey: true })
-    const help = await screen.findByRole('dialog', { name: 'Keyboard Shortcuts' })
+    const help = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })
     expect(within(help).getByText('New recording, or stop recording')).toBeTruthy()
     fireEvent.click(within(help).getByRole('button', { name: 'Close' }))
     app.stop()

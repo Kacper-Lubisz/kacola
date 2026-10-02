@@ -406,17 +406,17 @@ describe('desktop: agendas', () => {
     // Send the agenda without a sharing server: it says so, with one action — and never hands out a
     // kacola:// link that attendees without kacola could not open
     await w().getByRole('button', { name: 'Send the agenda' }).click()
-    const dlg = w().getByRole('dialog', { name: 'Send the Agenda' })
+    const dlg = w().getByRole('dialog', { name: 'Send the agenda' })
     await dlg.getByRole('region', { name: 'What attendees see' }).waitFor()
     await dlg.getByRole('button', { name: 'Send', exact: true }).click()
-    await dlg.getByRole('button', { name: 'Set Up Sharing' }).waitFor({ timeout: 15_000 })
+    await dlg.getByRole('button', { name: 'Set up sharing' }).waitFor({ timeout: 15_000 })
     expect(await dlg.getByRole('status').count()).toBeGreaterThan(0)
     expect(await dlg.textContent()).not.toContain('kacola://')
-    expect(await dlg.getByRole('button', { name: 'Copy Invitation Text' }).count()).toBe(0)
+    expect(await dlg.getByRole('button', { name: 'Copy invitation text' }).count()).toBe(0)
     await axeAllModes('send without a sharing server')
     expect((await daemon.client.call('getAgendaShare', { params: { id: meetingAgenda } })).shared).toBe(false)
     // its one action opens Preferences
-    await dlg.getByRole('button', { name: 'Set Up Sharing' }).click()
+    await dlg.getByRole('button', { name: 'Set up sharing' }).click()
     await w().getByRole('dialog', { name: 'Preferences' }).waitFor()
     await w().keyboard.press('Escape')
     await w().getByRole('dialog', { name: 'Preferences' }).waitFor({ state: 'detached' })

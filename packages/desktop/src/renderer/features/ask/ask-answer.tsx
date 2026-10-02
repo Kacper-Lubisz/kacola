@@ -76,7 +76,7 @@ function Notice({
 
 /**
  * In place of an answer when asking failed: the daemon's message as written, and the ONE action its
- * `action` names — Try Again (the question is kept), Set Up a Provider (Preferences), Add Credits (the
+ * `action` names — Try again (the question is kept), Set up a provider (Preferences), Add credits (the
  * provider's billing page). A private meeting with a cloud provider is not a failure: it says so calmly.
  */
 function ErrorNotice({ error, onRetry }: { error: AskError; onRetry?: () => void }) {

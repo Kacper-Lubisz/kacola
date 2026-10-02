@@ -42,7 +42,7 @@ describe('what each state says and offers', () => {
     ])
     expect(row({ state: 'not-installed', userExtensionsOff: false })).toEqual([
       'Shows the recording state and the next meeting in the GNOME top bar',
-      'Install & Enable',
+      'Install and turn on',
       false,
       false,
       true,
@@ -50,7 +50,7 @@ describe('what each state says and offers', () => {
     ])
     expect(row({ state: 'not-installed', userExtensionsOff: true })).toEqual([
       'Shows the recording state and the next meeting in the GNOME top bar. Extensions are turned off in GNOME',
-      'Install & Enable',
+      'Install and turn on',
       true,
       false,
       true,
@@ -75,7 +75,7 @@ describe('what each state says and offers', () => {
     )
     expect(row(login({ queued: false }))).toEqual([
       'Installed, but not turned on',
-      'Enable',
+      'Turn on',
       false,
       false,
       true,
@@ -83,7 +83,7 @@ describe('what each state says and offers', () => {
     ])
     expect(row(login({ userExtensionsOff: true }))).toEqual([
       'Installed, but not turned on. Extensions are turned off in GNOME',
-      'Enable',
+      'Turn on',
       true,
       false,
       true,
@@ -100,7 +100,7 @@ describe('what each state says and offers', () => {
     expect(row(login({ reason: 'updated' }))[0]).toBe('Updated — log out and back in to use the new version')
     expect(row({ state: 'disabled', userExtensionsOff: false })).toEqual([
       'Installed, but turned off',
-      'Enable',
+      'Turn on',
       false,
       false,
       true,
@@ -108,7 +108,7 @@ describe('what each state says and offers', () => {
     ])
     expect(row({ state: 'disabled', userExtensionsOff: true })).toEqual([
       'Installed, but extensions are turned off in GNOME',
-      'Enable',
+      'Turn on',
       true,
       false,
       true,
@@ -132,7 +132,7 @@ describe('what each state says and offers', () => {
     ])
     expect(row({ state: 'error', reason: 'crashed', detail: 'TypeError: x' })).toEqual([
       'It stopped with an error: TypeError: x',
-      'Try Again',
+      'Try again',
       false,
       false,
       true,
@@ -175,7 +175,7 @@ describe('home’s card', () => {
     const app = renderApp({ bridge: fb })
     const c = await card()
     expect(c.textContent).toContain('Shows the recording state and the next meeting in the GNOME top bar')
-    fireEvent.click(within(c).getByRole('button', { name: 'Install & Enable' }))
+    fireEvent.click(within(c).getByRole('button', { name: 'Install and turn on' }))
     await within(c).findByText('Installed — log out and back in to turn it on')
     expect(within(c).queryByRole('button', { name: /Enable|Install/ })).toBeNull()
     // and the toast says the same
@@ -225,13 +225,13 @@ describe('home’s card', () => {
     const app = renderApp({ bridge: fb })
     const c = await card()
     expect(c.textContent).toContain('Installed, but extensions are turned off in GNOME')
-    fireEvent.click(within(c).getByRole('button', { name: 'Enable' }))
-    const ask = await screen.findByRole('alertdialog', { name: 'Turn On GNOME Extensions?' })
+    fireEvent.click(within(c).getByRole('button', { name: 'Turn on' }))
+    const ask = await screen.findByRole('alertdialog', { name: 'Turn on GNOME extensions?' })
     expect(ask.textContent).toContain(
       'Turning on the top-bar extension turns extensions back on, including any others you have enabled.',
     )
     expect(presses()).toBe(0)
-    fireEvent.click(within(ask).getByRole('button', { name: 'Turn On Extensions' }))
+    fireEvent.click(within(ask).getByRole('button', { name: 'Turn on extensions' }))
     await until(() => presses() === 1)
     await screen.findByText('The top-bar extension is on')
     await until(() => screen.queryByRole('region', { name: 'Top-bar extension' }) === null)
@@ -267,13 +267,13 @@ describe('Preferences › Integration', () => {
     const prefs = await integration()
     await within(prefs).findByText('On — showing in the GNOME top bar')
     expect(within(prefs).getByText('On')).toBeTruthy()
-    fireEvent.click(within(prefs).getByRole('button', { name: 'Disable' }))
+    fireEvent.click(within(prefs).getByRole('button', { name: 'Turn off' }))
     await within(prefs).findByText('Installed, but turned off')
-    within(prefs).getByRole('button', { name: 'Enable' })
+    within(prefs).getByRole('button', { name: 'Turn on' })
     fireEvent.click(within(prefs).getByRole('button', { name: 'Remove' }))
-    const confirm = await screen.findByRole('alertdialog', { name: 'Remove the Top-Bar Extension?' })
+    const confirm = await screen.findByRole('alertdialog', { name: 'Remove the top-bar extension?' })
     fireEvent.click(within(confirm).getByRole('button', { name: 'Remove' }))
-    await within(prefs).findByRole('button', { name: 'Install & Enable' })
+    await within(prefs).findByRole('button', { name: 'Install and turn on' })
     app.stop()
   })
 

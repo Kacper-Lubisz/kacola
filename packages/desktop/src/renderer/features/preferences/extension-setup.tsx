@@ -18,7 +18,7 @@ import {
 // The top-bar extension, wherever the window offers it: Preferences › Integration (ExtensionRow), a
 // dismissible card at the foot of the sidebar (ExtensionCard: GNOME only, while the extension is not
 // on), and onboarding (ExtensionAction inside its own row). One button does the right thing for the
-// state main reports (src/main/extension.ts): Install & Enable, Update, Enable, Try Again — and when
+// state main reports (src/main/extension.ts): Install and turn on, Update, Turn on, Try again — and when
 // GNOME has every user extension switched off it asks first, because switching them back on affects
 // the user's other extensions too. Re-checked whenever the window regains focus (the user may have
 // logged in again, or used GNOME Extensions meanwhile).

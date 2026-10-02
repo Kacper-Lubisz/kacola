@@ -368,7 +368,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     await alert.waitFor({ state: 'detached' })
   })
 
-  it('rate limiting says to try again later, leaves the notes alone; Try Again replaces, Back to my draft restores', async () => {
+  it('rate limiting says to try again later, leaves the notes alone; Try again replaces, Back to my draft restores', async () => {
     const before = await h.versions(SEED.retro)
     // every attempt is a 429 (the SDK retries twice); a short retry hint keeps it fast
     const limited = loadCassette(join(CASSETTES, 'rate-limited.json'))[0]!
@@ -382,10 +382,10 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     expect(await alert.textContent()).toContain('limiting requests')
     expect(await h.versions(SEED.retro)).toEqual(before)
     await h.axe()
-    // the provider recovers: Try Again enhances with the same template
+    // the provider recovers: Try again enhances with the same template
     ctx.api.always(null)
     ctx.api.enqueue(...loadCassette(join(CASSETTES, 'enhance-notes.json')))
-    await alert.getByRole('button', { name: 'Try Again' }).click()
+    await alert.getByRole('button', { name: 'Try again' }).click()
     const draft = before.filter((v) => v.kind !== 'enhanced').at(-1)!
     await waitFor(
       async () =>
@@ -417,7 +417,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     const before = await h.versions(SEED.retro)
     const typed = before.filter((v) => v.kind === 'user' && v.markdown === TYPED).at(-1)!
     await h.notesAction('Version History…')
-    const dialog = h.w().getByRole('dialog', { name: 'Version History' })
+    const dialog = h.w().getByRole('dialog', { name: 'Version history' })
     await dialog.waitFor()
     const list = dialog.getByRole('listbox', { name: 'Versions' })
     await list.getByRole('option').first().waitFor()
@@ -431,7 +431,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     await list.getByRole('option', { name: new RegExp(`^Version ${typed.version} Typed`) }).click()
     const preview = dialog.getByRole('region', { name: `Text of version ${typed.version}` })
     expect(await preview.textContent()).toContain('retry budgt three attmpts')
-    await dialog.getByRole('button', { name: 'Restore This Version' }).click()
+    await dialog.getByRole('button', { name: 'Restore this version' }).click()
     await dialog.waitFor({ state: 'detached' })
     await h.toast(`Version ${typed.version} restored`).waitFor({ timeout: 5000 })
     const after = await h.versions(SEED.retro)
@@ -452,19 +452,19 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
   it('creates a custom template, is suggested by it, enhances with it, and deletes it', async () => {
     await h.w().getByRole('button', { name: 'Choose a Template' }).click()
     await h.w().getByRole('menuitem', { name: 'Manage Templates…' }).click()
-    const dialog = h.w().getByRole('dialog', { name: 'Notes Templates' })
+    const dialog = h.w().getByRole('dialog', { name: 'Notes templates' })
     await dialog.waitFor()
     // the built-ins are listed, read-only
     await dialog.getByRole('option', { name: /General/ }).click()
     await dialog.getByText('Built-in templates cannot be changed').waitFor()
-    await dialog.getByRole('button', { name: 'New Template' }).click()
+    await dialog.getByRole('button', { name: 'New template' }).click()
     await dialog.getByRole('textbox', { name: 'Name' }).fill('Retrospective')
     await dialog.getByRole('textbox', { name: 'Keywords' }).fill('retro, post-mortem')
     await dialog
       .getByRole('textbox', { name: 'Template' })
       .fill('## Went well\n\n## Went badly\n\n## Action items\n\nOne owner per action.')
     await h.axe()
-    await dialog.getByRole('button', { name: 'Save Template' }).click()
+    await dialog.getByRole('button', { name: 'Save template' }).click()
     const saved = await waitFor(
       async () =>
         (await ctx.daemon.client.call('listTemplates', { query: {} })).templates.find(
@@ -517,7 +517,7 @@ describe('Notes in the Electron window: type, enhance (replaces), back to my dra
     await h.w().getByRole('menuitem', { name: 'Manage Templates…' }).click()
     await dialog.waitFor()
     await dialog.getByRole('option', { name: /Retrospective/ }).click()
-    await dialog.getByRole('button', { name: 'Delete Template' }).click()
+    await dialog.getByRole('button', { name: 'Delete template' }).click()
     await waitFor(
       async () =>
         !(await ctx.daemon.client.call('listTemplates', { query: {} })).templates.some(

@@ -178,7 +178,7 @@ describe('the packaged Linux app (linux-unpacked)', () => {
       expect(
         await welcome.getByRole('switch', { name: 'Install command-line tool and Claude skill' }).isChecked(),
       ).toBe(true)
-      await welcome.getByRole('button', { name: 'Skip for Now' }).click()
+      await welcome.getByRole('button', { name: 'Skip for now' }).click()
       const shim = join(home(), '.local', 'bin', 'gnomeola')
       await waitFor(() => existsSync(shim), 30_000, 'the CLI shim from onboarding')
       const text = readFileSync(shim, 'utf8')
@@ -196,7 +196,7 @@ describe('the packaged Linux app (linux-unpacked)', () => {
       const prefs = cdp.window.getByRole('dialog', { name: 'Preferences' })
       await prefs.getByRole('tab', { name: 'Integration' }).click()
       const row = prefs.getByText('Top-bar extension', { exact: true }).locator('../..')
-      await row.getByRole('button', { name: 'Install & Enable' }).click()
+      await row.getByRole('button', { name: 'Install and turn on' }).click()
       // the running Shell reads extensions at start-up: queued for the next login
       await row.getByText('Installed — log out and back in to turn it on').waitFor({ timeout: 20_000 })
       const dest = join(display.env.XDG_DATA_HOME!, 'gnome-shell', 'extensions', EXT)

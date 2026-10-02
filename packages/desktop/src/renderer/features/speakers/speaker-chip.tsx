@@ -47,7 +47,9 @@ export function SpeakerSwatch({
   colour: number | null
   label: string
 }) {
-  const initial = speaker === ME ? '' : speakerName(label).trim().charAt(0).toUpperCase()
+  // an unnamed voice ("Speaker 2") shows its number: every one of them starting with S says nothing
+  const name = speakerName(label).trim()
+  const initial = speaker === ME ? '' : (/^\S+\s+(\d{1,2})$/.exec(name)?.[1] ?? name.charAt(0).toUpperCase())
   return (
     <span
       role="img"

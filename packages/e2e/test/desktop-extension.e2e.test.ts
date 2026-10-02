@@ -26,7 +26,7 @@ import {
 //
 // Part 2, the states a real Shell will not produce on demand, from fake gdbus / gsettings /
 // gnome-extensions on PATH (fake-shell-extensions.ts): an older copy (Update), a crashed extension
-// (Try Again), X11's copy, the Flatpak's command, and no GNOME at all (nothing shown).
+// (Try again), X11's copy, the Flatpak's command, and no GNOME at all (nothing shown).
 
 const EXT = 'gnomeola@gnomeola.org'
 const REPO_EXT = join(import.meta.dirname, '..', '..', '..', 'extensions', EXT)
@@ -115,7 +115,7 @@ describe('against a real GNOME Shell (private, headless)', () => {
         .waitFor()
       expect(await app.axe()).toEqual([])
       await app.screenshot(join(DESKTOP_ARTIFACTS, 'extension-card-install.png'))
-      await card(app).getByRole('button', { name: 'Install & Enable' }).click()
+      await card(app).getByRole('button', { name: 'Install and turn on' }).click()
       await card(app).getByText('Installed — log out and back in to turn it on').waitFor({ timeout: 20_000 })
       expect(
         await card(app)
@@ -171,10 +171,10 @@ describe('against a real GNOME Shell (private, headless)', () => {
       expect(await app.axe()).toEqual([])
       await app.screenshot(join(DESKTOP_ARTIFACTS, 'extension-row-on.png'))
 
-      await row.getByRole('button', { name: 'Disable' }).click()
+      await row.getByRole('button', { name: 'Turn off' }).click()
       await row.getByText('Installed, but turned off').waitFor({ timeout: 10_000 })
       expect(shellInfo(d)).toContain("'enabled': <false>")
-      await row.getByRole('button', { name: 'Enable' }).click()
+      await row.getByRole('button', { name: 'Turn on', exact: true }).click()
       await row.getByText('On — showing in the GNOME top bar').waitFor({ timeout: 10_000 })
       await waitFor(() => /'state': <1\.0>/.test(shellInfo(d)), 10_000, 'running again')
 
@@ -182,19 +182,19 @@ describe('against a real GNOME Shell (private, headless)', () => {
       gsettings(d, 'set', 'org.gnome.shell', 'disable-user-extensions', 'true')
       await refocus(app)
       await row.getByText('Installed, but extensions are turned off in GNOME').waitFor({ timeout: 10_000 })
-      await row.getByRole('button', { name: 'Enable' }).click()
-      const ask = app.window.getByRole('alertdialog', { name: 'Turn On GNOME Extensions?' })
+      await row.getByRole('button', { name: 'Turn on', exact: true }).click()
+      const ask = app.window.getByRole('alertdialog', { name: 'Turn on GNOME extensions?' })
       await ask.getByText(/turns extensions back on, including any others you have enabled/).waitFor()
       await app.screenshot(join(DESKTOP_ARTIFACTS, 'extension-ask-user-extensions.png'))
-      await ask.getByRole('button', { name: 'Turn On Extensions' }).click()
+      await ask.getByRole('button', { name: 'Turn on extensions' }).click()
       await row.getByText('On — showing in the GNOME top bar').waitFor({ timeout: 10_000 })
       expect(gsettings(d, 'get', 'org.gnome.shell', 'disable-user-extensions')).toBe('false')
       await waitFor(() => /'state': <1\.0>/.test(shellInfo(d)), 10_000, 'running after extensions came back')
 
       await row.getByRole('button', { name: 'Remove' }).click()
-      const confirm = app.window.getByRole('alertdialog', { name: 'Remove the Top-Bar Extension?' })
+      const confirm = app.window.getByRole('alertdialog', { name: 'Remove the top-bar extension?' })
       await confirm.getByRole('button', { name: 'Remove' }).click()
-      await row.getByRole('button', { name: 'Install & Enable' }).waitFor({ timeout: 10_000 })
+      await row.getByRole('button', { name: 'Install and turn on' }).waitFor({ timeout: 10_000 })
       expect(existsSync(join(d.env.XDG_DATA_HOME!, 'gnome-shell', 'extensions', EXT))).toBe(false)
       expect(shellInfo(d)).toBe('(@a{sv} {},)')
       expect(gsettings(d, 'get', 'org.gnome.shell', 'enabled-extensions')).not.toContain(EXT)
@@ -282,7 +282,7 @@ describe('the states a real Shell will not show on demand (fake gdbus / gsetting
     }
   })
 
-  it('a crashed extension says why; Try Again reinstalls and re-enables it', async () => {
+  it('a crashed extension says why; Try again reinstalls and re-enables it', async () => {
     installed(BUNDLED, {
       loaded: { [EXT]: { version: BUNDLED, type: 2, state: 3, error: 'TypeError: this._x is undefined' } },
     })
@@ -294,7 +294,7 @@ describe('the states a real Shell will not show on demand (fake gdbus / gsetting
         .getByText('It stopped with an error: TypeError: this._x is undefined')
         .waitFor({ timeout: 20_000 })
       await app.screenshot(join(DESKTOP_ARTIFACTS, 'extension-row-error.png'))
-      await row.getByRole('button', { name: 'Try Again' }).click()
+      await row.getByRole('button', { name: 'Try again' }).click()
       await waitFor(
         () => readFakeShell(statePath).calls.includes(`gdbus EnableExtension ${EXT}`),
         10_000,
@@ -312,7 +312,7 @@ describe('the states a real Shell will not show on demand (fake gdbus / gsetting
     onboarded(display)
     const app = await launch({ XDG_SESSION_TYPE: 'x11' })
     try {
-      await card(app).getByRole('button', { name: 'Install & Enable' }).click()
+      await card(app).getByRole('button', { name: 'Install and turn on' }).click()
       await card(app)
         .getByText('Installed — log out and back in (or restart GNOME Shell with Alt+F2, r) to turn it on')
         .waitFor({ timeout: 20_000 })
@@ -331,7 +331,7 @@ describe('the states a real Shell will not show on demand (fake gdbus / gsetting
       HOST_XDG_DATA_HOME: display.env.XDG_DATA_HOME!,
     })
     try {
-      await card(app).getByRole('button', { name: 'Install & Enable' }).click({ timeout: 20_000 })
+      await card(app).getByRole('button', { name: 'Install and turn on' }).click({ timeout: 20_000 })
       await card(app)
         .getByText('Installed. To turn it on, run this in a terminal:')
         .waitFor({ timeout: 20_000 })

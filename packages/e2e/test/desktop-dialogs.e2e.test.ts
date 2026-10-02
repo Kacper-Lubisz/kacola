@@ -95,7 +95,7 @@ describe('Preferences and About against the real daemon', () => {
   // the daemon's own sentence, under one title, with the ONE action it names
   const unavailable = () => askPane().getByText('No answer this time', { exact: true })
 
-  it('explains that questions and enhancing need a provider, and Set Up a Provider opens Preferences', async () => {
+  it('explains that questions and enhancing need a provider, and Set up a provider opens Preferences', async () => {
     await openSession('Platform standup')
     // Ask is the Ctrl+K bar over the page
     await app.window.keyboard.press('Control+k')
@@ -104,13 +104,13 @@ describe('Preferences and About against the real daemon', () => {
     await app.window.keyboard.type('Who owns the dashboard?')
     await app.window.keyboard.press('Enter')
     await unavailable().waitFor({ timeout: 10_000 })
-    await askPane().getByRole('button', { name: 'Set Up a Provider' }).waitFor()
+    await askPane().getByRole('button', { name: 'Set up a provider' }).waitFor()
     // nothing was sent anywhere: no key, no request
     expect(api.seen).toHaveLength(0)
     expect(await app.axe()).toEqual([])
     await app.screenshot(join(DESKTOP_ARTIFACTS, 'ask-unavailable.png'))
-    await askPane().getByRole('button', { name: 'Set Up a Provider' }).click()
-    await prefs().getByRole('region', { name: 'Questions and Answers' }).waitFor({ timeout: 5000 })
+    await askPane().getByRole('button', { name: 'Set up a provider' }).click()
+    await prefs().getByRole('region', { name: 'Questions and answers' }).waitFor({ timeout: 5000 })
     await prefs().getByText('Not configured').waitFor()
     await closePrefs()
 
@@ -121,13 +121,13 @@ describe('Preferences and About against the real daemon', () => {
     await app.window.getByRole('button', { name: 'Enhance Notes' }).click()
     const banner = app.window.getByRole('status', { name: /Your notes were not changed/ })
     await banner.waitFor({ timeout: 10_000 })
-    expect(await banner.getByRole('button', { name: 'Set Up a Provider' }).count()).toBe(1)
+    expect(await banner.getByRole('button', { name: 'Set up a provider' }).count()).toBe(1)
     expect(api.seen).toHaveLength(0)
     expect(await daemon.client.call('listNoteVersions', { params: { id: SEED.standup } })).toEqual(before)
     expect(await app.axe()).toEqual([])
     await app.screenshot(join(DESKTOP_ARTIFACTS, 'notes-unavailable.png'))
-    await banner.getByRole('button', { name: 'Set Up a Provider' }).click()
-    await prefs().getByRole('region', { name: 'Questions and Answers' }).waitFor({ timeout: 5000 })
+    await banner.getByRole('button', { name: 'Set up a provider' }).click()
+    await prefs().getByRole('region', { name: 'Questions and answers' }).waitFor({ timeout: 5000 })
     await closePrefs()
     await banner.getByRole('button', { name: 'Dismiss' }).click()
     await banner.waitFor({ state: 'detached' })
@@ -143,12 +143,12 @@ describe('Preferences and About against the real daemon', () => {
     // from the primary menu
     await app.window.getByRole('button', { name: 'Main menu' }).click()
     await app.window.getByRole('menuitem', { name: /Preferences/ }).click()
-    await prefs().getByRole('region', { name: 'Questions and Answers' }).waitFor()
+    await prefs().getByRole('region', { name: 'Questions and answers' }).waitFor()
     await prefs().getByText('Not configured').waitFor()
     await expect
       .poll(() =>
         prefs()
-          .getByRole('button', { name: /Accurate pass/ })
+          .getByRole('button', { name: /Accurate transcript/ })
           .textContent(),
       )
       .toContain('Off (live transcript only)')
@@ -207,8 +207,8 @@ describe('Preferences and About against the real daemon', () => {
   it('persists settings changed in Preferences (keyboard), and reflects changes made elsewhere live', async () => {
     // Ctrl+, opens Preferences
     await app.window.keyboard.press('Control+,')
-    await prefs().getByRole('region', { name: 'Questions and Answers' }).waitFor()
-    const pass = prefs().getByRole('button', { name: /Accurate pass/ })
+    await prefs().getByRole('region', { name: 'Questions and answers' }).waitFor()
+    const pass = prefs().getByRole('button', { name: /Accurate transcript/ })
     await pass.focus()
     await app.window.keyboard.press('Enter')
     await app.screenshot(join(DESKTOP_ARTIFACTS, 'prefs-select-open.png'))
@@ -229,7 +229,7 @@ describe('Preferences and About against the real daemon', () => {
       'micDevice=fake.mic',
     )
     // M4 auto-record rules: off by default, a click turns one on, a change made elsewhere flips the other
-    const onMeeting = prefs().getByRole('switch', { name: 'When a Calendar Meeting Starts' })
+    const onMeeting = prefs().getByRole('switch', { name: 'When a calendar meeting starts' })
     expect(await onMeeting.isChecked()).toBe(false)
     await toggle(app, onMeeting)
     await waitFor(
@@ -239,7 +239,7 @@ describe('Preferences and About against the real daemon', () => {
     )
     await daemon.client.call('updateSettings', { body: { autoRecord: { micActivity: true } } })
     await expect
-      .poll(() => prefs().getByRole('switch', { name: 'When Another App Uses the Microphone' }).isChecked())
+      .poll(() => prefs().getByRole('switch', { name: 'When another app uses the microphone' }).isChecked())
       .toBe(true)
     expect((await daemon.client.call('getSettings')).autoRecord).toEqual({
       calendar: true,
@@ -346,7 +346,7 @@ describe('Preferences and About against the real daemon', () => {
       .or(about.getByRole('button', { name: 'Legal' }))
       .click()
     await about.getByText(/GNU General Public License/).waitFor()
-    const notices = about.getByRole('list', { name: 'Third-Party Notices' })
+    const notices = about.getByRole('list', { name: 'Third-party notices' })
     await notices.getByText('react-aria-components', { exact: false }).first().waitFor()
     await notices.getByText(/lucide-react [\d.]+ — ISC/).waitFor()
     expect(await notices.getByText(/Adwaita symbolic icons/).count()).toBe(0)
@@ -473,7 +473,7 @@ describe('onboarding skipped', () => {
       await welcome.waitFor({ timeout: 20_000 })
       // not installing the CLI this time
       await toggle(app, welcome.getByRole('switch', { name: 'Install command-line tool and Claude skill' }))
-      await welcome.getByRole('button', { name: 'Skip for Now' }).click()
+      await welcome.getByRole('button', { name: 'Skip for now' }).click()
       await welcome.waitFor({ state: 'detached' })
       expect(JSON.parse(readFileSync(uiStatePath(display), 'utf8'))).toEqual({
         version: 1,

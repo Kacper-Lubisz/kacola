@@ -241,7 +241,7 @@ export const ATLAS: AtlasEntry[] = [
     'auto-record-calendar',
     'preferences',
     'rule-on',
-    'Preferences › Auto-record: "When a Calendar Meeting Starts" switched on',
+    'Preferences › Auto-record: "When a calendar meeting starts" switched on',
   ),
   win(
     'auto-record-calendar',
@@ -253,7 +253,7 @@ export const ATLAS: AtlasEntry[] = [
     'auto-record-mic',
     'preferences',
     'rule-on',
-    'Preferences › Auto-record: "When Another App Uses the Microphone" switched on',
+    'Preferences › Auto-record: "When another app uses the microphone" switched on',
   ),
   win(
     'agent-record',
@@ -280,7 +280,7 @@ export const ATLAS: AtlasEntry[] = [
   win('speakers', 'dialog', 'list', 'The Speakers dialog: everyone in the meeting and how much they said'),
   win('speakers', 'rename', 'field', 'Naming a speaker inline'),
   win('speakers', 'merge', 'menu', 'Merging two speakers who are the same person'),
-  win('speakers', 'line', 'someone-else', 'A far-end line selected: "Someone Else Said This" splits it off'),
+  win('speakers', 'line', 'someone-else', 'A far-end line selected: "Someone else said this" splits it off'),
   win(
     'speakers',
     'preferences',
@@ -382,7 +382,7 @@ export const ATLAS: AtlasEntry[] = [
     'The outcome’s To do: action items from the notes with owner and due date, yours first',
   ),
   win('notes-templates', 'menu', 'open', 'Choose a Template: enhance as standup / 1:1 / interview …'),
-  win('notes-templates', 'manage', 'dialog', 'Notes Templates: built-in and custom'),
+  win('notes-templates', 'manage', 'dialog', 'Notes templates: built-in and custom'),
   win('notes-templates', 'new', 'form', 'A new template: name, keywords, instructions'),
   win('notes-templates', 'suggested', 'calendar', 'A template suggested by the calendar event'),
   win('notes-enhance', 'enhancing', 'mid-stream', 'Enhancing: the enhanced notes streaming in', {
@@ -420,7 +420,7 @@ export const ATLAS: AtlasEntry[] = [
     'settings-provider',
     'decisions',
     'provider',
-    'Decisions provider (jev, OpenAI, Anthropic, Ollama, local) and its key',
+    'Runs on (jev, OpenAI, Anthropic, Ollama, local) and its key',
   ),
   win(
     'settings-capture',
@@ -436,7 +436,7 @@ export const ATLAS: AtlasEntry[] = [
     'Preferences › Storage: keep audio N days, archive as Opus',
   ),
   win('help-about', 'menu', 'main-menu', 'The main menu'),
-  win('help-about', 'shortcuts', 'dialog', 'Keyboard Shortcuts (Ctrl+?)'),
+  win('help-about', 'shortcuts', 'dialog', 'Keyboard shortcuts (Ctrl+?)'),
   win('help-about', 'about', 'dialog', 'About kacola: version, licence, Granola credit'),
   win('help-about', 'legal', 'notices', 'About › Legal: third-party notices'),
 
@@ -488,7 +488,7 @@ export const ATLAS: AtlasEntry[] = [
   web('web-viewer', 'search', 'hits', 'Search with highlighted matches', { responsive: true }),
 
   // ---- When things go wrong
-  win('daemon-down', 'window', 'cant-reach', 'Can’t Reach kacola, with Try Again', { responsive: true }),
+  win('daemon-down', 'window', 'cant-reach', 'Can’t Reach kacola, with Try again', { responsive: true }),
   shell('daemon-down', 'topbar', 'not-running', 'Top bar: gnomeola is not running'),
   cli('daemon-down', 'cli', 'exit-3', 'The CLI says the daemon is unreachable (exit 3)', {
     cli: { argv: ['search', 'retry budget'] },
@@ -500,13 +500,13 @@ export const ATLAS: AtlasEntry[] = [
     'provider-errors',
     'ask',
     'no-provider',
-    'No AI provider: the daemon says so, with one action, Set Up a Provider',
+    'No AI provider: the daemon says so, with one action, Set up a provider',
   ),
   win(
     'provider-errors',
     'enhance',
     'no-provider',
-    'Enhance without an AI provider: the notes unchanged, Set Up a Provider',
+    'Enhance without an AI provider: the notes unchanged, Set up a provider',
   ),
   win(
     'provider-errors',
@@ -518,7 +518,7 @@ export const ATLAS: AtlasEntry[] = [
     'provider-errors',
     'ask',
     'overloaded',
-    'The provider is overloaded: its message after retries, and Try Again',
+    'The provider is overloaded: its message after retries, and Try again',
   ),
   win(
     'provider-errors',

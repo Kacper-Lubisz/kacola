@@ -96,8 +96,9 @@ export function TemplateEditor({
 
   return (
     <Dialog isOpen={isOpen} onOpenChange={onOpenChange} title={_('Notes templates')} size="lg">
-      <div className="flex h-[min(64vh,560px)] min-h-0 overflow-hidden rounded-lg border border-border-subtle">
-        <div className="flex w-56 shrink-0 flex-col gap-2 overflow-y-auto border-r border-border-subtle py-2">
+      {/* side by side; a narrow window stacks the list above the form */}
+      <div className="flex h-[min(64vh,560px)] min-h-0 overflow-hidden rounded-lg border border-border-subtle max-sm:h-[min(72vh,600px)] max-sm:flex-col">
+        <div className="flex w-56 shrink-0 flex-col gap-2 overflow-y-auto border-r border-border-subtle py-2 max-sm:max-h-[38%] max-sm:w-full max-sm:border-r-0 max-sm:border-b">
           <Button size="sm" icon="add" onPress={() => startFrom(null)} className="mx-3 self-start">
             {_('New template')}
           </Button>
@@ -110,7 +111,7 @@ export function TemplateEditor({
           />
         </div>
         <form
-          className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4"
+          className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4 max-sm:px-4"
           onSubmit={(e) => {
             e.preventDefault()
             if (valid && !readOnly) save()

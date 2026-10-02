@@ -366,7 +366,7 @@ describe('agenda editor', () => {
     const send = await screen.findByRole('button', { name: 'Send the agenda' })
     await until(() => !send.hasAttribute('disabled'))
     fireEvent.click(send)
-    const dlg = await screen.findByRole('dialog', { name: 'Send the Agenda' })
+    const dlg = await screen.findByRole('dialog', { name: 'Send the agenda' })
     const preview = within(dlg).getByRole('region', { name: 'What attendees see' })
     expect(preview.textContent).toContain('Promo timeline')
     expect(preview.textContent).not.toContain('nervous')
@@ -379,7 +379,7 @@ describe('agenda editor', () => {
     })
     await within(dlg).findByRole('status', { name: 'Ana can open this link without kacola.' })
     expect(dlg.textContent).toContain('You are not the organiser of this event.')
-    fireEvent.click(within(dlg).getByRole('button', { name: 'Copy Invitation Text' }))
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Copy invitation text' }))
     await until(() => fb.bridge.copyText.mock.calls.length === 1)
     expect(fb.bridge.copyText.mock.calls[0]![0]).toBe(invite)
     app.stop()
@@ -407,13 +407,13 @@ describe('agenda editor', () => {
     const send = await screen.findByRole('button', { name: 'Send the agenda' })
     await until(() => !send.hasAttribute('disabled'))
     fireEvent.click(send)
-    const dlg = await screen.findByRole('dialog', { name: 'Send the Agenda' })
+    const dlg = await screen.findByRole('dialog', { name: 'Send the agenda' })
     fireEvent.click(within(dlg).getByRole('button', { name: 'Send' }))
     await within(dlg).findByRole('status', {
       name: "kacola can't make a link attendees can open: sharing isn't set up.",
     })
-    expect(within(dlg).getByRole('button', { name: 'Set Up Sharing' })).toBeTruthy()
-    expect(within(dlg).queryByRole('button', { name: 'Copy Invitation Text' })).toBeNull()
+    expect(within(dlg).getByRole('button', { name: 'Set up sharing' })).toBeTruthy()
+    expect(within(dlg).queryByRole('button', { name: 'Copy invitation text' })).toBeNull()
     app.stop()
   })
 
@@ -1046,11 +1046,11 @@ describe('team sharing', () => {
       },
     })
     fireEvent.click(await screen.findByRole('button', { name: 'Shared: Up to date' }))
-    const dlg = await screen.findByRole('dialog', { name: 'Share Agenda' })
+    const dlg = await screen.findByRole('dialog', { name: 'Share the agenda' })
     await within(dlg).findByLabelText('Web link')
     expect((within(dlg).getByLabelText('Web link') as HTMLInputElement).value).toBe(LINK)
     expect(within(dlg).getByText('Up to date')).toBeTruthy()
-    fireEvent.click(within(dlg).getByRole('button', { name: 'Copy Link' }))
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Copy link' }))
     await until(() => fb.bridge.copyText.mock.calls.length === 1)
     expect(fb.bridge.copyText.mock.calls[0]![0]).toBe(LINK)
     // the daemon's sync reports arrive as agenda.share events: rendered as they come, nothing refetched
@@ -1248,14 +1248,14 @@ describe('team sharing', () => {
       },
     })
     fireEvent.click(await screen.findByRole('button', { name: 'Main menu' }))
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Follow a Shared Agenda…' }))
-    const dlg = await screen.findByRole('dialog', { name: 'Follow a Shared Agenda' })
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Follow a shared agenda…' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Follow a shared agenda' })
     fireEvent.change(within(dlg).getByLabelText('Link'), { target: { value: 'https://share.example/x' } })
     expect(within(dlg).getByText(/not a shared agenda link/)).toBeTruthy()
     fireEvent.change(within(dlg).getByLabelText('Link'), { target: { value: LINK } })
     fireEvent.change(within(dlg).getByLabelText('Your email'), { target: { value: 'ben@example.com' } })
     fireEvent.change(within(dlg).getByLabelText('Your name (optional)'), { target: { value: 'Ben' } })
-    fireEvent.click(within(dlg).getByRole('button', { name: 'Send Code' }))
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Send code' }))
     await within(dlg).findByLabelText('Code')
     expect(app.daemon.log.find((c) => c.name === 'followAgenda')!.opts.body).toEqual({
       link: LINK,
@@ -1269,14 +1269,14 @@ describe('team sharing', () => {
     fireEvent.click(within(dlg).getByRole('button', { name: 'Follow' }))
     await screen.findByRole('heading', { name: 'Team sync' })
     expect(app.router.state.location.pathname).toBe('/agendas/agd_copy')
-    expect(screen.queryByRole('dialog', { name: 'Follow a Shared Agenda' })).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'Follow a shared agenda' })).toBeNull()
     app.stop()
   })
 
   it('a shared agenda’s web link handed to the app opens Follow with the link filled in', async () => {
     const fb = fakeBridge({ takeDeepLink: async () => LINK } as never)
     const { app } = mount({ view: agendaView(), path: '/', bridge: fb })
-    const dlg = await screen.findByRole('dialog', { name: 'Follow a Shared Agenda' })
+    const dlg = await screen.findByRole('dialog', { name: 'Follow a shared agenda' })
     expect((within(dlg).getByLabelText('Link') as HTMLInputElement).value).toBe(LINK)
     expect(app.daemon.calls).not.toContain('resolveAgendaLink')
     expect(app.daemon.calls).not.toContain('followAgenda')

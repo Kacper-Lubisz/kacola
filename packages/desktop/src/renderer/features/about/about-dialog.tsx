@@ -73,12 +73,17 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
           <div className="flex flex-col gap-3">
             <p className="m-0 type-body text-text-secondary select-text">
               {_('This program comes with absolutely no warranty. It is licensed under the')}{' '}
-              <Button variant="link" onPress={() => void bridge.openExternal(GPL)}>
+              {/* an inline link that wraps with the sentence (the link button is a single red line) */}
+              <button
+                type="button"
+                className="inline cursor-pointer border-0 bg-transparent p-0 font-[inherit] text-text-primary underline underline-offset-2"
+                onClick={() => void bridge.openExternal(GPL)}
+              >
                 {_('GNU General Public License, version 3 or later')}
-              </Button>
+              </button>
               .
             </p>
-            <h3 className="m-0 type-headline">{_('Third-Party Components')}</h3>
+            <h3 className="m-0 type-headline">{_('Third-party components')}</h3>
             <p className="m-0 type-callout text-text-secondary">
               {_(
                 'kacola includes the following components under their own licences. The full list, with homepages, is in THIRD_PARTY_NOTICES.md.',
@@ -90,8 +95,8 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
               <ul
                 // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region must be reachable from the keyboard (axe: scrollable-region-focusable)
                 tabIndex={0}
-                aria-label={_('Third-Party Notices')}
-                className="m-0 list-none rounded-md border border-border-subtle bg-bg-surface p-3 font-mono text-[12px] leading-5 text-text-secondary select-text"
+                aria-label={_('Third-party notices')}
+                className="m-0 list-none rounded-md border border-border-subtle bg-bg-surface p-3 font-mono text-[12px] leading-5 [overflow-wrap:anywhere] text-text-secondary select-text"
               >
                 {parseNotices(notices.data).map((n) => (
                   <li key={`${n.name}@${n.version}`}>{noticeLine(n)}</li>

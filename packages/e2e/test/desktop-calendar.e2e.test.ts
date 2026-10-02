@@ -74,7 +74,7 @@ describe('desktop: calendar meetings and the calendar-based template suggestion'
 
   it('records a calendar meeting when it begins, once the rule is switched on in Preferences', async () => {
     await w().keyboard.press('Control+,')
-    const rule = prefs().getByRole('switch', { name: 'When a Calendar Meeting Starts' })
+    const rule = prefs().getByRole('switch', { name: 'When a calendar meeting starts' })
     await rule.waitFor({ timeout: 5000 })
     expect(await rule.isChecked()).toBe(false)
     await rule.focus()
@@ -237,7 +237,7 @@ describe('desktop: calendar meetings and the calendar-based template suggestion'
     expect(await app.axe()).toEqual([])
     // the shortcut is listed
     await w().keyboard.press('Control+?')
-    const help = w().getByRole('dialog', { name: 'Keyboard Shortcuts' })
+    const help = w().getByRole('dialog', { name: 'Keyboard shortcuts' })
     await help.getByText('Refresh calendar').waitFor()
     await w().keyboard.press('Escape')
   })

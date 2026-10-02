@@ -230,7 +230,7 @@ describe('desktop: team sharing', () => {
 
     // ONE action: Send the agenda — first exactly what attendees see, then the link and the invite text
     await w().getByRole('button', { name: 'Send the agenda' }).click()
-    const send = w().getByRole('dialog', { name: 'Send the Agenda' })
+    const send = w().getByRole('dialog', { name: 'Send the agenda' })
     const preview = send.getByRole('region', { name: 'What attendees see' })
     await preview.getByText('Roadmap').waitFor()
     // the goals stay home unless asked for
@@ -246,7 +246,7 @@ describe('desktop: team sharing', () => {
     // the file calendar is read-only: the invitation text (web link first) is there to paste
     await send.getByText('Paste this into the invitation:', { exact: true }).waitFor()
     expect(await send.locator('pre').textContent()).toContain(s.link)
-    await send.getByRole('button', { name: 'Copy Invitation Text' }).click()
+    await send.getByRole('button', { name: 'Copy invitation text' }).click()
     await w().getByText('Copied the invitation text').waitFor()
     expect(await app.evaluateMain(({ clipboard }) => clipboard.readText())).toContain(s.link)
     await send.getByRole('button', { name: 'Done' }).click()
@@ -256,7 +256,7 @@ describe('desktop: team sharing', () => {
 
     // once shared, the same spot is the share's state and options: name, attendees who use kacola
     await w().getByRole('button', { name: 'Shared: Up to date' }).click({ timeout: 20_000 })
-    const dlg = w().getByRole('dialog', { name: 'Share Agenda' })
+    const dlg = w().getByRole('dialog', { name: 'Share the agenda' })
     await dlg.getByRole('textbox', { name: 'Your name' }).fill('Kacper')
     await dlg.getByRole('textbox', { name: 'Attendees who use kacola' }).fill('ben@example.com')
     await axeAllModes('the Share dialog')
@@ -269,7 +269,7 @@ describe('desktop: team sharing', () => {
     const field = dlg.getByRole('textbox', { name: 'Web link' })
     expect(await field.inputValue()).toBe(s.link)
     await dlg.getByText('Up to date').waitFor()
-    await dlg.getByRole('button', { name: 'Copy Link' }).click()
+    await dlg.getByRole('button', { name: 'Copy link' }).click()
     await w().getByText('Copied the link').waitFor()
     expect(await app.evaluateMain(({ clipboard }) => clipboard.readText())).toBe(s.link)
     await axeAllModes('the Share dialog, shared')
@@ -313,15 +313,15 @@ describe('desktop: team sharing', () => {
   it('an attendee’s window follows from the main menu (link + email → code); a refused change shows in the merge history', async () => {
     await relaunch(B)
     await w().getByRole('button', { name: 'Main menu' }).click({ timeout: 20_000 })
-    await w().getByRole('menuitem', { name: 'Follow a Shared Agenda…' }).click()
-    const dlg = w().getByRole('dialog', { name: 'Follow a Shared Agenda' })
+    await w().getByRole('menuitem', { name: 'Follow a shared agenda…' }).click()
+    const dlg = w().getByRole('dialog', { name: 'Follow a shared agenda' })
     await dlg.getByRole('textbox', { name: 'Link' }).fill(s.link)
     await dlg.getByRole('textbox', { name: 'Your email' }).fill('ben@example.com')
     await dlg.getByRole('textbox', { name: 'Your name (optional)' }).fill('Ben')
     await axeAllModes('the Follow dialog')
     // the link is random (its port and token): masked
     await shot('follow', dlg, [dlg.getByRole('textbox', { name: 'Link' })])
-    await dlg.getByRole('button', { name: 'Send Code' }).click()
+    await dlg.getByRole('button', { name: 'Send code' }).click()
     const code = dlg.getByRole('textbox', { name: 'Code' })
     await code.waitFor({ timeout: 20_000 })
     // a wrong code first: said, and nothing followed
@@ -448,7 +448,7 @@ describe('desktop: team sharing', () => {
     await go(`#/agendas/${s.agenda}`)
     await w().getByRole('region', { name: 'Outcome' }).waitFor({ timeout: 20_000 })
     await w().getByRole('button', { name: 'Shared: Up to date' }).click({ timeout: 20_000 })
-    const dlg = w().getByRole('dialog', { name: 'Share Agenda' })
+    const dlg = w().getByRole('dialog', { name: 'Share the agenda' })
     await dlg.getByRole('button', { name: 'Unshare…' }).click()
     const sure = w().getByRole('alertdialog', { name: 'Stop sharing this agenda?' })
     await axeAllModes('the unshare confirmation')
