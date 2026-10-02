@@ -1,4 +1,12 @@
-import type { CalendarState, CalendarStatus, Meeting, MeetingList, NextMeeting } from '@gnomeola/protocol'
+import type {
+  CalendarRefresh,
+  CalendarState,
+  CalendarStatus,
+  Meeting,
+  MeetingList,
+  NextMeeting,
+  OfflineCalendar,
+} from '@gnomeola/protocol'
 import type { EventBus } from '../bus.ts'
 import { DaemonError } from '../errors.ts'
 import type { Logger } from '../logger.ts'
@@ -25,6 +33,9 @@ export const ROLL_EVERY_MS = 3_600_000
 export const MAX_QUERY_DAYS = 366
 /** How long a query outside the window waits for the provider to re-expand. */
 const WIDEN_TIMEOUT_MS = 15_000
+/** How long a refresh waits for the provider's new snapshot (EDS holds one back up to 10 s for a calendar
+ *  still connecting). */
+export const REFRESH_TIMEOUT_MS = 12_000
 /** A meeting revealed by a snapshot up to this long after its start still counts as beginning now. */
 const BEGIN_GRACE_MS = 5_000
 
@@ -42,6 +53,7 @@ export class CalendarService {
   private readonly now: () => Date
   private meetings: Meeting[] = []
   private calendars: CalendarInfo[] = []
+  private offline: OfflineCalendar[] = []
   private state: CalendarState = 'starting'
   private detail: string | null = null
   private updatedAt: string | null = null
@@ -55,7 +67,8 @@ export class CalendarService {
   private started = false
   private firstSnapshot = true
   private window: { from: Date; to: Date } | null = null
-  private snapshotWaiters: (() => void)[] = []
+  /** Called with true on the next snapshot, false when the provider failed instead. */
+  private snapshotWaiters: ((snapshot: boolean) => void)[] = []
 
   constructor(deps: CalendarServiceDeps) {
     this.d = deps
@@ -73,11 +86,15 @@ export class CalendarService {
       snapshot: (s) => {
         this.meetings = toMeetings(s.occurrences)
         this.calendars = s.calendars
+        this.offline = s.offline ?? []
         this.updatedAt = this.now().toISOString()
         this.onMeetingsChanged()
-        for (const w of this.snapshotWaiters.splice(0)) w()
+        for (const w of this.snapshotWaiters.splice(0)) w(true)
       },
       status: (state, detail) => {
+        // a provider that failed will not deliver the snapshot a query or a refresh is waiting for
+        if (state === 'unavailable' || state === 'off')
+          for (const w of this.snapshotWaiters.splice(0)) w(false)
         if (state === this.state && detail === this.detail) return
         this.state = state
         this.detail = detail
@@ -100,9 +117,32 @@ export class CalendarService {
     await this.d.provider.stop()
   }
 
-  /** Re-read the calendars now (e.g. after resume from suspend). */
-  refresh(): void {
-    this.d.provider.refresh()
+  /**
+   * Re-read the calendars now (Refresh calendar): the provider re-queries (EDS: retries calendars that
+   * failed, asks remote ones to re-sync; files are re-read), and this resolves once its new snapshot is
+   * in — which publishes `calendar.updated` like any other — or after `timeoutMs` with what there is.
+   */
+  async refresh(timeoutMs = REFRESH_TIMEOUT_MS): Promise<CalendarRefresh> {
+    let refreshed = false
+    if (this.started && this.state !== 'off') {
+      let timer: NodeJS.Timeout | null = null
+      const got = new Promise<void>((resolve) => {
+        const done = (snapshot: boolean) => {
+          if (timer) clearTimeout(timer)
+          refreshed = snapshot
+          resolve()
+        }
+        this.snapshotWaiters.push(done)
+        timer = setTimeout(() => {
+          this.snapshotWaiters = this.snapshotWaiters.filter((w) => w !== done)
+          resolve()
+        }, timeoutMs)
+        timer.unref()
+      })
+      this.d.provider.refresh()
+      await got
+    }
+    return { calendar: this.status(), occurrences: this.meetings.length, refreshed }
   }
 
   private roll(): void {
@@ -125,6 +165,7 @@ export class CalendarService {
       detail: this.detail,
       calendars: this.calendars,
       updatedAt: this.updatedAt,
+      offline: this.offline,
     }
   }
 
@@ -160,7 +201,7 @@ export class CalendarService {
     const wider = { from: from < w.from ? from : w.from, to: to > w.to ? to : w.to }
     this.window = wider
     const got = new Promise<void>((resolve) => {
-      this.snapshotWaiters.push(resolve)
+      this.snapshotWaiters.push(() => resolve())
       setTimeout(resolve, WIDEN_TIMEOUT_MS).unref()
     })
     this.d.provider.setWindow(wider.from, wider.to)

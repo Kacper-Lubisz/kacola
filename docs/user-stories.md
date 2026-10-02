@@ -109,14 +109,18 @@ flowchart TB
 ### day — Home is your day; a meeting is one page (Prep → Live → Outcome)
 - **Status:** built (the Day redesign)
 - **Entry points:** opening the app; a meeting on home; Join and record; a search moment.
-- **Steps:** 1. Home at 13:52: search-and-ask on top, today on a time rail with the next meeting expanded
-  (countdown, agenda, "Recording will work", Join and record, Open prep), earlier days below. 2. Search
+- **Steps:** 1. Home at 13:52: search-and-ask on top, today latest first on a time rail — what is under
+  way in its own place, else a now line under the next meeting, expanded ("starting in 8 min", agenda,
+  "Recording will work", Join and record, Open prep); all-day events in a strip; Refresh calendar (F5)
+  by the date, and a quiet line when calendars are not up to date; earlier days below. Real calendars
+  stay tidy: one row per invitation, declined ones hidden, untitled recordings quiet. 2. Search
   in place of the day: moments that open the meeting at the line; Enter asks, with citations. 3. The
   meeting's page in Prep: agenda (no timeboxes asked for), context, earlier meetings, Ask. 4. Live,
   minimal: one recording pill, Pause, Stop, a narrow agenda checklist, the notepad, one suggestion slot;
   Ask (Ctrl+K) and the transcript (Ctrl+T) on demand; paused is plainly different. 5. Outcome: decided,
   to do (yours first), carried over, then the notes; the transcript opens at a cited line; Share summary.
-- **States:** `day__home__next-meeting`, `day__search__moments`, `day__search__answer`,
+- **States:** `day__home__next-meeting`, `day__home__messy-busy`, `day__home__messy-afternoon`,
+  `day__home__empty-day`, `day__home__calendar-offline`, `day__search__moments`, `day__search__answer`,
   `day__prep__agenda`, `day__live__suggestion`, `day__live__ask`, `day__live__paused`,
   `day__outcome__outcome`, `day__outcome__transcript-cited`, `day__outcome__share-summary`.
 
@@ -124,6 +128,7 @@ flowchart TB
 flowchart TD
   A([Open the app]) --> H[Home: today, the next meeting expanded]
   H -->|type| S[Moments in place of the day]
+  H -->|F5| R[Refresh calendar; calendars not up to date]
   S -->|Enter| SA[A cited answer]
   H -->|Open prep| P[Prep: agenda, context, Ask]
   P -->|Join and record| L[Live: pill, checklist, notepad, one suggestion]
@@ -133,6 +138,7 @@ flowchart TD
   O -->|citation| OT[Transcript at the cited line]
   O --> OS[Share summary]
   %% shot: H = day__home__next-meeting
+  %% shot: R = day__home__calendar-offline
   %% shot: S = day__search__moments
   %% shot: SA = day__search__answer
   %% shot: P = day__prep__agenda
@@ -890,25 +896,25 @@ flowchart LR
 ### agenda-plan — Plan a meeting with Claude
 - **Status:** built in the window (kacola wave 2); some states still planned
 - **Persona:** a 1:1 with a manager; a recurring team meeting.
-- **Entry points:** the window's "Plan with Claude"; Claude Code + skill ("prepare a meeting"); the
-  deep link.
+- **Entry points:** Claude Code + skill ("prepare a meeting") or the CLI, which plan the items; the
+  window's prep page, where items are added, edited and deleted (Undo in the toast); the deep link.
 - **Steps:** 1. Find the meeting; search past sessions with the attendees. 2. Claude interviews the user
   about goals and drafts items (kind, owner, timebox). 3. Iterate. 4. Ask what context to share vs keep
   private. 5. Save in kacola, linked to the calendar event; offer the invite link.
-- **States:** `agenda-plan__window__plan-with-claude`, `agenda-plan__skill__interview`, `agenda-plan__saved__agenda`,
+- **States:** `agenda-plan__window__delete-undo`, `agenda-plan__skill__interview`, `agenda-plan__saved__agenda`,
   `agenda-plan__edit__items`, `agenda-plan__context__share-or-keep`.
 
 ```mermaid
 flowchart TD
-  A([Window: Plan with Claude]) --> C[Goals interview + past sessions]
-  B([Claude Code: prepare my 1:1]) --> C
+  B([Claude Code: prepare my 1:1]) --> C[Goals interview + past sessions]
   L([Deep link]) --> S
   C --> D[Draft items: kind, owner, timebox]
   D --> E[Edit items]
   E --> F[Context: share or keep private]
+  E --> X[Delete an item, Undo in the toast]
   F --> S[Agenda saved, linked to the event]
   S --> I([Invite link])
-  %% shot: A = agenda-plan__window__plan-with-claude
+  %% shot: X = agenda-plan__window__delete-undo
   %% shot: C = agenda-plan__skill__interview
   %% shot: E = agenda-plan__edit__items
   %% shot: F = agenda-plan__context__share-or-keep

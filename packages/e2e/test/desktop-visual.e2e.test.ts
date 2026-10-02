@@ -218,7 +218,8 @@ describe('a meeting page in each phase (seeded real daemon, fixed clock)', () =>
     await app.window.evaluate(`location.hash = '#/sessions/${rec.id}'`)
     // the clock is fixed before the recording began: the timer reads the same every run
     await app.window.getByRole('timer', { name: /^Recording, / }).waitFor({ timeout: 15_000 })
-    await app.window.getByRole('button', { name: 'Add an agenda' }).waitFor()
+    // no calendar meeting behind it: the rail says there is no agenda (adding one needs a meeting)
+    await app.window.getByText('No agenda for this meeting.').waitFor()
     await app.window.evaluate('document.activeElement?.blur()')
     expect(await axeAllModes(app)).toEqual([])
     expect(await matrix(app, 'live', [800, 1280])).toEqual([])

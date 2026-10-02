@@ -506,6 +506,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
       return calendar.list(from, to, query.includeDeclined)
     },
     nextMeeting: () => calendar.next(),
+    refreshCalendar: () => calendar.refresh(),
     joinMeeting: ({ params, body }) => control.join(params.id, { private: body.private }),
     // ---- M7: notes + enhancement
     ...notesHandlers({ store, engine: o.notesEngine ?? null, settings, logger, visible }),

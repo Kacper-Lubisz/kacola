@@ -243,7 +243,7 @@ describe('axe over every screen and state (seeded daemon, replayed provider)', (
     expect(found).toEqual([])
   })
 
-  it('prep: an agenda before its meeting (items, context, Ask, Plan with Claude)', async () => {
+  it('prep: an agenda before its meeting (items, context, Ask)', async () => {
     const v = await daemon.client.call('createAgenda', {
       body: {
         title: 'Planning review',
@@ -406,8 +406,8 @@ describe('axe over every screen and state (seeded daemon, replayed provider)', (
     // the calendar meeting under way: its agenda, then Join and record (through the daemon: nothing
     // opens a browser here); the window opens its live page
     await goHome()
-    await w().getByRole('region', { name: 'Next: Weekly sync' }).waitFor({ timeout: 10_000 })
-    await s('home: the next meeting expanded')
+    await w().getByRole('region', { name: 'Now: Weekly sync' }).waitFor({ timeout: 10_000 })
+    await s('home: the meeting under way, in its place')
     const v = await daemon.client.call('createAgenda', {
       body: { eventUid: 'sync@x', items: [{ text: 'Roadmap' }, { text: 'Hiring' }] },
     })

@@ -133,7 +133,7 @@ describe('Preferences', () => {
 })
 
 describe('the record flow', () => {
-  it('Record now creates, starts and opens a session; Stop stops it; failures are toasts', async () => {
+  it('New recording creates, starts and opens a session; Stop stops it; failures are toasts', async () => {
     let live: Session | null = null
     let failStop = true
     const app = renderApp({
@@ -152,7 +152,7 @@ describe('the record flow', () => {
       },
     })
     await screen.findByRole('searchbox', { name: 'Search or ask' })
-    fireEvent.click(screen.getByRole('button', { name: 'Record now' }))
+    fireEvent.click(screen.getByRole('button', { name: 'New recording' }))
     await until(() => app.router.state.location.pathname === '/sessions/ses_new')
     expect(app.daemon.calls.filter((c) => c.endsWith('Session')).slice(0, 2)).toEqual([
       'createSession',
@@ -253,7 +253,7 @@ describe('shell', () => {
     await screen.findByRole('searchbox', { name: 'Search or ask' })
     fireEvent.keyDown(window, { key: '?', ctrlKey: true, shiftKey: true })
     const help = await screen.findByRole('dialog', { name: 'Keyboard Shortcuts' })
-    expect(within(help).getByText('Start or stop recording')).toBeTruthy()
+    expect(within(help).getByText('New recording, or stop recording')).toBeTruthy()
     fireEvent.click(within(help).getByRole('button', { name: 'Close' }))
     app.stop()
   })

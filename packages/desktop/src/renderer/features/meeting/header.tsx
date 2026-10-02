@@ -10,17 +10,10 @@ import { useServices } from '../../data/services.tsx'
 import { Button, HeaderBar, Icon, IconButton } from '../../design/primitives/index.ts'
 import { useRecorder } from '../sessions/recorder.ts'
 import { useMeetingUi } from './meeting-ui.ts'
-import {
-  captureWarning,
-  type Phase,
-  SILENCE_RMS,
-  type StartedBy,
-  startedBy,
-  type TrackHeard,
-} from './phase.ts'
+import { captureWarning, SILENCE_RMS, type StartedBy, startedBy, type TrackHeard } from './phase.ts'
 
-// The meeting page's header: Back to Today, the phase trail (Prep · Live · Outcome, not interactive),
-// the title, and the phase's actions. While live, the recording state lives here and nowhere else: one
+// The meeting page's header: Back to Today, the title, and the phase's actions (no phase trail: the page
+// and the recording pill already say where the meeting is). While live, the recording state lives here and nowhere else: one
 // pill (a red dot and the mono clock while recording; no red and "Paused" while paused; who started
 // it), Pause / Resume and Stop. A quiet "can't hear you / them" line appears only when capture looks
 // broken.
@@ -48,45 +41,11 @@ export function BackButton() {
   )
 }
 
-const PHASES: { id: Phase; label: () => string }[] = [
-  { id: 'prep', label: () => _('Prep') },
-  { id: 'live', label: () => _('Live') },
-  { id: 'outcome', label: () => _('Outcome') },
-]
-
-/** "Prep · Live · Outcome": where the meeting is, as words. Not a control. */
-export function PhaseTrail({ phase }: { phase: Phase }) {
-  const at = PHASES.findIndex((p) => p.id === phase)
-  return (
-    <p className="m-0 flex items-center gap-2 type-caption text-text-secondary">
-      <span className="sr-only">{fmt(_('Phase: {phase}'), { phase: PHASES[at]!.label() })}</span>
-      {PHASES.map((p, i) => (
-        <span key={p.id} aria-hidden="true" className="inline-flex items-center gap-2">
-          {i > 0 ? <span className="h-px w-4 bg-border-default" /> : null}
-          <span
-            className={`inline-flex items-center gap-1 ${i === at ? 'font-semibold text-text-primary' : ''}`}
-          >
-            {i < at ? <Icon name="check" size={12} /> : null}
-            {i === at ? (
-              <span
-                className={`size-1.5 rounded-full ${p.id === 'live' ? 'bg-accent-record' : 'bg-text-primary'}`}
-              />
-            ) : null}
-            {p.label()}
-          </span>
-        </span>
-      ))}
-    </p>
-  )
-}
-
 export function MeetingHeader({
-  phase,
   title,
   meta,
   actions,
 }: {
-  phase: Phase
   title: ReactNode
   meta?: ReactNode
   actions?: ReactNode
@@ -95,8 +54,7 @@ export function MeetingHeader({
     <>
       <HeaderBar start={<BackButton />} />
       <div className="flex flex-wrap items-end gap-x-6 gap-y-3 border-b border-border-subtle px-4 pb-4 sm:px-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <PhaseTrail phase={phase} />
+        <div className="flex min-w-[min(100%,18rem)] flex-1 flex-col gap-1">
           {title}
           {meta ? (
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 type-callout text-text-secondary">

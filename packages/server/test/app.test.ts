@@ -201,6 +201,7 @@ describe('hosted contract: every route', () => {
         }),
       listMeetings: () => notHere(c.call('listMeetings', { query: {} })),
       nextMeeting: () => notHere(c.call('nextMeeting')),
+      refreshCalendar: () => notHere(c.call('refreshCalendar')),
       joinMeeting: () => notHere(c.call('joinMeeting', { params: { id: 'm' }, body: {} })),
 
       getNotes: async () => {

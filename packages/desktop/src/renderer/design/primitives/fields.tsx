@@ -159,11 +159,14 @@ export function SearchField({
       <Input
         placeholder={placeholder ?? label}
         className={`${INPUT} [&::-webkit-search-cancel-button]:hidden ${
-          lg ? '!h-14 rounded-lg pr-14 pl-12 !text-[17px] shadow-e1' : 'pr-8 pl-8'
+          lg
+            ? `!h-14 rounded-lg pr-14 pl-12 !text-[17px] text-ellipsis shadow-e1 ${end ? 'sm:group-data-[empty]:pr-32' : ''}`
+            : 'pr-8 pl-8'
         }`}
       />
       {end ? (
-        <span className="pointer-events-none absolute right-4 hidden group-data-[empty]:flex">{end}</span>
+        // only where there is room for it next to the placeholder (not on a phone-width window)
+        <span className="pointer-events-none absolute right-4 hidden sm:group-data-[empty]:flex">{end}</span>
       ) : null}
       <AriaButton
         aria-label={_('Clear')}

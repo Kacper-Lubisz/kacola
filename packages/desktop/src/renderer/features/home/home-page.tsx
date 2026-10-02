@@ -2,7 +2,6 @@
 
 import wordmarkLight from '@brand/logo/wordmark.svg?url'
 import wordmarkDark from '@brand/logo/wordmark-dark.svg?url'
-import { useNow } from '@gnomeola/ui-core/hooks'
 import { _, ngettext } from '@gnomeola/ui-core/i18n'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect } from 'react'
@@ -16,13 +15,12 @@ import { ExtensionCard } from '../preferences/extension-setup.tsx'
 import { useRecorder } from '../sessions/recorder.ts'
 import { useDialogs } from '../shell/dialogs.tsx'
 import { PrimaryMenu } from '../shell/primary-menu.tsx'
-import { longDate } from './day.ts'
 import { DayView } from './day-view.tsx'
 import { SearchResults } from './search-results.tsx'
 
 // Home: the app opens on your day. One search-and-ask box at the top, over titles and transcripts —
-// typing turns the day into results in place, Esc brings it back. Below it, today's meetings and
-// recordings in time order with the next one expanded, then earlier days. No sidebar: every meeting page
+// typing turns the day into results in place, Esc brings it back. Below it, the day latest first, what
+// is under way in its own place (day-view.tsx), then earlier days. No sidebar: every meeting page
 // has Back to Today. The query lives in the URL (?q=), so Back from a result returns to the results.
 
 export function HomePage() {
@@ -33,7 +31,6 @@ export function HomePage() {
   const recorder = useRecorder()
   const navigate = useNavigate()
   const { q = '' } = useSearch({ strict: false }) as { q?: string }
-  const now = useNow(60_000)
   const ask = useAsk('home', null)
   // Back from a meeting returns to home as it was left (its query)
   useEffect(() => useHomeQuery.getState().set(q), [q])
@@ -61,18 +58,15 @@ export function HomePage() {
         }
         end={
           <>
-            <span className="mr-2 hidden type-callout text-text-secondary sm:inline">
-              {longDate(now.getTime())}
-            </span>
             {recorder.state === 'idle' || recorder.state === 'starting' ? (
               <Button
                 size="sm"
                 isDisabled={recorder.state === 'starting'}
                 onPress={recorder.record}
-                aria-description={_('Start recording a call that is not in your calendar')}
+                aria-description={_('Start recording a call now, in your calendar or not')}
               >
                 <span aria-hidden="true" className="size-2 rounded-full bg-accent-record" />
-                {recorder.state === 'starting' ? _('Starting…') : _('Record now')}
+                {recorder.state === 'starting' ? _('Starting…') : _('New recording')}
               </Button>
             ) : null}
             <PrimaryMenu />

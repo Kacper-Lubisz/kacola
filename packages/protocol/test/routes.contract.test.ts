@@ -72,3 +72,37 @@ describe('route schemas — the bounds are the contract', () => {
     expect(routes.getTranscript.query.safeParse({ quality: 'good' }).success).toBe(false)
   })
 })
+
+describe('refreshCalendar: re-read the calendars now', () => {
+  const status = {
+    state: 'ok',
+    provider: 'eds',
+    detail: null,
+    calendars: [{ id: 'work', name: 'Work' }],
+    updatedAt: '2026-10-01T09:00:00.000Z',
+  }
+  it('is a body-less POST at /calendar/refresh', () => {
+    expect(routes.refreshCalendar.method).toBe('POST')
+    expect(routes.refreshCalendar.path).toBe('/calendar/refresh')
+    expect('body' in routes.refreshCalendar).toBe(false)
+  })
+  it('answers the status, the occurrence count and whether a new snapshot came', () => {
+    const ok = { calendar: status, occurrences: 12, refreshed: true }
+    expect(routes.refreshCalendar.response.parse(ok)).toEqual(ok)
+    expect(routes.refreshCalendar.response.safeParse({ ...ok, occurrences: -1 }).success).toBe(false)
+    expect(routes.refreshCalendar.response.safeParse({ calendar: status, occurrences: 1 }).success).toBe(
+      false,
+    )
+  })
+  it('names calendars that could not be brought up to date, and why (optional for older daemons)', () => {
+    const offline = [
+      { id: 'g1', name: 'Team', reason: 'sign-in' },
+      { id: 'g2', name: 'Holidays', reason: 'offline' },
+      { id: 'c3', name: 'CalDAV', reason: 'failed' },
+    ]
+    expect(routes.calendarStatus.response.parse({ ...status, offline }).offline).toEqual(offline)
+    expect(routes.calendarStatus.response.parse(status).offline).toBeUndefined()
+    const bad = { ...status, offline: [{ id: 'x', name: 'X', reason: 'gone' }] }
+    expect(routes.calendarStatus.response.safeParse(bad).success).toBe(false)
+  })
+})

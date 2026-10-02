@@ -13,6 +13,8 @@ export type IconButtonProps = Omit<AriaButtonProps, 'className' | 'children' | '
   size?: 'sm' | 'md' | 'lg'
   variant?: 'ghost' | 'secondary' | 'primary'
   className?: string
+  /** Something it started is running (Refresh calendar): the icon turns, and the button says it is busy. */
+  spinning?: boolean
 }
 
 const SIZE = { sm: 'size-7', md: 'size-8', lg: 'size-10' } as const
@@ -31,15 +33,17 @@ export function IconButton({
   size = 'md',
   variant = 'ghost',
   className = '',
+  spinning = false,
   ...rest
 }: IconButtonProps) {
   const button = (
     <AriaButton
       {...rest}
       aria-label={label}
+      aria-busy={spinning || undefined}
       className={`app-no-drag inline-flex shrink-0 cursor-default items-center justify-center rounded-sm focus-ring transition-colors duration-(--k-duration-fast) data-[pressed]:translate-y-[0.5px] data-[disabled]:opacity-45 ${SIZE[size]} ${VARIANT[variant]} ${className}`}
     >
-      <Icon name={icon} size={ICON[size]} />
+      <Icon name={icon} size={ICON[size]} className={spinning ? 'motion-safe:animate-spin' : ''} />
     </AriaButton>
   )
   if (tooltip === null) return button

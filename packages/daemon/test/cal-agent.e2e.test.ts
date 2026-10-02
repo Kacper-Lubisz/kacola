@@ -250,6 +250,8 @@ describe('change detection', () => {
     agent.send({ type: 'refresh' })
     const again = await agent.nextSnapshot(n)
     expect(again.occurrences.map((o) => o.uid)).toEqual(['standup-warsaw@test'])
+    // local calendars are always up to date: nothing to report as offline
+    expect(again.offline).toEqual([])
     agent.send({ type: 'nonsense' })
     agent.child.stdin!.write('not json\n')
   })

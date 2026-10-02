@@ -81,7 +81,7 @@ describe('recording through the app’s own capture (daemon backend: external)',
         else if (e.data.type === 'audio.level' && e.data.track === 'mic') levelEvents++
       },
     })
-    await app.window.getByRole('button', { name: 'Record now', exact: true }).click()
+    await app.window.getByRole('button', { name: 'New recording', exact: true }).click()
     const running = await waitForLog(
       app,
       /"event":"capture","kind":"state","track":"mic","state":"running"/,

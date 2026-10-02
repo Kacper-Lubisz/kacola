@@ -3,6 +3,7 @@ import type {
   AgendaItem,
   AgendaView,
   DurableEvent,
+  ItemVersion,
   LeaseInfo,
   SharedActor,
   SharedChange,
@@ -16,6 +17,7 @@ import { actorOf } from '@gnomeola/protocol'
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { resetDeepLinksForTests } from '../src/renderer/features/agendas/deep-links.tsx'
+import { canDeleteItem, removalVersion } from '../src/renderer/features/agendas/delete-item.ts'
 import { useFollow } from '../src/renderer/features/agendas/follow.tsx'
 import { fakeBridge, renderApp, shareStatus } from './app-harness.tsx'
 import type { Handler } from './helpers.ts'
@@ -415,36 +417,115 @@ describe('agenda editor', () => {
     app.stop()
   })
 
-  it('Plan with Claude streams proposals; unticked ones are left out', async () => {
-    const { app } = mount({ view: agendaView(), path: '/agendas/agd_1' })
-    const msgs = [
-      { type: 'started', agendaId: 'agd_1', basedOn: { goals: 1, pastMeetings: 2, existingItems: 3 } },
-      { type: 'item', item: { text: 'Promo criteria', kind: 'question', owner: null, timeboxMin: 5 } },
-      { type: 'item', item: { text: 'Next review date', kind: 'decision', owner: 'ana', timeboxMin: null } },
-      { type: 'done', items: 2, model: 'claude-test', usage: { inputTokens: 10, outputTokens: 5 } },
-    ]
-    let body: unknown
-    ;(app.daemon.client as unknown as { stream: unknown }).stream = async function* (
-      name: string,
-      o: { body: unknown },
-    ): AsyncGenerator<SseMessage> {
-      expect(name).toBe('draftAgenda')
-      body = o.body
-      for (const m of msgs) yield { data: JSON.stringify(m) } as SseMessage
-    }
-    fireEvent.click(await screen.findByRole('button', { name: 'Plan with Claude' }))
-    const dlg = await screen.findByRole('dialog', { name: 'Plan with Claude' })
-    fireEvent.click(within(dlg).getByRole('button', { name: 'Draft Items' }))
-    await within(dlg).findByText('Drafted by claude-test')
-    expect(body).toEqual({ goals: ['agree the promo timeline'], includePrivate: true })
-    expect(within(dlg).getByText('Using 2 past meetings')).toBeTruthy()
-    fireEvent.click(within(dlg).getByRole('checkbox', { name: /Next review date/ }))
-    fireEvent.click(within(dlg).getByRole('button', { name: 'Add 1 Item' }))
-    await until(() => app.daemon.calls.includes('addAgendaItems'))
-    expect(app.daemon.log.find((c) => c.name === 'addAgendaItems')!.opts.body).toEqual({
-      items: [{ text: 'Promo criteria', kind: 'question', owner: null, timeboxMin: 5 }],
+  type DaemonState = ReturnType<typeof agendaDaemon>['state']
+  /** Prep over the one-agenda daemon, plus handlers that see its state. */
+  const mountWith = (extra: (s: () => DaemonState) => Record<string, Handler>, items?: AgendaItem[]) => {
+    const ref: { state: DaemonState | null } = { state: null }
+    const r = mount({
+      view: agendaView({}, items),
+      path: '/agendas/agd_1',
+      handlers: extra(() => ref.state!),
+    })
+    ref.state = r.d.state
+    return r
+  }
+
+  it('deletes an item at once from its row, and Undo in the toast restores it through its history', async () => {
+    const removed: { item: AgendaItem; seq: number }[] = []
+    let restored: unknown = null
+    const { app } = mountWith((s) => ({
+      deleteAgendaItem: ({ params }) => {
+        const st = s()
+        const it = st.view.items.find((i) => i.id === params!.itemId)!
+        st.view = { ...st.view, items: st.view.items.filter((i) => i.id !== it.id) }
+        removed.push({ item: it, seq: 40 + removed.length })
+        return { deleted: true }
+      },
+      getAgendaItemHistory: ({ query }) => {
+        const itemId = (query as { itemId: string }).itemId
+        const r = removed.find((x) => x.item.id === itemId)!
+        const v = (seq: number, kind: string) => ({
+          seq,
+          itemId,
+          kind,
+          by: 'user',
+          actor: actorOf('user'),
+          at: T,
+          item: r.item,
+          fields: [],
+          status: null,
+          restorable: true,
+          cause: null,
+        })
+        return { versions: [v(1, 'added'), v(r.seq, 'removed')] }
+      },
+      restoreAgendaItem: ({ params, body }) => {
+        restored = { itemId: params!.itemId, body }
+        const st = s()
+        const r = removed.find((x) => x.item.id === params!.itemId)!
+        st.view = { ...st.view, items: [...st.view.items, r.item].sort((a, b) => a.order - b.order) }
+        return { item: r.item, version: 9 }
+      },
+    }))
+    // a clear but quiet delete per item, named for it; no confirm dialog
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete “Hiring plan”' }))
+    await until(() => app.daemon.calls.includes('deleteAgendaItem'))
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    const grid = screen.getByRole('grid', { name: 'Agenda items' })
+    await until(() => !within(grid).queryByText('Hiring plan'))
+    const region = screen.getByRole('region', { name: 'Notifications' })
+    await within(region).findByText('Deleted “Hiring plan”')
+    fireEvent.click(within(region).getByRole('button', { name: 'Undo' }))
+    await until(() => restored !== null)
+    // put back as it was when removed: the removal's version
+    expect(restored).toEqual({ itemId: 'Hiring plan', body: { seq: 40 } })
+    app.stop()
+  })
+
+  it('Delete on a focused row deletes that item; a follower may delete only what they added', async () => {
+    const { app } = mountWith(
+      (s) => ({
+        deleteAgendaItem: ({ params }) => {
+          const st = s()
+          st.view = { ...st.view, items: st.view.items.filter((i) => i.id !== params!.itemId) }
+          return { deleted: true }
+        },
+        getAgendaShare: () => shareStatus({ shared: true, role: 'member', shareId: 'shr_1', state: 'ok' }),
+      }),
+      [item('Owner topic', 0, { createdBy: 'peer:ana@example.com' }), item('My question', 1)],
+    )
+    await screen.findByRole('button', { name: 'Delete “My question”' })
+    // the owner's item: not this follower's to delete (once the share status says who this is)
+    await until(() => screen.queryByRole('button', { name: 'Delete “Owner topic”' }) === null)
+    const rows = within(screen.getByRole('grid', { name: 'Agenda items' })).getAllByRole('row')
+    fireEvent.keyDown(rows[0]!, { key: 'Delete' })
+    await new Promise((r) => setTimeout(r, 50))
+    expect(app.daemon.calls.includes('deleteAgendaItem')).toBe(false)
+    fireEvent.keyDown(rows[1]!, { key: 'Delete' })
+    await until(() => app.daemon.calls.includes('deleteAgendaItem'))
+    expect(app.daemon.log.find((c) => c.name === 'deleteAgendaItem')!.opts.params).toEqual({
+      id: 'agd_1',
+      itemId: 'My question',
     })
     app.stop()
+  })
+
+  it('canDeleteItem and removalVersion: the rules Undo and the follower check rest on', () => {
+    expect(canDeleteItem(item('a', 0), undefined)).toBe(true)
+    expect(canDeleteItem(item('a', 0, { createdBy: 'peer:ana@x' }), shareStatus({ role: 'owner' }))).toBe(
+      true,
+    )
+    expect(canDeleteItem(item('a', 0, { createdBy: 'peer:ana@x' }), shareStatus({ role: 'member' }))).toBe(
+      false,
+    )
+    expect(canDeleteItem(item('a', 0, { createdBy: 'agent:claude' }), shareStatus({ role: 'member' }))).toBe(
+      true,
+    )
+    expect(canDeleteItem(item('tmp_1', 0), undefined)).toBe(false)
+    const v = (seq: number, kind: ItemVersion['kind'], restorable = true) =>
+      ({ seq, kind, restorable }) as ItemVersion
+    expect(removalVersion([v(1, 'added'), v(5, 'removed'), v(7, 'restored'), v(9, 'removed')])?.seq).toBe(9)
+    expect(removalVersion([v(1, 'added'), v(5, 'removed', false)])).toBeNull()
   })
 })
 

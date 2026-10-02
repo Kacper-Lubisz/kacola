@@ -344,6 +344,7 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     sendAgenda: 'unsupported',
     getAgendaItemHistory: 'unsupported',
     restoreAgendaItem: 'unsupported',
+    refreshCalendar: 'unsupported',
     // ---- kacola phase 5: team sharing — the shared copies live here (./sharing.ts); sharing an agenda,
     // following one and its status are the device daemon's routes
     ...sharingHandlers({ store, mailer: o.mailer ?? null, publicUrl: o.publicUrl ?? null, log }),

@@ -1,7 +1,7 @@
 import type { AgendaMeeting, AgendaView, Session } from '@gnomeola/protocol'
 import { displayTitle, formatClockTime } from '@gnomeola/ui-core/format'
 import { useNow } from '@gnomeola/ui-core/hooks'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { _ } from '@gnomeola/ui-core/i18n'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
@@ -18,7 +18,7 @@ import {
   MenuItem,
 } from '../../design/primitives/index.ts'
 import { AgendaMenu, ImportMarkdownDialog } from '../agendas/agenda-actions.tsx'
-import { meetingLive, useAgenda } from '../agendas/agenda-data.ts'
+import { useAgenda } from '../agendas/agenda-data.ts'
 import { PresenceChip } from '../agendas/presence.tsx'
 import { SendAgendaButton } from '../agendas/send.tsx'
 import { ShareButton } from '../agendas/share.tsx'
@@ -35,7 +35,7 @@ import {
   RecordingControls,
   RecordingPill,
 } from './header.tsx'
-import { joinHint, useJoin } from './join.ts'
+import { useJoin } from './join.ts'
 import { LiveView } from './live-view.tsx'
 import { useMeetingUi } from './meeting-ui.ts'
 import { OutcomeView, ShareSummaryButton, useOutcome } from './outcome-view.tsx'
@@ -106,7 +106,7 @@ function LivePage({
     <div className="flex h-full min-h-0 flex-col">
       <HeaderBar start={<BackButton />} />
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-border-subtle px-4 pb-3 sm:px-6">
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-[min(100%,14rem)] flex-1 flex-col">
           <h1 className="m-0 type-title2 break-words text-text-primary">{displayTitle(session)}</h1>
           <CaptureWarning session={session} />
         </div>
@@ -145,7 +145,6 @@ function OutcomePage({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <MeetingHeader
-        phase="outcome"
         title={<h1 className="m-0 type-title1 break-words text-text-primary">{title}</h1>}
         meta={
           <>
@@ -234,7 +233,6 @@ function PrepPage({ view }: { view: AgendaView }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <MeetingHeader
-        phase="prep"
         title={<AgendaTitle view={view} />}
         meta={
           <>
@@ -243,14 +241,7 @@ function PrepPage({ view }: { view: AgendaView }) {
                 <span className="font-mono text-[13px] tabular-nums">{meetingWhen(m)}</span>
                 {m.calendar ? <span>· {m.calendar}</span> : null}
                 {m.recurring ? <span>· {_('Repeats')}</span> : null}
-                {m.end && !ended ? (
-                  <span>
-                    ·{' '}
-                    {meetingLive(view, now)
-                      ? _('happening now')
-                      : fmt(_('starts {when}'), { when: countdown(m.start, m.end, now) })}
-                  </span>
-                ) : null}
+                {m.end && !ended ? <span>· {countdown(m.start, m.end, now)}</span> : null}
               </>
             ) : (
               <span>{_('Not linked to a calendar meeting')}</span>
@@ -273,14 +264,12 @@ function PrepPage({ view }: { view: AgendaView }) {
                   <span aria-hidden="true" className="size-2.5 rounded-full bg-text-on-accent" />
                   {_('Join and record')}
                 </Button>
-                <span className="inline-flex items-center gap-1 type-caption text-text-secondary">
-                  <Icon
-                    name={ready.ok ? 'success' : 'warning'}
-                    size={13}
-                    className={ready.ok ? 'text-status-success' : 'text-status-warning'}
-                  />
-                  {ready.ok ? joinHint(null) : ready.text}
-                </span>
+                {ready.ok ? null : (
+                  <span className="inline-flex items-center gap-1 type-caption text-text-secondary">
+                    <Icon name="warning" size={13} className="text-status-warning" />
+                    {ready.text}
+                  </span>
+                )}
               </div>
             ) : null}
           </>

@@ -3,7 +3,14 @@ import { DraftAgendaBody } from './agenda-draft.ts'
 import { agendaHistoryRoutes } from './agenda-history.ts'
 import { agendaSendRoutes } from './agenda-send.ts'
 import { agendaRoutes } from './agendas.ts'
-import { CalendarStatus, JoinMeetingBody, ListMeetingsQuery, MeetingList, NextMeeting } from './calendar.ts'
+import {
+  CalendarRefresh,
+  CalendarStatus,
+  JoinMeetingBody,
+  ListMeetingsQuery,
+  MeetingList,
+  NextMeeting,
+} from './calendar.ts'
 import { externalCaptureRoutes } from './capture.ts'
 import { daemonControlRoutes } from './daemon-control.ts'
 import {
@@ -321,6 +328,9 @@ export const routes = {
   ...searchRoutes,
   ...agendaSendRoutes,
   ...agendaHistoryRoutes,
+  // ---- Home fixes: refresh the calendar now (re-query EDS, retry calendars that failed, re-read files)
+  /** Ask the provider to re-read every calendar; answers once the new snapshot is in (or after a wait). */
+  refreshCalendar: { method: 'POST', path: '/calendar/refresh', response: CalendarRefresh },
 } as const satisfies Record<string, RouteDef>
 
 export type Routes = typeof routes

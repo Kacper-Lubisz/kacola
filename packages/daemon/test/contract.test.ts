@@ -230,6 +230,11 @@ describe('contract: every route, real server, typed client', () => {
         expect(st).toMatchObject({ state: 'ok', provider: 'manual', calendars: [{ id: 'cal-work' }] })
         return st
       },
+      refreshCalendar: async () => {
+        const r = await c.call('refreshCalendar')
+        expect(r).toMatchObject({ refreshed: true, occurrences: 1, calendar: { state: 'ok', offline: [] } })
+        return r
+      },
       listMeetings: async () => {
         const r = await c.call('listMeetings', { query: { to: at(Date.now(), 24 * 60) } })
         expect(r.meetings.map((m) => m.title)).toEqual(['Sync'])

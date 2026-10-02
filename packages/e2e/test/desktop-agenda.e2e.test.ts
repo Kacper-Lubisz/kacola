@@ -11,7 +11,7 @@ type Locator = ReturnType<DesktopApp['window']['getByRole']>
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { BASELINES, DESKTOP_ARTIFACTS, setTheme } from '../src/desktop.ts'
 import { expectScreenshot } from '../src/desktop-ui.ts'
-import { type CannedResponse, type FakeAnthropic, startFakeAnthropic } from '../src/fake-anthropic.ts'
+import { type FakeAnthropic, startFakeAnthropic } from '../src/fake-anthropic.ts'
 import { markOnboarded } from '../src/ui.ts'
 
 // The agenda UI (kacola wave 2) in the Electron window, against the REAL daemon — its agenda service,
@@ -22,8 +22,8 @@ import { markOnboarded } from '../src/ui.ts'
 //
 // The flows, on the meeting page as it moves through its phases: Prep — the editor (keyboard add, edit
 // dialog, status, drag and keyboard reorder, history, goals, context cards), markdown export / copy /
-// import, Send the agenda without a sharing server (one action, no kacola:// link), Plan with Claude (held
-// mid-stream for the baseline), opened from home's day; Live after Join and record — the checklist
+// import, Send the agenda without a sharing server (one action, no kacola:// link), deleting items (at
+// once, Undo in the toast restores them from their history), opened from home's day; Live after Join and record — the checklist
 // (an agent's ticks, quietly attributed, with Undo), the one suggestion slot (its evidence opens the
 // transcript at the line; Not now / Accept), presence (connected / reading, its permission, mode,
 // Disconnect); Outcome after Stop — the recap per item, the outcome block, and the carry-over into the
@@ -33,41 +33,6 @@ const PIPELINE = { speed: 4, segmentEveryMs: 1500, partialEveryMs: 250, finalize
 const KEY = 'sk-ant-e2e-desktop-agenda-000111222'
 const MEETING = '1:1 with Ana'
 const WEEK = 7 * 24 * 60
-
-const sse = (body: string): CannedResponse => ({
-  status: 200,
-  headers: { 'content-type': 'text/event-stream' },
-  body,
-})
-const frame = (type: string, data: Record<string, unknown>) =>
-  `event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`
-const usage = { input_tokens: 700, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
-/** A Messages API stream writing `chunks` as text deltas. */
-const anthropicText = (chunks: string[]) =>
-  sse(
-    frame('message_start', {
-      message: {
-        id: 'msg_draft',
-        type: 'message',
-        role: 'assistant',
-        model: 'claude-opus-5',
-        content: [],
-        stop_reason: null,
-        stop_sequence: null,
-        usage: { ...usage, output_tokens: 1 },
-      },
-    }) +
-      frame('content_block_start', { index: 0, content_block: { type: 'text', text: '' } }) +
-      chunks
-        .map((text) => frame('content_block_delta', { index: 0, delta: { type: 'text_delta', text } }))
-        .join('') +
-      frame('content_block_stop', { index: 0 }) +
-      frame('message_delta', {
-        delta: { stop_reason: 'end_turn', stop_sequence: null },
-        usage: { ...usage, output_tokens: 60 },
-      }) +
-      frame('message_stop', {}),
-  )
 
 /** Wait until `probe()` satisfies `ok` (a value the daemon or the window reports); returns that value. */
 async function until<T>(
@@ -216,7 +181,7 @@ describe('desktop: agendas', () => {
       display,
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
     })
-    await w().getByRole('button', { name: 'Record now' }).waitFor({ timeout: 20_000 })
+    await w().getByRole('button', { name: 'New recording', exact: true }).waitFor({ timeout: 20_000 })
     await w().emulateMedia({ reducedMotion: 'reduce' })
   }, 300_000)
 
@@ -421,9 +386,10 @@ describe('desktop: agendas', () => {
 
   it('a calendar meeting: Plan from home’s day; Send the agenda without a sharing server says so', async () => {
     await go('#/')
-    // the meeting under way is today's next unrecorded one: expanded, with no agenda yet
-    const next = w().getByRole('region', { name: `Next: ${MEETING}` })
-    await next.getByText('No agenda yet').waitFor({ timeout: 15_000 })
+    // the meeting under way sits in its place on the day, highlighted, with Plan (no agenda yet)
+    const next = w().getByRole('region', { name: `Now: ${MEETING}` })
+    await next.waitFor({ timeout: 15_000 })
+    expect(await next.getByText('No agenda yet').count()).toBe(0)
     const plan = next.getByRole('button', { name: `Plan ${MEETING}` })
     await plan.waitFor({ timeout: 15_000 })
     await plan.click()
@@ -433,7 +399,9 @@ describe('desktop: agendas', () => {
       eventUid: 'one-on-one@x',
       recurring: true,
     })
-    await w().getByText('happening now').waitFor()
+    await w()
+      .getByText(/^· now, (just started|started .+ ago)$/)
+      .waitFor()
 
     // Send the agenda without a sharing server: it says so, with one action — and never hands out a
     // kacola:// link that attendees without kacola could not open
@@ -454,50 +422,69 @@ describe('desktop: agendas', () => {
     await w().getByRole('dialog', { name: 'Preferences' }).waitFor({ state: 'detached' })
   })
 
-  it('Plan with Claude: goals → streamed proposals (held for the baseline) → accepted items', async () => {
+  it('deleting items: at once from the row or the Delete key, Undo in the toast brings it back (same id, same place)', async () => {
     await go(`#/agendas/${meetingAgenda}`)
     await w().getByRole('heading', { level: 1, name: MEETING }).waitFor()
-    api.enqueue(
-      anthropicText([
-        '- [must-cover] Promo timeline (10m, @me)\n',
-        '- [question] How is onboarding going (@Ana)\n',
-        '- [decision] Next review date\n',
-        '- [topic] Offsite ideas\n',
-      ]),
-    )
-    const release = api.holdAfter(4)
-    await w().getByRole('button', { name: 'Plan with Claude' }).click()
-    const dlg = w().getByRole('dialog', { name: 'Plan with Claude' })
-    await dlg
-      .getByRole('textbox', { name: 'Goals (one per line)' })
-      .fill('agree the promo timeline\nhear how onboarding is going')
-    await dlg.getByRole('button', { name: 'Draft Items' }).click()
-    await dlg.getByRole('checkbox', { name: /How is onboarding going/ }).waitFor({ timeout: 15_000 })
-    await new Promise((r) => setTimeout(r, 400))
-    expect(await dlg.getByRole('checkbox').count()).toBe(2)
-    await axeAllModes('planning mid-stream')
-    await shot('planning', dlg)
-    release()
-    await dlg.getByText('Drafted by claude-opus-5').waitFor({ timeout: 15_000 })
-    const body = api.seen.at(-1)!.body as { messages: { content: { text: string }[] }[] }
-    expect(body.messages[0]!.content.map((b) => b.text).join('')).toContain('- agree the promo timeline')
-    await dlg.getByRole('checkbox', { name: /Offsite ideas/ }).focus()
-    await w().keyboard.press('Space')
-    await dlg.getByRole('button', { name: 'Add 3 Items' }).click()
+    // the items as the CLI / the skill plans them, from the terminal
+    await daemon.client.call('updateAgenda', {
+      params: { id: meetingAgenda },
+      body: { goals: ['agree the promo timeline', 'hear how onboarding is going'] },
+    })
+    await daemon.client.call('addAgendaItems', {
+      params: { id: meetingAgenda },
+      body: {
+        items: [
+          { text: 'Promo timeline', kind: 'must-cover', owner: 'me' },
+          { text: 'Offsite ideas' },
+          { text: 'How is onboarding going', kind: 'question', owner: 'Ana' },
+          { text: 'Next review date', kind: 'decision' },
+        ],
+      },
+    })
+    const grid = w().getByRole('grid', { name: 'Agenda items' })
+    await grid.getByRole('row', { name: 'Next review date' }).waitFor()
+    const before = (await view(meetingAgenda)).items.find((i) => i.text === 'Offsite ideas')!
+    const toast = (text: string) =>
+      w().getByRole('region', { name: 'Notifications' }).getByRole('status').filter({ hasText: text }).last()
+
+    // the row's quiet delete, named for the item: gone at once, no confirm
+    await w().getByRole('button', { name: 'Delete “Offsite ideas”' }).click()
+    await grid.getByRole('row', { name: 'Offsite ideas' }).waitFor({ state: 'detached' })
+    expect(await w().getByRole('alertdialog').count()).toBe(0)
     await until(
       () => texts(meetingAgenda),
-      (t) => t.length === 3,
-      'the accepted items',
+      (t) => !t.includes('Offsite ideas'),
+      'the delete',
     )
-    expect(await texts(meetingAgenda)).toEqual([
-      'Promo timeline',
-      'How is onboarding going',
-      'Next review date',
-    ])
-    expect((await view(meetingAgenda)).agenda.goals).toEqual([
-      'agree the promo timeline',
-      'hear how onboarding is going',
-    ])
+    await axeAllModes('item deleted, Undo offered')
+    // Undo: restored through the item history, with its id and at its place
+    await toast('Deleted “Offsite ideas”').getByRole('button', { name: 'Undo' }).click()
+    await grid.getByRole('row', { name: 'Offsite ideas' }).waitFor()
+    await until(
+      () => texts(meetingAgenda),
+      (t) => t.join() === 'Promo timeline,Offsite ideas,How is onboarding going,Next review date',
+      'the undo',
+    )
+    const back = (await view(meetingAgenda)).items.find((i) => i.text === 'Offsite ideas')!
+    expect(back.id).toBe(before.id)
+    const versions = (
+      await daemon.client.call('getAgendaItemHistory', {
+        params: { id: meetingAgenda },
+        query: { itemId: before.id, includePrivate: true },
+      })
+    ).versions.map((v) => v.kind)
+    expect(versions).toEqual(['added', 'removed', 'restored'])
+
+    // the keyboard path: Delete on the focused row
+    await grid.getByRole('row', { name: 'Offsite ideas' }).focus()
+    await w().keyboard.press('Delete')
+    await toast('Deleted “Offsite ideas”').waitFor()
+    await until(
+      () => texts(meetingAgenda),
+      (t) => t.join() === 'Promo timeline,How is onboarding going,Next review date',
+      'the Delete key',
+    )
+    await toast('Deleted “Offsite ideas”').getByRole('button', { name: 'Dismiss' }).click()
   })
 
   it('Join and record → the live checklist folds the agent’s ticks; the one suggestion slot; undo', async () => {

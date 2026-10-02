@@ -23,6 +23,7 @@ import {
   TextField,
 } from '../../design/primitives/index.ts'
 import { useAgendaHistory, useAgendaMutation } from './agenda-data.ts'
+import { useDeleteItem } from './delete-item.ts'
 import {
   actorFor,
   addedByText,
@@ -37,7 +38,6 @@ import {
 } from './labels.ts'
 import {
   addItemsMutation,
-  deleteItemMutation,
   isTemporary,
   reorderMutation,
   restoreItemMutation,
@@ -89,9 +89,7 @@ export function GoalsEditor({ view }: { view: AgendaView }) {
           ))}
         </ul>
       ) : (
-        <p className="m-0 type-callout text-text-secondary">
-          {_('What should this meeting achieve? Goals help Claude plan the items.')}
-        </p>
+        <p className="m-0 type-callout text-text-secondary">{_('What should this meeting achieve?')}</p>
       )}
       <div className="flex items-end gap-2">
         <TextField
@@ -123,6 +121,7 @@ export function ItemsEditor({ view, readOnly = false }: { view: AgendaView; read
   const history = useAgendaHistory(agendaId)
   const share = useAgendaShare(agendaId).data
   const names = usePeopleNames(agendaId)
+  const deleting = useDeleteItem(view)
   const items = useMemo(() => [...view.items].sort((a, b) => a.order - b.order), [view.items])
   const move = (from: number, to: number) => {
     const ids = items.map((i) => i.id)
@@ -158,6 +157,7 @@ export function ItemsEditor({ view, readOnly = false }: { view: AgendaView; read
         }
         onEdit={() => setEditing(item)}
         onMove={move}
+        onDelete={readOnly || !deleting.can(item) ? null : () => deleting.del(item)}
       />
     ),
   }))
@@ -176,9 +176,17 @@ export function ItemsEditor({ view, readOnly = false }: { view: AgendaView; read
         dragLabel={_('Drag to reorder')}
         items={rows}
         onReorder={(ids) => reorder.mutate({ agendaId, itemIds: ids })}
+        onDelete={
+          readOnly
+            ? undefined
+            : (id) => {
+                const item = items.find((i) => i.id === id)
+                if (item) deleting.del(item)
+              }
+        }
         empty={
           <p className="m-0 px-2 py-3 type-callout text-text-secondary">
-            {_('No items yet. Add one below, or plan them with Claude.')}
+            {_('No items yet. Add one below.')}
           </p>
         }
       />
@@ -262,6 +270,7 @@ function ItemRow({
   comments,
   onEdit,
   onMove,
+  onDelete,
 }: {
   agendaId: string
   item: AgendaItem
@@ -273,11 +282,12 @@ function ItemRow({
   comments: ReactNode
   onEdit: () => void
   onMove: (from: number, to: number) => void
+  /** Delete it (Undo in the toast); null when this window may not. */
+  onDelete: (() => void) | null
 }) {
-  const remove = useAgendaMutation(deleteItemMutation, _('Could not remove the item'))
   const pending = isTemporary(item.id)
   return (
-    <div className="flex min-w-0 items-start gap-2">
+    <div className="relative flex min-w-0 items-start gap-2">
       <StatusMenu agendaId={agendaId} item={item} isDisabled={pending} />
       <div className="flex min-w-0 flex-1 flex-col gap-1 pt-1">
         <span
@@ -291,7 +301,8 @@ function ItemRow({
         ) : null}
         {comments}
       </div>
-      <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 group-data-[focus-visible]:opacity-100 focus-within:opacity-100">
+      {/* over the row's end while it is hovered or focused, so the text keeps the whole width */}
+      <div className="absolute top-0 right-0 flex items-center rounded-md bg-bg-surface opacity-0 shadow-e1 transition-opacity group-hover:opacity-100 group-data-[hovered]:opacity-100 group-data-[focus-visible]:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100">
         <ItemHistory agendaId={agendaId} item={item} />
         <IconButton
           icon="edit"
@@ -301,6 +312,16 @@ function ItemRow({
           onPress={onEdit}
           isDisabled={pending}
         />
+        {onDelete ? (
+          <IconButton
+            icon="delete"
+            size="sm"
+            label={fmt(_('Delete “{item}”'), { item: item.text })}
+            tooltip={_('Delete (Del)')}
+            onPress={onDelete}
+            isDisabled={pending}
+          />
+        ) : null}
         <Menu
           label={fmt(_('More for “{item}”'), { item: item.text })}
           trigger={
@@ -323,10 +344,12 @@ function ItemRow({
           >
             {_('Move Down')}
           </MenuItem>
-          <MenuSeparator />
-          <MenuItem icon="delete" destructive onAction={() => remove.mutate({ agendaId, itemId: item.id })}>
-            {_('Remove')}
-          </MenuItem>
+          {onDelete ? <MenuSeparator /> : null}
+          {onDelete ? (
+            <MenuItem icon="delete" destructive onAction={onDelete}>
+              {_('Delete')}
+            </MenuItem>
+          ) : null}
         </Menu>
       </div>
     </div>

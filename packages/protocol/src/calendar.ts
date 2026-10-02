@@ -59,6 +59,18 @@ export type Meeting = z.infer<typeof Meeting>
 export const CalendarState = z.enum(['off', 'starting', 'ok', 'unavailable'])
 export type CalendarState = z.infer<typeof CalendarState>
 
+/**
+ * A calendar the provider has but cannot bring up to date: `sign-in` (its account needs credentials,
+ * e.g. GNOME Online Accounts), `offline` (its server is not reachable; what is shown is the saved copy),
+ * `failed` (it could not be opened at all). Refreshing the calendar retries them.
+ */
+export const OfflineCalendar = z.object({
+  id: z.string(),
+  name: z.string(),
+  reason: z.enum(['sign-in', 'offline', 'failed']),
+})
+export type OfflineCalendar = z.infer<typeof OfflineCalendar>
+
 export const CalendarStatus = z.object({
   state: CalendarState,
   /** Which provider is behind the meetings: `eds`, `file`, … */
@@ -67,6 +79,8 @@ export const CalendarStatus = z.object({
   calendars: z.array(z.object({ id: z.string(), name: z.string() })),
   /** When the provider last delivered meetings. */
   updatedAt: Iso.nullable(),
+  /** Calendars that could not be brought up to date (absent or empty: every calendar is current). */
+  offline: z.array(OfflineCalendar).optional(),
 })
 export type CalendarStatus = z.infer<typeof CalendarStatus>
 
@@ -123,5 +137,15 @@ export const NextMeeting = z.object({
   calendar: CalendarStatus,
 })
 export type NextMeeting = z.infer<typeof NextMeeting>
+
+/** What POST /calendar/refresh answers: the status after the re-read, and how many occurrences it holds. */
+export const CalendarRefresh = z.object({
+  calendar: CalendarStatus,
+  /** Occurrences in the daemon's window after the refresh. */
+  occurrences: z.int().nonnegative(),
+  /** False when the provider did not deliver a new snapshot in time (the old one is still shown). */
+  refreshed: z.boolean(),
+})
+export type CalendarRefresh = z.infer<typeof CalendarRefresh>
 
 export const JoinMeetingBody = z.object({ private: z.boolean().optional() })

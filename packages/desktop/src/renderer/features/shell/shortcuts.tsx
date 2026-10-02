@@ -16,6 +16,7 @@ export type ShortcutAction =
   | 'menu'
   | 'ask'
   | 'transcript'
+  | 'refresh-calendar'
 
 type Shortcut = { action: ShortcutAction; keys: string; label: () => string; group: () => string }
 
@@ -28,9 +29,10 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { action: 'shortcuts', keys: 'Ctrl+?', label: () => _('Keyboard shortcuts'), group: general },
   { action: 'menu', keys: 'F10', label: () => _('Main menu'), group: general },
   { action: 'search', keys: 'Ctrl+F', label: () => _('Search your meetings'), group: general },
+  { action: 'refresh-calendar', keys: 'F5', label: () => _('Refresh calendar'), group: general },
   { action: 'close-window', keys: 'Ctrl+W', label: () => _('Close window'), group: general },
   { action: 'quit', keys: 'Ctrl+Q', label: () => _('Quit'), group: general },
-  { action: 'record', keys: 'Ctrl+R', label: () => _('Start or stop recording'), group: recording },
+  { action: 'record', keys: 'Ctrl+R', label: () => _('New recording, or stop recording'), group: recording },
   { action: 'pause', keys: 'Ctrl+Shift+P', label: () => _('Pause or resume recording'), group: recording },
   { action: 'ask', keys: 'Ctrl+K', label: () => _('Ask about this meeting'), group: meeting },
   { action: 'transcript', keys: 'Ctrl+T', label: () => _('Show or hide the transcript'), group: meeting },

@@ -11,7 +11,7 @@ import { DESKTOP_ARTIFACTS, markOnboarded } from '../src/desktop.ts'
 import { SEED, seedMeetings } from '../src/seed.ts'
 
 // The Electron window's shell against the real daemon and the protocol stub — home (the day, search,
-// Record now), the meeting page and Back to Today; originally the port of the GTK suites' session-list /
+// New recording), the meeting page and Back to Today; originally the port of the GTK suites' session-list /
 // record assertions (packages/testkit/src/ui/e2e/gnomeola-ui.e2e.test.ts, the
 // session-list and record parts of ui-transcript.e2e.test.ts) and ui-i18n.e2e.test.ts. Same
 // behaviours, role + name locators.
@@ -76,7 +76,7 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
     if (dataDir) rmSync(dataDir, { recursive: true, force: true })
   })
 
-  it('opens on home: search-and-ask, the day’s meetings (private ones marked), Record now; no sidebar', async () => {
+  it('opens on home: search-and-ask, the day’s meetings (private ones marked), New recording; no sidebar', async () => {
     expect(await app.window.getByRole('complementary', { name: 'Sessions' }).count()).toBe(0)
     // the seeded meetings were all recorded today, in strict time order
     expect([...(await rowNames(app))].sort()).toEqual([
@@ -88,7 +88,7 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
     await row(app, 'HR 1:1').getByText('Private').waitFor()
     await row(app, 'Platform standup').getByText('12 min').waitFor()
     await home(app).waitFor()
-    await app.window.getByRole('button', { name: 'Record now' }).waitFor()
+    await app.window.getByRole('button', { name: 'New recording', exact: true }).waitFor()
     expect(await app.axe()).toEqual([])
   })
 
@@ -184,8 +184,8 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
     await row(app, 'Sprint retro (Q3)').getByText('Private').waitFor()
   })
 
-  it('records: Record now opens the live page; pause, resume and stop drive the daemon; then the outcome', async () => {
-    await app.window.getByRole('button', { name: 'Record now' }).click()
+  it('records: New recording opens the live page; pause, resume and stop drive the daemon; then the outcome', async () => {
+    await app.window.getByRole('button', { name: 'New recording', exact: true }).click()
     const live = await waitFor(
       async () =>
         (await daemon.client.call('listSessions', { query: {} })).sessions.find(
@@ -194,7 +194,9 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
       10_000,
       'a recording session',
     )
-    await app.window.getByRole('heading', { level: 1, name: live.title }).waitFor()
+    // the store's stand-in title ("Meeting <UTC time>") reads as untitled
+    expect(live.title).toMatch(/^Meeting \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
+    await app.window.getByRole('heading', { level: 1, name: 'Untitled meeting' }).waitFor()
     await app.window.getByRole('timer', { name: /^Recording, \d+:\d\d$/ }).waitFor()
     // the notepad is the screen; no level meters any more
     await app.window.getByRole('textbox', { name: 'Notes' }).waitFor()
@@ -220,8 +222,9 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
     await app.window.getByRole('region', { name: 'Outcome' }).waitFor({ timeout: 10_000 })
     expect((await daemon.client.call('getSession', { params: { id: live.id } })).status).toBe('stopped')
     await backToToday(app)
-    await app.window.getByRole('button', { name: 'Record now' }).waitFor({ timeout: 10_000 })
-    expect(await row(app, live.title).count()).toBe(1)
+    await app.window.getByRole('button', { name: 'New recording', exact: true }).waitFor({ timeout: 10_000 })
+    // on home it reads as untitled, at its time
+    expect(await row(app, 'Untitled meeting').count()).toBe(1)
   })
 
   it('is keyboard reachable: Tab lands on each control; shortcuts open the help, search, Ask and the transcript', async () => {
@@ -239,7 +242,7 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
       )
     }
     for (const want of [
-      /^button:Record now$/,
+      /^button:New recording$/,
       /^button:Main menu$/,
       /^input:Search or ask$/,
       /^button:Platform standup, /,
@@ -282,10 +285,9 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
   it('shows a session started over HTTP live, through the EventBridge', async () => {
     const s = await daemon.client.call('createSession', { body: { title: 'Started from the CLI' } })
     await daemon.client.call('startSession', { params: { id: s.id } })
-    await row(app, 'Started from the CLI').getByText('recording now').waitFor({ timeout: 10_000 })
-    // pinned above the day, with Stop: it can be stopped from home
-    const pinned = app.window.getByRole('region', { name: 'Recording now' })
-    await pinned.getByText('Started from the CLI').waitFor()
+    // under way: in its place on the day, highlighted, with its clock and Stop (stopped from home)
+    const pinned = app.window.getByRole('region', { name: 'Recording now: Started from the CLI' })
+    await pinned.getByRole('timer', { name: /^Recording/ }).waitFor({ timeout: 10_000 })
     await pinned.getByRole('button', { name: 'Stop' }).click()
     await pinned.waitFor({ state: 'detached', timeout: 10_000 })
     await waitFor(
@@ -377,8 +379,8 @@ describe('the main window against the protocol stub', () => {
       expect(stub.eventConnections.at(-1)).toBe(4)
       await banner.waitFor({ state: 'detached', timeout: 5000 })
 
-      // Record now goes through the real API: create + start, and the live page opens
-      await app.window.getByRole('button', { name: 'Record now' }).click()
+      // New recording goes through the real API: create + start, and the live page opens
+      await app.window.getByRole('button', { name: 'New recording', exact: true }).click()
       await app.window.getByRole('heading', { level: 1, name: 'New recording' }).waitFor()
       expect(stub.requests.filter((r) => r.startsWith('POST'))).toEqual([
         'POST /sessions',
@@ -387,7 +389,7 @@ describe('the main window against the protocol stub', () => {
       await app.window.getByRole('button', { name: 'Stop' }).click()
       await app.window.getByRole('region', { name: 'Outcome' }).waitFor()
       await app.window.getByRole('button', { name: 'Back to Today' }).click()
-      await app.window.getByRole('button', { name: 'Record now' }).waitFor()
+      await app.window.getByRole('button', { name: 'New recording', exact: true }).waitFor()
       expect(stub.requests.filter((r) => r.startsWith('POST')).at(-1)).toMatch(/\/stop$/)
       expect(await app.axe()).toEqual([])
       expect(app.problems()).toEqual([])
@@ -433,7 +435,7 @@ describe('translations', () => {
     writeFileSync(
       join(dir, 'de.json'),
       JSON.stringify({
-        'Record now': 'Jetzt aufnehmen',
+        'New recording': 'Neue Aufnahme',
         'Search or ask': 'Suchen oder fragen',
         Today: 'Heute',
         Transcript: 'Mitschrift',
@@ -453,11 +455,11 @@ describe('translations', () => {
       },
     })
     try {
-      await app.window.getByRole('button', { name: 'Jetzt aufnehmen' }).waitFor({ timeout: 20_000 })
+      await app.window.getByRole('button', { name: 'Neue Aufnahme' }).waitFor({ timeout: 20_000 })
       await app.window.getByRole('searchbox', { name: 'Suchen oder fragen' }).waitFor()
       await app.window.getByRole('heading', { name: /^Heute/ }).waitFor()
       expect(await app.window.evaluate('document.documentElement.lang')).toBe('de')
-      expect(await app.window.getByRole('button', { name: 'Record now' }).count()).toBe(0)
+      expect(await app.window.getByRole('button', { name: 'New recording', exact: true }).count()).toBe(0)
       await row(app, '1:1 with Sam').click()
       await app.window.getByRole('button', { name: 'Mitschrift' }).waitFor()
       await app.window.getByRole('button', { name: 'Zu diesem Meeting fragen' }).waitFor()

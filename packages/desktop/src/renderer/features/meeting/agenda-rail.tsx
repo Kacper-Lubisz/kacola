@@ -4,19 +4,40 @@ import { _, fmt } from '@gnomeola/ui-core/i18n'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useServices } from '../../data/services.tsx'
-import { Button, Icon, TextField, useToast } from '../../design/primitives/index.ts'
+import {
+  Button,
+  Icon,
+  IconButton,
+  Menu,
+  MenuItem,
+  TextField,
+  useToast,
+} from '../../design/primitives/index.ts'
 import { refusal, useAgendaHistory, useAgendaMutation } from '../agendas/agenda-data.ts'
 import { StatusMenu } from '../agendas/agenda-editor.tsx'
+import { useDeleteItem } from '../agendas/delete-item.ts'
 import { actorFor, isSurprise, STATUS_ICON } from '../agendas/labels.ts'
 import { addItemsMutation } from '../agendas/mutations.ts'
 import { useMeetingUi } from './meeting-ui.ts'
 
 // The agenda while live and after: a narrow checklist on the left. No times, no bars, nothing that
 // hurries anyone. Live: covered items are ticked and quiet, the current one is highlighted, the rest
-// plain; a tick kacola or an agent made says so, quietly, with Undo. After: the same list as a recap.
+// plain; a tick kacola or an agent made says so, quietly, with Undo. An item's menu (on hover or focus)
+// can delete it, with Undo in the toast — there, not prominent. After: the same list as a recap.
 // Private context sits at the bottom, hidden in case the screen is shared.
 
-function CheckItem({ view, item, current }: { view: AgendaView; item: AgendaItem; current: boolean }) {
+function CheckItem({
+  view,
+  item,
+  current,
+  onDelete,
+}: {
+  view: AgendaView
+  item: AgendaItem
+  current: boolean
+  /** Delete it (Undo in the toast); null when this window may not. */
+  onDelete: (() => void) | null
+}) {
   const { api, queries, queryClient } = useServices()
   const toast = useToast()
   const history = useAgendaHistory(view.agenda.id)
@@ -48,7 +69,7 @@ function CheckItem({ view, item, current }: { view: AgendaView; item: AgendaItem
     <li
       aria-label={item.text}
       aria-current={current ? 'step' : undefined}
-      className={`flex items-start gap-1.5 rounded-md px-1.5 py-1 ${
+      className={`group relative flex items-start gap-1.5 rounded-md px-1.5 py-1 ${
         current ? 'border border-border-default bg-bg-surface shadow-e1' : 'border border-transparent'
       }`}
     >
@@ -80,6 +101,25 @@ function CheckItem({ view, item, current }: { view: AgendaView; item: AgendaItem
           </span>
         ) : null}
       </div>
+      {onDelete ? (
+        <div className="absolute top-1 right-1 rounded-md bg-bg-surface opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100">
+          <Menu
+            label={fmt(_('More for “{item}”'), { item: item.text })}
+            trigger={
+              <IconButton
+                icon="more"
+                size="sm"
+                label={fmt(_('More for “{item}”'), { item: item.text })}
+                tooltip={_('More')}
+              />
+            }
+          >
+            <MenuItem icon="delete" destructive onAction={onDelete}>
+              {_('Delete')}
+            </MenuItem>
+          </Menu>
+        </div>
+      ) : null}
     </li>
   )
 }
@@ -121,6 +161,7 @@ function AddItem({ view }: { view: AgendaView }) {
 }
 
 export function LiveChecklist({ view }: { view: AgendaView }) {
+  const deleting = useDeleteItem(view)
   const items = [...view.items].sort((a, b) => a.order - b.order)
   const counts = statusCounts(items)
   const current = items.find((i) => i.status === 'in-progress')
@@ -137,7 +178,13 @@ export function LiveChecklist({ view }: { view: AgendaView }) {
       {items.length ? (
         <ol aria-label={_('Agenda items')} className="m-0 flex list-none flex-col gap-0.5 p-0">
           {items.map((i) => (
-            <CheckItem key={i.id} view={view} item={i} current={i.id === current?.id} />
+            <CheckItem
+              key={i.id}
+              view={view}
+              item={i}
+              current={i.id === current?.id}
+              onDelete={deleting.can(i) ? () => deleting.del(i) : null}
+            />
           ))}
         </ol>
       ) : (

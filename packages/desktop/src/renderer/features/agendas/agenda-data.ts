@@ -1,4 +1,3 @@
-import type { AgendaView } from '@gnomeola/protocol'
 import { _, fmt } from '@gnomeola/ui-core/i18n'
 import type { QueryClient } from '@tanstack/react-query'
 import { type UseMutationOptions, useMutation, useQuery } from '@tanstack/react-query'
@@ -43,13 +42,4 @@ export function useAgendaMutation<V, R = unknown>(factory: Factory<V, R>, failur
       toast(fmt(_('{what}: {reason}'), { what: failure, reason: refusal(err) }), { tone: 'error' })
     },
   })
-}
-
-/** Is the agenda's meeting happening now (calendar start ≤ now < end)? */
-export function meetingLive(view: AgendaView | undefined, now: number): boolean {
-  const m = view?.agenda.meeting
-  if (!m) return false
-  const start = Date.parse(m.start)
-  const end = m.end ? Date.parse(m.end) : start + 60 * 60_000
-  return start <= now && now < end
 }

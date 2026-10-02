@@ -25,14 +25,6 @@ const PROVIDER: Record<MeetingProvider, string> = {
 
 export const providerLabel = (p: MeetingProvider | null | undefined): string => (p ? PROVIDER[p] : '')
 
-/** What Join and record does, said next to the button. */
-export function joinHint(p: MeetingProvider | null | undefined): string {
-  const name = providerLabel(p)
-  return name
-    ? fmt(_('Opens {provider} and starts recording'), { provider: name })
-    : _('Starts recording this meeting')
-}
-
 export function useJoin() {
   const { api, bridge } = useServices()
   const navigate = useNavigate()

@@ -105,6 +105,29 @@ export const escapeMarkup = (s: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
 
-/** Titles are never blank on screen: an unnamed session reads as "Untitled session". */
-export const displayTitle = (session: Pick<Session, 'title'>): string =>
-  session.title.trim() === '' ? _('Untitled session') : session.title
+/** The title the store gives a recording nobody named: "Meeting 2026-10-01 16:02", in UTC. */
+const DEFAULT_TITLE = /^Meeting (\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})$/
+
+/**
+ * Was this title made up by the store rather than given by someone? Its time is UTC (so it disagrees
+ * with the local clock shown next to it) and, with `createdAt`, it must be the session's own creation
+ * minute — a meeting someone really called "Meeting 2026-10-01 16:02" on another day keeps its name.
+ */
+export function isDefaultTitle(
+  session: Pick<Session, 'title'> & Partial<Pick<Session, 'createdAt'>>,
+): boolean {
+  const m = DEFAULT_TITLE.exec(session.title.trim())
+  if (!m) return false
+  if (!session.createdAt) return true
+  const t = Date.parse(`${m[1]}T${m[2]}:00Z`)
+  const c = Date.parse(session.createdAt)
+  return Number.isNaN(c) || Math.abs(c - t) < 5 * 60_000
+}
+
+/**
+ * Titles are never blank on screen, nor the store's stand-in: an unnamed session reads as "Untitled
+ * meeting" (its time is next to it, in local time, wherever it is listed).
+ */
+export const displayTitle = (
+  session: Pick<Session, 'title'> & Partial<Pick<Session, 'createdAt'>>,
+): string => (session.title.trim() === '' || isDefaultTitle(session) ? _('Untitled meeting') : session.title)

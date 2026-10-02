@@ -59,13 +59,13 @@ describe('desktop window against a running daemon', () => {
     await waitForDaemon(app, 'attached')
     const today = app.window.getByRole('list', { name: 'Today’s meetings' })
     await today.waitFor({ timeout: 20_000 })
-    // strict time order: the first one created comes first
+    // latest first: the one created last is on top
     const names = await today
       .getByRole('button')
       .evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') ?? ''))
     expect(names).toEqual([
-      expect.stringContaining('Weekly product sync'),
       expect.stringContaining('Design review: onboarding flow'),
+      expect.stringContaining('Weekly product sync'),
     ])
     await app.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor()
     expect(await app.window.title()).toBe('kacola')
@@ -76,18 +76,11 @@ describe('desktop window against a running daemon', () => {
     const today = app.window.getByRole('list', { name: 'Today’s meetings' })
     const s = await daemon.client.call('createSession', { body: { title: 'Started from the CLI' } })
     await daemon.client.call('startSession', { params: { id: s.id } })
-    const row = today.getByRole('button', { name: /Started from the CLI/ })
-    await row.waitFor({ timeout: 10_000 })
-    await waitFor(
-      async () => /recording now/.test((await row.textContent()) ?? ''),
-      10_000,
-      'the row to say recording now',
-    )
-    // pinned above the day while it records
-    const pinned = app.window.getByRole('region', { name: 'Recording now' })
-    await pinned.getByText('Started from the CLI').waitFor({ timeout: 10_000 })
+    // under way: in its place on the day, highlighted, with its clock
+    const pinned = today.getByRole('region', { name: 'Recording now: Started from the CLI' })
+    await pinned.getByRole('timer', { name: /^Recording/ }).waitFor({ timeout: 10_000 })
     // opening it routes to its live page
-    await row.click()
+    await pinned.getByRole('button', { name: 'Open Started from the CLI' }).click()
     await app.window.getByRole('heading', { level: 1, name: 'Started from the CLI' }).waitFor()
     await app.window.getByRole('timer', { name: /^Recording/ }).waitFor()
     await daemon.client.call('stopSession', { params: { id: s.id } })
