@@ -7,9 +7,8 @@ import { useServices } from '../../data/services.tsx'
 import { Button, Icon, TextField, useToast } from '../../design/primitives/index.ts'
 import { refusal, useAgendaHistory, useAgendaMutation } from '../agendas/agenda-data.ts'
 import { StatusMenu } from '../agendas/agenda-editor.tsx'
-import { STATUS_ICON, whoLabel } from '../agendas/labels.ts'
-import { addItemsMutation, setStatusMutation } from '../agendas/mutations.ts'
-import { usePeopleNames } from '../agendas/share-data.ts'
+import { actorFor, isSurprise, STATUS_ICON } from '../agendas/labels.ts'
+import { addItemsMutation } from '../agendas/mutations.ts'
 import { useMeetingUi } from './meeting-ui.ts'
 
 // The agenda while live and after: a narrow checklist on the left. No times, no bars, nothing that
@@ -18,13 +17,33 @@ import { useMeetingUi } from './meeting-ui.ts'
 // Private context sits at the bottom, hidden in case the screen is shared.
 
 function CheckItem({ view, item, current }: { view: AgendaView; item: AgendaItem; current: boolean }) {
+  const { api, queries, queryClient } = useServices()
+  const toast = useToast()
   const history = useAgendaHistory(view.agenda.id)
-  const names = usePeopleNames(view.agenda.id)
-  const set = useAgendaMutation(setStatusMutation, _('Could not undo'))
   const done = item.status === 'covered' || item.status === 'skipped'
   const change = lastChange(history.data ?? [], item.id)
-  // only a surprise is attributed: something the user did not do themselves
-  const by = change && change.to === item.status && change.by !== 'user' && done ? change : null
+  // only a surprise is attributed: not you, and not the agenda's author
+  const by = change && change.to === item.status && done && isSurprise(view, change.by) ? change : null
+  // Undo restores the item as it was before the tick (its history: a restore is itself undoable)
+  const undo = async () => {
+    try {
+      const versions = await queryClient.fetchQuery({
+        ...queries.itemHistory(view.agenda.id, item.id),
+        staleTime: 0,
+      })
+      const before = versions
+        .slice(0, -1)
+        .reverse()
+        .find((v) => v.restorable)
+      if (before)
+        await api.call('restoreAgendaItem', {
+          params: { id: view.agenda.id, itemId: item.id },
+          body: { seq: before.seq },
+        })
+    } catch (err) {
+      toast(fmt(_('Could not undo: {reason}'), { reason: refusal(err) }), { tone: 'error' })
+    }
+  }
   return (
     <li
       aria-label={item.text}
@@ -48,19 +67,12 @@ function CheckItem({ view, item, current }: { view: AgendaView; item: AgendaItem
         </span>
         {by ? (
           <span className="flex flex-wrap items-center gap-x-1.5 type-caption text-text-tertiary">
-            {fmt(_('ticked by {who}'), { who: whoLabel(by.by, names) })}
+            {fmt(_('ticked by {who}'), { who: actorFor(view, by.by).label })}
             <Button
               size="sm"
               variant="link"
               className="!text-text-secondary"
-              onPress={() =>
-                set.mutate({
-                  agendaId: view.agenda.id,
-                  itemId: item.id,
-                  status: by.from,
-                  note: _('undone in the window'),
-                })
-              }
+              onPress={() => void undo()}
               aria-label={fmt(_('Undo the tick on “{item}”'), { item: item.text })}
             >
               {_('Undo')}
@@ -259,9 +271,11 @@ export function NoAgenda({ session }: { session: Session }) {
     <section aria-label={_('Agenda')} className="flex flex-col items-start gap-2 px-1.5">
       <h2 className="m-0 type-headline text-text-primary">{_('Agenda')}</h2>
       <p className="m-0 type-callout text-text-secondary">{_('No agenda for this meeting.')}</p>
-      <Button size="sm" icon="add" onPress={() => void create()} isDisabled={busy}>
-        {_('Add an agenda')}
-      </Button>
+      {session.meeting ? (
+        <Button size="sm" icon="add" onPress={() => void create()} isDisabled={busy}>
+          {_('Add an agenda')}
+        </Button>
+      ) : null}
     </section>
   )
 }

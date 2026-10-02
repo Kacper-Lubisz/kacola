@@ -67,6 +67,8 @@ export function AskBar({
           <Turn
             turn={last}
             onCite={onCite}
+            scope={ask.scopeOf(last.requestId)}
+            onRetry={() => ask.ask(last.question)}
             actions={
               onPin && pin ? (
                 <Button

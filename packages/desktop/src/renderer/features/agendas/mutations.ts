@@ -350,3 +350,14 @@ export function setAgentAccessMutation(api: Api, qc: QueryClient) {
     },
   }
 }
+
+export type RestoreItemVars = { agendaId: string; itemId: string; seq: number }
+
+/** Put an item back as it was after one of its versions (a restore is itself a version: undoable). */
+export function restoreItemMutation(api: Api) {
+  return {
+    mutationKey: ['restoreAgendaItem'],
+    mutationFn: ({ agendaId, itemId, seq }: RestoreItemVars) =>
+      api.call('restoreAgendaItem', { params: { id: agendaId, itemId }, body: { seq } }),
+  }
+}

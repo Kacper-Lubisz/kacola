@@ -3,7 +3,7 @@ import { _, fmt } from '@gnomeola/ui-core/i18n'
 import { useNavigate } from '@tanstack/react-router'
 import { Button, Card, Icon } from '../../design/primitives/index.ts'
 import { useAgendaMutation } from '../agendas/agenda-data.ts'
-import { displayAgent } from '../agendas/labels.ts'
+import { actorFor, isSurprise } from '../agendas/labels.ts'
 import { resolveSuggestionMutation, setStatusMutation } from '../agendas/mutations.ts'
 import { atLine } from './search-params.ts'
 import { pickSuggestion, type Slot } from './suggestion-slot.ts'
@@ -40,7 +40,8 @@ export function SuggestionCard({
   const slot = pickSuggestion(view, now)
   if (!slot) return null
   const s = slot.suggestion
-  const agent = s.source.startsWith('agent:') ? displayAgent(s.source.slice(6)) : null
+  // who suggested it, only when that is a surprise (an agent, another attendee — never kacola's own)
+  const from = s.source !== 'tracker' && isSurprise(view, s.source) ? actorFor(view, s.source).label : null
   const text = slot.kind === 'looks-covered' && slot.item ? slot.item.text : s.text
   const accept = () => {
     resolve.mutate({ agendaId: view.agenda.id, suggestion: s, action: 'accept' })
@@ -56,8 +57,8 @@ export function SuggestionCard({
     >
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="type-overline text-text-secondary">{heading(slot)}</span>
-        {agent ? (
-          <span className="type-caption text-text-tertiary">{fmt(_('from your {agent}'), { agent })}</span>
+        {from ? (
+          <span className="type-caption text-text-tertiary">{fmt(_('from {who}'), { who: from })}</span>
         ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">

@@ -144,6 +144,25 @@ export function createQueries(api: Api) {
             .changes,
         ...live,
       }),
+    itemHistory: (id: string, itemId: string) =>
+      queryOptions({
+        queryKey: keys.itemHistory(id, itemId),
+        queryFn: async ({ signal }) =>
+          (
+            await api.call('getAgendaItemHistory', {
+              params: { id },
+              query: { itemId, includePrivate: true },
+              signal,
+            })
+          ).versions,
+      }),
+    moments: (q: string) =>
+      queryOptions({
+        queryKey: keys.moments(q),
+        queryFn: ({ signal }) =>
+          api.call('searchMoments', { query: { q, limit: 40, includePrivate: true }, signal }),
+        enabled: q.trim() !== '',
+      }),
     agendaTracker: (id: string) =>
       queryOptions({
         queryKey: keys.agendaTracker(id),

@@ -482,7 +482,9 @@ describe('onboarding skipped', () => {
         skippedMissing: ['whisper-small.en'],
       })
       expect(existsSync(join(display.env.HOME!, '.local', 'bin', 'gnomeola'))).toBe(false)
-      const banner = app.window.getByRole('status', { name: 'A speech model is not downloaded yet, so recording can’t transcribe' })
+      const banner = app.window.getByRole('status', {
+        name: 'A speech model is not downloaded yet, so recording can’t transcribe',
+      })
       await banner.waitFor()
       await app.screenshot(join(DESKTOP_ARTIFACTS, 'onboarding-skipped-banner.png'))
       await banner.getByRole('button', { name: 'Set Up' }).click()

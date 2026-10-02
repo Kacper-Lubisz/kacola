@@ -30,9 +30,9 @@ export function SearchResults({ query, ask }: { query: string; ask: ReturnType<t
   const navigate = useNavigate()
   const now = useNow(60_000).getTime()
   const q = useSettled(searchTerms(query))
-  const search = useQuery({ ...queries.search(q), enabled: q !== '' })
+  const search = useQuery({ ...queries.moments(q), enabled: q !== '' })
   const sessions = useQuery({ ...queries.sessions(), enabled: false }).data?.ordered ?? []
-  const moments = toMoments(q, sessions, search.data?.hits ?? [], now)
+  const moments = toMoments(search.data?.moments ?? [], sessions, now)
   const asked = ask.turns.at(-1)
   const open = (m: Moment) =>
     void navigate({
@@ -58,7 +58,12 @@ export function SearchResults({ query, ask }: { query: string; ask: ReturnType<t
               <Icon name="ask" size={16} className="text-text-secondary" />
             </span>
             <div className="min-w-0 flex-1">
-              <Turn turn={asked} onCite={onCite} />
+              <Turn
+                turn={asked}
+                onCite={onCite}
+                scope={ask.scopeOf(asked.requestId)}
+                onRetry={() => ask.ask(asked.question)}
+              />
             </div>
             {ask.streaming ? (
               <Button size="sm" variant="ghost" icon="stop" onPress={ask.stop}>
@@ -67,9 +72,7 @@ export function SearchResults({ query, ask }: { query: string; ask: ReturnType<t
             ) : null}
           </div>
           <p className="m-0 type-caption text-text-secondary">
-            {_(
-              'Written by your AI provider from the matching parts of your meetings. Private meetings are left out.',
-            )}
+            {_('Written by your AI provider from the matching parts of your meetings.')}
           </p>
         </Card>
       ) : (
@@ -96,7 +99,7 @@ export function SearchResults({ query, ask }: { query: string; ask: ReturnType<t
               : fmt(ngettext('{n} moment', '{n} moments', moments.length), { n: moments.length })}
           </h2>
           <span className="type-caption text-text-secondary">
-            {_('searched titles and transcripts on this computer')}
+            {_('searched titles, notes and transcripts on this computer')}
           </span>
         </div>
         {search.isFetching && !search.data ? <Spinner label={_('Searching…')} /> : null}
@@ -136,7 +139,7 @@ function MomentRow({ m, onOpen }: { m: Moment; onOpen: () => void }) {
       className="flex w-full cursor-default flex-col gap-1 rounded-md px-3 py-2.5 text-left outline-none hover:bg-bg-hover focus-visible:outline-(length:--focus-ring-width) focus-visible:outline-solid focus-visible:outline-(--focus-ring-color)"
     >
       <span className="flex flex-wrap items-center gap-x-1.5 type-caption text-text-secondary">
-        <span className="font-semibold text-text-primary">{m.at ? m.title : _('Meeting')}</span>
+        <span className="font-semibold text-text-primary">{m.kind === 'title' ? _('Meeting') : m.title}</span>
         {m.day ? <Sep>{m.day}</Sep> : null}
         {m.at ? (
           <Sep>
@@ -153,7 +156,7 @@ function MomentRow({ m, onOpen }: { m: Moment; onOpen: () => void }) {
         ) : null}
       </span>
       <span className="type-body break-words text-text-primary">
-        {m.at ? '“' : ''}
+        {m.kind === 'transcript' ? '“' : ''}
         {m.parts.map((p, i) =>
           p.mark ? (
             <mark
@@ -168,7 +171,7 @@ function MomentRow({ m, onOpen }: { m: Moment; onOpen: () => void }) {
             <span key={i}>{p.text}</span>
           ),
         )}
-        {m.at ? '”' : ''}
+        {m.kind === 'transcript' ? '”' : ''}
       </span>
     </button>
   )

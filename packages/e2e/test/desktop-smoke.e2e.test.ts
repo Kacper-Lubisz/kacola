@@ -60,15 +60,15 @@ describe('desktop window against a running daemon', () => {
     const today = app.window.getByRole('list', { name: 'Today’s meetings' })
     await today.waitFor({ timeout: 20_000 })
     // strict time order: the first one created comes first
-    const names = await today.getByRole('button').evaluateAll((els) =>
-      els.map((e) => e.getAttribute('aria-label') ?? ''),
-    )
+    const names = await today
+      .getByRole('button')
+      .evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') ?? ''))
     expect(names).toEqual([
       expect.stringContaining('Weekly product sync'),
       expect.stringContaining('Design review: onboarding flow'),
     ])
     await app.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor()
-    expect(await app.window.title()).toBe('Gnomeola')
+    expect(await app.window.title()).toBe('kacola')
     expect(await app.axe()).toEqual([]) // home: search box + the day
   })
 

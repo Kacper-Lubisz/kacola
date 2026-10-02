@@ -111,7 +111,7 @@ describe('desktop speakers against the real daemon', () => {
       display,
       env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
     })
-    await w().getByRole('listbox', { name: 'Sessions' }).waitFor({ timeout: 20_000 })
+    await w().getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
   }, 240_000)
 
   afterAll(async () => {
@@ -123,10 +123,8 @@ describe('desktop speakers against the real daemon', () => {
   })
 
   it('shows every line with its speaker chip, coloured by the daemon’s palette slot', async () => {
-    await w()
-      .getByRole('listbox', { name: 'Sessions' })
-      .getByRole('option', { name: new RegExp(TITLE) })
-      .click()
+    // the meeting's outcome page, with the transcript beside it
+    await w().evaluate(`location.hash = ${JSON.stringify(`#/sessions/${sessionId}?panel=transcript`)}`)
     await w().getByRole('heading', { level: 1, name: TITLE }).waitFor()
     const spk = await speakers()
     expect(spk.map((x) => x.label)).toEqual(['me', 'Speaker 1', 'Speaker 2', 'Speaker 3'])

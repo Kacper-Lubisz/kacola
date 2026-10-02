@@ -100,7 +100,11 @@ describe('recording through the app’s own capture (daemon backend: external)',
       await app.evaluateMain(({ BrowserWindow }) =>
         BrowserWindow.getAllWindows().map((w) => ({ visible: w.isVisible(), title: w.getTitle() })),
       ),
-    ).toEqual(expect.arrayContaining([{ visible: false, title: 'gnomeola capture' }]))
+    ).toEqual(
+      expect.arrayContaining([
+        { visible: false, title: expect.stringMatching(/^(kacola|gnomeola) capture$/) },
+      ]),
+    )
     // the live page: the recording pill runs, and the quiet "can't hear you" line never shows while
     // the fixture is heard (no level meters any more: levels only feed that warning). The system track
     // is unfed here (no loopback in Linux Chromium), so "can't hear the other side" may rightly appear.

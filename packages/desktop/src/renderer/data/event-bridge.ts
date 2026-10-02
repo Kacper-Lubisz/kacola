@@ -329,6 +329,7 @@ export class EventBridge {
         if (next && next !== cur) this.qc.setQueryData(keys.agenda(id), next)
       }
       this.qc.setQueryData<StatusChange[]>(keys.agendaHistory(id), (h) => (h ? applyHistoryEvent(h, d) : h))
+      if (d.type.startsWith('agenda.item')) void this.qc.invalidateQueries({ queryKey: ['itemHistory', id] })
     }
     if (d.type === 'agenda.upserted' || d.type === 'agenda.deleted') {
       void this.qc.invalidateQueries({ queryKey: keys.agendas(), exact: true })

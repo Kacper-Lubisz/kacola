@@ -107,6 +107,11 @@ function Enhancing({ text, templateName }: { text: string; templateName: string 
   )
 }
 
+/**
+ * Why Enhance did not change the notes: the daemon's message as written, and the ONE action it names
+ * (Try Again / Set Up a Provider / Add Credits). A private meeting with a cloud provider is not a
+ * failure: private meetings stay on this computer, and the notes are untouched.
+ */
 function EnhanceProblem({
   state,
   feed,
@@ -117,35 +122,32 @@ function EnhanceProblem({
   onRetry: () => void
 }) {
   const dialogs = useDialogs()
+  const { bridge } = useServices()
   const err = state.enhanceError!
   const problem = enhanceProblem(err)
-  const hint =
-    problem === 'refused'
-      ? _('Nothing was changed. You can try another template, or keep writing yourself.')
-      : problem === 'quota'
-        ? _('The AI provider is limiting requests right now. Try again in a minute.')
-        : problem === 'unavailable'
-          ? _('Enhancing needs an AI provider. Set one up in Preferences.')
-          : null
-  const title = fmt(_('Your notes were not changed: {reason}'), { reason: err.message })
+  const action =
+    err.action ?? (problem === 'unavailable' ? 'set-up-provider' : problem === 'refused' ? 'none' : 'retry')
+  const priv = err.reason === 'private-meeting'
+  const title = priv
+    ? `${_('Private meetings stay on this computer.')} ${err.message}`
+    : fmt(_('Your notes were not changed. {reason}'), { reason: err.message })
   return (
     <Banner
-      tone={
-        problem === 'refused' || problem === 'quota'
-          ? 'warning'
-          : problem === 'unavailable'
-            ? 'info'
-            : 'danger'
-      }
-      title={hint ? `${title} — ${hint}` : title}
+      tone={priv || action === 'set-up-provider' ? 'info' : 'warning'}
+      title={title}
       action={
         <div className="flex shrink-0 items-center gap-2">
-          {problem === 'unavailable' ? (
+          {action === 'set-up-provider' ? (
             <Button size="sm" onPress={() => dialogs.open('preferences')}>
-              {_('Open Preferences')}
+              {_('Set Up a Provider')}
             </Button>
           ) : null}
-          {problem === 'quota' || problem === 'other' ? (
+          {action === 'add-credits' && err.link ? (
+            <Button size="sm" icon="external" onPress={() => void bridge.openExternal(err.link!)}>
+              {_('Add Credits')}
+            </Button>
+          ) : null}
+          {action === 'retry' ? (
             <Button size="sm" onPress={onRetry}>
               {_('Try Again')}
             </Button>

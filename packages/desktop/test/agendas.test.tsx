@@ -12,6 +12,7 @@ import type {
   Suggestion,
   TrackerStatus,
 } from '@gnomeola/protocol'
+import { actorOf } from '@gnomeola/protocol'
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { resetDeepLinksForTests } from '../src/renderer/features/agendas/deep-links.tsx'
@@ -158,6 +159,54 @@ function agendaDaemon(initial: AgendaView, history: StatusChange[] = []) {
       echo({ type: 'agenda.upserted', agenda: state.view.agenda })
       return state.view.agenda
     },
+    // item history (restorable versions): the item as added, then each status change
+    getAgendaItemHistory: ({ query }) => {
+      const itemId = (query as { itemId: string }).itemId
+      const cur = state.view.items.find((i) => i.id === itemId)!
+      const changes = state.history.filter((h) => h.itemId === itemId)
+      const actor = (by: string) => actorOf(by)
+      return {
+        versions: [
+          {
+            seq: 1,
+            itemId,
+            kind: 'added',
+            by: 'user',
+            actor: actor('user'),
+            at: T,
+            item: { ...cur, status: changes[0]?.from ?? cur.status },
+            fields: [],
+            status: null,
+            restorable: true,
+            cause: null,
+          },
+          ...changes.map((c, n) => ({
+            seq: n + 2,
+            itemId,
+            kind: 'status',
+            by: c.by,
+            actor: actor(c.by),
+            at: c.at,
+            item: { ...cur, status: c.to },
+            fields: ['status'],
+            status: c,
+            restorable: true,
+            cause: null,
+          })),
+        ],
+      }
+    },
+    restoreAgendaItem: ({ params, body }) => {
+      const seq = (body as { seq: number }).seq
+      const cur = state.view.items.find((i) => i.id === params!.itemId)!
+      const changes = state.history.filter((h) => h.itemId === cur.id)
+      const status = seq === 1 ? (changes[0]?.from ?? cur.status) : changes[seq - 2]!.to
+      const next = { ...cur, status, changedBy: 'user' }
+      state.view = { ...state.view, items: state.view.items.map((i) => (i.id === cur.id ? next : i)) }
+      const version = bump()
+      echo({ type: 'agenda.item.upserted', ...scoped(version), item: next, cause: 'restore' })
+      return { item: next, version }
+    },
     acceptSuggestion: ({ params }) => resolve(params!.suggestionId!, 'accepted'),
     dismissSuggestion: ({ params }) => resolve(params!.suggestionId!, 'dismissed'),
   }
@@ -262,40 +311,107 @@ describe('agenda editor', () => {
     app.stop()
   })
 
-  it('Add Link to Invite: refused by the calendar → the reason and the block to copy', async () => {
+  it('Send the agenda: a preview of what attendees get (never private notes), then the text to paste when the calendar refuses', async () => {
     const fb = fakeBridge()
+    const view = agendaView({
+      meeting: {
+        eventUid: 'uid-1',
+        start: T,
+        end: '2026-09-30T10:30:00.000Z',
+        recurrenceId: null,
+        meetingId: 'mtg_1',
+        title: '1:1',
+        calendar: 'Work',
+        recurring: false,
+      },
+    })
+    view.context = [
+      {
+        id: 'ctx_1',
+        agendaId: 'agd_1',
+        title: 'My notes on Ana',
+        body: 'nervous about the timeline',
+        source: { kind: 'user', ref: null },
+        visibility: 'private',
+        pinned: false,
+        createdBy: 'user',
+        createdAt: T,
+        updatedAt: T,
+      },
+    ]
+    const WEB = 'https://share.example/a/AbCdEfGhIjKlMnOpQrStUvWxYz012345'
+    const invite = `Agenda: ${WEB}\nIn kacola: kacola://agenda/agd_1`
     const { app } = mount({
-      view: agendaView({
-        meeting: {
-          eventUid: 'uid-1',
-          start: T,
-          end: '2026-09-30T10:30:00.000Z',
-          recurrenceId: null,
-          meetingId: 'mtg_1',
-          title: '1:1',
-          calendar: 'Work',
-          recurring: false,
-        },
-      }),
+      view,
       path: '/agendas/agd_1',
       bridge: fb,
       handlers: {
-        agendaInviteBlock: () => ({
-          block: '-- kacola agenda --\nAgenda: kacola://agenda/agd_1\n-- /kacola --',
+        sendAgenda: () => ({
+          state: 'ready',
+          message: 'Ana can open this link without kacola.',
+          reason: null,
+          inviteText: invite,
+          webLink: WEB,
           appLink: 'kacola://agenda/agd_1',
-          webLink: null,
+          share: shareStatus({ shared: true, role: 'owner', shareId: 'shr_1', link: WEB, state: 'ok' }),
           written: false,
-          reason: 'you are not the organiser of this event',
+          writeReason: 'You are not the organiser of this event.',
         }),
       },
     })
-    fireEvent.click(await screen.findByRole('button', { name: 'Add Link to Invite' }))
-    const dlg = await screen.findByRole('dialog', { name: 'Couldn’t Edit the Invitation' })
-    expect(within(dlg).getByRole('status', { name: 'you are not the organiser of this event' })).toBeTruthy()
-    expect(app.daemon.log.find((c) => c.name === 'agendaInviteBlock')!.opts.body).toEqual({ write: true })
-    fireEvent.click(within(dlg).getByRole('button', { name: 'Copy' }))
+    // one action: no separate "Add link to invite" or "Share…"
+    expect(screen.queryByRole('button', { name: 'Add Link to Invite' })).toBeNull()
+    const send = await screen.findByRole('button', { name: 'Send the agenda' })
+    await until(() => !send.hasAttribute('disabled'))
+    fireEvent.click(send)
+    const dlg = await screen.findByRole('dialog', { name: 'Send the Agenda' })
+    const preview = within(dlg).getByRole('region', { name: 'What attendees see' })
+    expect(preview.textContent).toContain('Promo timeline')
+    expect(preview.textContent).not.toContain('nervous')
+    expect(dlg.textContent).toContain('1 private note stays on this computer')
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Send' }))
+    await until(() => app.daemon.calls.includes('sendAgenda'))
+    expect(app.daemon.log.find((c) => c.name === 'sendAgenda')!.opts.body).toEqual({
+      shareGoals: false,
+      writeInvite: true,
+    })
+    await within(dlg).findByRole('status', { name: 'Ana can open this link without kacola.' })
+    expect(dlg.textContent).toContain('You are not the organiser of this event.')
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Copy Invitation Text' }))
     await until(() => fb.bridge.copyText.mock.calls.length === 1)
-    expect(fb.bridge.copyText.mock.calls[0]![0]).toContain('kacola://agenda/agd_1')
+    expect(fb.bridge.copyText.mock.calls[0]![0]).toBe(invite)
+    app.stop()
+  })
+
+  it('Send the agenda without a sharing server: the daemon’s sentence and the one action', async () => {
+    const { app } = mount({
+      view: agendaView(),
+      path: '/agendas/agd_1',
+      handlers: {
+        getAgendaShare: () => shareStatus({ host: null }),
+        sendAgenda: () => ({
+          state: 'no-share-host',
+          message: "kacola can't make a link attendees can open: sharing isn't set up.",
+          reason: 'no-share-host',
+          inviteText: null,
+          webLink: null,
+          appLink: 'kacola://agenda/agd_1',
+          share: null,
+          written: false,
+          writeReason: null,
+        }),
+      },
+    })
+    const send = await screen.findByRole('button', { name: 'Send the agenda' })
+    await until(() => !send.hasAttribute('disabled'))
+    fireEvent.click(send)
+    const dlg = await screen.findByRole('dialog', { name: 'Send the Agenda' })
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Send' }))
+    await within(dlg).findByRole('status', {
+      name: "kacola can't make a link attendees can open: sharing isn't set up.",
+    })
+    expect(within(dlg).getByRole('button', { name: 'Set Up Sharing' })).toBeTruthy()
+    expect(within(dlg).queryByRole('button', { name: 'Copy Invitation Text' })).toBeNull()
     app.stop()
   })
 
@@ -396,12 +512,11 @@ describe('live: the checklist and the one suggestion', () => {
     expect(list.textContent).not.toMatch(/\bmin\b/)
     const promo = within(list).getByRole('listitem', { name: 'Promo timeline' })
     await within(promo).findByText('ticked by kacola')
-    // undo: the user sets it back (an override)
+    // undo: the item is restored to the version before the tick (its history; itself undoable)
     fireEvent.click(within(promo).getByRole('button', { name: 'Undo the tick on “Promo timeline”' }))
-    await until(() => app.daemon.calls.includes('setAgendaItemStatus'))
-    expect(app.daemon.log.find((c) => c.name === 'setAgendaItemStatus')!.opts.body).toMatchObject({
-      status: 'open',
-    })
+    await until(() => app.daemon.calls.includes('restoreAgendaItem'))
+    expect(app.daemon.log.find((c) => c.name === 'restoreAgendaItem')!.opts.body).toEqual({ seq: 1 })
+    await screen.findByRole('button', { name: 'Status of “Promo timeline”: Open' })
     // ONE suggestion: what just happened (looks covered) before what to ask, with the words that prompted it
     const card = await screen.findByRole('region', { name: 'Suggestion: Hiring plan' })
     expect(screen.getAllByRole('region', { name: /^Suggestion: / })).toHaveLength(1)
@@ -829,17 +944,17 @@ describe('team sharing', () => {
     ...over,
   })
 
-  it('shares from the editor: the options sent, the link to copy, the state; agenda.share events re-render it; unshare asks first', async () => {
+  it('once shared: the share’s options, the link to copy, the state; agenda.share events re-render it; unshare asks first', async () => {
     const fb = fakeBridge()
-    let current = shareStatus()
+    let current = { ...shared }
     const { app } = mount({
       view: agendaView(),
       path: '/agendas/agd_1',
       bridge: fb,
       handlers: {
         getAgendaShare: () => current,
-        shareAgenda: ({ body }) => {
-          current = { ...shared, ...(body as object), members: (body as { members: string[] }).members }
+        updateAgendaShare: ({ body }) => {
+          current = { ...current, ...(body as object) }
           return current
         },
         unshareAgenda: () => {
@@ -849,27 +964,8 @@ describe('team sharing', () => {
         getAgendaShareHistory: () => ({ changes: [] }),
       },
     })
-    const shareBtn = await screen.findByRole('button', { name: 'Share…' })
-    await until(() => !shareBtn.hasAttribute('disabled'))
-    fireEvent.click(shareBtn)
+    fireEvent.click(await screen.findByRole('button', { name: 'Shared: Up to date' }))
     const dlg = await screen.findByRole('dialog', { name: 'Share Agenda' })
-    fireEvent.change(within(dlg).getByLabelText('Your name'), { target: { value: 'Kacper' } })
-    fireEvent.change(within(dlg).getByLabelText('Attendees who use kacola'), {
-      target: { value: 'Ben@Example.com, not-an-email' },
-    })
-    expect(within(dlg).getByText(/Not an email address: not-an-email/)).toBeTruthy()
-    expect(within(dlg).getByRole('button', { name: 'Share' }).hasAttribute('disabled')).toBe(true)
-    fireEvent.change(within(dlg).getByLabelText('Attendees who use kacola'), {
-      target: { value: 'Ben@Example.com\nana@example.com' },
-    })
-    fireEvent.click(within(dlg).getByRole('button', { name: 'Share' }))
-    await until(() => app.daemon.calls.includes('shareAgenda'))
-    expect(app.daemon.log.find((c) => c.name === 'shareAgenda')!.opts.body).toEqual({
-      ownerName: 'Kacper',
-      shareGoals: false,
-      allowInvitees: true,
-      members: ['ben@example.com', 'ana@example.com'],
-    })
     await within(dlg).findByLabelText('Web link')
     expect((within(dlg).getByLabelText('Web link') as HTMLInputElement).value).toBe(LINK)
     expect(within(dlg).getByText('Up to date')).toBeTruthy()
@@ -890,28 +986,13 @@ describe('team sharing', () => {
     expect(within(dlg).getByRole('status', { name: 'host down' })).toBeTruthy()
     act(() => app.daemon.emit(ephemeral({ type: 'agenda.share', agendaId: 'agd_1', status: current })))
     await within(dlg).findByText('Up to date')
-    // unshare: a confirmation first
+    // unshare: a confirmation first; then the one action to send it again
     fireEvent.click(within(dlg).getByRole('button', { name: 'Unshare…' }))
     const sure = await screen.findByRole('alertdialog', { name: 'Stop sharing this agenda?' })
     expect(app.daemon.calls).not.toContain('unshareAgenda')
     fireEvent.click(within(sure).getByRole('button', { name: 'Unshare' }))
     await until(() => app.daemon.calls.includes('unshareAgenda'))
-    await screen.findByRole('button', { name: 'Share…' })
-    app.stop()
-  })
-
-  it('without a host: says what to set up and does not offer Share', async () => {
-    const { app } = mount({
-      view: agendaView(),
-      path: '/agendas/agd_1',
-      handlers: { getAgendaShare: () => shareStatus({ host: null }) },
-    })
-    const shareBtn = await screen.findByRole('button', { name: 'Share…' })
-    await until(() => !shareBtn.hasAttribute('disabled'))
-    fireEvent.click(shareBtn)
-    const dlg = await screen.findByRole('dialog', { name: 'Share Agenda' })
-    expect(within(dlg).getByText(/Sharing needs a hosted kacola server/)).toBeTruthy()
-    expect(within(dlg).getByRole('button', { name: 'Share' }).hasAttribute('disabled')).toBe(true)
+    await screen.findByRole('button', { name: 'Send the agenda' })
     app.stop()
   })
 
@@ -990,10 +1071,10 @@ describe('team sharing', () => {
         .find((r) => r.textContent?.includes(t))!
     await until(() => (row('Offsite dates').textContent ?? '').includes('added by Ivy (ivy@example.com)'))
     expect(row('Offsite dates').textContent).toContain('Ivy (invitee): Friday works for me')
-    expect(row('Hiring plan').textContent).toContain('marked by Ben')
-    expect(row('Budget').textContent).toContain('by Ben’s kacola')
+    expect(row('Hiring plan').textContent).toContain('by Ben')
+    expect(row('Budget').textContent).toContain('by kacola')
     fireEvent.click(within(row('Budget')).getByRole('button', { name: 'History of “Budget”' }))
-    await screen.findByText('Open → In progress by Ben’s kacola')
+    await screen.findByText('Open → In progress by kacola')
     fireEvent.keyDown(screen.getByRole('dialog', { name: 'History of “Budget”' }), { key: 'Escape' })
     await until(() => screen.queryByRole('dialog', { name: 'History of “Budget”' }) === null)
     // the Sharing section (prep shows it once shared): comments, people, the merge history

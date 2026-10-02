@@ -2,6 +2,7 @@ import type {
   AgentMode,
   AgentPresenceState,
   AnyEvent,
+  ErrorDetail,
   Meeting,
   ModelInfo,
   TrackKind,
@@ -28,7 +29,8 @@ export type StreamState = {
   /** Text so far (ask answer tokens, or enhanced notes). */
   text: string
   status: 'streaming' | 'done' | 'error'
-  error?: { code: string; message: string }
+  /** `reason` / `action` (protocol ai.ts): what went wrong, and the one action that fixes it. */
+  error?: { code: string; message: string } & ErrorDetail
 }
 
 /** A connected agent's live presence (agent.presence), for the session header's chip and its pulse. */

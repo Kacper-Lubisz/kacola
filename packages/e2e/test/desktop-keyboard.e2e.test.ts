@@ -112,7 +112,9 @@ describe('keyboard-only walkthrough against the real daemon', () => {
       'a recording started from the keyboard',
     )
     await w().getByRole('heading', { level: 1, name: live.title }).waitFor({ timeout: 10_000 })
-    await w().getByRole('timer', { name: /^Recording/ }).waitFor()
+    await w()
+      .getByRole('timer', { name: /^Recording/ })
+      .waitFor()
     await poll(
       async () =>
         (await daemon.client.call('getTranscript', { params: { id: live.id } })).segments.length >= 2,
@@ -150,7 +152,11 @@ describe('keyboard-only walkthrough against the real daemon', () => {
 
   it('opens and closes Ask (Ctrl+K) and the transcript (Ctrl+T, or its toggle with Space)', async () => {
     await key('Control+k')
-    await poll(async () => /^textbox:Ask about this meeting/.test(await focused()), 5000, 'the Ask bar focused')
+    await poll(
+      async () => /^textbox:Ask about this meeting/.test(await focused()),
+      5000,
+      'the Ask bar focused',
+    )
     await key('Escape')
     await w().getByRole('region', { name: 'Ask about this meeting' }).waitFor({ state: 'detached' })
     await key('Control+t')
@@ -167,7 +173,11 @@ describe('keyboard-only walkthrough against the real daemon', () => {
 
   it('asks a question from the Ask bar and follows a citation with Enter; the answer stays', async () => {
     await key('Control+k')
-    await poll(async () => /^textbox:Ask about this meeting/.test(await focused()), 5000, 'the Ask bar focused')
+    await poll(
+      async () => /^textbox:Ask about this meeting/.test(await focused()),
+      5000,
+      'the Ask bar focused',
+    )
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
     await w().keyboard.type('What did we decide about the retry budget?')
     trail.push('type question')

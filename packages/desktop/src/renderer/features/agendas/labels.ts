@@ -1,4 +1,5 @@
 import type { AgendaItemKind, AgendaItemStatus, AgentMode, StatusChange } from '@gnomeola/protocol'
+import { type Actor, type AgendaView, actorOf } from '@gnomeola/protocol'
 import { attributionOf, personName } from '@gnomeola/ui-core/agendas'
 import { _, fmt } from '@gnomeola/ui-core/i18n'
 import type { ChipTone, IconName } from '../../design/primitives/index.ts'
@@ -168,4 +169,27 @@ export function addedByText(createdBy: string, names?: ReadonlyMap<string, strin
   if (a.kind === 'invitee') return fmt(_('added by {name}'), { name: inviteeLabel(a.name ?? '', names) })
   if (a.kind === 'peer') return fmt(_('added by {name}'), { name: peerLabel(a.name ?? '', a.via, names) })
   return null
+}
+
+/**
+ * The daemon's words for whoever did something (GET /agendas/:id `actors`: you, kacola, your Claude,
+ * Ben's Claude, Ben), falling back to the protocol's own mapping for a value the view has not seen yet.
+ */
+export function actorFor(
+  view: Pick<AgendaView, 'actors'> | null | undefined,
+  by: string,
+  names?: ReadonlyMap<string, string>,
+): Actor {
+  return view?.actors?.[by] ?? actorOf(by, { names: (label) => personName(label, names) })
+}
+
+/**
+ * Attribution is shown only when it is a surprise: not you, and not the agenda's author (the person
+ * whose agenda it is). A solo user never sees it for their own changes.
+ */
+export function isSurprise(view: Pick<AgendaView, 'actors' | 'agenda'>, by: string): boolean {
+  const a = actorFor(view, by)
+  if (a.kind === 'you') return false
+  const owner = view.agenda.owner
+  return !(a.kind === 'person' && a.person !== null && (a.person === owner || by === `invitee:${owner}`))
 }

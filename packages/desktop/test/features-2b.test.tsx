@@ -2,6 +2,7 @@
 import type { QaMessage, Segment, SpeakerSummary } from '@gnomeola/protocol'
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
+import { ownAsks } from '../src/renderer/features/ask/own-asks.ts'
 import { renderApp } from './app-harness.tsx'
 import { segment, session, until } from './helpers.ts'
 
@@ -9,7 +10,11 @@ import { segment, session, until } from './helpers.ts'
 // states and names the e2e suite relies on, without a window. (The virtualised list itself needs layout, so its
 // rows are covered by the Playwright e2e.)
 
-afterEach(() => cleanup())
+afterEach(() => {
+  cleanup()
+  // this window's own questions outlive a pane (by design); not a test
+  ownAsks.setState({ bySession: {} })
+})
 
 const S = 's1'
 const qa = (
@@ -158,6 +163,102 @@ describe('Ask (Ctrl+K)', () => {
     expect(within(bar).getByRole('button', { name: 'Ask' }).hasAttribute('disabled')).toBe(true)
     fireEvent.keyDown(box, { key: 'Escape' })
     await until(() => screen.queryByRole('region', { name: 'Ask about this meeting' }) === null)
+    r.stop()
+  })
+})
+
+describe('Ask errors and what was sent', () => {
+  const askWith = (r: ReturnType<typeof app>, events: unknown[]) => {
+    ;(r.services.api as unknown as { ask: unknown }).ask = async function* () {
+      for (const e of events) yield e
+    }
+  }
+  const ask = async (q: string) => {
+    await screen.findByRole('heading', { level: 1, name: 'Weekly sync' })
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    const bar = await screen.findByRole('region', { name: 'Ask about this meeting' })
+    fireEvent.change(within(bar).getByRole('textbox', { name: 'Ask about this meeting' }), {
+      target: { value: q },
+    })
+    fireEvent.click(within(bar).getByRole('button', { name: 'Ask' }))
+    return bar
+  }
+  const question = (requestId: string, scope?: unknown) => ({
+    type: 'question',
+    message: qa(requestId, 'user', 'Retry budget?'),
+    ...(scope ? { scope } : {}),
+  })
+
+  it('says what was sent where', async () => {
+    const r = app({})
+    askWith(r, [
+      question('r9', { sessionIds: [S], excludedPrivate: 0, provider: 'anthropic', onDevice: false }),
+      { type: 'delta', text: 'Three.' },
+      { type: 'answer', message: qa('r9', 'assistant', 'Three.') },
+    ])
+    const bar = await ask('Retry budget?')
+    await within(bar).findByText('Sent 1 meeting to Anthropic')
+    r.stop()
+  })
+
+  it('shows the daemon’s message with its one action: Add Credits opens the billing page; Try Again keeps the question', async () => {
+    const r = app({})
+    const err = {
+      code: 'unavailable',
+      message: 'Your Anthropic account has no credits left. Add credits with Anthropic, or switch provider.',
+      reason: 'no-credits',
+      action: 'add-credits',
+      link: 'https://console.anthropic.com/settings/billing',
+    }
+    askWith(r, [question('r7'), { type: 'error', error: err }])
+    const bar = await ask('Retry budget?')
+    await within(bar).findByText(err.message)
+    fireEvent.click(within(bar).getByRole('button', { name: 'Add Credits' }))
+    await until(() => r.fb.bridge.openExternal.mock.calls.length === 1)
+    expect((r.fb.bridge.openExternal.mock.calls as unknown as string[][])[0]![0]).toBe(err.link)
+    expect(within(bar).queryByRole('button', { name: 'Set Up a Provider' })).toBeNull()
+    // overloaded: Try Again asks the same question again
+    let asked = 0
+    ;(r.services.api as unknown as { ask: unknown }).ask = async function* (body: { question: string }) {
+      asked++
+      expect(body.question).toBe('Retry budget?')
+      yield question('r8')
+      yield {
+        type: 'error',
+        error: {
+          code: 'unavailable',
+          message: 'Anthropic is busy right now. Try again in a minute.',
+          reason: 'overloaded',
+          action: 'retry',
+        },
+      }
+    }
+    fireEvent.change(within(bar).getByRole('textbox', { name: 'Ask about this meeting' }), {
+      target: { value: 'Retry budget?' },
+    })
+    fireEvent.click(within(bar).getByRole('button', { name: 'Ask' }))
+    await within(bar).findByText('Anthropic is busy right now. Try again in a minute.')
+    fireEvent.click(within(bar).getByRole('button', { name: 'Try Again' }))
+    await until(() => asked === 2)
+    r.stop()
+  })
+
+  it('a private meeting with a cloud provider is not a failure', async () => {
+    const r = app({})
+    askWith(r, [
+      {
+        type: 'error',
+        error: {
+          code: 'conflict',
+          message: "This meeting is private, so kacola won't send it to Anthropic.",
+          reason: 'private-meeting',
+          action: 'none',
+        },
+      },
+    ])
+    const bar = await ask('Retry budget?')
+    await within(bar).findByText('Private meetings stay on this computer')
+    expect(within(bar).queryByRole('button', { name: 'Try Again' })).toBeNull()
     r.stop()
   })
 })

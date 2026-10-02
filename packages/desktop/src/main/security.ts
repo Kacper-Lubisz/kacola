@@ -62,7 +62,7 @@ export function windowOptions(o: {
     minWidth: 360,
     minHeight: 400,
     show: false,
-    title: 'Gnomeola',
+    title: 'kacola',
     // paint the window background before the first frame so there is no white flash in dark mode
     backgroundColor: o.dark ? '#171411' : '#f6f1e7', // brand bg.window
     ...(o.icon && o.platform !== 'darwin' ? { icon: o.icon } : {}),

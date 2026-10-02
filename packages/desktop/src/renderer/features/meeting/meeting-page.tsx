@@ -17,9 +17,10 @@ import {
   Menu,
   MenuItem,
 } from '../../design/primitives/index.ts'
-import { AgendaMenu, ImportMarkdownDialog, InviteButton } from '../agendas/agenda-actions.tsx'
+import { AgendaMenu, ImportMarkdownDialog } from '../agendas/agenda-actions.tsx'
 import { meetingLive, useAgenda } from '../agendas/agenda-data.ts'
 import { PresenceChip } from '../agendas/presence.tsx'
+import { SendAgendaButton } from '../agendas/send.tsx'
 import { ShareButton } from '../agendas/share.tsx'
 import { useAgendaShare } from '../agendas/share-data.ts'
 import { clock, countdown, durationLabel, readiness } from '../home/day.ts'
@@ -257,8 +258,7 @@ function PrepPage({ view }: { view: AgendaView }) {
         }
         actions={
           <>
-            <ShareButton view={view} status={share} />
-            <InviteButton view={view} />
+            <SendAgendaButton view={view} status={share} />
             <AgendaMenu view={view} onImport={() => setImporting(true)} />
             {m?.meetingId && !ended ? (
               <div className="flex flex-col items-end gap-1">

@@ -1,8 +1,10 @@
-import type { AgendaItem, AgendaItemKind, AgendaView, StatusChange } from '@gnomeola/protocol'
-import { itemHistory, lastChange } from '@gnomeola/ui-core/agendas'
+import type { AgendaItem, AgendaItemKind, AgendaView, ItemVersion, StatusChange } from '@gnomeola/protocol'
+import { lastChange } from '@gnomeola/ui-core/agendas'
 import { formatClockTime } from '@gnomeola/ui-core/format'
 import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
+import { useQuery } from '@tanstack/react-query'
 import { type ReactNode, useMemo, useState } from 'react'
+import { useServices } from '../../data/services.tsx'
 import {
   Button,
   Chip,
@@ -16,27 +18,29 @@ import {
   Select,
   type SortableItem,
   SortableList,
+  Spinner,
   TextArea,
   TextField,
 } from '../../design/primitives/index.ts'
 import { useAgendaHistory, useAgendaMutation } from './agenda-data.ts'
 import {
+  actorFor,
   addedByText,
   attributionIcon,
-  attributionText,
+  isSurprise,
   KINDS,
   kindLabel,
   STATUS_ICON,
   STATUS_TONE,
   STATUSES,
   statusLabel,
-  whoLabel,
 } from './labels.ts'
 import {
   addItemsMutation,
   deleteItemMutation,
   isTemporary,
   reorderMutation,
+  restoreItemMutation,
   setStatusMutation,
   updateAgendaMutation,
   updateItemMutation,
@@ -47,8 +51,8 @@ import { useAgendaShare, usePeopleNames } from './share-data.ts'
 // The agenda editor: goals, then the items — drag to reorder (or Move up / Move down from an item's
 // menu, the keyboard path), a status menu per item, kind / owner / timebox / outcome in an Edit dialog,
 // and each item's history in a popover. Every edit is optimistic; the daemon's echo reconciles
-// (features/agendas/mutations.ts). Items another changer touched carry the attribution ("auto",
-// "checked by Claude").
+// (features/agendas/mutations.ts). An item someone else moved says who ("by kacola", "by your Claude",
+// the daemon's actors), only when that is a surprise.
 
 const kindOptions = () => KINDS.map((k) => ({ value: k, label: kindLabel(k) }))
 
@@ -137,12 +141,12 @@ export function ItemsEditor({ view, readOnly = false }: { view: AgendaView; read
     textValue: item.text,
     content: (
       <ItemRow
+        view={view}
         agendaId={agendaId}
         item={item}
         index={i}
         count={items.length}
         change={lastChange(history.data ?? [], item.id)}
-        history={history.data ?? []}
         names={names}
         comments={
           <CommentList
@@ -208,17 +212,22 @@ export function ItemsEditor({ view, readOnly = false }: { view: AgendaView; read
   )
 }
 
-/** "10 min", "@ana", kind, carried over, and who last changed it. */
+/** Kind, owner, a timebox someone set (quiet), carried over, and who last changed it when that is a surprise. */
 export function ItemMeta({
+  view,
   item,
   change,
   names,
 }: {
+  view: AgendaView
   item: AgendaItem
   change: StatusChange | null
   names?: ReadonlyMap<string, string>
 }) {
-  const by = change && change.to === item.status ? attributionText(change, names) : null
+  const by =
+    change && change.to === item.status && isSurprise(view, change.by)
+      ? fmt(_('by {who}'), { who: actorFor(view, change.by, names).label })
+      : null
   const added = addedByText(item.createdBy, names)
   return (
     <div className="flex flex-wrap items-center gap-1">
@@ -243,12 +252,12 @@ export function ItemMeta({
 }
 
 function ItemRow({
+  view,
   agendaId,
   item,
   index,
   count,
   change,
-  history,
   names,
   comments,
   onEdit,
@@ -258,8 +267,8 @@ function ItemRow({
   item: AgendaItem
   index: number
   count: number
+  view: AgendaView
   change: StatusChange | null
-  history: StatusChange[]
   names: ReadonlyMap<string, string>
   comments: ReactNode
   onEdit: () => void
@@ -276,14 +285,14 @@ function ItemRow({
         >
           {item.text}
         </span>
-        <ItemMeta item={item} change={change} names={names} />
+        <ItemMeta view={view} item={item} change={change} names={names} />
         {item.outcome ? (
           <p className="m-0 type-callout break-words text-text-secondary">{item.outcome}</p>
         ) : null}
         {comments}
       </div>
       <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 group-data-[focus-visible]:opacity-100 focus-within:opacity-100">
-        <ItemHistory item={item} history={history} names={names} />
+        <ItemHistory agendaId={agendaId} item={item} />
         <IconButton
           icon="edit"
           size="sm"
@@ -372,17 +381,69 @@ const STATUS_CLASS: Record<string, string> = {
   warning: 'text-status-warning-text!',
 }
 
-/** An item's status history: who moved it where, when, and why. */
-export function ItemHistory({
-  item,
-  history,
-  names,
-}: {
-  item: AgendaItem
-  history: readonly StatusChange[]
-  names?: ReadonlyMap<string, string>
-}) {
-  const mine = itemHistory(history, item.id)
+const CHANGE: Record<ItemVersion['kind'], () => string> = {
+  added: () => _('Added'),
+  edited: () => _('Edited'),
+  status: () => _('Status changed'),
+  removed: () => _('Removed'),
+  imported: () => _('Imported'),
+  restored: () => _('Restored'),
+}
+
+function versionLine(v: ItemVersion): string {
+  if (v.kind === 'status' && v.status)
+    return fmt(_('{from} → {to} by {who}'), {
+      from: statusLabel(v.status.from),
+      to: statusLabel(v.status.to),
+      who: v.actor.label,
+    })
+  return fmt(_('{what} by {who}'), { what: CHANGE[v.kind](), who: v.actor.label })
+}
+
+function HistoryList({ agendaId, item }: { agendaId: string; item: AgendaItem }) {
+  const { queries } = useServices()
+  const versions = useQuery(queries.itemHistory(agendaId, item.id))
+  const restore = useAgendaMutation(restoreItemMutation, _('Could not restore the item'))
+  const list = [...(versions.data ?? [])].reverse()
+  if (versions.isPending) return <Spinner label={_('Loading…')} size={18} />
+  if (versions.isError)
+    return <p className="m-0 type-callout text-status-danger-text">{versions.error.message}</p>
+  if (list.length === 0) return <p className="m-0 type-callout text-text-secondary">{_('No changes yet.')}</p>
+  return (
+    <ol aria-label={_('Versions')} className="m-0 flex list-none flex-col gap-2 p-0">
+      {list.map((v, i) => (
+        <li key={v.seq} className="flex flex-col gap-0.5">
+          <span className="type-callout text-text-primary">{versionLine(v)}</span>
+          <span className="flex items-center gap-2">
+            <span className="font-mono text-[13px] text-text-tertiary tabular-nums">
+              {formatClockTime(v.at)}
+            </span>
+            {i > 0 && v.restorable ? (
+              <Button
+                size="sm"
+                variant="link"
+                isDisabled={restore.isPending}
+                onPress={() => restore.mutate({ agendaId, itemId: item.id, seq: v.seq })}
+                aria-label={fmt(_('Restore “{item}” to this version'), { item: v.item?.text ?? item.text })}
+              >
+                {_('Restore')}
+              </Button>
+            ) : null}
+          </span>
+          {v.status?.note ? <span className="type-caption text-text-secondary">{v.status.note}</span> : null}
+          {(v.status?.evidence ?? []).map((ev) => (
+            <q key={`${ev.segmentId}:${ev.quote}`} className="type-caption text-text-secondary italic">
+              {ev.quote}
+            </q>
+          ))}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+/** An item's history: every version (who, what, when), and Restore for the ones that can come back. */
+export function ItemHistory({ agendaId, item }: { agendaId: string; item: AgendaItem }) {
   return (
     <Popover
       label={fmt(_('History of “{item}”'), { item: item.text })}
@@ -397,34 +458,7 @@ export function ItemHistory({
       }
     >
       <h3 className="m-0 mb-2 type-headline text-text-primary">{_('History')}</h3>
-      {mine.length === 0 ? (
-        <p className="m-0 type-callout text-text-secondary">{_('No status changes yet.')}</p>
-      ) : (
-        <ol aria-label={_('Status changes')} className="m-0 flex list-none flex-col gap-2 p-0">
-          {mine.map((c) => (
-            <li key={`${c.at}:${c.to}:${c.by}`} className="flex flex-col gap-0.5">
-              <span className="type-callout text-text-primary">
-                {fmt(_('{from} → {to} by {who}'), {
-                  from: statusLabel(c.from),
-                  to: statusLabel(c.to),
-                  who: whoLabel(c.by, names),
-                })}
-                {c.auto ? ` · ${_('auto')}` : ''}
-                {c.override ? ` · ${_('override')}` : ''}
-              </span>
-              <span className="font-mono text-[13px] text-text-tertiary tabular-nums">
-                {formatClockTime(c.at)}
-              </span>
-              {c.note ? <span className="type-caption text-text-secondary">{c.note}</span> : null}
-              {c.evidence.map((ev) => (
-                <q key={`${ev.segmentId}:${ev.quote}`} className="type-caption text-text-secondary italic">
-                  {ev.quote}
-                </q>
-              ))}
-            </li>
-          ))}
-        </ol>
-      )}
+      <HistoryList agendaId={agendaId} item={item} />
     </Popover>
   )
 }

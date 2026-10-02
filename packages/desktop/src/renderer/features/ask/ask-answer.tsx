@@ -1,5 +1,5 @@
-import { type BodyIn, type Citation, formatOffset } from '@gnomeola/protocol'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { type AskScope, type BodyIn, type Citation, formatOffset, providerName } from '@gnomeola/protocol'
+import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
 import { type AskError, isUnavailable, type QaTurn, splitCitations, viewTurn } from '@gnomeola/ui-core/qa'
 import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
@@ -74,39 +74,71 @@ function Notice({
   )
 }
 
-function ErrorNotice({ error }: { error: AskError }) {
+/**
+ * In place of an answer when asking failed: the daemon's message as written, and the ONE action its
+ * `action` names — Try Again (the question is kept), Set Up a Provider (Preferences), Add Credits (the
+ * provider's billing page). A private meeting with a cloud provider is not a failure: it says so calmly.
+ */
+function ErrorNotice({ error, onRetry }: { error: AskError; onRetry?: () => void }) {
   const dialogs = useDialogs()
-  if (isUnavailable(error)) {
-    const credits = /no credits|credit balance|billing/i.test(error.message)
+  const { bridge } = useServices()
+  if (error.code === 'aborted') return <Notice icon="stop" tone="neutral" title={_('Stopped')} />
+  if (error.reason === 'private-meeting')
     return (
-      <Notice
-        icon={credits ? 'warning' : 'info'}
-        tone={credits ? 'warning' : 'info'}
-        title={
-          credits ? _('The provider account has no credits left') : _('Questions aren’t available right now')
-        }
-      >
-        <p className="m-0 type-callout text-text-secondary">
-          {credits
-            ? _(
-                'Add credits with your language model provider, or switch provider in Preferences, then ask again.',
-              )
-            : fmt(_('{reason}. Choose a language model provider and add an API key in Preferences.'), {
-                reason: error.message.charAt(0).toUpperCase() + error.message.slice(1),
-              })}
-        </p>
-        <Button size="sm" className="mt-1" onPress={() => dialogs.open('preferences')}>
-          {_('Open Preferences')}
-        </Button>
+      <Notice icon="lock" tone="neutral" title={_('Private meetings stay on this computer')}>
+        <p className="m-0 type-callout text-text-secondary select-text">{error.message}</p>
       </Notice>
     )
-  }
-  if (error.code === 'aborted') return <Notice icon="stop" tone="neutral" title={_('Stopped')} />
+  const action = error.action ?? (isUnavailable(error) ? 'set-up-provider' : error.reason ? 'none' : 'retry')
+  const tone =
+    action === 'retry' || action === 'add-credits'
+      ? 'warning'
+      : action === 'set-up-provider'
+        ? 'info'
+        : 'danger'
   return (
-    <Notice icon="alert" tone="danger" title={_('The question could not be answered')}>
+    <Notice icon={tone === 'info' ? 'info' : 'alert'} tone={tone} title={_('No answer this time')}>
       <p className="m-0 type-callout text-text-secondary select-text">{error.message}</p>
+      {action === 'retry' && onRetry ? (
+        <Button size="sm" className="mt-1" icon="refresh" onPress={onRetry}>
+          {_('Try Again')}
+        </Button>
+      ) : null}
+      {action === 'set-up-provider' ? (
+        <Button size="sm" className="mt-1" onPress={() => dialogs.open('preferences')}>
+          {_('Set Up a Provider')}
+        </Button>
+      ) : null}
+      {action === 'add-credits' ? (
+        error.link ? (
+          <Button
+            size="sm"
+            className="mt-1"
+            icon="external"
+            onPress={() => void bridge.openExternal(error.link!)}
+          >
+            {_('Add Credits')}
+          </Button>
+        ) : (
+          <Button size="sm" className="mt-1" onPress={() => dialogs.open('preferences')}>
+            {_('Switch Provider')}
+          </Button>
+        )
+      ) : null}
     </Notice>
   )
+}
+
+/** "Sent 4 meetings to Anthropic · 1 private left out" / "Stayed on this computer". */
+export function scopeLine(scope: AskScope): string {
+  if (scope.onDevice) return _('Answered on this computer: nothing left it')
+  const sent = fmt(
+    ngettext('Sent {n} meeting to {provider}', 'Sent {n} meetings to {provider}', scope.sessionIds.length),
+    { n: scope.sessionIds.length, provider: providerName(scope.provider) },
+  )
+  return scope.excludedPrivate
+    ? `${sent} · ${fmt(ngettext('{n} private left out', '{n} private left out', scope.excludedPrivate), { n: scope.excludedPrivate })}`
+    : sent
 }
 
 /** The answer as notes text: the question in bold, the answer quoted, citations as their times. */
@@ -127,11 +159,17 @@ export function Turn({
   turn,
   onCite,
   actions,
+  scope,
+  onRetry,
 }: {
   turn: QaTurn
   onCite: (c: Citation) => void
   /** Under a finished answer (Pin to notes). */
   actions?: ReactNode
+  /** What was sent where, when this window asked it. */
+  scope?: AskScope | null
+  /** Ask the same question again (offered when the error says Retry). */
+  onRetry?: () => void
 }) {
   const view = viewTurn(turn)
   return (
@@ -174,7 +212,10 @@ export function Turn({
           </p>
         </Notice>
       ) : null}
-      {view.kind === 'error' ? <ErrorNotice error={view.error} /> : null}
+      {view.kind === 'error' ? <ErrorNotice error={view.error} onRetry={onRetry} /> : null}
+      {scope && view.kind !== 'error' ? (
+        <p className="m-0 type-caption text-text-tertiary">{scopeLine(scope)}</p>
+      ) : null}
       {view.kind === 'unanswered' ? (
         <p className="m-0 type-callout text-text-secondary">{_('No answer was recorded.')}</p>
       ) : null}
@@ -213,7 +254,7 @@ export function useAsk(key: string, sessionId: string | null) {
       localId,
       body,
       {
-        onQuestion: (requestId) => patchOwnAsk(key, localId, { requestId }),
+        onQuestion: (requestId, scope) => patchOwnAsk(key, localId, { requestId, scope }),
         onAnswer: (answer) => patchOwnAsk(key, localId, { answer }),
       },
       signal,
@@ -222,12 +263,16 @@ export function useAsk(key: string, sessionId: string | null) {
   const stop = () => {
     if (streaming) stopOwnAsk(streaming.localId)
   }
+  /** The scope this window's own question reported, by request id. */
+  const scopeOf = (requestId: string) =>
+    own.find((o) => o.requestId === requestId || o.localId === requestId)?.scope ?? null
   return {
     turns,
     asking,
     streaming: Boolean(streaming),
     ask,
     stop,
+    scopeOf,
     historyError: qa.isError ? qa.error : null,
   }
 }

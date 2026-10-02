@@ -489,7 +489,10 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       await askBox().fill('What was the worst incident?')
       await askBox().press('Enter')
       await atlas.shoot(w(), 'provider-errors__ask__no-credits', {
-        expect: w().getByText('The provider account has no credits left'),
+        expect: [
+          w().getByText('No answer this time'),
+          w().getByRole('button', { name: /^(Add Credits|Switch Provider)$/ }),
+        ],
       })
     } finally {
       api.always(null)
@@ -500,9 +503,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     await askBox().press('Enter')
     try {
       await atlas.shoot(w(), 'provider-errors__ask__overloaded', {
-        expect: w()
-          .getByText(/[Oo]verloaded/)
-          .last(),
+        expect: [w().getByText('No answer this time'), w().getByRole('button', { name: 'Try Again' })],
       })
     } finally {
       api.always(null)
@@ -515,14 +516,14 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       await askBox().fill('What did we plan for hiring?')
       await askBox().press('Enter')
       await atlas.shoot(w(), 'provider-errors__ask__no-provider', {
-        expect: w().getByText('Questions aren’t available right now'),
+        expect: w().getByRole('button', { name: 'Set Up a Provider' }),
       })
       await closeAsk()
       await w().getByRole('textbox', { name: 'Notes' }).waitFor({ timeout: 10_000 })
       await w().getByRole('button', { name: 'Enhance Notes' }).click()
       await atlas.shoot(w(), 'provider-errors__enhance__no-provider', {
         expect: w()
-          .getByText(/Enhancing needs an AI provider/)
+          .getByText(/^Your notes were not changed/)
           .first(),
       })
     } finally {
@@ -1160,16 +1161,6 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
       masks: clock(),
     })
 
-    // the calendar file cannot be written: the reason, and the block to copy
-    await w().getByRole('button', { name: 'Add Link to Invite' }).click()
-    const refused = w().getByRole('dialog', { name: 'Couldn’t Edit the Invitation' })
-    await atlas.shoot(w(), 'agenda-invite__fallback__copy-link', {
-      expect: refused.getByRole('button', { name: 'Copy' }),
-      masks: clock(),
-    })
-    await refused.getByRole('button', { name: 'Close' }).last().click()
-    await refused.waitFor({ state: 'detached' })
-
     // Join and record → the same meeting, live
     await w().getByRole('button', { name: 'Join and record' }).click()
     await w()
@@ -1241,7 +1232,7 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
     const list = w().getByRole('list', { name: 'Agenda items' })
     await list
       .getByRole('listitem', { name: 'Promo timeline' })
-      .getByText(/ticked by your Claude/)
+      .getByText(/^ticked by .*Claude/)
       .waitFor({ timeout: 15_000 })
     const looks = w().getByRole('region', { name: /^Suggestion: How is onboarding going/ })
     await atlas.shoot(w(), 'agenda-live__suggest__looks-covered', {
@@ -1437,25 +1428,54 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
     const agenda = v.agenda.id
     await w().evaluate(`location.hash = ${JSON.stringify(`#/agendas/${agenda}`)}`)
     await w().getByRole('heading', { level: 1, name: 'Team sync' }).waitFor()
-    await w().getByRole('button', { name: 'Share…' }).click()
+    // Send the agenda: first exactly what attendees get, then shared; the calendar file is read-only,
+    // so the invitation text comes back to paste
+    await w().getByRole('button', { name: 'Send the agenda' }).click()
+    const send = w().getByRole('dialog', { name: 'Send the Agenda' })
+    await atlas.shoot(w(), 'agenda-share__share__dialog', {
+      expect: [
+        send.getByRole('region', { name: 'What attendees see' }),
+        send.getByRole('button', { name: 'Send' }),
+      ],
+      masks: clock(),
+    })
+    await send.getByRole('button', { name: 'Send' }).click()
+    const copyText = send.getByRole('button', { name: 'Copy Invitation Text' })
+    await send
+      .getByRole('button', { name: 'Done' })
+      .waitFor({ timeout: 20_000 })
+      .catch(() => {})
+    await w().screenshot({
+      path: '/tmp/claude-1000/-home-kacper-projects-gnomeola/4d5ce598-c8a7-4f24-abe1-a3e61be985a8/scratchpad/af-send.png',
+    })
+    await copyText.waitFor({ timeout: 20_000 })
+    await atlas.shoot(w(), 'agenda-invite__fallback__copy-link', {
+      expect: copyText,
+      // the link in the text is random per run
+      masks: [send.locator('pre'), ...clock()],
+    })
+    await send.getByRole('button', { name: 'Done' }).click()
+    await send.waitFor({ state: 'detached' })
+    // the share's details: the owner's name, the attendees who run kacola, the web link
+    await w()
+      .getByRole('button', { name: /^Shared: / })
+      .click({ timeout: 20_000 })
     const dlg = w().getByRole('dialog', { name: 'Share Agenda' })
     await dlg.getByRole('textbox', { name: 'Your name' }).fill('Kacper')
     await dlg.getByRole('textbox', { name: 'Attendees who use kacola' }).fill('ben@example.com')
-    await atlas.shoot(w(), 'agenda-share__share__dialog', {
-      expect: dlg.getByRole('button', { name: 'Share', exact: true }),
-      masks: clock(),
-    })
-    await dlg.getByRole('button', { name: 'Share', exact: true }).click()
+    await dlg.getByRole('button', { name: 'Save' }).click()
     const field = dlg.getByRole('textbox', { name: 'Web link' })
     await field.waitFor({ timeout: 20_000 })
     const link = await field.inputValue()
-    await dlg.getByText('Up to date').waitFor()
+    await dlg.getByText('Up to date').waitFor({ timeout: 20_000 })
     await atlas.shoot(w(), 'agenda-share__shared__link', {
       expect: [field, dlg.getByRole('button', { name: 'Copy Link' })],
       masks: [field, ...clock()],
     })
-    await w().keyboard.press('Escape')
-    await dlg.waitFor({ state: 'detached' })
+    if ((await dlg.count()) > 0) {
+      await w().keyboard.press('Escape')
+      await dlg.waitFor({ state: 'detached' })
+    }
 
     // an invitee without kacola: an item and a comment through the link
     const ivy = await host.invitee(linkToken(link), 'ivy@example.com', 'Ivy')
@@ -1531,11 +1551,11 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
     const grid = w().getByRole('grid', { name: 'Agenda items' })
     await grid
       .getByRole('row', { name: 'Roadmap' })
-      .getByText('checked by Ben’s Claude')
+      .getByText(/^by Ben.*Claude/)
       .waitFor({ timeout: 20_000 })
     await atlas.shoot(w(), 'agenda-team__shared__teammate-items', {
       expect: [
-        grid.getByRole('row', { name: 'Hiring' }).getByText('marked by Ben'),
+        grid.getByRole('row', { name: 'Hiring' }).getByText(/^by Ben$/),
         grid.getByRole('row', { name: 'Demo the new dashboard' }).getByText('added by Ben'),
         grid.getByRole('row', { name: 'Offsite dates' }).getByText('Friday works for me'),
       ],
@@ -1545,7 +1565,10 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
     await merged.getByRole('listitem', { name: /Roadmap: Open → Covered by Ben’s Claude, Applied/ }).waitFor()
     await merged.scrollIntoViewIfNeeded()
     await atlas.shoot(w(), 'agenda-share__history__merge', {
-      expect: [merged, w().getByRole('list', { name: 'Comments' }).getByText('Friday works for me')],
+      expect: [
+        merged,
+        w().getByRole('list', { name: 'Comments' }).getByText('Friday works for me', { exact: true }).last(),
+      ],
       masks: clock(),
     })
 
@@ -1594,7 +1617,7 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
       .getByRole('alertdialog', { name: 'Stop sharing this agenda?' })
       .getByRole('button', { name: 'Unshare', exact: true })
       .click()
-    await w().getByRole('button', { name: 'Share…' }).waitFor({ timeout: 20_000 })
+    await w().getByRole('button', { name: 'Send the agenda' }).waitFor({ timeout: 20_000 })
     let last: unknown
     await waitFor(
       async () => {

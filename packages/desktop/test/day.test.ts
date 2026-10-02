@@ -3,7 +3,7 @@ import type {
   AgendaSummary,
   AgendaView,
   Meeting,
-  SearchHit,
+  Moment as SearchMoment,
   Suggestion,
 } from '@gnomeola/protocol'
 import { describe, expect, it } from 'vitest'
@@ -409,52 +409,60 @@ describe('home: search moments', () => {
     ])
   })
 
-  it('lists title matches first, then transcript lines as meeting · day · time · speaker · line', () => {
+  it('maps the daemon’s moments: meeting · day · time · speaker · line, with the window’s titles', () => {
     const now = at(15, 30)
     const standup = session('s1', {
-      title: 'Platform standup',
+      title: 'Platform standup (renamed)',
       startedAt: iso(at(9, 30)),
       createdAt: iso(at(9, 30)),
     })
-    const retro = session('s2', {
-      title: 'Sprint retro',
-      startedAt: iso(at(10, 0, -8)),
-      createdAt: iso(at(10, 0, -8)),
-      private: true,
+    const moment = (o: Partial<SearchMoment>): SearchMoment => ({
+      kind: 'transcript',
+      sessionId: 's1',
+      sessionTitle: 'Platform standup',
+      date: iso(at(9, 30)),
+      private: false,
+      speaker: null,
+      segmentId: null,
+      startMs: null,
+      endMs: null,
+      snippet: '',
+      score: 1,
+      ...o,
     })
-    const hits: SearchHit[] = [
-      {
-        sessionId: 's1',
-        sessionTitle: 'Platform standup',
-        segmentId: 'seg3',
-        speaker: 'them',
-        startMs: 66_000,
-        endMs: 70_000,
-        snippet: 'Yes. The [retry] budget is three attempts',
-        score: 3,
-      },
-      {
-        sessionId: 's2',
-        sessionTitle: 'Sprint retro',
-        segmentId: 'seg9',
-        speaker: 'me',
-        startMs: 30_000,
-        endMs: 34_000,
-        snippet: 'The [retry] storm',
-        score: 2,
-      },
-    ]
-    const m = toMoments('retr', [standup, retro], hits, now)
-    expect(m.map((x) => [x.title, x.day, x.at, x.speaker])).toEqual([
-      ['Sprint retro', '4 March', null, null],
-      ['Platform standup', 'Today', '1:06', 'Them'],
-      ['Sprint retro', '4 March', '0:30', 'Me'],
+    const m = toMoments(
+      [
+        moment({
+          kind: 'title',
+          sessionId: 's2',
+          sessionTitle: 'Sprint retro',
+          date: iso(at(10, 0, -8)),
+          private: true,
+          snippet: 'Sprint [retro]',
+          score: 9,
+        }),
+        moment({ kind: 'notes', snippet: '[retry] budget?', score: 5 }),
+        moment({
+          speaker: 'them',
+          segmentId: 'seg3',
+          startMs: 66_000,
+          endMs: 70_000,
+          snippet: 'The [retry] budget is three attempts',
+        }),
+      ],
+      [standup],
+      now,
+    )
+    expect(m.map((x) => [x.kind, x.title, x.day, x.at, x.speaker])).toEqual([
+      ['title', 'Sprint retro', '4 March', null, null],
+      ['notes', 'Platform standup (renamed)', 'Today', null, 'Your notes'],
+      ['transcript', 'Platform standup (renamed)', 'Today', '1:06', 'Them'],
     ])
     expect(m[0]!.private).toBe(true)
-    expect(m[1]!.segmentId).toBe('seg3')
-    expect(m[1]!.parts.find((p) => p.mark)?.text).toBe('retry')
-    // a blank query matches no titles
-    expect(toMoments('  ', [standup], [], now)).toEqual([])
+    expect(m[2]!.segmentId).toBe('seg3')
+    expect(m[2]!.startMs).toBe(66_000)
+    expect(m[2]!.parts.find((p) => p.mark)?.text).toBe('retry')
+    expect(new Set(m.map((x) => x.key)).size).toBe(3)
   })
 
   it('reads a question as a question', () => {

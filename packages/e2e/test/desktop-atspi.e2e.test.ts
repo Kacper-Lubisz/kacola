@@ -19,7 +19,7 @@ import { seedMeetings } from '../src/seed.ts'
 // tree; this reads the platform one — Chromium's AT-SPI bridge on the headless session's private
 // accessibility bus — through the same driver the GTK suites used (packages/testkit/src/ui), to show the
 // window's controls reach a screen reader named, with their roles and states, and follow the window.
-// (Role names are at-spi2-core's: "button", "entry", "list box", "page tab", …)
+// (Role names are at-spi2-core's: "button", "entry", "list", "list box", …)
 
 const INTERACTIVE = new Set([
   'button',
@@ -51,7 +51,11 @@ describe('desktop window on the accessibility bus (AT-SPI)', () => {
   const unnamed = async () => {
     const out: string[] = []
     const visit = (n: AccessibleNode) => {
-      if (INTERACTIVE.has(n.role) && n.states.includes('showing') && n.name.trim() === '')
+      // a plain <li> is a "list item" too, but only a selectable one (a listbox option) is a control
+      const control =
+        INTERACTIVE.has(n.role) &&
+        (n.role !== 'list item' || n.states.includes('selectable') || n.states.includes('focusable'))
+      if (control && n.states.includes('showing') && n.name.trim() === '')
         out.push(`${n.role} (ref ${n.ref})`)
       for (const c of n.children ?? []) visit(c)
     }
@@ -72,7 +76,7 @@ describe('desktop window on the accessibility bus (AT-SPI)', () => {
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
     app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
-    await app.window.getByRole('listbox', { name: 'Sessions' }).waitFor({ timeout: 20_000 })
+    await app.window.getByRole('list', { name: 'Today’s meetings' }).waitFor({ timeout: 20_000 })
   }, 240_000)
 
   afterAll(async () => {
@@ -94,53 +98,55 @@ describe('desktop window on the accessibility bus (AT-SPI)', () => {
     )
   })
 
-  it('exposes the main window’s controls named, with their roles', async () => {
-    await find('frame', 'Gnomeola')
-    await find('button', 'Record')
+  it('exposes home’s controls named, with their roles', async () => {
+    await find('frame', 'kacola')
+    await find('heading', 'Your day')
+    await find('button', 'Record now')
     await find('button', 'Main menu')
-    await find('entry', 'Search sessions')
-    const list = await find('list box', 'Sessions')
-    const rows = await display.find({ app: appName, within: list, role: 'list item' })
-    expect(rows.map((r) => r.name)).toEqual([
-      expect.stringMatching(/^HR 1:1 .* Private$/),
-      expect.stringMatching(/^Quarterly planning /),
-      expect.stringMatching(/^Platform standup /),
-      expect.stringMatching(/^Sprint retro /),
+    await find('entry', 'Search or ask')
+    const list = await find('list', 'Today’s meetings')
+    const rows = await display.find({ app: appName, within: list, role: 'button' })
+    // each meeting is one named button: "<title>, <time>"
+    expect(rows.map((r) => r.name.replace(/, \d\d:\d\d$/, '')).sort()).toEqual([
+      'HR 1:1',
+      'Platform standup',
+      'Quarterly planning',
+      'Sprint retro',
     ])
-    await find('heading', 'No Session Selected')
     const { out, tree } = await unnamed()
     writeFileSync(join(DESKTOP_ARTIFACTS, 'atspi-main.txt'), formatTree(tree))
     expect(out).toEqual([])
   })
 
-  it('follows the window: a selected session, its tabs, and the pane Orca lands in', async () => {
+  it('follows the window: a meeting’s outcome page, its transcript panel, and Back to Today', async () => {
     await app.window
-      .getByRole('listbox', { name: 'Sessions' })
-      .getByRole('option', { name: /Platform standup/ })
+      .getByRole('list', { name: 'Today’s meetings' })
+      .getByRole('button', { name: /^Platform standup, / })
       .click()
     await app.window.getByRole('heading', { level: 1, name: 'Platform standup' }).waitFor()
-    const row = await display.findOne(
-      { app: appName, role: 'list item', nameContains: 'Platform standup', states: ['selected'] },
-      15_000,
-    )
-    expect(row.states).toContain('selected')
     await find('heading', 'Platform standup')
-    for (const t of ['Transcript', 'Ask', 'Notes', 'Details']) await find('page tab', t)
-    const transcript = await find('page tab', 'Transcript')
-    expect(transcript.states).toContain('selected')
-    // the transcript lines are a list box of named options, as in the DOM
+    await find('button', 'Back to Today')
+    await find('button', 'Share summary')
+    await find('button', 'Meeting actions')
+    // the notes are an editable entry (CodeMirror's content element)
+    const notes = await find('entry', 'Notes')
+    expect(notes.states).toEqual(expect.arrayContaining(['editable', 'focusable', 'showing']))
+    // the transcript, on demand: a list box of named options beside the page, as in the DOM
+    await app.window.keyboard.press('Control+t')
+    await app.window.getByRole('listbox', { name: 'Transcript' }).waitFor()
     const lines = await find('list box', 'Transcript')
     const first = await display.find({ app: appName, within: lines, role: 'list item', limit: 3 })
     expect(first.map((l) => l.name)).toContain('Me at 0:05: Morning. Quick round, then the retry question.')
-    // the search field is an editable, focusable single-line entry (what Orca announces as "edit")
-    const search = await find('entry', 'Search sessions')
-    expect(search.states).toEqual(expect.arrayContaining(['editable', 'focusable', 'single-line', 'showing']))
     // (the platform "focused" state is not asserted: in the headless Shell neither CDP key events nor
     // RemoteDesktop keys give the window a platform focus Chromium reports — see docs/desktop-app.md)
     const { out, tree } = await unnamed()
     writeFileSync(join(DESKTOP_ARTIFACTS, 'atspi-session.txt'), formatTree(tree))
     expect(out).toEqual([])
     expect(flatten(tree).length).toBeGreaterThan(40)
+    await app.window.getByRole('button', { name: 'Back to Today' }).click()
+    // home again: the search field is an editable, focusable single-line entry (Orca's "edit")
+    const search = await find('entry', 'Search or ask')
+    expect(search.states).toEqual(expect.arrayContaining(['editable', 'focusable', 'single-line', 'showing']))
     expect(app.problems()).toEqual([])
   })
 })

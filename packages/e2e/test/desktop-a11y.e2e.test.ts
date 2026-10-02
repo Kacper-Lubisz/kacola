@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createClient, LEASE_HEADER } from '@gnomeola/protocol'
 import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
 import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
 import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
@@ -428,16 +429,25 @@ describe('axe over every screen and state (seeded daemon, replayed provider)', (
       params: { id: agendaId, itemId: added.items[0]!.id },
       body: { status: 'in-progress' },
     })
-    await daemon.client.call('addSuggestion', {
+    // the user's Claude, following with permission to suggest: its pill and its one suggestion
+    const grant = await daemon.client.call('createAgentLease', {
+      params: { id: live.id },
+      body: { name: 'claude', mode: 'suggest' },
+    })
+    const claude = createClient({ baseUrl: daemon.baseUrl, headers: { [LEASE_HEADER]: grant.token } })
+    await claude.call('addSuggestion', {
       params: { id: agendaId },
       body: {
         kind: 'next-point',
         text: 'Ask who owns the hiring plan',
         itemId: added.items[1]!.id,
-        source: 'tracker',
+        source: 'agent:claude',
         ttlSec: 3600,
       } as never,
     })
+    await w()
+      .getByRole('button', { name: /Your Claude · can suggest/ })
+      .waitFor({ timeout: 10_000 })
     await w()
       .getByRole('region', { name: /^Suggestion: / })
       .getByRole('button', { name: 'Accept' })

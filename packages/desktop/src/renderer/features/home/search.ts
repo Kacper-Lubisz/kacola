@@ -1,12 +1,12 @@
-import { formatOffset, type SearchHit, type Session } from '@gnomeola/protocol'
+import { formatOffset, type MomentKind, type Moment as SearchMoment, type Session } from '@gnomeola/protocol'
 import { displayTitle } from '@gnomeola/ui-core/format'
 import { _ } from '@gnomeola/ui-core/i18n'
 import { speakerName } from '../transcript/rows.ts'
 import { dayLabel } from './day.ts'
 
-// Home's search (unit-tested in test/day.test.ts): what was typed, matched against meeting titles here
-// and against every transcript by the daemon's full-text search, as one list of *moments* — meeting ·
-// day · time · speaker · the line — each of which opens the meeting at that line.
+// Home's search (unit-tested in test/day.test.ts): what was typed, matched by the daemon against meeting
+// titles, notes and transcripts (GET /search/moments), as one list of *moments* — meeting · day · time ·
+// speaker · the line — each of which opens the meeting (a transcript line: at that line).
 
 export type SnippetPart = { text: string; mark: boolean }
 
@@ -61,12 +61,14 @@ export function markText(text: string, query: string): SnippetPart[] {
 
 export type Moment = {
   key: string
+  kind: MomentKind
   sessionId: string
   title: string
   /** "Today", "Yesterday", "Tuesday", "3 March". */
   day: string
   /** Where in the meeting ("4:12"), for a transcript line. */
   at: string | null
+  /** Who said it (a transcript line), or "Your notes" (a notes moment). */
   speaker: string | null
   parts: SnippetPart[]
   /** Open the meeting here. */
@@ -75,47 +77,38 @@ export type Moment = {
   private: boolean
 }
 
+/**
+ * The daemon's moments (GET /search/moments: titles, notes and transcripts, best first) as rows. The
+ * title shown is the window's current one (renames since are honoured).
+ */
 export function toMoments(
-  query: string,
+  found: readonly SearchMoment[],
   sessions: readonly Session[],
-  hits: readonly SearchHit[],
   now: number,
 ): Moment[] {
   const byId = new Map(sessions.map((s) => [s.id, s]))
-  const when = (s: Session | undefined) => (s ? dayLabel(Date.parse(s.startedAt ?? s.createdAt), now) : '')
-  const q = query.trim().toLowerCase()
-  const titled: Moment[] = q
-    ? sessions
-        .filter((s) => displayTitle(s).toLowerCase().includes(q))
-        .map((s) => ({
-          key: `t:${s.id}`,
-          sessionId: s.id,
-          title: displayTitle(s),
-          day: when(s),
-          at: null,
-          speaker: null,
-          parts: markText(displayTitle(s), query),
-          segmentId: null,
-          startMs: null,
-          private: s.private,
-        }))
-    : []
-  const lines: Moment[] = hits.map((h) => {
-    const s = byId.get(h.sessionId)
+  return found.map((m) => {
+    const s = byId.get(m.sessionId)
+    const title = s ? displayTitle(s) : m.sessionTitle || _('Untitled session')
     return {
-      key: `h:${h.sessionId}:${h.segmentId}`,
-      sessionId: h.sessionId,
-      title: s ? displayTitle(s) : h.sessionTitle || _('Untitled session'),
-      day: when(s),
-      at: formatOffset(h.startMs),
-      speaker: speakerName(h.speaker),
-      parts: snippetParts(h.snippet),
-      segmentId: h.segmentId,
-      startMs: h.startMs,
-      private: s?.private ?? false,
+      key: `${m.kind}:${m.sessionId}:${m.segmentId ?? ''}:${m.startMs ?? ''}:${m.snippet}`,
+      kind: m.kind,
+      sessionId: m.sessionId,
+      title,
+      day: dayLabel(Date.parse(m.date), now),
+      at: m.kind === 'transcript' && m.startMs !== null ? formatOffset(m.startMs) : null,
+      speaker:
+        m.kind === 'transcript' && m.speaker
+          ? speakerName(m.speaker)
+          : m.kind === 'notes'
+            ? _('Your notes')
+            : null,
+      parts: snippetParts(m.snippet),
+      segmentId: m.segmentId,
+      startMs: m.startMs,
+      private: m.private,
     }
   })
-  return [...titled, ...lines]
 }
 
 /** Does the query read as a question (so Enter asks instead of only searching)? */

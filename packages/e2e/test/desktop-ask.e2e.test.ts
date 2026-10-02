@@ -171,46 +171,49 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
     // the provider stream stops after its 8th event — "…three attempts, then dead-letter [s" — until
     // released: a fixed mid-stream state (a marker cut in half) for the assertions and the baseline
     const release = api.holdAfter(8)
-    await ask('What did we decide about the retry budget?')
+    try {
+      await ask('What did we decide about the retry budget?')
 
-    // the question appears at once, and the answer streams in under a spinner
-    await pane()
-      .getByText('What did we decide about the retry budget?', { exact: true })
-      .waitFor({ timeout: 5000 })
-    const partial = await poll(
-      async () => {
-        if (!(await answering().count())) return null
-        const t = await pane()
-          .getByText(/three attempts/)
-          .first()
-          .textContent()
-        return t
-      },
-      15_000,
-      'streamed text under the Answering spinner',
-    )
-    // held: everything before the cut has arrived, the half marker is not shown
-    await pane()
-      .getByText(/then dead-letter/)
-      .first()
-      .waitFor({ timeout: 10_000 })
-    expect(
+      // the question appears at once, and the answer streams in under a spinner
+      await pane()
+        .getByText('What did we decide about the retry budget?', { exact: true })
+        .waitFor({ timeout: 5000 })
+      const partial = await poll(
+        async () => {
+          if (!(await answering().count())) return null
+          const t = await pane()
+            .getByText(/three attempts/)
+            .first()
+            .textContent()
+          return t
+        },
+        15_000,
+        'streamed text under the Answering spinner',
+      )
+      // held: everything before the cut has arrived, the half marker is not shown
       await pane()
         .getByText(/then dead-letter/)
         .first()
-        .textContent(),
-    ).not.toMatch(/\[s/)
-    expect(partial).not.toMatch(/\[s\d/) // aliases never leak: markers are rewritten as they stream
-    // still spinner, no caret or hover: the baseline is the state
-    await w().emulateMedia({ reducedMotion: 'reduce' })
-    await w().evaluate('document.activeElement?.blur()')
-    await w().mouse.move(0, 0)
-    await expectScreenshot(app, 'ask-streaming-light', { region: pane() })
-    await setScheme(w(), 'dark')
-    await expectScreenshot(app, 'ask-streaming-dark', { region: pane() })
-    await setScheme(w(), 'light')
-    await w().emulateMedia({ reducedMotion: null })
-    release()
+        .waitFor({ timeout: 10_000 })
+      expect(
+        await pane()
+          .getByText(/then dead-letter/)
+          .first()
+          .textContent(),
+      ).not.toMatch(/\[s/)
+      expect(partial).not.toMatch(/\[s\d/) // aliases never leak: markers are rewritten as they stream
+      // still spinner, no caret or hover: the baseline is the state
+      await w().emulateMedia({ reducedMotion: 'reduce' })
+      await w().evaluate('document.activeElement?.blur()')
+      await w().mouse.move(0, 0)
+      await expectScreenshot(app, 'ask-streaming-light', { region: pane() })
+      await setScheme(w(), 'dark')
+      await expectScreenshot(app, 'ask-streaming-dark', { region: pane() })
+      await setScheme(w(), 'light')
+      await w().emulateMedia({ reducedMotion: null })
+    } finally {
+      release()
+    }
 
     // the answer: text with [n] markers (the chips), and one chip per citation
     const answer = await poll(() => lastAnswer(SEED.long), 15_000, 'the persisted answer')
@@ -372,17 +375,23 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
     await openSession('Platform standup')
     await openAsk()
     await daemon.client.call('updateSettings', { body: { llm: { provider: 'openai' } } })
-    api.enqueue(noCredits())
-    await ask('Anything?')
-    await pane()
-      .getByText('The provider account has no credits left', { exact: true })
-      .waitFor({ timeout: 15_000 })
-    expect(await answering().count()).toBe(0)
-    const { messages } = await daemon.client.call('getQaHistory', { params: { id: SEED.standup } })
-    expect(messages.at(-1)).toMatchObject({ role: 'user', text: 'Anything?' })
-    expect(await app.axe()).toEqual([])
-    await expectScreenshot(app, 'ask-no-credits-light', { region: pane() })
-    await daemon.client.call('updateSettings', { body: { llm: { provider: 'anthropic' } } })
+    try {
+      api.enqueue(noCredits())
+      await ask('Anything?')
+      // the daemon's sentence, and ONE action that fixes it (add credits, or switch provider)
+      await pane().getByText('No answer this time', { exact: true }).waitFor({ timeout: 15_000 })
+      await pane()
+        .getByRole('button', { name: /^(Add Credits|Switch Provider)$/ })
+        .waitFor()
+      expect(await pane().getByRole('button', { name: 'Try Again' }).count()).toBe(0)
+      expect(await answering().count()).toBe(0)
+      const { messages } = await daemon.client.call('getQaHistory', { params: { id: SEED.standup } })
+      expect(messages.at(-1)).toMatchObject({ role: 'user', text: 'Anything?' })
+      expect(await app.axe()).toEqual([])
+      await expectScreenshot(app, 'ask-no-credits-light', { region: pane() })
+    } finally {
+      await daemon.client.call('updateSettings', { body: { llm: { provider: 'anthropic' } } })
+    }
   })
 
   it('answers during a live recording, with citations into the growing transcript', async () => {
