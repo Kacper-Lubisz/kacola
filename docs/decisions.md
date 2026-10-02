@@ -110,7 +110,8 @@ provider falls back to the hashing embedder (health says so). Tests use `~/.cach
   deflect cues). Heuristics, honestly labelled; no tuning was done.
 
 State is kept small (the recent window plus the items asked about): Jev's documented weak spots are large
-irrelevant state, arithmetic and adversarial content (docs.typesafe.ai/model-jaggedness/jev-1.13.md).
+irrelevant state, arithmetic and adversarial content (docs.typesafe.ai/model-jaggedness/jev-1.13.md). The
+window is 30 lines for hosted providers and 10 on-device (see "Cadence" below for why).
 
 ## Evals
 
@@ -224,6 +225,54 @@ dominate both):
 
 These are baselines, not targets: nothing was tuned. The live providers have no numbers yet (no TypeSafe or
 Anthropic key; the OpenAI account has no credits).
+
+### Cadence: when the tracker decides, and why it is late
+
+Measured on the private real interview (37.7 min, 339 segments, 15 labelled items) with Jev; the tooling:
+
+- `node packages/evals/scripts/trace-real.ts [--tracker='<json>'] [--live-publish]` — every decision call
+  timed and classified, per item P(covered) on each round, and each tick's lag split into *conservative*
+  (waiting for more speech), *pipeline* (that segment's serial calls) and *queue* (waiting behind earlier
+  segments). Ids, times and numbers only.
+- `run-evals.ts … --tracker='<TrackerOptions json>' --label=<name>` runs the real suite with other options;
+  `--live-publish[=ms]` publishes segments as the pipeline does (growing while spoken, then final) instead of
+  once each when complete; `--synthetic` adds the scripted agenda meetings through the tracker.
+
+What fires a round: each new segment (relevance gate, then one batched status call over the open items, plus
+one interview call per `info-to-get` item that came up), and a 30 s heartbeat when something was said. The
+pipeline publishes a segment while it is spoken (its first committed words, more, then the final text); only
+its first publication used to trigger a round, so the rest of a long turn waited for the next segment or the
+heartbeat. A segment is now judged again once it has grown by `recheckWords` (12) words and when it goes
+final with unjudged text — guard included, so words added after a clean verdict never reach a round
+unguarded.
+
+Where the lag was: not the pipeline. Calls take p50 ≈ 220 ms (status ≈ 300 ms), a segment's serial chain p90
+≈ 0.8 s, the queue never waits. Ticks came late or never because P(covered) stayed under 0.8: with 10 lines
+in view, an answer given over several turns never fit, and P *fell* as the talk moved on. More frequent
+rounds over the same window did not help (no gate: same recall, twice the per-segment latency; 10 s
+heartbeat: same recall). A 30-line window did: recall 3–4/9 → 7–9/9 at precision 1.0. Under live
+publication the re-check takes the median lag from ≈ 15 s to ≈ 1 s.
+
+The user's own voice (`me`, the mic track) feeds the tracker like the far end. Wider windows let it raise
+false hopes: the one negative that drew a "looks covered?" (P up to 0.7) was entirely the user's own lines
+(talking about the topic themselves). So on items the user asks about (`info-to-get`, `question`) their own
+line counts one step less (`ownerDemoted`: a check-off becomes a suggestion, a suggestion in progress), and
+the status question is told that `me` owns the agenda. Sustained-evidence aggregation (`aggregate`: two
+rounds ≥ 0.7 on different lines check an item off) adds one diffuse item at a 10-line window and nothing at
+30, so it is available but off.
+
+| real interview, Jev | auto P | auto R | false ticks (neg.) | looks covered R / on neg. | lag median / p90 | calls | $/meeting-h |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| before (10 lines, finals) | 1.0 | 3–4/9 | 0 | 0.89 / 0 | 0.7 s / 1.4–22 s | 742 | 0.11 |
+| 30 lines + owner rule (finals) | 1.0 | 7–9/9 | 0 | 0.89–1.0 / 0 | 0.7–15 s / 34–200 s | 742 | 0.13–0.14 |
+| 10 lines, live publication, no re-check | 1.0 | 4/9 | 0 | 0.78 / 0 | 4.4 s / 22 s | 712 | 0.10 |
+| 30 lines + owner, live, no re-check | 1.0 | 7/9 | 0 | 1.0 / 0 | 15 s / 48 s | 719 | 0.13 |
+| **default: + re-check 12 words, live** | 1.0 | 7–9/9 | 0 | 0.89–1.0 / 0 | 1.0–15 s / 34–200 s | ≈1360 | 0.19–0.23 |
+
+Ranges are over 2–4 runs (Jev's answers vary run to run by about one item). Lag is over ticked items only,
+so it grows when items that used to be missed are ticked late: the items ticked before are still ticked
+within about a second; the new ones are diffuse answers that add up over a minute or more. The synthetic agenda meetings are unchanged by all of this
+(precision and recall 0.94).
 
 ## Plugging in (later waves)
 

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import type { ProviderSetup } from '../src/providers.ts'
 import {
   listRealFixtures,
+  livePublications,
   loadRealFixture,
   quantile,
   REAL_SAMPLE_FIXTURE,
@@ -130,6 +131,33 @@ describe('replay', () => {
     expect(seen.map((h) => h.length)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
     expect(seen[3]!.at(-1)!.index).toBe(4)
     expect(meter.calls).toBe(8)
+  })
+
+  it('live publication: a segment grows every chunk while spoken and closes final with its whole text', async () => {
+    const fx = sample()
+    fx.transcript.segments = [
+      {
+        id: 'a',
+        speaker: 'Speaker 1',
+        startMs: 0,
+        endMs: 10_000,
+        text: 'one two three four five six seven eight nine ten',
+      },
+      { id: 'b', speaker: 'me', startMs: 4_000, endMs: 5_000, text: 'short question here?' },
+    ]
+    const pubs = livePublications(fx.transcript, 3_000)
+    expect(pubs.map((u) => [u.index, u.endMs, u.quality, u.text.split(' ').length])).toEqual([
+      [0, 3_000, 'live', 3],
+      [1, 5_000, 'final', 3],
+      [0, 6_000, 'live', 6],
+      [0, 9_000, 'live', 9],
+      [0, 10_000, 'final', 10],
+    ])
+    // the replay hands each publication to the runner; the scorecard still counts segments
+    const seen: ReplayUtterance[][] = []
+    const { segments } = await replayReal(scripted({}, seen), fx, { liveChunkMs: 3_000 })
+    expect(segments).toBe(2)
+    expect(seen).toHaveLength(5)
   })
 
   it('keeps the first tick, the first suggestion and the highest P per item (forward-only)', async () => {
