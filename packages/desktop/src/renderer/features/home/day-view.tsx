@@ -151,7 +151,7 @@ function CalendarNoticeLine() {
         <Button
           size="sm"
           variant="link"
-          className="!inline !text-text-primary underline"
+          className="!inline underline"
           isDisabled={running}
           onPress={() => void refresh(api, queryClient)}
         >

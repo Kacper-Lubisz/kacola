@@ -402,7 +402,7 @@ export function Gallery() {
 
           <Section title="Toasts and banners" wide>
             <div className="flex flex-wrap gap-3">
-              <Button onPress={() => toast('Saved “Weekly sync & retro”')}>Show Toast</Button>
+              <Button onPress={() => toast('Saved “Weekly sync & retro”')}>Show toast</Button>
               <Button
                 onPress={() =>
                   toast('Could not start recording: no microphone', {
@@ -411,14 +411,14 @@ export function Gallery() {
                   })
                 }
               >
-                Show Error Toast
+                Show error toast
               </Button>
             </div>
             <Banner title="Lost the connection to the daemon. Reconnecting…" />
             <Banner
               tone="warning"
               title="A speech model is not downloaded yet"
-              action={<Button size="sm">Set Up</Button>}
+              action={<Button size="sm">Set up</Button>}
             />
             <Banner tone="danger" title="Recording failed: the microphone disappeared" />
             <Banner tone="success" title="All models are ready" />

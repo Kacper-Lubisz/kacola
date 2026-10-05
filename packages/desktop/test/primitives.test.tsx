@@ -267,13 +267,13 @@ describe('status and layout', () => {
         <Banner
           tone="warning"
           title="A speech model is not downloaded yet"
-          action={<Button>Set Up</Button>}
+          action={<Button>Set up</Button>}
         />
         <EmptyState title="No Sessions Yet" description="Press Record." headingLevel={2} />
       </>,
     )
     const b = screen.getByRole('status', { name: 'A speech model is not downloaded yet' })
-    expect(within(b).getByRole('button', { name: 'Set Up' })).toBeTruthy()
+    expect(within(b).getByRole('button', { name: 'Set up' })).toBeTruthy()
     expect(screen.getByRole('region', { name: 'No Sessions Yet' })).toBeTruthy()
     expect(screen.getByRole('heading', { level: 2, name: 'No Sessions Yet' })).toBeTruthy()
   })

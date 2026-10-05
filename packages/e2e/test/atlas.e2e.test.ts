@@ -2303,7 +2303,7 @@ describe('atlas: first run (real daemon, models not downloaded, calendar off)', 
         app.window.getByRole('button', { name: 'Set up' }),
       ],
     })
-    const setUp = app.window.getByRole('button', { name: /Set Up/ }).first()
+    const setUp = app.window.getByRole('button', { name: /Set up/ }).first()
     await setUp.click()
     const models = app.window.getByRole('dialog').first()
     await models
