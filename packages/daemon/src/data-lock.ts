@@ -33,6 +33,11 @@ import { platformPaths } from '@gnomeola/protocol'
 // reboot) is stale and taken over; liveness is `kill(pid, 0)` plus, on Linux, the process's start time
 // from /proc/<pid>/stat, so a recycled pid is not mistaken for the old owner.
 //
+// Taking over a stale lock: exactly one contender may remove a given stale lock, and it moves it aside
+// to `daemon.lock.prev` instead of deleting it; whoever then creates the new lock reads `.prev` to learn
+// whom it replaced and when that owner was last alive. (The remover is often not the winner — another
+// contender's create can land first — so the winner cannot rely on having judged the stale lock itself.)
+//
 // While it runs, the owner touches the lock every few seconds (`heartbeat()`): after a crash its mtime
 // says when the daemon was last alive, which the next one uses to measure the gap it resumes across.
 
@@ -151,19 +156,23 @@ export type AcquireOptions = {
   env?: NodeJS.ProcessEnv
 }
 
-/** /proc/<pid>/stat field 22, or null off Linux / for a gone process. */
-export function procStartTime(pid: number): string | null {
+/** /proc/<pid>/stat fields after comm (index 0 = field 3, state), or null off Linux / for a gone process. */
+function procStat(pid: number): string[] | null {
   try {
     const stat = readFileSync(`/proc/${pid}/stat`, 'utf8')
     // comm (field 2) may contain spaces and parentheses: split after the LAST ')'
-    const rest = stat.slice(stat.lastIndexOf(')') + 2).split(' ')
-    return rest[19] ?? null // field 22 overall = index 19 after state (field 3)
+    return stat.slice(stat.lastIndexOf(')') + 2).split(' ')
   } catch {
     return null
   }
 }
 
-export function defaultIsAlive(owner: LockOwner): boolean {
+/** /proc/<pid>/stat field 22, or null off Linux / for a gone process. */
+export function procStartTime(pid: number): string | null {
+  return procStat(pid)?.[19] ?? null // field 22 overall = index 19 after state (field 3)
+}
+
+export function defaultIsAlive(owner: Pick<LockOwner, 'pid' | 'procStart'>): boolean {
   try {
     process.kill(owner.pid, 0)
   } catch (err) {
@@ -172,6 +181,8 @@ export function defaultIsAlive(owner: LockOwner): boolean {
     if ((err as NodeJS.ErrnoException).code !== 'EPERM') return false
   }
   if (owner.pid === process.pid) return true
+  // a zombie (exited, not yet reaped by its parent) still answers kill(pid, 0), but it is dead
+  if (procStat(owner.pid)?.[0] === 'Z') return false
   if (owner.procStart !== null) {
     const now = procStartTime(owner.pid)
     // a different start time is a recycled pid; null means /proc vanished between the two checks
@@ -265,34 +276,98 @@ function createExclusive(path: string, text: string): void {
 
 const pause = (ms: number) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
 
-/**
- * Remove the stale lock we judged — and only that one. Removal is serialised by a second exclusive
- * file (`daemon.lock.takeover`), and the holder re-reads the lock inside it: nobody can create a new
- * lock while the stale one exists, and only a takeover holder removes it, so no contender ever deletes
- * a live owner's lock. A takeover file left by a process that died holding it is cleared after 5 s.
- */
-function removeStale(path: string, judged: LockOwner | null): void {
-  const mutex = `${path}.takeover`
+/** Where a takeover moves the stale lock it replaced (read and removed by the next owner). */
+export const PREV_LOCK_SUFFIX = '.prev'
+
+type Claim = { pid: number; procStart: string | null }
+
+function readClaim(path: string): Claim | null | 'missing' {
   try {
-    createExclusive(mutex, String(process.pid))
+    const o = JSON.parse(readFileSync(path, 'utf8')) as Partial<Claim>
+    if (typeof o.pid !== 'number') return null
+    return { pid: o.pid, procStart: typeof o.procStart === 'string' ? o.procStart : null }
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err
+    return (err as NodeJS.ErrnoException).code === 'ENOENT' ? 'missing' : null
+  }
+}
+
+/**
+ * Move the stale lock we judged — and only that one — aside to `daemon.lock.prev`.
+ *
+ * Moving a lock away by name is not atomic with checking what it holds, so removal must be exclusive:
+ * the remover re-reads the lock and moves it only if it is still the one judged stale. That is safe
+ * because nobody can create a new lock while the stale one exists, and only the one holder of the
+ * claim for THIS stale lock may move it, so the file cannot change between its re-read and its rename.
+ *
+ * The claim is `daemon.lock.takeover.<stale token>.<n>`, created exclusively. It is never cleared on a
+ * timer: an earlier version cleared a 5 s old claim, which let a second remover in beside a stalled
+ * first one, and the stalled one would then delete the new owner's live lock. A claim whose holder has
+ * died is skipped instead (the next contender takes claim n+1). Claims are keyed by the stale lock's
+ * token, which never comes back once that lock is gone, so a late contender that claims afresh only
+ * re-reads a different lock and leaves it alone.
+ */
+function removeStale(path: string, judged: LockOwner | null, judgedIno: number): void {
+  const id = (judged ? `t-${judged.token}` : `ino-${judgedIno}`).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 80)
+  const claimPath = (n: number) => `${path}.takeover.${id}.${n}`
+  const me = JSON.stringify({ pid: process.pid, procStart: procStartTime(process.pid) })
+  let n = 0
+  for (let tries = 0; ; tries++) {
+    if (tries > 1000) return // pathological churn: the caller's loop (and its deadline) retries
     try {
-      if (Date.now() - statSync(mutex).mtimeMs > 5000) unlinkSync(mutex)
+      createExclusive(claimPath(n), me)
+      break
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err
+    }
+    const holder = readClaim(claimPath(n))
+    if (holder === 'missing') continue // its holder just finished: claim it again (and find the lock moved)
+    let fresh = true
+    try {
+      fresh = Date.now() - statSync(claimPath(n)).mtimeMs < 2000
     } catch {}
-    pause(10)
-    return
+    // A live holder is moving the lock right now: back off and look again. An unreadable claim (only
+    // possible from the non-atomic wx fallback) gets the same 2 s grace as an unreadable lock.
+    if (holder === null ? fresh : defaultIsAlive(holder)) {
+      pause(10)
+      return
+    }
+    n++ // its holder died mid-takeover: the next claim
   }
   try {
-    const again = readOwner(path)
-    if (again === 'missing') return
-    const same = again === null ? judged === null : again.token === judged?.token
-    if (same) unlinkSync(path)
-  } finally {
+    let again: LockOwner | null | 'missing'
+    let ino: number
     try {
-      unlinkSync(mutex)
-    } catch {}
+      again = readOwner(path)
+      ino = statSync(path).ino
+    } catch {
+      return // gone already
+    }
+    if (again === 'missing') return
+    const same = again === null ? judged === null && ino === judgedIno : again.token === judged?.token
+    // rename keeps the file's mtime (the stale owner's last heartbeat) for whoever wins next
+    if (same) renameSync(path, `${path}${PREV_LOCK_SUFFIX}`)
+  } finally {
+    for (let i = 0; i <= n; i++)
+      try {
+        unlinkSync(claimPath(i))
+      } catch {}
   }
+}
+
+/** The stale lock the last takeover moved aside, and when its owner was last alive. Consumed. */
+function takePrevious(path: string): DataDirLock['takenOverFrom'] {
+  const prev = `${path}${PREV_LOCK_SUFFIX}`
+  let lastAliveAt: Date
+  try {
+    lastAliveAt = statSync(prev).mtime
+  } catch {
+    return null
+  }
+  const o = readOwner(prev)
+  try {
+    unlinkSync(prev)
+  } catch {}
+  return { owner: o === 'missing' ? null : o, lastAliveAt }
 }
 
 /**
@@ -316,8 +391,6 @@ export function acquireDataDirLock(dataDir: string, o: AcquireOptions = {}): Dat
     token: randomBytes(12).toString('hex'),
     cmd: process.argv.slice(1).join(' ').slice(0, 300),
   }
-  let takenOverFrom: DataDirLock['takenOverFrom'] = null
-
   const giveUpAt = Date.now() + 10_000
   for (;;) {
     if (Date.now() > giveUpAt) throw new Error(`could not lock ${dataDir}: the lock kept changing under us`)
@@ -332,19 +405,19 @@ export function acquireDataDirLock(dataDir: string, o: AcquireOptions = {}): Dat
     if (cur !== null && isAlive(cur)) throw new DataDirLockedError(dataDir, cur)
     // Stale (dead owner) or unreadable. Unreadable is only possible from a non-atomic writer (the wx
     // fallback, mid-write): give such a file a moment before declaring it garbage.
-    let mtime: Date
+    let st: { mtime: Date; ino: number }
     try {
-      mtime = statSync(path).mtime
+      st = statSync(path)
     } catch {
       continue
     }
-    if (cur === null && now().getTime() - mtime.getTime() < 2000) {
+    if (cur === null && now().getTime() - st.mtime.getTime() < 2000) {
       pause(50)
       continue
     }
-    // whoever wins the dir after this stale lock goes reports when its owner was last alive
-    takenOverFrom = { owner: cur, lastAliveAt: mtime }
-    removeStale(path, cur)
+    // Moved aside to .prev, where whoever wins the dir next (often not us: another contender's create
+    // can land first) learns whom it replaced and when that owner was last alive.
+    removeStale(path, cur, st.ino)
   }
   // A daemon from before this lock existed (the one running while this version is installed) holds no
   // lock file, but it does hold the database open for writing: ask the kernel who has it open.
@@ -365,6 +438,8 @@ export function acquireDataDirLock(dataDir: string, o: AcquireOptions = {}): Dat
       })
     }
   }
+  // only now, with the dir ours (a refusal above leaves .prev for whoever does win it)
+  const takenOverFrom = takePrevious(path)
   let held = true
   const stillOurs = () => {
     const cur = readOwner(path)

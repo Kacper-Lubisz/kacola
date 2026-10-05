@@ -1,5 +1,6 @@
 import {
   type AgendaItemInput,
+  ASKED_KINDS,
   contentWords,
   DEFAULT_THRESHOLDS,
   type DecisionProvider,
@@ -19,7 +20,7 @@ import {
   type TrackStatus,
   type TranscriptLine,
 } from '@gnomeola/decisions'
-import type { AgendaItem, AgendaItemStatus } from '@gnomeola/protocol'
+import { type AgendaItem, type AgendaItemStatus, ME } from '@gnomeola/protocol'
 
 // The live tracker's decisions, as plain functions over a DecisionProvider: the tracker (tracker.ts) calls
 // them per round, and the eval runners (tracker-eval.ts) call exactly the same ones, so an eval of the
@@ -120,6 +121,8 @@ export type ItemVerdict = {
   answer: string | null
   status: StatusDecision
   interview: InterviewDecision | null
+  /** Checked off by sustained evidence across rounds (aggregate), not by one round's P. */
+  aggregated?: boolean
 }
 
 export type RoundResult = { verdicts: ItemVerdict[]; results: DecisionResult[] }
@@ -151,6 +154,8 @@ export async function statusRound(
     /** Items the relevance pre-check pointed at (re-check interview answers of these). */
     focus?: readonly string[]
     thresholds?: StatusThresholds
+    /** The agenda owner's speaker label (`me`), told to the status question (see StatusRoundInput). */
+    owner?: string
   },
 ): Promise<RoundResult> {
   const t = o.thresholds ?? DEFAULT_THRESHOLDS
@@ -160,11 +165,16 @@ export async function statusRound(
   if (!o.window.length) return { verdicts, results }
   let decisions: StatusDecision[] = []
   if (open.length) {
-    const r = await decideStatus(provider, { items: open, window: o.window })
+    const r = await decideStatus(provider, {
+      items: open,
+      window: o.window,
+      ...(o.owner ? { owner: o.owner } : {}),
+    })
     results.push(r.result)
     decisions = r.decisions
   }
   const byId = new Map(o.items.map((it) => [it.id, it]))
+  const speakerOf = new Map(o.window.map((l) => [l.id, l.speaker]))
   // interview items: those the status round says have come up, and tracker-answered ones in focus
   const interviewFor = [
     ...decisions
@@ -203,10 +213,15 @@ export async function statusRound(
       if (line) evidence = { lineId: line.id, quote: line.text, confidence: iv.answerConfidence }
     }
     const decision: StatusDecision = { ...d, pCovered, evidence, answer }
+    const action = ownerDemoted(
+      statusPolicy(trackStatus(item.status), item.manual, decision, t),
+      trackStatus(item.status),
+      ASKED_KINDS.has(item.kind) && !!evidence && speakerOf.get(evidence.lineId) === ME,
+    )
     verdicts.push({
       itemId: d.itemId,
       pCovered,
-      action: statusPolicy(trackStatus(item.status), item.manual, decision, t),
+      action,
       evidence,
       answer,
       status: decision,
@@ -238,6 +253,67 @@ export async function statusRound(
     })
   }
   return { verdicts, results }
+}
+
+// ------------------------------------------------------------------------------ evidence aggregation
+
+/**
+ * Sustained evidence: an item that stays in the "looks covered" band across consecutive rounds, each
+ * round pointing at a different line, is checked off — the answer was given over several turns and each
+ * part on its own was enough for a strong suggestion. `p` is the least P(covered) every round in the run
+ * must reach (below the auto threshold, at or above the suggestion one); `rounds` how many in a row.
+ */
+export type AggregateOptions = { p: number; rounds: number }
+
+/** Per item, the current run of strong rounds: the evidence line of each, oldest first. */
+export type AggregateState = Map<string, string[]>
+
+/**
+ * Fold one round's verdicts into the runs and upgrade the suggestions whose run is long enough to an auto
+ * check-off. A round below `p`, without evidence, or whose evidence is the agenda owner's own line on
+ * something they asked about ends the item's run. Mutates `state`; returns the verdicts to apply.
+ */
+export function aggregate(
+  state: AggregateState,
+  verdicts: readonly ItemVerdict[],
+  o: AggregateOptions,
+  ctx: { items: ReadonlyMap<string, Pick<LiveItem, 'kind'>>; speakerOf: ReadonlyMap<string, string> },
+): ItemVerdict[] {
+  return verdicts.map((v) => {
+    const kind = ctx.items.get(v.itemId)?.kind
+    const own = !!v.evidence && ASKED_KINDS.has(kind ?? '') && ctx.speakerOf.get(v.evidence.lineId) === ME
+    if (
+      v.action.kind === 'auto-covered' ||
+      v.action.kind === 'none' ||
+      !v.evidence ||
+      own ||
+      v.pCovered < o.p
+    ) {
+      state.delete(v.itemId)
+      return v
+    }
+    const run = state.get(v.itemId) ?? []
+    if (run.at(-1) !== v.evidence.lineId) run.push(v.evidence.lineId)
+    state.set(v.itemId, run)
+    // distinct lines: the same line judged again is one piece of evidence, not two
+    if (new Set(run).size < o.rounds || v.action.kind !== 'suggest-covered') return v
+    state.delete(v.itemId)
+    return { ...v, action: { kind: 'auto-covered', evidence: v.evidence }, aggregated: true }
+  })
+}
+
+/**
+ * The user's own line is not what answers something they wanted to find out: their question, guess or
+ * talk about the topic ("so about forty people?", "at my last job we used …") moves the item one step
+ * less — a check-off becomes a "looks covered?" suggestion, a suggestion becomes in progress — until
+ * someone else's line is the evidence. `own`: the evidence line is the owner's and the item is one they ask.
+ */
+export function ownerDemoted(action: PolicyAction, current: TrackStatus, own: boolean): PolicyAction {
+  if (!own) return action
+  if (action.kind === 'auto-covered') return { kind: 'suggest-covered' }
+  if (action.kind === 'suggest-covered')
+    return current === 'not_started' ? { kind: 'in-progress' } : { kind: 'none' }
+  return action
 }
 
 /** A corrected answer worth writing: answered with confidence, and a different value than recorded. */

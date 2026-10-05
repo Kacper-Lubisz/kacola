@@ -27,6 +27,11 @@ export type StatusRoundInput = {
   items: readonly AgendaItemInput[]
   /** The recent window, oldest first; `id` is what evidence points back to. */
   window: readonly TranscriptLine[]
+  /**
+   * The speaker label of the person the agenda belongs to (the mic track, `me`), when their lines should be
+   * read as such: a question they ask raises an item to find out, someone else's answer covers it.
+   */
+  owner?: string
 }
 
 export type StatusDecision = {
@@ -70,7 +75,7 @@ export function statusQuestions(input: StatusRoundInput) {
       id: `status.${i}`,
       kind: 'choice',
       tag: TAG_STATUS,
-      instructions: `In \`transcript\`, what is the status of the agenda item \`agenda[${i}]\` ("${it.text}")?`,
+      instructions: `In \`transcript\`, what is the status of the agenda item \`agenda[${i}]\` ("${it.text}")?${ownerHint(it, input)}`,
       options: STATUS_OPTIONS(it),
     })
     if (lines.length)
@@ -91,6 +96,15 @@ export function statusQuestions(input: StatusRoundInput) {
       })
   })
   return { state, questions }
+}
+
+/** Item kinds the agenda's owner asks about: their own question raises them, an answer covers them. */
+export const ASKED_KINDS: ReadonlySet<string> = new Set(['info-to-get', 'question'])
+
+function ownerHint(it: AgendaItemInput, input: StatusRoundInput): string {
+  if (!input.owner || !ASKED_KINDS.has(it.kind) || !input.window.some((l) => l.speaker === input.owner))
+    return ''
+  return ` Speaker "${input.owner}" owns this agenda and wants this found out: their own question or guess only raises it; it is covered when another speaker gives the answer.`
 }
 
 function uniqueLines(window: readonly TranscriptLine[]): TranscriptLine[] {
