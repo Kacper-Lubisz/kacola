@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
-import { LlmError } from '@gnomeola/llm'
+import { LlmError } from '@kacola/llm'
 import type { DecideOptions, DecisionProvider, DecisionRequest, DecisionResult } from './types.ts'
 
 // Decision cassettes: record what a provider answered for each request, replay it later without the

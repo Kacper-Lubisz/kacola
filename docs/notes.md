@@ -51,7 +51,7 @@ transcript; the CLI and the skill never pass it.
   list of the wrong length (400) or a stale head (409), so a merge is exactly what the reviewer saw.
 
 Properties tested over thousands of generated documents (structured markdown, model-like rewrites and
-raw noise; `GNOMEOLA_PROPERTY_RUNS=40000` for a soak): the split is lossless; all-`mine` reproduces the
+raw noise; `KACOLA_PROPERTY_RUNS=40000` for a soak): the split is lossless; all-`mine` reproduces the
 user's text byte for byte and all-`enhanced` the enhanced text; any choice set yields exactly the chosen
 blocks, in order, each verbatim; toggling a hunk twice is a no-op and toggling one hunk changes only its
 blocks; the defaults never drop a user block; re-diffing a merge against the enhanced version offers
@@ -92,7 +92,7 @@ protected. The default for a meeting is chosen by whole-word keyword match — c
 **calendar event title before the session title** — else `general`.
 
 **Calendar hook:** `listTemplates` takes `calendarTitle`, and `enhanceNotes` takes `calendarTitle` in
-its body; `suggestTemplate({ sessionTitle, calendarTitle }, custom)` is exported from `@gnomeola/daemon`.
+its body; `suggestTemplate({ sessionTitle, calendarTitle }, custom)` is exported from `@kacola/daemon`.
 Calendar integration (M4) only has to pass the event's title; nothing here depends on how it is found.
 
 ## Export and action items (N-5)
@@ -103,7 +103,7 @@ Calendar integration (M4) only has to pass the event's title; nothing here depen
 - `extractActionItems()` (`packages/protocol/src/notes-actions.ts`) is deterministic: task-list items
   anywhere, list items under an action-items heading; owner from `owner:`, `@name`, `**Name**:`,
   `Name:` or `Name to …`; due from `due:` or `by <day/date>`. Only what the notes state.
-- CLI: `gnomeola notes <session> [--actions | --versions | --version N] [--full]` (JSON when piped;
+- CLI: `kacola notes <session> [--actions | --versions | --version N] [--full]` (JSON when piped;
   golden-tested through the real daemon). MCP: `get_meeting_notes`. The meeting-context skill checks a
   meeting's notes before asking or fetching windows.
 
@@ -153,7 +153,7 @@ Calendar integration (M4) only has to pass the event's title; nothing here depen
 | int | `packages/e2e/test/notes-chain.int.test.ts` | CLI → daemon → LlmNotesEngine → SDK → replayed API; refusal / 429 leave notes untouched |
 | unit | `packages/ui-core/test/notes.test.ts` | the feed (incl. restore), the query-cache folds, enhance error classes |
 | unit | `packages/desktop/test/notes.test.tsx`, `notes-files.test.ts` | review choices in/out, action items, template helpers + optimistic mutation; main's clipboard / save-dialog checks |
-| e2e | `packages/e2e/test/desktop-notes.e2e.test.ts` | Playwright port of the former GTK suite (every assertion) + rate limiting, history restore, custom templates; axe in light / dark / high contrast; screenshot baselines (`test/__screenshots__/desktop-notes/`, `GNOMEOLA_UPDATE_SCREENSHOTS=1` to refresh) |
+| e2e | `packages/e2e/test/desktop-notes.e2e.test.ts` | Playwright port of the former GTK suite (every assertion) + rate limiting, history restore, custom templates; axe in light / dark / high contrast; screenshot baselines (`test/__screenshots__/desktop-notes/`, `KACOLA_UPDATE_SCREENSHOTS=1` to refresh) |
 | eval | `packages/llm/test/enhance.eval.test.ts` | live (needs `ANTHROPIC_API_KEY`): user lines kept verbatim (hard), fact / action recall vs reference notes (soft), injection not obeyed, cache read on re-enhance |
 
 The committed enhancement cassettes are hand-authored (no key was available); regenerate their requests

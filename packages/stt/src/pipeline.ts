@@ -1,4 +1,4 @@
-import type { Segment, TrackKind } from '@gnomeola/protocol'
+import type { Segment, TrackKind } from '@kacola/protocol'
 import type { DiarizationSession } from './diarize/types.ts'
 import { EchoGate, type EchoGateOptions } from './echo-gate.ts'
 import {

@@ -1,4 +1,4 @@
-import { TrackKind } from '@gnomeola/protocol'
+import { TrackKind } from '@kacola/protocol'
 import { z } from 'zod'
 import { AgendaTruth } from './agenda-schema.ts'
 

@@ -1,15 +1,15 @@
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { WAV_HEADER_BYTES } from '@gnomeola/capture'
+import { WAV_HEADER_BYTES } from '@kacola/capture'
 import {
   AUDIO_CHUNK_BYTES,
   chunkSeqFor,
-  GnomeolaApiError,
-  type GnomeolaClient,
+  KacolaApiError,
+  type KacolaClient,
   type Session,
   type TrackKind,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 
 // H-3 — chunked, idempotent, resumable audio upload (full-offload mode). Chunk k of a track is the k-th
 // AUDIO_CHUNK_BYTES of that track's PCM — exactly the bytes of its local WAV after the header — so the
@@ -20,7 +20,7 @@ import {
 // 5xx, and never retried on 4xx other than 409-for-a-race.
 
 export type UploaderOptions = {
-  client: GnomeolaClient
+  client: KacolaClient
   sessionId: string
   retryMinMs?: number
   retryMaxMs?: number
@@ -99,7 +99,7 @@ export async function retrying<T>(
     try {
       return await fn()
     } catch (err) {
-      const status = err instanceof GnomeolaApiError ? err.status : null
+      const status = err instanceof KacolaApiError ? err.status : null
       const permanent = status !== null && status < 500 && status !== 408 && status !== 429
       if (permanent || attempt >= (opts.attempts ?? 12)) throw err
       await sleep(delay)
@@ -150,7 +150,7 @@ export class ChunkUploader {
         this.stats.bytes += data.length
         return
       } catch (err) {
-        const status = err instanceof GnomeolaApiError ? err.status : null
+        const status = err instanceof KacolaApiError ? err.status : null
         const permanent = status !== null && status >= 400 && status < 500 && status !== 408 && status !== 429
         if (permanent || (this.o.maxAttempts && attempt >= this.o.maxAttempts)) {
           this.failed = err as Error
@@ -175,7 +175,7 @@ export class ChunkUploader {
  * the missing ones, then finalize. Safe to run any number of times.
  */
 export async function resumeUpload(opts: {
-  client: GnomeolaClient
+  client: KacolaClient
   sessionId: string
   sessionDir: string
   durationMs: number

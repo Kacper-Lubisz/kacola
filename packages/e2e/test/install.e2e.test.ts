@@ -3,13 +3,13 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync
 import { createServer } from 'node:net'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient } from '@gnomeola/protocol'
-import { waitFor } from '@gnomeola/testkit/daemon'
-import { connectCdp } from '@gnomeola/testkit/desktop'
-import { loadFixture } from '@gnomeola/testkit/fixtures'
-import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@gnomeola/testkit/rig'
-import { extensionState, GNOMEOLA_UUID } from '@gnomeola/testkit/shell'
-import { markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { createClient } from '@kacola/protocol'
+import { waitFor } from '@kacola/testkit/daemon'
+import { connectCdp } from '@kacola/testkit/desktop'
+import { loadFixture } from '@kacola/testkit/fixtures'
+import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@kacola/testkit/rig'
+import { extensionState, KACOLA_UUID } from '@kacola/testkit/shell'
+import { markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { markOnboarded } from '../src/ui.ts'
 
@@ -19,15 +19,15 @@ import { markOnboarded } from '../src/ui.ts'
 // Electron window inside a headless GNOME Shell.
 //
 // The installer builds the desktop app (scripts/build-desktop.ts) when dist/desktop/linux-unpacked is
-// missing or older than the sources; GNOMEOLA_DESKTOP_APP_DIR=<linux-unpacked> installs that build instead.
+// missing or older than the sources; KACOLA_DESKTOP_APP_DIR=<linux-unpacked> installs that build instead.
 
 const ROOT = join(import.meta.dirname, '..', '..', '..')
 const INSTALL = join(ROOT, 'scripts', 'install.sh')
 const REAL_MODELS =
-  process.env.GNOMEOLA_MODELS_DIR ??
-  join(process.env.XDG_DATA_HOME ?? join(homedir(), '.local', 'share'), 'gnomeola', 'models')
+  process.env.KACOLA_MODELS_DIR ??
+  join(process.env.XDG_DATA_HOME ?? join(homedir(), '.local', 'share'), 'kacola', 'models')
 
-const box = mkdtempSync(join(tmpdir(), 'gnomeola-install-'))
+const box = mkdtempSync(join(tmpdir(), 'kacola-install-'))
 const PREFIX = join(box, 'prefix')
 const HOME = join(box, 'home')
 mkdirSync(HOME, { recursive: true })
@@ -36,18 +36,18 @@ const ENV: NodeJS.ProcessEnv = {
   HOME,
   XDG_CONFIG_HOME: join(HOME, '.config'),
   XDG_DATA_HOME: join(HOME, '.local', 'share'),
-  GNOMEOLA_INSTALL_NO_SYSTEMCTL: '1',
-  GNOMEOLA_MODELS_DIR: REAL_MODELS,
+  KACOLA_INSTALL_NO_SYSTEMCTL: '1',
+  KACOLA_MODELS_DIR: REAL_MODELS,
   // the installed daemon runs with the caller's session env: keep it off the real session bus and EDS
-  GNOMEOLA_CALENDAR: 'off',
-  GNOMEOLA_DBUS: 'off',
-  GNOMEOLA_MIC_ACTIVITY: 'off',
+  KACOLA_CALENDAR: 'off',
+  KACOLA_DBUS: 'off',
+  KACOLA_MIC_ACTIVITY: 'off',
 }
 const bin = (n: string) => join(PREFIX, 'bin', n)
-const APP_ID = 'org.gnome.Gnomeola'
-const DESKTOP_APP = join(PREFIX, 'share', 'gnomeola', 'desktop')
+const APP_ID = 'com.kacperlubisz.Kacola'
+const DESKTOP_APP = join(PREFIX, 'share', 'kacola', 'desktop')
 const ICONS = join(PREFIX, 'share', 'icons', 'hicolor')
-const EXT_DIR = join(HOME, '.local', 'share', 'gnome-shell', 'extensions', GNOMEOLA_UUID)
+const EXT_DIR = join(HOME, '.local', 'share', 'gnome-shell', 'extensions', KACOLA_UUID)
 const run = (cmd: string, args: string[], env: NodeJS.ProcessEnv = ENV) =>
   execFileSync(cmd, args, { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
 
@@ -70,7 +70,7 @@ afterAll(async () => {
 
 describe('install', () => {
   it('lays out the runtime without dev-only files', () => {
-    const app = join(PREFIX, 'share', 'gnomeola', 'app')
+    const app = join(PREFIX, 'share', 'kacola', 'app')
     for (const p of [
       'packages/daemon/src/main.ts',
       'packages/cli/src/main.ts',
@@ -83,20 +83,19 @@ describe('install', () => {
       expect(existsSync(join(app, p)), p).toBe(false)
     for (const p of ['packages/ui', 'packages/desktop', 'dist', 'node_modules/electron'])
       expect(existsSync(join(app, p)), p).toBe(false)
-    for (const b of ['gnomeola', 'gnomeolad', 'gnomeola-ui'])
-      expect(statSync(bin(b)).mode & 0o111, b).toBeTruthy()
+    for (const b of ['kacola', 'kacolad', 'kacola-ui']) expect(statSync(bin(b)).mode & 0o111, b).toBeTruthy()
   })
 
   it('installs the packaged Electron app and the brand icons under the app id', () => {
     for (const p of [
-      'gnomeola',
+      'kacola',
       'resources/app.asar',
       'resources/runtime/daemon.mjs',
       'LICENSES.chromium.html',
     ])
       expect(existsSync(join(DESKTOP_APP, p)), p).toBe(true)
-    expect(statSync(join(DESKTOP_APP, 'gnomeola')).mode & 0o111).toBeTruthy()
-    expect(readFileSync(bin('gnomeola-ui'), 'utf8')).toContain(`exec "${join(DESKTOP_APP, 'gnomeola')}"`)
+    expect(statSync(join(DESKTOP_APP, 'kacola')).mode & 0o111).toBeTruthy()
+    expect(readFileSync(bin('kacola-ui'), 'utf8')).toContain(`exec "${join(DESKTOP_APP, 'kacola')}"`)
     for (const size of ['16x16', '48x48', '128x128', '512x512'])
       expect(existsSync(join(ICONS, size, 'apps', `${APP_ID}.png`)), size).toBe(true)
     expect(existsSync(join(ICONS, 'scalable', 'apps', `${APP_ID}.svg`))).toBe(true)
@@ -104,16 +103,16 @@ describe('install', () => {
   })
 
   it('writes a desktop entry and a systemd unit that the system validators accept', () => {
-    const desktop = join(PREFIX, 'share', 'applications', 'org.gnome.Gnomeola.desktop')
+    const desktop = join(PREFIX, 'share', 'applications', 'com.kacperlubisz.Kacola.desktop')
     run('desktop-file-validate', [desktop])
     const entry = readFileSync(desktop, 'utf8')
-    expect(entry).toContain(`Exec=${bin('gnomeola-ui')} %U`)
+    expect(entry).toContain(`Exec=${bin('kacola-ui')} %U`)
     expect(entry).toMatch(/^Name=kacola$/m)
     expect(entry).toMatch(new RegExp(`^Icon=${APP_ID}$`, 'm'))
     expect(entry).toMatch(new RegExp(`^StartupWMClass=${APP_ID}$`, 'm'))
     expect(entry).not.toMatch(/GTK/)
-    const unit = join(HOME, '.config', 'systemd', 'user', 'gnomeolad.service')
-    expect(readFileSync(unit, 'utf8')).toContain(`ExecStart=${bin('gnomeolad')}`)
+    const unit = join(HOME, '.config', 'systemd', 'user', 'kacolad.service')
+    expect(readFileSync(unit, 'utf8')).toContain(`ExecStart=${bin('kacolad')}`)
     // systemd-analyze exits non-zero on errors; it also requires ExecStart to exist and be executable.
     run('systemd-analyze', ['verify', '--user', unit])
   })
@@ -129,9 +128,9 @@ describe('the top-bar extension (C-9)', () => {
   it('is unpacked from the gnome-extensions pack zip into the sandboxed home, schemas compiled', () => {
     const meta = JSON.parse(readFileSync(join(EXT_DIR, 'metadata.json'), 'utf8'))
     expect(meta).toMatchObject({
-      uuid: GNOMEOLA_UUID,
+      uuid: KACOLA_UUID,
       'shell-version': ['50'],
-      'settings-schema': 'org.gnome.shell.extensions.gnomeola',
+      'settings-schema': 'org.gnome.shell.extensions.kacola',
     })
     for (const f of ['extension.js', 'prefs.js', 'model.js', 'dbus.js', 'stylesheet.css'])
       expect(existsSync(join(EXT_DIR, f)), f).toBe(true)
@@ -148,7 +147,7 @@ describe('the top-bar extension (C-9)', () => {
     try {
       const st = await display.waitFor(
         async () => {
-          const s = await extensionState(display.env, GNOMEOLA_UUID)
+          const s = await extensionState(display.env, KACOLA_UUID)
           return s && s.stateName !== 'initialized' && s.stateName !== 'activating' && s
         },
         20_000,
@@ -163,7 +162,7 @@ describe('the top-bar extension (C-9)', () => {
 
 describe('launched from the install', () => {
   it('the installed daemon starts and the installed CLI reaches it', async () => {
-    daemon = spawn(bin('gnomeolad'), ['--port', '0', '--data-dir', join(box, 'data')], {
+    daemon = spawn(bin('kacolad'), ['--port', '0', '--data-dir', join(box, 'data')], {
       env: ENV,
       stdio: ['ignore', 'pipe', 'pipe'],
     })
@@ -176,7 +175,7 @@ describe('launched from the install', () => {
       })
       daemon!.on('exit', (c) => reject(new Error(`daemon exited ${c}`)))
     })
-    const status = JSON.parse(run(bin('gnomeola'), ['status'], { ...ENV, GNOMEOLA_URL: url }))
+    const status = JSON.parse(run(bin('kacola'), ['status'], { ...ENV, KACOLA_URL: url }))
     expect(status).toMatchObject({
       ok: true,
       capture: { available: true, backend: 'pipewire', detail: null },
@@ -195,10 +194,8 @@ describe('launched from the install', () => {
       run('ffmpeg', ['-v', 'error', '-y', '-i', f.wavPath(t), '-t', '27', out])
       return out
     }
-    const env = { ...ENV, GNOMEOLA_URL: url }
-    const started = JSON.parse(
-      run(bin('gnomeola'), ['record', 'start', '--title', 'Installed recording'], env),
-    )
+    const env = { ...ENV, KACOLA_URL: url }
+    const started = JSON.parse(run(bin('kacola'), ['record', 'start', '--title', 'Installed recording'], env))
     expect(started.status).toBe('recording')
     await rig.playTogether(
       [
@@ -207,11 +204,11 @@ describe('launched from the install', () => {
       ],
       { timeoutMs: 60_000 },
     )
-    const stopped = JSON.parse(run(bin('gnomeola'), ['record', 'stop'], env))
+    const stopped = JSON.parse(run(bin('kacola'), ['record', 'stop'], env))
     expect(stopped).toMatchObject({ id: started.id, status: 'stopped' })
-    const hits = JSON.parse(run(bin('gnomeola'), ['search', 'retry budget'], env)).hits
+    const hits = JSON.parse(run(bin('kacola'), ['search', 'retry budget'], env)).hits
     expect(hits.map((h: { sessionId: string }) => h.sessionId)).toContain(started.id)
-    const shown = JSON.parse(run(bin('gnomeola'), ['sessions', 'show', started.id], env))
+    const shown = JSON.parse(run(bin('kacola'), ['sessions', 'show', started.id], env))
     expect(shown.segments).toBeGreaterThan(3)
   }, 180_000)
 })
@@ -227,18 +224,18 @@ describe('the installed window', () => {
 
   it('launches from the installed launcher, attaches to the installed daemon and shows its session', async () => {
     const display = await startHeadlessDisplay({ size: '1280x800' })
-    const marker = display.env.GNOMEOLA_HEADLESS_ID!
+    const marker = display.env.KACOLA_HEADLESS_ID!
     let app: ChildProcess | null = null
     try {
       markOnboarded(display, [])
       const port = await freePort()
       // the packaged build refuses a DevTools port unless told otherwise (the fuses keep --inspect off, so
       // the window is driven over CDP); WAYLAND_DEBUG shows the app id it gives the Shell
-      app = spawn(bin('gnomeola-ui'), [`--remote-debugging-port=${port}`], {
+      app = spawn(bin('kacola-ui'), [`--remote-debugging-port=${port}`], {
         env: {
           ...display.env,
-          GNOMEOLA_URL: url,
-          GNOMEOLA_ALLOW_REMOTE_DEBUGGING: '1',
+          KACOLA_URL: url,
+          KACOLA_ALLOW_REMOTE_DEBUGGING: '1',
           WAYLAND_DEBUG: '1',
         },
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -281,12 +278,12 @@ describe('uninstall', () => {
     daemon?.kill('SIGTERM')
     await new Promise((r) => daemon?.once('exit', r))
     daemon = null
-    const data = join(HOME, '.local', 'share', 'gnomeola')
+    const data = join(HOME, '.local', 'share', 'kacola')
     mkdirSync(data, { recursive: true })
     run('bash', [INSTALL, '--uninstall', '--prefix', PREFIX])
-    expect(existsSync(bin('gnomeola'))).toBe(false)
-    expect(existsSync(join(PREFIX, 'share', 'gnomeola'))).toBe(false)
-    expect(existsSync(join(HOME, '.config', 'systemd', 'user', 'gnomeolad.service'))).toBe(false)
+    expect(existsSync(bin('kacola'))).toBe(false)
+    expect(existsSync(join(PREFIX, 'share', 'kacola'))).toBe(false)
+    expect(existsSync(join(HOME, '.config', 'systemd', 'user', 'kacolad.service'))).toBe(false)
     expect(existsSync(join(HOME, '.claude', 'skills', 'meeting-context'))).toBe(false)
     expect(existsSync(EXT_DIR)).toBe(false)
     expect(existsSync(join(PREFIX, 'share', 'applications', `${APP_ID}.desktop`))).toBe(false)

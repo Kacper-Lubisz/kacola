@@ -42,18 +42,18 @@ describe('sandbox', () => {
     expect(sandboxDir(undefined, env)).toBe('/home/u/.local/share/kacola-sandbox')
     expect(sandboxDir(undefined, { ...env, KACOLA_SANDBOX_DIR: '/tmp/sbx' })).toBe('/tmp/sbx')
     for (const bad of [
-      '/home/u/.local/share/gnomeola',
-      '/home/u/.local/share/gnomeola/x',
+      '/home/u/.local/share/kacola',
+      '/home/u/.local/share/kacola/x',
       '/home/u/.local',
       '/home/u',
       '/',
     ])
       expect(() => sandboxDir(bad, env), bad).toThrow(SandboxError)
-    // GNOMEOLA_DATA_DIR in the shell does not move what "everyday" means
+    // KACOLA_DATA_DIR in the shell does not move what "everyday" means
     expect(() =>
-      sandboxDir('/home/u/.local/share/gnomeola', { ...env, GNOMEOLA_DATA_DIR: '/elsewhere' }),
+      sandboxDir('/home/u/.local/share/kacola', { ...env, KACOLA_DATA_DIR: '/elsewhere' }),
     ).toThrow(SandboxError)
-    expect(() => sandboxDir('/elsewhere/sbx', { ...env, GNOMEOLA_DATA_DIR: '/elsewhere' })).toThrow(
+    expect(() => sandboxDir('/elsewhere/sbx', { ...env, KACOLA_DATA_DIR: '/elsewhere' })).toThrow(
       SandboxError,
     )
   })

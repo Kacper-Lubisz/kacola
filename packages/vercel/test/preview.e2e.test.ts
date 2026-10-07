@@ -1,20 +1,20 @@
-import { createClient, isDurable, newId, type Session } from '@gnomeola/protocol'
+import { createClient, isDurable, newId, type Session } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 
 // V-8 preview-deployment smoke test. Opt-in: runs only against a real Vercel preview whose URL and owner
 // token you provide (never against the developer's account implicitly):
 //
-//   GNOMEOLA_PREVIEW_URL=https://gnomeola-git-branch-you.vercel.app \
-//   GNOMEOLA_PREVIEW_ADMIN_TOKEN=… \
+//   KACOLA_PREVIEW_URL=https://kacola-git-branch-you.vercel.app \
+//   KACOLA_PREVIEW_ADMIN_TOKEN=… \
 //   [VERCEL_AUTOMATION_BYPASS_SECRET=…]   (for a preview behind Vercel deployment protection)
-//   [GNOMEOLA_PREVIEW_WRITE=1]            (also push, read back and delete a throwaway session)
+//   [KACOLA_PREVIEW_WRITE=1]            (also push, read back and delete a throwaway session)
 //   pnpm test:e2e packages/vercel/test/preview.e2e.test.ts
 //
 // It checks the deployment the way the local harness checks the build: static viewer, auth on every
 // route, pairing reachable, SSE streams that end before the platform's cap and resume by cursor.
 
-const url = process.env.GNOMEOLA_PREVIEW_URL?.replace(/\/$/, '')
-const token = process.env.GNOMEOLA_PREVIEW_ADMIN_TOKEN
+const url = process.env.KACOLA_PREVIEW_URL?.replace(/\/$/, '')
+const token = process.env.KACOLA_PREVIEW_ADMIN_TOKEN
 const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
 const headers: Record<string, string> = bypass ? { 'x-vercel-protection-bypass': bypass } : {}
 
@@ -54,7 +54,7 @@ describe.skipIf(!url || !token)('preview deployment smoke test', () => {
     expect(cap).toBeLessThan(300_000) // ends itself before the function's 300 s cap
   })
 
-  it.skipIf(process.env.GNOMEOLA_PREVIEW_WRITE !== '1')(
+  it.skipIf(process.env.KACOLA_PREVIEW_WRITE !== '1')(
     'round-trips a throwaway session through sync and the event stream, then deletes it',
     async () => {
       const c = client()

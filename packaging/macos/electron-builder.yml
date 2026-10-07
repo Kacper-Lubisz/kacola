@@ -1,5 +1,5 @@
-# gnomeola.app for macOS, as unsigned zips for Apple silicon and Intel (a dmg and signing need a Mac).
-# Zips are gnomeola-<version>-mac-<arch>.zip.
+# kacola.app for macOS, as unsigned zips for Apple silicon and Intel (a dmg and signing need a Mac).
+# Zips are kacola-<version>-mac-<arch>.zip.
 # Built from Linux by scripts/build-macos.ts, which stages the project directory this file is read in:
 #
 #   package.json, out/           packages/desktop (main, preload, renderer), staged by scripts/build-desktop.ts
@@ -7,10 +7,10 @@
 #                                darwin-<arch>): the bundles plus darwin natives — better-sqlite3's N-API
 #                                prebuild and sherpa-onnx-darwin-<arch> (dylibs) — copied as
 #                                Contents/Resources/runtime, outside the asar so the natives load
-#   bin/gnomeola                 the in-app CLI shim (packaging/macos/gnomeola-cli.sh)
-appId: org.gnome.Gnomeola
-productName: gnomeola
-copyright: Copyright © 2026 The gnomeola contributors
+#   bin/kacola                 the in-app CLI shim (packaging/macos/kacola-cli.sh)
+appId: com.kacperlubisz.Kacola
+productName: kacola
+copyright: Copyright © 2026 The kacola contributors
 electronVersion: 44.5.1
 asar: true
 directories:
@@ -59,10 +59,10 @@ mac:
   darkModeSupport: true
   extendInfo:
     # getUserMedia: your side of the meeting
-    NSMicrophoneUsageDescription: gnomeola records your side of a meeting from the microphone and transcribes it on this Mac.
+    NSMicrophoneUsageDescription: kacola records your side of a meeting from the microphone and transcribes it on this Mac.
     # system audio (the other side): Core Audio taps / ScreenCaptureKit audio-only capture (macOS 14.2+)
-    NSAudioCaptureUsageDescription: gnomeola records what the other side of a meeting says from your Mac's audio output and transcribes it on this Mac.
+    NSAudioCaptureUsageDescription: kacola records what the other side of a meeting says from your Mac's audio output and transcribes it on this Mac.
     # getDisplayMedia loopback audio goes through the Screen Recording permission on older macOS
-    NSScreenCaptureUsageDescription: gnomeola captures your Mac's audio output (not the screen) to record the other side of a meeting.
+    NSScreenCaptureUsageDescription: kacola captures your Mac's audio output (not the screen) to record the other side of a meeting.
     LSUIElement: false
     LSApplicationCategoryType: public.app-category.productivity

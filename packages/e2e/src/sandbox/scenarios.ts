@@ -1,4 +1,4 @@
-import type { MeetingScript, ScriptLine } from '@gnomeola/daemon'
+import type { MeetingScript, ScriptLine } from '@kacola/daemon'
 
 // The sandbox's scripted meetings (`pnpm sandbox play <scenario>`): one per mock calendar meeting, each
 // with the agenda it is meant to be recorded against and a script that exercises the live tracker in a
@@ -15,7 +15,7 @@ export type Scenario = {
   summary: string
   /** What should happen on the agenda, item by item (the guide's "what you should see"). */
   expect: string[]
-  /** The suggested agenda, in the markdown form `gnomeola agenda import` reads. */
+  /** The suggested agenda, in the markdown form `kacola agenda import` reads. */
   agenda: string
   lines: [who: 'me' | 'them', text: string][]
 }

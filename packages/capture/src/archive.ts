@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process'
 import { existsSync, renameSync, rmSync, statSync } from 'node:fs'
-import type { Settings } from '@gnomeola/protocol'
+import type { Settings } from '@kacola/protocol'
 
 // R-7: compact archives and audio retention.
 //

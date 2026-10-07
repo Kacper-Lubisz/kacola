@@ -1,6 +1,6 @@
-import { LlmError, type LlmProvider, type RecapResult, recapItem } from '@gnomeola/llm'
-import type { AgendaItem, Session } from '@gnomeola/protocol'
-import { type AgendaStore, type Store, StoreError } from '@gnomeola/store'
+import { LlmError, type LlmProvider, type RecapResult, recapItem } from '@kacola/llm'
+import type { AgendaItem, Session } from '@kacola/protocol'
+import { type AgendaStore, type Store, StoreError } from '@kacola/store'
 import { toWireError } from '../engines/llm.ts'
 import type { Logger } from '../logger.ts'
 import type { RecapHook } from './service.ts'
@@ -8,7 +8,7 @@ import type { AgendaTracker } from './tracker.ts'
 
 // Agendas wave 2 — the recap: when a recording linked to an agenda stops, the text LLM writes each item's
 // recap (outcome, decisions, actions) and it is stored as the item's `outcome` (agenda.item.upserted by
-// `tracker`). Per item, one call, through the M7 enhancement plumbing (@gnomeola/llm recapItem: the
+// `tracker`). Per item, one call, through the M7 enhancement plumbing (@kacola/llm recapItem: the
 // transcript is the byte-stable cached prefix, the item the volatile tail — item 2..n re-read the cache).
 //
 // Where it is stored, and why not as a notes version: M7's notes are the user's document. `user` versions

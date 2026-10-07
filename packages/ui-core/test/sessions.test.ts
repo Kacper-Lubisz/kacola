@@ -1,4 +1,4 @@
-import { type AnyEvent, type DurableEvent, Session } from '@gnomeola/protocol'
+import { type AnyEvent, type DurableEvent, Session } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import {
   activeSession,

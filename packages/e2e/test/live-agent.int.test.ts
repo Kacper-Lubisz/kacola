@@ -1,20 +1,15 @@
 import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { AnyEvent, type DurableEvent, isDurable, LiveEvent } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import {
-  assertNoViolations,
-  checkAgendaLog,
-  checkAgentLog,
-  checkEventLog,
-} from '@gnomeola/testkit/invariants'
+import { AnyEvent, type DurableEvent, isDurable, LiveEvent } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { assertNoViolations, checkAgendaLog, checkAgentLog, checkEventLog } from '@kacola/testkit/invariants'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { type CliResult, gnomeola } from '../src/cli.ts'
+import { type CliResult, kacola } from '../src/cli.ts'
 
 // The BYO agent channel end to end: the REAL daemon replays a fixture meeting (the fake pipeline speaking
 // testkit's agenda/hostile-planning script), and scripted fake agents — one per mode — follow it with
-// `gnomeola live attach` and write back through the agent verbs, exactly as Claude would under the
+// `kacola live attach` and write back through the agent verbs, exactly as Claude would under the
 // Monitor tool. Asserted: the stream (typed lines, speakers, meeting.ended, exit 0), mode enforcement,
 // attribution bound to the lease, suggestions the user accepts, undo, lease expiry (re-granted by attach),
 // revoke (exit 7), `live wait`, goldens and exit codes; then the log's invariants.
@@ -29,11 +24,11 @@ const FIXTURE = join(
   'hostile-planning',
   'truth.json',
 )
-const box = mkdtempSync(join(tmpdir(), 'gnomeola-e2e-live-'))
+const box = mkdtempSync(join(tmpdir(), 'kacola-e2e-live-'))
 const calFile = join(box, 'calendar.json')
 const leaseDir = join(box, 'leases')
 let d: DaemonHandle
-const env = { GNOMEOLA_LEASE_DIR: leaseDir }
+const env = { KACOLA_LEASE_DIR: leaseDir }
 const now = Date.now()
 const t = (min: number) => new Date(now + min * 60_000).toISOString()
 
@@ -80,18 +75,18 @@ beforeAll(async () => {
   d = await startDaemon({
     env: {
       // the channel on its own: the live tracker would check items off under the agents' feet
-      GNOMEOLA_TRACKER: 'off',
-      GNOMEOLA_CALENDAR: `file:${calFile}`,
+      KACOLA_TRACKER: 'off',
+      KACOLA_CALENDAR: `file:${calFile}`,
       // ~115 s of meeting in ~5 s
-      GNOMEOLA_FAKE_PIPELINE: JSON.stringify({
+      KACOLA_FAKE_PIPELINE: JSON.stringify({
         scriptFile: FIXTURE,
         speed: 25,
         partialEveryMs: 1500,
         finalizeAfterMs: 40,
       }),
-      GNOMEOLA_LIVE_PARTIAL_MS: '200',
+      KACOLA_LIVE_PARTIAL_MS: '200',
       // the meeting runs 25× fast, so its suggestions come 25× faster than any real cadence: a bigger burst
-      GNOMEOLA_AGENT_LIMITS: JSON.stringify({
+      KACOLA_AGENT_LIMITS: JSON.stringify({
         sweepMs: 100,
         heartbeatTimeoutMs: 4_000,
         suggestions: { burst: 6, perMinute: 2 },
@@ -132,7 +127,7 @@ function stable(out: string): string {
 }
 
 const cli = (argv: string[], extra: Record<string, string> = {}) =>
-  gnomeola(argv, d.baseUrl, { env: { ...env, ...extra } })
+  kacola(argv, d.baseUrl, { env: { ...env, ...extra } })
 
 /**
  * A scripted fake agent: `live attach` in the background, reacting to its lines with agent verbs.
@@ -155,7 +150,7 @@ class FakeAgent {
     extraArgs: string[] = ['--heartbeat', '1s'],
   ) {
     this.name = name
-    this.done = gnomeola(['live', 'attach', '--as', name, '--mode', mode, ...extraArgs], d.baseUrl, {
+    this.done = kacola(['live', 'attach', '--as', name, '--mode', mode, ...extraArgs], d.baseUrl, {
       env,
       signal: this.ac.signal,
       onStdout: (s) => {
@@ -231,7 +226,7 @@ describe('live agents on a replayed meeting', () => {
   })
 
   it('live wait returns the recording as it starts; three agents attach (observe, suggest, act)', async () => {
-    const plan = await gnomeola(['agenda', 'create', '--meeting', 'next', '--stdin'], d.baseUrl, {
+    const plan = await kacola(['agenda', 'create', '--meeting', 'next', '--stdin'], d.baseUrl, {
       stdin: PLAN,
       env,
     })
@@ -331,7 +326,7 @@ describe('live agents on a replayed meeting', () => {
     const v = await d.client.call('getAgenda', { params: { id: agendaId } })
     const risks = v.items.find((i) => i.text.startsWith('Who writes'))!
     // the user moves the announcement item back to open (undo of the doer's in-progress)
-    const undo = await cli(['agenda', 'status', agendaId, 'Who writes', 'open'], { GNOMEOLA_LEASE: 'none' })
+    const undo = await cli(['agenda', 'status', agendaId, 'Who writes', 'open'], { KACOLA_LEASE: 'none' })
     expect(undo.code, undo.stderr).toBe(0)
     expect(JSON.parse(undo.stdout).change).toMatchObject({
       by: 'user',

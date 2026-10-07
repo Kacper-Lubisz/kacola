@@ -1,11 +1,11 @@
-import type { Segment } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import type { Segment } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { gnomeola } from '../src/cli.ts'
+import { kacola } from '../src/cli.ts'
 import { type CannedResponse, type FakeAnthropic, startFakeAnthropic } from '../src/fake-anthropic.ts'
 
-// The question-answering chain with the OpenAI provider, for real: gnomeola(1) → gnomeolad (child
-// process, provider chosen from OPENAI_API_KEY alone) → @gnomeola/llm's OpenAIProvider → HTTP. Only the
+// The question-answering chain with the OpenAI provider, for real: kacola(1) → kacolad (child
+// process, provider chosen from OPENAI_API_KEY alone) → @kacola/llm's OpenAIProvider → HTTP. Only the
 // far end is a local stand-in serving Responses API streams (the replaying server is provider-agnostic).
 
 const KEY = 'sk-proj-e2e-planted-openai-key-0123456789'
@@ -55,7 +55,7 @@ beforeAll(async () => {
     env: {
       OPENAI_API_KEY: KEY,
       OPENAI_BASE_URL: `${api.url}/v1`,
-      GNOMEOLA_FAKE_PIPELINE: JSON.stringify({
+      KACOLA_FAKE_PIPELINE: JSON.stringify({
         speed: 20,
         segmentEveryMs: 4000,
         finalizeAfterMs: 30,
@@ -90,7 +90,7 @@ describe('Q&A chain with OpenAI: CLI → daemon → llm → Responses API', () =
 
   it('answers with citations that resolve to real segments, and reports cached tokens', async () => {
     api.enqueue(citedAnswer())
-    const r = await gnomeola(
+    const r = await kacola(
       ['ask', 'what did we decide about the retry budget?', '--session', sessionId],
       d.baseUrl,
     )
@@ -114,7 +114,7 @@ describe('Q&A chain with OpenAI: CLI → daemon → llm → Responses API', () =
 
   it('sent a Responses API request with the key, the transcript as input_text, and the effort asked for', async () => {
     api.enqueue(citedAnswer())
-    await gnomeola(['ask', 'retries?', '--session', sessionId, '--effort', 'medium'], d.baseUrl)
+    await kacola(['ask', 'retries?', '--session', sessionId, '--effort', 'medium'], d.baseUrl)
     expect(api.seen).toHaveLength(1)
     const req = api.seen[0]!
     expect(`${req.method} ${req.path}`).toBe('POST /v1/responses')
@@ -159,7 +159,7 @@ describe('Q&A chain with OpenAI: CLI → daemon → llm → Responses API', () =
       ),
     )
     const before = (await d.client.call('getQaHistory', { params: { id: sessionId } })).messages.length
-    const r = await gnomeola(['ask', 'anything?', '--session', sessionId], d.baseUrl)
+    const r = await kacola(['ask', 'anything?', '--session', sessionId], d.baseUrl)
     expect(r.code).toBe(6) // unavailable
     expect(r.stderr).toMatch(/no credits left/)
     expect(api.seen).toHaveLength(1) // not retried

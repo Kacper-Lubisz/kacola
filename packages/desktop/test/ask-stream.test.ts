@@ -1,5 +1,5 @@
-import type { AskStreamEvent, QaMessage } from '@gnomeola/protocol'
-import { fromHistory } from '@gnomeola/ui-core/qa'
+import type { AskStreamEvent, QaMessage } from '@kacola/protocol'
+import { fromHistory } from '@kacola/ui-core/qa'
 import { describe, expect, it } from 'vitest'
 import { createEphemeralStore } from '../src/renderer/data/ephemeral.ts'
 import { mergeTurns, type OwnAsk, runOwnAsk } from '../src/renderer/features/ask/ask-stream.ts'

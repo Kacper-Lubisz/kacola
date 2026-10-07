@@ -1,11 +1,11 @@
 import {
   type DaemonInfo,
   DaemonUnreachableError,
-  GnomeolaApiError,
+  KacolaApiError,
   type LiveRecording,
   type RestartMode,
   type RestartResponse,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import type { Ctx } from '../context.ts'
 import { CliError, EXIT, refused } from '../errors.ts'
 import { renderJson } from '../output.ts'
@@ -31,7 +31,7 @@ async function liveOf(ctx: Ctx): Promise<{ info: DaemonInfo | null; recording: L
     const info = await ctx.client.call('daemonInfo')
     return { info, recording: info.recording }
   } catch (err) {
-    if (!(err instanceof GnomeolaApiError) || err.status !== 404) throw err
+    if (!(err instanceof KacolaApiError) || err.status !== 404) throw err
     const { sessions } = await ctx.client.call('listSessions', {
       query: { limit: 200, includePrivate: true },
     })
@@ -54,10 +54,10 @@ export async function daemonStatus(ctx: Ctx) {
     return ctx.io.stdout(renderJson(info ?? { legacy: true, recording, restart: null }, ctx.io))
   if (info)
     ctx.io.stdout(
-      `gnomeolad ${info.version} pid ${info.pid} at ${ctx.client.baseUrl} — data ${info.dataDir}` +
+      `kacolad ${info.version} pid ${info.pid} at ${ctx.client.baseUrl} — data ${info.dataDir}` +
         `${info.supervised ? ' (supervised)' : ' (not supervised: a restart will not bring it back)'}\n`,
     )
-  else ctx.io.stdout(`gnomeolad at ${ctx.client.baseUrl} (an older daemon: no /daemon route)\n`)
+  else ctx.io.stdout(`kacolad at ${ctx.client.baseUrl} (an older daemon: no /daemon route)\n`)
   if (!recording.length) ctx.io.stdout('  recording  nothing\n')
   for (const s of recording) ctx.io.stdout(`  recording  ${brief(s)}\n`)
   if (info?.restart)
@@ -93,18 +93,18 @@ export async function daemonRestart(
   o: { mode: RestartMode; force: boolean; wait: boolean; timeoutMs: number | null; onlySupervised?: boolean },
 ) {
   const before = await ctx.client.call('daemonInfo').catch((err) => {
-    if (err instanceof GnomeolaApiError && err.status === 404)
+    if (err instanceof KacolaApiError && err.status === 404)
       throw new CliError(
         EXIT.UNAVAILABLE,
         'this daemon predates restarts that wait for the recording',
-        'check `gnomeola daemon idle` and restart it with systemctl --user restart gnomeolad when idle',
+        'check `kacola daemon idle` and restart it with systemctl --user restart kacolad when idle',
       )
     return mapApiError(err)
   })
   if (o.onlySupervised && !before.supervised) {
     // scripts/install.sh: a daemon nobody restarts (started by hand) is left to whoever started it
     ctx.io.stderr(
-      `gnomeola: the daemon at ${ctx.client.baseUrl} (pid ${before.pid}) is not supervised, so it was not restarted; restart it yourself once nothing is recording\n`,
+      `kacola: the daemon at ${ctx.client.baseUrl} (pid ${before.pid}) is not supervised, so it was not restarted; restart it yourself once nothing is recording\n`,
     )
     if (ctx.format === 'json') ctx.io.stdout(renderJson({ state: 'skipped', supervised: false }, ctx.io))
     return
@@ -113,15 +113,15 @@ export async function daemonRestart(
   try {
     r = await ctx.client.call('requestRestart', { body: { mode: o.mode, force: o.force, by: 'cli' } })
   } catch (err) {
-    if (err instanceof GnomeolaApiError && err.code === 'conflict') throw refused(err.message)
+    if (err instanceof KacolaApiError && err.code === 'conflict') throw refused(err.message)
     return mapApiError(err)
   }
   // progress goes to stderr in both formats: stdout stays the one JSON result for scripts and agents
-  const say = (line: string) => ctx.io.stderr(`gnomeola: ${line}\n`)
+  const say = (line: string) => ctx.io.stderr(`kacola: ${line}\n`)
   if (r.state === 'waiting')
     say(
       `waiting for ${r.waitingOn.map(brief).join(', ')} to finish before restarting` +
-        `${o.wait ? '' : ' (the daemon restarts by itself when it ends)'}; gnomeola daemon restart --cancel calls it off`,
+        `${o.wait ? '' : ' (the daemon restarts by itself when it ends)'}; kacola daemon restart --cancel calls it off`,
     )
   else say(`restarting (pid ${before.pid})`)
   if (!r.supervised)
@@ -154,7 +154,7 @@ export async function daemonRestart(
         throw new CliError(
           EXIT.UNREACHABLE,
           'the daemon exited for the restart, and nothing started it again (it is not supervised)',
-          'start it again: systemctl --user start gnomeolad, or open the window',
+          'start it again: systemctl --user start kacolad, or open the window',
         )
       if (Date.now() - goneSince > 60_000)
         throw new CliError(

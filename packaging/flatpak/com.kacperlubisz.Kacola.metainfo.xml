@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>org.gnome.Gnomeola</id>
+  <id>com.kacperlubisz.Kacola</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
-  <name>gnomeola</name>
+  <name>kacola</name>
   <summary>Record, transcribe and search your meetings</summary>
-  <developer id="org.gnome.gnomeola">
-    <name>The gnomeola contributors</name>
+  <developer id="com.kacperlubisz">
+    <name>The kacola contributors</name>
   </developer>
   <description>
     <p>
-      gnomeola records both sides of a meeting — your microphone and what the other side says — and
+      kacola records both sides of a meeting — your microphone and what the other side says — and
       transcribes it on your computer, live. Search every meeting you have had, jump to where something
       was said, keep notes next to the transcript and ask questions about it.
     </p>
@@ -24,12 +24,12 @@
     </ul>
     <p>Inspired by Granola.</p>
   </description>
-  <launchable type="desktop-id">org.gnome.Gnomeola.desktop</launchable>
+  <launchable type="desktop-id">com.kacperlubisz.Kacola.desktop</launchable>
   <provides>
-    <binary>gnomeola</binary>
+    <binary>kacola</binary>
   </provides>
-  <url type="homepage">https://github.com/gnomeola/gnomeola</url>
-  <url type="bugtracker">https://github.com/gnomeola/gnomeola/issues</url>
+  <url type="homepage">https://github.com/Kacper-Lubisz/kacola</url>
+  <url type="bugtracker">https://github.com/Kacper-Lubisz/kacola/issues</url>
   <categories>
     <category>Office</category>
     <category>AudioVideo</category>

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { TrackKind } from '@gnomeola/protocol'
+import type { TrackKind } from '@kacola/protocol'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   type CaptureErrorEvent,

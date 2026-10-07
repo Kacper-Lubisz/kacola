@@ -1,5 +1,5 @@
 import {
-  type GnomeolaBridge,
+  type KacolaBridge,
   TUNNEL_ORIGIN,
   type TunnelFrame,
   type TunnelRequest,
@@ -10,7 +10,7 @@ import {
 // by tunnel frames, so the client's SSE decoder, `ask` and `enhanceEvents` work unchanged.
 
 /** Build a fetch over `bridge.fetchStream`. Only URLs under TUNNEL_ORIGIN are accepted. */
-export function createTunnelFetch(bridge: Pick<GnomeolaBridge, 'fetchStream'>): typeof fetch {
+export function createTunnelFetch(bridge: Pick<KacolaBridge, 'fetchStream'>): typeof fetch {
   return (input, init = {}) =>
     new Promise<Response>((resolve, reject) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url

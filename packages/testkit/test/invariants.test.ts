@@ -1,4 +1,4 @@
-import type { DurableEvent, Segment, Speaker } from '@gnomeola/protocol'
+import type { DurableEvent, Segment, Speaker } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import {
   assertNoViolations,

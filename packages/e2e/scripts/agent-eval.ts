@@ -5,11 +5,11 @@ import { spawn } from 'node:child_process'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { startDaemon } from '@gnomeola/testkit/daemon'
+import { startDaemon } from '@kacola/testkit/daemon'
 import { seedMeetings } from '../src/seed.ts'
 
 const root = join(import.meta.dirname, '..', '..', '..')
-const dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-agent-eval-'))
+const dataDir = mkdtempSync(join(tmpdir(), 'kacola-agent-eval-'))
 seedMeetings(dataDir)
 const d = await startDaemon({ dataDir })
 const code = await new Promise<number | null>((resolve) => {
@@ -18,7 +18,7 @@ const code = await new Promise<number | null>((resolve) => {
     ['exec', 'vitest', 'run', '--project', 'eval', 'packages/cli/test/agent.eval.test.ts'],
     {
       cwd: root,
-      env: { ...process.env, GNOMEOLA_AGENT_EVAL: '1', GNOMEOLA_EVAL_URL: d.baseUrl },
+      env: { ...process.env, KACOLA_AGENT_EVAL: '1', KACOLA_EVAL_URL: d.baseUrl },
       stdio: 'inherit',
     },
   )

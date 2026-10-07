@@ -1,4 +1,4 @@
-import { type DurableEvent, isDurable } from '@gnomeola/protocol'
+import { type DurableEvent, isDurable } from '@kacola/protocol'
 import { afterEach, expect, it } from 'vitest'
 import { type Hosted, sleep, startHosted } from './helpers.ts'
 

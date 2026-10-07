@@ -7,7 +7,7 @@
 // make-cassettes.ts drives the real SDK through the real provider and records what it actually sent.
 //
 // Each scenario's `drive` is shared by the generator and the replay test, so both run the same calls.
-import { type CassetteResponse, type SseEvent, sseBody } from '@gnomeola/testkit/cassettes'
+import { type CassetteResponse, type SseEvent, sseBody } from '@kacola/testkit/cassettes'
 import type { AnthropicProvider, AnthropicProviderOptions } from '../../src/anthropic.ts'
 import { type AskDone, ask } from '../../src/ask.ts'
 import { LlmError } from '../../src/errors.ts'

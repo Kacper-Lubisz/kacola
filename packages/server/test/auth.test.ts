@@ -6,8 +6,8 @@ import {
   type RouteDef,
   type RouteName,
   routes,
-} from '@gnomeola/protocol'
-import { MemoryBlobStore } from '@gnomeola/store/blob'
+} from '@kacola/protocol'
+import { MemoryBlobStore } from '@kacola/store/blob'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createHostedApp, type HostedApp } from '../src/app.ts'
 import { isLoopbackRequest, OPEN_ROUTES, signToken, verifyToken } from '../src/auth.ts'
@@ -25,7 +25,7 @@ const entries = Object.entries(routes) as [RouteName, RouteDef][]
 function requestFor(
   _name: RouteName,
   def: RouteDef,
-  host = 'gnomeola.example',
+  host = 'kacola.example',
   headers: Record<string, string> = {},
 ) {
   const params = Object.fromEntries([...def.path.matchAll(/:([A-Za-z]+)/g)].map((m) => [m[1]!, 'x']))

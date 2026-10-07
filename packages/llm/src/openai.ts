@@ -14,7 +14,7 @@
 // Refusals arrive as `refusal` content (streamed as `response.refusal.delta`), not as text: they end the
 // turn with stopReason 'refusal' and an empty answer, like an Anthropic refusal.
 import { createHash } from 'node:crypto'
-import type { Usage } from '@gnomeola/protocol'
+import type { Usage } from '@kacola/protocol'
 import { isAbort, LlmError } from './errors.ts'
 import type { AssembledPrompt, LlmProvider, ProviderEvent, ProviderStreamOptions, Refusal } from './types.ts'
 
@@ -98,7 +98,7 @@ export class OpenAIProvider implements LlmProvider {
       store: false,
       max_output_tokens: this.#maxOutputTokens,
       // Same meeting → same key, so its requests land where its prefix is already cached.
-      prompt_cache_key: `gnomeola-${createHash('sha256').update(first).digest('hex').slice(0, 16)}`,
+      prompt_cache_key: `kacola-${createHash('sha256').update(first).digest('hex').slice(0, 16)}`,
       ...(supportsReasoning(this.model) ? { reasoning: { effort } } : {}),
     }
   }

@@ -1,4 +1,4 @@
-import type { Session } from '@gnomeola/protocol'
+import type { Session } from '@kacola/protocol'
 import type { DaemonStatus } from '../shared/bridge.ts'
 
 // macOS menu-bar Tray (background mode there: the window closes, the app stays in the menu bar). The

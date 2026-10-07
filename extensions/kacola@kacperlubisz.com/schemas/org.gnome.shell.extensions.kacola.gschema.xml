@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<schemalist gettext-domain="gnomeola">
-  <schema id="org.gnome.shell.extensions.gnomeola" path="/org/gnome/shell/extensions/gnomeola/">
+<schemalist gettext-domain="kacola">
+  <schema id="org.gnome.shell.extensions.kacola" path="/org/gnome/shell/extensions/kacola/">
     <key name="show-elapsed" type="b">
       <default>true</default>
       <summary>Show the elapsed recording time in the top bar</summary>

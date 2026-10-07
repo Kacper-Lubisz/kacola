@@ -1,8 +1,8 @@
 import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient, type DurableEvent } from '@gnomeola/protocol'
-import { SqliteStoreApi } from '@gnomeola/store'
+import { createClient, type DurableEvent } from '@kacola/protocol'
+import { SqliteStoreApi } from '@kacola/store'
 import { type Browser, chromium } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { built, type Harness, startHarness } from './harness.ts'
@@ -25,14 +25,14 @@ const ADMIN = 'viewer-e2e-admin-0123456789'
 describe.skipIf(!CHROME)(`web viewer in headless Chrome (${CHROME ?? 'no browser found'})`, () => {
   let h: Harness
   let browser: Browser
-  const tmp = mkdtempSync(join(tmpdir(), 'gnomeola-viewer-e2e-'))
+  const tmp = mkdtempSync(join(tmpdir(), 'kacola-viewer-e2e-'))
   beforeAll(async () => {
     h = await startHarness(await built({ events: 2 }), {
       DATABASE_URL: `sqlite:${join(tmp, 'db.sqlite')}`,
-      GNOMEOLA_AUTH_SECRET: SECRET,
-      GNOMEOLA_ADMIN_TOKEN: ADMIN,
-      GNOMEOLA_POLL_MS: '50',
-      GNOMEOLA_STREAM_MARGIN_MS: '700',
+      KACOLA_AUTH_SECRET: SECRET,
+      KACOLA_ADMIN_TOKEN: ADMIN,
+      KACOLA_POLL_MS: '50',
+      KACOLA_STREAM_MARGIN_MS: '700',
     })
     browser = await chromium.launch({ executablePath: CHROME, headless: true })
   }, 120_000)
@@ -116,7 +116,7 @@ describe.skipIf(!CHROME)(`web viewer in headless Chrome (${CHROME ?? 'no browser
     await page.locator('ul.sessions').waitFor({ timeout: 15_000 })
     expect(await page.locator('ul.sessions li').count()).toBe(1)
     expect(await page.locator('ul.sessions').textContent()).toContain('Platform standup')
-    expect(await page.evaluate(() => localStorage.getItem('gnomeola.token'))).toMatch(/^gnm1\./)
+    expect(await page.evaluate(() => localStorage.getItem('kacola.token'))).toMatch(/^gnm1\./)
 
     // 3. a transcript, with notes; hostile text stays text
     await page.locator('ul.sessions a').first().click()
@@ -145,7 +145,7 @@ describe.skipIf(!CHROME)(`web viewer in headless Chrome (${CHROME ?? 'no browser
     expect(await page.locator('#status').textContent()).toMatch(/live|reconnecting/)
 
     // 6. revoking is instant: a stale token sends the browser back to pairing
-    await page.evaluate(() => localStorage.setItem('gnomeola.token', 'gnm1.forged.token'))
+    await page.evaluate(() => localStorage.setItem('kacola.token', 'gnm1.forged.token'))
     await page.reload()
     await page.locator('.code').first().waitFor({ timeout: 10_000 })
     expect(errors).toEqual([])

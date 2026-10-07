@@ -1,7 +1,6 @@
 # kacola brand
 
-Logo, app icons, fonts and design tokens for **kacola** (the product name; packages and the CLI stay
-`gnomeola` until the rename phase). Everything here is generated from upstream fonts and `tokens/tokens.json`
+Logo, app icons, fonts and design tokens for **kacola**. Everything here is generated from upstream fonts and `tokens/tokens.json`
 — regenerate with:
 
 ```sh

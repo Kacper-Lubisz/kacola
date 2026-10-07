@@ -1,11 +1,11 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { platformPaths } from '@gnomeola/protocol'
+import { platformPaths } from '@kacola/protocol'
 
-// Tokens from `gnomeola pair`, one per host, in ${XDG_CONFIG_HOME:-~/.config}/gnomeola/hosts.json (0600).
+// Tokens from `kacola pair`, one per host, in ${XDG_CONFIG_HOME:-~/.config}/kacola/hosts.json (0600).
 // A loopback daemon needs none; every remote host does. Resolution order for a request: --token, then
-// GNOMEOLA_TOKEN, then this file (by the host's base URL).
+// KACOLA_TOKEN, then this file (by the host's base URL).
 
 export type HostEntry = { token: string; deviceId: string; name: string; pairedAt: string }
 export type Hosts = Record<string, HostEntry>
@@ -14,7 +14,7 @@ export function hostsFile(
   env: Record<string, string | undefined>,
   platform: string = process.platform,
 ): string {
-  // macOS: ~/Library/Application Support/gnomeola unless XDG_CONFIG_HOME is set (platformPaths)
+  // macOS: ~/Library/Application Support/kacola unless XDG_CONFIG_HOME is set (platformPaths)
   return join(platformPaths({ platform, env, home: env.HOME || homedir() }).configDir, 'hosts.json')
 }
 
@@ -47,5 +47,5 @@ export function tokenFor(
   url: string,
   explicit?: string,
 ): string | undefined {
-  return explicit ?? (env.GNOMEOLA_TOKEN || undefined) ?? readHosts(env)[hostKey(url)]?.token
+  return explicit ?? (env.KACOLA_TOKEN || undefined) ?? readHosts(env)[hostKey(url)]?.token
 }

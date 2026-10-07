@@ -1,10 +1,10 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
-import { loadAgendaFixture } from '@gnomeola/testkit/fixtures'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop } from '@kacola/testkit/desktop'
+import { loadAgendaFixture } from '@kacola/testkit/fixtures'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { markOnboarded } from '../src/ui.ts'
 
@@ -25,7 +25,7 @@ describe('desktop: the live tracker', () => {
 
   beforeAll(async () => {
     buildDesktop()
-    dir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-tracker-'))
+    dir = mkdtempSync(join(tmpdir(), 'kacola-desktop-tracker-'))
     const calFile = join(dir, 'calendar.json')
     const now = Date.now()
     const t = (min: number) => new Date(now + min * 60_000).toISOString()
@@ -62,17 +62,17 @@ describe('desktop: the live tracker', () => {
     daemon = await startDaemon({
       dataDir: join(dir, 'data'),
       entry: join(import.meta.dirname, '..', 'src', 'tracker-daemon.ts'),
-      env: { GNOMEOLA_CALENDAR: `file:${calFile}` },
+      env: { KACOLA_CALENDAR: `file:${calFile}` },
     })
     display = await startHeadlessDisplay({ size: '1280x800' })
-    markerId = display.env.GNOMEOLA_HEADLESS_ID!
+    markerId = display.env.KACOLA_HEADLESS_ID!
     markOnboarded(
       display,
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
     app = await launchDesktop({
       display,
-      env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
+      env: { KACOLA_URL: daemon.baseUrl, KACOLA_COLOR_SCHEME: 'light' },
     })
     await w().getByRole('button', { name: 'New recording', exact: true }).waitFor({ timeout: 20_000 })
     await w().emulateMedia({ reducedMotion: 'reduce' })

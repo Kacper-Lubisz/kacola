@@ -26,7 +26,7 @@ let built: Promise<RuntimeInfo> | null = null
 /** Build the runtime once per test process into a temp dir (removed at exit). */
 export function testRuntime(): Promise<RuntimeInfo> {
   built ??= (async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-runtime-'))
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-runtime-'))
     process.on('exit', () => rmSync(dir, { recursive: true, force: true }))
     return buildRuntime({ outDir: dir })
   })()

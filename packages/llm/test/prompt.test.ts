@@ -1,4 +1,4 @@
-import { Citation } from '@gnomeola/protocol'
+import { Citation } from '@kacola/protocol'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ANCHOR_EVERY, assemblePrompt, CHUNK_GRACE_MS, CHUNK_MS, SYSTEM_PROMPT } from '../src/prompt.ts'
 import type { AssembledPrompt, TranscriptInput } from '../src/types.ts'

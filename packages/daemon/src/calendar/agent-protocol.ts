@@ -1,7 +1,7 @@
-import { OfflineCalendar } from '@gnomeola/protocol'
+import { OfflineCalendar } from '@kacola/protocol'
 import { z } from 'zod'
 
-// C-2: the line protocol between gnomeolad and `cal-agent` (packages/daemon/gjs/cal-agent.js), a GJS
+// C-2: the line protocol between kacolad and `cal-agent` (packages/daemon/gjs/cal-agent.js), a GJS
 // helper that reads Evolution Data Server through ECal-2.0. One JSON object per line, both directions.
 //
 // daemon → agent (stdin)

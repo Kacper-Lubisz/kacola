@@ -6,7 +6,7 @@ import {
   KACOLA_SCHEME,
   parseKacolaLink,
   parseShareLink,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 
 // kacola:// deep links, main's half (docs/desktop-app.md, "Deep links"): which argument is a link, when
 // to register as the scheme's handler, and the queue that holds a link until the window can take it.
@@ -59,7 +59,7 @@ export type SchemeRegistration = {
  * What `app.setAsDefaultProtocolClient` should be called with, or null to leave the system alone.
  * Packaged macOS registers itself (Info.plist declares the scheme too). Packaged Linux never does: the
  * desktop file's / Flatpak's MimeType is the registration. Unpackaged (dev) registers on macOS unless
- * GNOMEOLA_REGISTER_SCHEME=0, and on Linux only with GNOMEOLA_REGISTER_SCHEME=1 — there it runs
+ * KACOLA_REGISTER_SCHEME=0, and on Linux only with KACOLA_REGISTER_SCHEME=1 — there it runs
  * xdg-settings and changes the user's real default handler, which a test or CI run must never do.
  */
 export function schemeRegistration(o: {
@@ -69,7 +69,7 @@ export function schemeRegistration(o: {
   execPath: string
   argv: readonly string[]
 }): SchemeRegistration | null {
-  const flag = o.env.GNOMEOLA_REGISTER_SCHEME
+  const flag = o.env.KACOLA_REGISTER_SCHEME
   if (flag === '0') return null
   if (o.packaged) return o.platform === 'darwin' ? { scheme: KACOLA_SCHEME, path: null, args: null } : null
   const main = o.argv[1]

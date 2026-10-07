@@ -27,7 +27,7 @@ import type {
   SyncPushResult,
   TrackKind,
   Voiceprint,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import type { SharePlan } from './shares.ts'
 import type { ShareKey, ShareState } from './shares-apply.ts'
 

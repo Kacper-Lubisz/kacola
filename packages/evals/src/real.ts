@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { DecisionProvider } from '@gnomeola/decisions'
+import type { DecisionProvider } from '@kacola/decisions'
 import {
   type AgendaItemInput,
   EVAL_DATASETS_DIR,
@@ -8,7 +8,7 @@ import {
   extraction,
   ItemKind,
   type Scorecard,
-} from '@gnomeola/testkit/evals'
+} from '@kacola/testkit/evals'
 import { liveSkipReason, type ProviderSetup } from './providers.ts'
 import { card, Meter, skippedCard } from './suites.ts'
 import type { ReplayUtterance, StatusRunner } from './types.ts'
@@ -21,7 +21,7 @@ import type { ReplayUtterance, StatusRunner } from './types.ts'
 // from the labelled answer to the tick), cost, calls, latency.
 //
 // Real meetings are private: fixtures live in a gitignored directory (fixtures/evals/private/<name>/,
-// or GNOMEOLA_EVAL_PRIVATE_DIR) and the suite skips with the reason when there are none. Scorecards carry
+// or KACOLA_EVAL_PRIVATE_DIR) and the suite skips with the reason when there are none. Scorecards carry
 // item ids and numbers only, never transcript text.
 //
 //   <dir>/transcript.json   RealTranscript (export-real.ts writes it)
@@ -33,7 +33,7 @@ export const REAL_SUITE = 'real-interview-coverage'
 export const REAL_SAMPLE_FIXTURE = join(EVAL_DATASETS_DIR, 'real-sample')
 
 export function privateEvalsDir(env: NodeJS.ProcessEnv = process.env): string {
-  return env.GNOMEOLA_EVAL_PRIVATE_DIR?.trim() || join(EVAL_DATASETS_DIR, 'private')
+  return env.KACOLA_EVAL_PRIVATE_DIR?.trim() || join(EVAL_DATASETS_DIR, 'private')
 }
 
 export type RealSegment = {

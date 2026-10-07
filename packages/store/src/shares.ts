@@ -17,7 +17,7 @@ import {
   type ShareOptions,
   type ShareParticipant,
   type SharePushResult,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import type { Op } from './agendas-apply.ts'
 import { StoreError } from './errors.ts'
 import type { CodeRecord, ShareState } from './shares-apply.ts'

@@ -1,17 +1,17 @@
 import { join } from 'node:path'
-import type { AnyEvent, DurableEvent, Segment } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { loadFixture } from '@gnomeola/testkit/fixtures'
+import type { AnyEvent, DurableEvent, Segment } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { loadFixture } from '@kacola/testkit/fixtures'
 import {
   assertNoViolations,
   checkEventLog,
   checkSegmentHistory,
   checkSegments,
-} from '@gnomeola/testkit/invariants'
-import { wer } from '@gnomeola/testkit/metrics'
-import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@gnomeola/testkit/rig'
+} from '@kacola/testkit/invariants'
+import { wer } from '@kacola/testkit/metrics'
+import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@kacola/testkit/rig'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { gnomeola } from '../src/cli.ts'
+import { kacola } from '../src/cli.ts'
 import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
 
 // The whole product on real audio. A fixture meeting (per-track speech with exact ground truth) is played
@@ -41,7 +41,7 @@ beforeAll(async () => {
     env: {
       ANTHROPIC_API_KEY: 'sk-ant-e2e-real-audio',
       ANTHROPIC_BASE_URL: api.url,
-      GNOMEOLA_RESUME_WINDOW_MS: '0',
+      KACOLA_RESUME_WINDOW_MS: '0',
     },
   })
   await d.client.call('updateSettings', {
@@ -138,11 +138,11 @@ describe('a real meeting, recorded and transcribed', () => {
   // Real ASR, not a script: on this fixture it hears "three detempts, then dead letter". Assertions check what
   // a recogniser must get right for the product to work (subject and number); accuracy is the WER test above.
   it('is searchable and windowable through the CLI — search → window finds the decision', async () => {
-    const s = await gnomeola(['search', 'retry budget'], d.baseUrl)
+    const s = await kacola(['search', 'retry budget'], d.baseUrl)
     expect(s.code).toBe(0)
     const hit = JSON.parse(s.stdout).hits.find((h: { sessionId: string }) => h.sessionId === sessionId)
     expect(hit, 'the real transcript is indexed').toBeDefined()
-    const w = await gnomeola(['transcript', sessionId, '--around', hit.segmentId], d.baseUrl)
+    const w = await kacola(['transcript', sessionId, '--around', hit.segmentId], d.baseUrl)
     expect(w.code).toBe(0)
     expect(
       JSON.parse(w.stdout)
@@ -153,7 +153,7 @@ describe('a real meeting, recorded and transcribed', () => {
 
   it('answers a question over the real transcript with citations to real segments', async () => {
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
-    const r = await gnomeola(['ask', 'what is the retry budget?', '--session', sessionId], d.baseUrl)
+    const r = await kacola(['ask', 'what is the retry budget?', '--session', sessionId], d.baseUrl)
     expect(r.code, r.stderr).toBe(0)
     const out = JSON.parse(r.stdout)
     const ids = new Set(segments.map((s) => s.id))

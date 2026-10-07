@@ -1,4 +1,4 @@
-import type { DurableEvent } from '@gnomeola/protocol'
+import type { DurableEvent } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import { checkAgendaLog, checkAgentLog } from '../src/invariants/index.ts'
 

@@ -27,7 +27,7 @@ export function built(maxDuration: Partial<Record<FunctionName, number>> = {}): 
   const key = JSON.stringify(maxDuration)
   let b = builds.get(key)
   if (!b) {
-    // Inside the package (under the ignored .vercel/), so the functions' lazy `@gnomeola/store` import —
+    // Inside the package (under the ignored .vercel/), so the functions' lazy `@kacola/store` import —
     // the harness-only SQLite path — resolves from this package's node_modules, as it would in a repo.
     mkdirSync(join(import.meta.dirname, '..', '.vercel'), { recursive: true })
     const dir = mkdtempSync(join(import.meta.dirname, '..', '.vercel', 'test-'))

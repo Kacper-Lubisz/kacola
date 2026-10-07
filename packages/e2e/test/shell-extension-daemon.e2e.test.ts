@@ -1,15 +1,15 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
 import {
   extensionState,
   fakeUrlHandler,
-  GNOMEOLA_EXTENSION,
-  GNOMEOLA_UUID,
+  KACOLA_EXTENSION,
+  KACOLA_UUID,
   shellEval,
   UNSAFE_MODE_EXTENSION,
-} from '@gnomeola/testkit/shell'
-import { type HeadlessDisplay, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+} from '@kacola/testkit/shell'
+import { type HeadlessDisplay, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // V-4b (end to end): the real extension in a throwaway nested GNOME Shell 50, talking over the nested
@@ -26,22 +26,22 @@ type Item = { key: string; text: string; name: string }
 type Indicator = { accessibleName: string; icon: string; label: string; items: Item[] }
 
 const DESCRIBE = `(() => {
-  const b = Main.panel.statusArea['${GNOMEOLA_UUID}']
+  const b = Main.panel.statusArea['${KACOLA_UUID}']
   if (!b) return null
   return {
     accessibleName: b.accessible_name,
     icon: b._icon.icon_name,
     label: b._label.visible ? b._label.text : '',
     items: b.menu._getMenuItems().map((i) => ({
-      key: i._gnomeolaKey ?? '',
+      key: i._kacolaKey ?? '',
       text: i.label?.text ?? i._title?.text ?? '',
       name: i.accessible_name ?? '',
     })),
   }
 })()`
 const activate = (key: string) => `(() => {
-  const item = Main.panel.statusArea['${GNOMEOLA_UUID}'].menu._getMenuItems()
-    .find((i) => i._gnomeolaKey === ${JSON.stringify(key)})
+  const item = Main.panel.statusArea['${KACOLA_UUID}'].menu._getMenuItems()
+    .find((i) => i._kacolaKey === ${JSON.stringify(key)})
   if (!item) throw new Error('no menu item ' + ${JSON.stringify(key)})
   item.activate(null)
   return true
@@ -62,17 +62,17 @@ const until = <T>(probe: () => Promise<T | null | undefined | false>, what: stri
 
 beforeAll(async () => {
   display = await startHeadlessDisplay({
-    extensions: [UNSAFE_MODE_EXTENSION, GNOMEOLA_EXTENSION],
+    extensions: [UNSAFE_MODE_EXTENSION, KACOLA_EXTENSION],
     prepare: (dirs) => {
       urlLog = join(dirs.home, 'opened-urls.log')
       launchLog = join(dirs.home, 'launched.log')
       fakeUrlHandler(dirs.data, dirs.config, urlLog)
       // a stand-in for the installed app, so "Open kacola" has something to launch
-      const script = join(dirs.data, 'applications', 'fake-gnomeola-ui.sh')
+      const script = join(dirs.data, 'applications', 'fake-kacola-ui.sh')
       writeFileSync(script, `#!/bin/sh\necho launched >> '${launchLog}'\n`, { mode: 0o755 })
       writeFileSync(
-        join(dirs.data, 'applications', 'org.gnome.Gnomeola.desktop'),
-        `[Desktop Entry]\nType=Application\nName=gnomeola\nExec=${script}\n`,
+        join(dirs.data, 'applications', 'com.kacperlubisz.Kacola.desktop'),
+        `[Desktop Entry]\nType=Application\nName=kacola\nExec=${script}\n`,
       )
     },
   })
@@ -91,14 +91,14 @@ beforeAll(async () => {
   )
   daemon = await startDaemon({
     env: {
-      GNOMEOLA_DBUS: 'session',
+      KACOLA_DBUS: 'session',
       DBUS_SESSION_BUS_ADDRESS: display.env.DBUS_SESSION_BUS_ADDRESS,
-      GNOMEOLA_CALENDAR: `file:${calendar}`,
-      GNOMEOLA_FAKE_PIPELINE: JSON.stringify({ partialEveryMs: 100, segmentEveryMs: 400 }),
+      KACOLA_CALENDAR: `file:${calendar}`,
+      KACOLA_FAKE_PIPELINE: JSON.stringify({ partialEveryMs: 100, segmentEveryMs: 400 }),
     },
   })
   await until(
-    async () => (await extensionState(display.env, GNOMEOLA_UUID))?.stateName === 'active',
+    async () => (await extensionState(display.env, KACOLA_UUID))?.stateName === 'active',
     'extension',
   )
 }, 180_000)
@@ -177,9 +177,9 @@ describe('the extension against the real daemon', () => {
     expect(ind.items[0]!.text).toMatch(/^Recording · Platform standup · 0:\d\d$/)
     expect(ind.items.find((i) => i.key === 'last-line')!.text).toMatch(/^(me|them): \S/)
     expect(ind.items.find((i) => i.key === `meeting:${meetingId}`)!.name).not.toMatch(/Join$/)
-    await shellEval(display.env, `Main.panel.statusArea['${GNOMEOLA_UUID}'].menu.open(); true`)
+    await shellEval(display.env, `Main.panel.statusArea['${KACOLA_UUID}'].menu.open(); true`)
     await display.screenshot(join(ARTIFACTS, 'shell-extension-real-daemon.png'))
-    await shellEval(display.env, `Main.panel.statusArea['${GNOMEOLA_UUID}'].menu.close(); true`)
+    await shellEval(display.env, `Main.panel.statusArea['${KACOLA_UUID}'].menu.close(); true`)
   })
 
   it('Stop in the menu stops the session on the daemon, and the panel goes idle', async () => {

@@ -2,28 +2,28 @@ import type {
   AgendaView,
   AnyEvent,
   DurableEvent,
-  GnomeolaClient,
+  KacolaClient,
   ModelInfo,
   NotesState,
   NoteVersion,
   Session,
   Settings,
   StatusChange,
-} from '@gnomeola/protocol'
-import { isDurable } from '@gnomeola/protocol'
+} from '@kacola/protocol'
+import { isDurable } from '@kacola/protocol'
 import {
   type AgendaEventData,
   agendaIdOf,
   applyAgendaEvent,
   applyHistoryEvent,
   isAgendaEvent,
-} from '@gnomeola/ui-core/agendas'
-import { applyNotesEvent, applyVersionEvent } from '@gnomeola/ui-core/notes'
-import { applyQaEvent, type QaState } from '@gnomeola/ui-core/qa'
-import { applyEvent, fromSnapshot, type SessionsState } from '@gnomeola/ui-core/sessions'
-import { withStored } from '@gnomeola/ui-core/settings'
-import { applySpeakerEvent, type SpeakersState } from '@gnomeola/ui-core/speakers'
-import { applyTranscriptEvent, type TranscriptState } from '@gnomeola/ui-core/transcript'
+} from '@kacola/ui-core/agendas'
+import { applyNotesEvent, applyVersionEvent } from '@kacola/ui-core/notes'
+import { applyQaEvent, type QaState } from '@kacola/ui-core/qa'
+import { applyEvent, fromSnapshot, type SessionsState } from '@kacola/ui-core/sessions'
+import { withStored } from '@kacola/ui-core/settings'
+import { applySpeakerEvent, type SpeakersState } from '@kacola/ui-core/speakers'
+import { applyTranscriptEvent, type TranscriptState } from '@kacola/ui-core/transcript'
 import { onlineManager, type QueryCacheNotifyEvent, type QueryClient } from '@tanstack/react-query'
 import { applyEphemeral, type Connection, type EphemeralStore } from './ephemeral.ts'
 import { isSessionScoped, keys } from './keys.ts'
@@ -44,7 +44,7 @@ import { isSessionScoped, keys } from './keys.ts'
 // Its connection state drives React Query's onlineManager: queries and mutations pause while the
 // stream is down and resume when it is back.
 
-export type BridgeClient = Pick<GnomeolaClient, 'call' | 'subscribe'>
+export type BridgeClient = Pick<KacolaClient, 'call' | 'subscribe'>
 
 export type EventBridgeOptions = {
   reconnectDelayMs?: number

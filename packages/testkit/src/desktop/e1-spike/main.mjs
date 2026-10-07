@@ -10,7 +10,7 @@ app.whenReady().then(() => {
     width: 1000,
     height: 700,
     show: false,
-    title: 'Gnomeola spike',
+    title: 'Kacola spike',
     backgroundColor: '#fafafb',
     webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false },
   })
@@ -19,7 +19,7 @@ app.whenReady().then(() => {
     win.show()
   })
   win.webContents.once('did-finish-load', () => log('did-finish-load'))
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Gnomeola spike</title>
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Kacola spike</title>
   <style>body{font-family:system-ui;background:#fafafb;margin:0}aside{position:fixed;inset:0 auto 0 0;width:280px;background:#ebebed}
   main{margin-left:280px;padding:48px}h1{font-weight:800}</style></head>
   <body><aside><ul>${Array.from({ length: 12 }, (_, i) => `<li>Session ${i + 1}</li>`).join('')}</ul></aside>

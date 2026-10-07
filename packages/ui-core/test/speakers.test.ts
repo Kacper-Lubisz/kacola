@@ -1,4 +1,4 @@
-import type { AnyEvent, DurableEventData, Segment, Speaker, SpeakerSummary } from '@gnomeola/protocol'
+import type { AnyEvent, DurableEventData, Segment, Speaker, SpeakerSummary } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import {
   applySpeakerEvent,

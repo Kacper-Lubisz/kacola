@@ -1,8 +1,7 @@
 # Agendas (kacola phases 1–2)
 
 What the agenda core is, the contracts later waves build on (the live tracker, the agent channel, the
-window, team sharing), and the tests behind each claim. Code identifiers stay `gnomeola`; user-facing
-deep links already use the `kacola://` scheme.
+window, team sharing), and the tests behind each claim. Deep links use the `kacola://` scheme.
 
 The rules everything below serves:
 
@@ -99,7 +98,7 @@ accepting `looks-covered` covers the item as the acceptor), `importMarkdown`, re
 - **invite block**: `inviteBlock(id, {write, remove})` through `CalendarService.editDescription`.
 
 The web link exists once the agenda is shared ([team sharing](sharing.md)): `<base>/a/<token>`, the base
-being `DaemonOptions.agendaWebBase` / `GNOMEOLA_AGENDA_WEB_BASE`, else the sharing host. Unshared, blocks
+being `DaemonOptions.agendaWebBase` / `KACOLA_AGENDA_WEB_BASE`, else the sharing host. Unshared, blocks
 carry only the `kacola://` link.
 
 ## Routes (`agendaRoutes`)
@@ -195,13 +194,13 @@ tokens; `show` refuses with exit 5 above it, `--full` bypasses) and `BUDGET.cont
 already has an agenda → `--reuse`; a refused status move), 2 usage, 4 not found, 5 over budget, 6 calendar
 off, 7 no live lease. `suggest` is a connected agent's verb: it needs a live lease (the agent channel).
 
-`gnomeola mcp` adds `list_agendas`, `get_agenda`, `create_agenda`, `add_agenda_items`, `edit_agenda_item`,
+`kacola mcp` adds `list_agendas`, `get_agenda`, `create_agenda`, `add_agenda_items`, `edit_agenda_item`,
 `remove_agenda_item`, `set_agenda_item_status`, `export_agenda_markdown`, `import_agenda_markdown`,
 `add_context_card`, `suggest_for_agenda`, `agenda_invite_block`, and the sharing reads `agenda_share_status`,
 `agenda_share_history` — each runs the CLI command function, so
 budgets, refusals and privacy are shared. The live tools and resource are the agent channel's (below).
 
-The skill (`skills/meeting-context/SKILL.md`, installed by `gnomeola skill install`) has the "Prepare a
+The skill (`skills/meeting-context/SKILL.md`, installed by `kacola skill install`) has the "Prepare a
 meeting" workflow and the copilot section (below).
 
 ## Verification
@@ -210,7 +209,7 @@ meeting" workflow and the copilot section (below).
 | --- | --- |
 | markdown round trip is lossless (1 000 random agendas), links, invite block idempotent + organiser text untouched (300 random descriptions) | `packages/protocol/test/agendas.test.ts` |
 | rules: one per occurrence, carry-over, forward-only, override, manual wins, history, privacy, session deletion scrubs quotes; replay == state over random histories covering every agenda event (6 seeds × 400 ops); reopen == dump | `packages/store/test/agendas.test.ts` |
-| an independent reading of the log (`checkAgendaLog` in `@gnomeola/testkit/invariants`): change continuity, forward-only for everyone but the user, override flags, manual wins, versions step by one — on every random history and the daemon's own log (and it flags forged logs) | `packages/store/test/agendas.test.ts`, `packages/daemon/test/agendas.int.test.ts` |
+| an independent reading of the log (`checkAgendaLog` in `@kacola/testkit/invariants`): change continuity, forward-only for everyone but the user, override flags, manual wins, versions step by one — on every random history and the daemon's own log (and it flags forged logs) | `packages/store/test/agendas.test.ts`, `packages/daemon/test/agendas.int.test.ts` |
 | the same log gives the same snapshot on SQLite and Postgres, both ways | `packages/store/test/contract/agendas-dialect.int.test.ts` |
 | every route schema-valid through the typed client | `packages/daemon/test/contract.test.ts` |
 | drafting: the line parser (kinds, suffixes, junk, repeats, cap, any split) and the prompt bytes | `packages/daemon/test/agenda-draft.test.ts` |
@@ -282,7 +281,7 @@ The daemon is a loopback service: any local process can call it with the user's 
 not changed. A lease does not keep local code out. It makes a connected agent's writes **bounded and
 attributed**, whatever the agent was talked into by what it heard:
 
-- **The token is its identity.** An agent request carries the token in `x-gnomeola-lease`
+- **The token is its identity.** An agent request carries the token in `x-kacola-lease`
   (`LEASE_HEADER`; `authorization` stays pairing's). The author is bound to the lease (`agent:<name>`),
   never read from the body.
 - **A token reaches only the agent routes.** `AgentChannel.gate` runs in dispatch before any handler.
@@ -333,7 +332,7 @@ attributed**, whatever the agent was talked into by what it heard:
 | --- | --- |
 | `attached {lease, agenda, lastSeq}` | first, always |
 | `segment.final {segmentId, speaker, startMs, endMs, text, revision, quality, flags}` | a segment's first durable upsert; again (same id, higher revision) only when its text or speaker changes |
-| `partial {speaker, startMs, text}` | ephemeral, at most one per track per 1.5 s (`GNOMEOLA_LIVE_PARTIAL_MS`) |
+| `partial {speaker, startMs, text}` | ephemeral, at most one per track per 1.5 s (`KACOLA_LIVE_PARTIAL_MS`) |
 | `agenda.updated {agenda}` · `suggestion` · `context` | the linked agenda's events |
 | `agent.presence` | every agent on this recording |
 | `lease.ended {leaseId, reason}` | then the stream closes |
@@ -365,12 +364,12 @@ interface SpeechGuard {
 - **Plugging one in:** `DaemonOptions.speechGuard`, or `daemon.agents.setGuard(g)` at runtime. The
   tracker reuses it through `daemon.agents.guard` and `daemon.agents.verdict(segment)`.
 - **Guards today:** the default is `passThroughGuard`, which marks nothing.
-  `GNOMEOLA_SPEECH_GUARD=heuristic` selects a narrow built-in stand-in: on the injection-guardrail eval set
+  `KACOLA_SPEECH_GUARD=heuristic` selects a narrow built-in stand-in: on the injection-guardrail eval set
   it scores recall 0.38 and precision 0.67 (measured, not tuned). `decideInjection` should replace it.
 
 ### CLI, MCP, skill
 
-- **`gnomeola live attach [--session current|<id>] [--as NAME] [--mode observe|suggest|act] [--replay]
+- **`kacola live attach [--session current|<id>] [--as NAME] [--mode observe|suggest|act] [--replay]
   [--no-partials] [--heartbeat 15s]`** prints one JSON line per `LiveEvent` until the meeting ends. It:
   - heartbeats;
   - reconnects with backoff, resuming from its cursor;
@@ -379,20 +378,20 @@ interface SpeechGuard {
 
   Exit codes: 0 meeting ended · 7 lease ended (revoked, superseded, access withdrawn) · 4 no recording ·
   3 daemon gone · 2 usage.
-- **`gnomeola live wait [--meeting next|<id|uid>] [--timeout D]`** prints the recording as it starts,
+- **`kacola live wait [--meeting next|<id|uid>] [--timeout D]`** prints the recording as it starts,
   and exits 4 on timeout.
 - **The agent verbs** (`agenda status|add|edit|show|export`, `suggest`, `context add`) pick up a lease,
   in this order:
-  1. `GNOMEOLA_LEASE=<token>` (`GNOMEOLA_LEASE=none` means act as the user);
+  1. `KACOLA_LEASE=<token>` (`KACOLA_LEASE=none` means act as the user);
   2. the lease file for `--as NAME`;
   3. the only live lease file, if there is exactly one.
 
-  Lease files are `$GNOMEOLA_LEASE_DIR/lease-<name>.json`, or `$XDG_RUNTIME_DIR/gnomeola/…` (mode 0600).
+  Lease files are `$KACOLA_LEASE_DIR/lease-<name>.json`, or `$XDG_RUNTIME_DIR/kacola/…` (mode 0600).
   With a lease, `<agenda>` may be `live`, and `agenda status --segment <id>` cites the evidence.
   `suggest` needs a lease (exit 7 without one). A refusal exits 5 (mode, rate limit, secret); a refused
   move under "manual wins" exits 1.
 - **MCP:** `live_sessions`, `live_attach`, `live_events`, `live_detach`, and the subscribable resource
-  `gnomeola://live`. Subscribers get `notifications/resources/updated` as events arrive, at most one per
+  `kacola://live`. Subscribers get `notifications/resources/updated` as events arrive, at most one per
   200 ms. While attached, the agenda tools act under the lease.
 - **Skill:** the copilot section tells the agent to:
   - attach only when the user asks;

@@ -1,14 +1,14 @@
-import { createClient } from '@gnomeola/protocol'
-import { createHostedApp, serve } from '@gnomeola/server'
-import { SqliteStoreApi } from '@gnomeola/store'
-import { MemoryBlobStore } from '@gnomeola/store/blob'
-import { startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import { createClient } from '@kacola/protocol'
+import { createHostedApp, serve } from '@kacola/server'
+import { SqliteStoreApi } from '@kacola/store'
+import { MemoryBlobStore } from '@kacola/store/blob'
+import { startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { expect, it } from 'vitest'
 
-// H-7 as shipped: `gnomeolad` itself, started with GNOMEOLA_SYNC_URL + GNOMEOLA_SYNC_TOKEN, keeps a
+// H-7 as shipped: `kacolad` itself, started with KACOLA_SYNC_URL + KACOLA_SYNC_TOKEN, keeps a
 // hosted server in step — including across a daemon restart — with no agent process of its own.
 
-it('gnomeolad with GNOMEOLA_SYNC_URL pushes its meetings to the hosted server, and resumes after a restart', async () => {
+it('kacolad with KACOLA_SYNC_URL pushes its meetings to the hosted server, and resumes after a restart', async () => {
   const store = SqliteStoreApi.open(':memory:')
   const admin = 'daemon-sync-admin-token-0123'
   const app = createHostedApp({
@@ -27,9 +27,9 @@ it('gnomeolad with GNOMEOLA_SYNC_URL pushes its meetings to the hosted server, a
 
   const d = await startDaemon({
     env: {
-      GNOMEOLA_FAKE_PIPELINE: JSON.stringify({ segmentEveryMs: 30, finalizeAfterMs: 20 }),
-      GNOMEOLA_SYNC_URL: served.url,
-      GNOMEOLA_SYNC_TOKEN: tok.token,
+      KACOLA_FAKE_PIPELINE: JSON.stringify({ segmentEveryMs: 30, finalizeAfterMs: 20 }),
+      KACOLA_SYNC_URL: served.url,
+      KACOLA_SYNC_TOKEN: tok.token,
     },
   })
   try {

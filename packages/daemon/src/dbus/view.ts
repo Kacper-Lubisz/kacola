@@ -1,7 +1,7 @@
-import type { AutoRecordSettings, CalendarStatus, Meeting, Session } from '@gnomeola/protocol'
+import type { AutoRecordSettings, CalendarStatus, Meeting, Session } from '@kacola/protocol'
 import type { DbusMeeting, DbusProps } from './bridge-protocol.ts'
 
-// C-4: every property of org.gnome.Gnomeola as a pure function of daemon state, so what the top bar
+// C-4: every property of com.kacperlubisz.Kacola as a pure function of daemon state, so what the top bar
 // shows is decided (and unit-tested) here and the bridge only transports it.
 //
 // Private sessions (X-7) are shown as recording — the user must be able to see and stop a capture —

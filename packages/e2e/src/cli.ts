@@ -1,15 +1,15 @@
-import { run } from '@gnomeola/cli'
+import { run } from '@kacola/cli'
 
 export type CliResult = { code: number; stdout: string; stderr: string }
 
 /** Run the real CLI in-process against a daemon URL, as a non-TTY (agent) caller unless told otherwise. */
-export async function gnomeola(
+export async function kacola(
   argv: string[],
   url: string,
   opts: {
     tty?: boolean
     stdin?: string
-    /** Extra environment (e.g. GNOMEOLA_LEASE_DIR for the live channel). */
+    /** Extra environment (e.g. KACOLA_LEASE_DIR for the live channel). */
     env?: Record<string, string | undefined>
     /** Stops a long-running command (live attach / wait), like SIGTERM. */
     signal?: AbortSignal
@@ -28,7 +28,7 @@ export async function gnomeola(
       stderr += s
     },
     isTTY: opts.tty ?? false,
-    env: { GNOMEOLA_URL: url, ...opts.env },
+    env: { KACOLA_URL: url, ...opts.env },
     ...(opts.signal ? { signal: opts.signal } : {}),
     ...(opts.stdin !== undefined ? { stdin: async () => opts.stdin! } : {}),
   })

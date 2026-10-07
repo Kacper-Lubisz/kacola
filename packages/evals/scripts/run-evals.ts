@@ -12,7 +12,7 @@
 // trackerStatusRunner); skipped with the reason when there is none. --real-only runs just that suite.
 // Per-item results are written next to the fixture (private) for its review page.
 
-import { HashingEmbedder, OnnxEmbedder } from '@gnomeola/decisions'
+import { HashingEmbedder, OnnxEmbedder } from '@kacola/decisions'
 import {
   findTextEmbedder,
   formatScorecard,
@@ -20,7 +20,7 @@ import {
   type Scorecard,
   summaryTable,
   writeScorecard,
-} from '@gnomeola/testkit/evals'
+} from '@kacola/testkit/evals'
 import type { TrackerOptions } from '../../daemon/src/agendas/tracker.ts'
 import { trackerStatusRunner } from '../../daemon/src/agendas/tracker-eval.ts'
 import {

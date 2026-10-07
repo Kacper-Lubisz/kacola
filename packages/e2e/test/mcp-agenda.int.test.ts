@@ -3,15 +3,15 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
-import { BUDGET, countTokens } from '@gnomeola/cli'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import { BUDGET, countTokens } from '@kacola/cli'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-// `gnomeola mcp` agenda tools against the REAL daemon, over real stdio JSON-RPC (a minimal MCP client:
+// `kacola mcp` agenda tools against the REAL daemon, over real stdio JSON-RPC (a minimal MCP client:
 // initialize, then tools/call): the same verbs, budgets and privacy as the CLI.
 
 const MAIN = join(import.meta.dirname, '..', '..', 'cli', 'src', 'main.ts')
-const box = mkdtempSync(join(tmpdir(), 'gnomeola-e2e-mcp-agenda-'))
+const box = mkdtempSync(join(tmpdir(), 'kacola-e2e-mcp-agenda-'))
 const calFile = join(box, 'calendar.json')
 let d: DaemonHandle
 let child: ChildProcess
@@ -62,10 +62,10 @@ beforeAll(async () => {
       },
     ]),
   )
-  d = await startDaemon({ env: { GNOMEOLA_CALENDAR: `file:${calFile}` } })
+  d = await startDaemon({ env: { KACOLA_CALENDAR: `file:${calFile}` } })
   await waitFor(async () => (await d.client.call('nextMeeting')).next !== null, 10_000, 'the calendar file')
   child = spawn(process.execPath, [MAIN, 'mcp'], {
-    env: { ...process.env, GNOMEOLA_URL: d.baseUrl },
+    env: { ...process.env, KACOLA_URL: d.baseUrl },
     stdio: ['pipe', 'pipe', 'inherit'],
   })
   createInterface({ input: child.stdout! }).on('line', (line) => {
@@ -87,7 +87,7 @@ afterAll(async () => {
   rmSync(box, { recursive: true, force: true })
 })
 
-describe('gnomeola mcp: agenda tools, real daemon', () => {
+describe('kacola mcp: agenda tools, real daemon', () => {
   it('create → add → status → context → show, under the CLI budgets; private cards by default', async () => {
     const c = await tool('create_agenda', {
       meeting: 'next',

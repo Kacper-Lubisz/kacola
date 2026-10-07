@@ -1,5 +1,5 @@
 // Minimal RIFF/WAVE (PCM s16le mono) framing for sending raw PCM to a provider, and back. Kept here, not
-// shared with @gnomeola/capture, because the hosted bundle must not depend on the capture package.
+// shared with @kacola/capture, because the hosted bundle must not depend on the capture package.
 
 export function encodeWav(pcm: Uint8Array, sampleRate: number): Uint8Array {
   const out = new Uint8Array(44 + pcm.length)

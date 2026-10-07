@@ -1,5 +1,5 @@
 {
-  "name": "@gnomeola/testkit",
+  "name": "@kacola/testkit",
   "version": "0.1.0",
   "private": true,
   "description": "Test harness: fixtures + ground truth, segment invariants, LLM cassettes, daemon harness, PipeWire rig.",
@@ -31,12 +31,12 @@
     "generate-fixtures": "node scripts/generate-fixtures.ts"
   },
   "dependencies": {
-    "@gnomeola/protocol": "workspace:*",
+    "@kacola/protocol": "workspace:*",
     "zod": "^4.1.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
-    "@gnomeola/stt": "workspace:*",
+    "@kacola/stt": "workspace:*",
     "playwright-core": "1.63.0"
   }
 }

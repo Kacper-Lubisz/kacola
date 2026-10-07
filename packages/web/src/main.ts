@@ -1,4 +1,4 @@
-import { createClient, GnomeolaApiError, type GnomeolaClient, isDurable } from '@gnomeola/protocol'
+import { createClient, isDurable, KacolaApiError, type KacolaClient } from '@kacola/protocol'
 import {
   esc,
   hrefFor,
@@ -12,7 +12,7 @@ import {
 } from './data.ts'
 
 // The viewer in the browser: a hash router over ./data.ts, a pairing screen for a browser without a
-// token (the same device-code flow as `gnomeola pair`), and live refresh from the resumable event
+// token (the same device-code flow as `kacola pair`), and live refresh from the resumable event
 // stream (it reconnects with its cursor whenever the host's function cap ends a stream).
 
 // The protocol client reads streams with `for await`; browsers without async-iterable ReadableStream
@@ -55,12 +55,12 @@ const store = {
 }
 
 let token = store.get()
-let client: GnomeolaClient = makeClient()
+let client: KacolaClient = makeClient()
 let data = viewerData(client)
 let navigation = new AbortController()
 let live: AbortController | null = null
 
-function makeClient(): GnomeolaClient {
+function makeClient(): KacolaClient {
   return createClient({ baseUrl: location.origin, timeoutMs: 20_000, ...(token ? { token } : {}) })
 }
 
@@ -96,7 +96,7 @@ async function render(): Promise<void> {
     }
   } catch (err) {
     if (signal.aborted) return
-    if (err instanceof GnomeolaApiError && err.status === 401) {
+    if (err instanceof KacolaApiError && err.status === 401) {
       setToken(null)
       return render()
     }
@@ -135,7 +135,7 @@ async function pairThisBrowser(signal: AbortSignal): Promise<void> {
   }
 }
 
-/** A signed-in browser approving someone else's code (the verification link `gnomeola pair` prints). */
+/** A signed-in browser approving someone else's code (the verification link `kacola pair` prints). */
 function approve(code: string): void {
   show(
     `<div class="pairing"><h1>Approve a device</h1><p>Only approve it if this code is showing on your own screen:</p><p class="code">${esc(code)}</p><button id="approve">Approve</button></div>`,

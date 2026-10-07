@@ -4,12 +4,12 @@
 //   ANTHROPIC_API_KEY=… pnpm exec vitest run --project eval packages/llm
 //   OPENAI_API_KEY=…    pnpm exec vitest run --project eval packages/llm
 //
-// Add GNOMEOLA_CASSETTES=record to also write the traffic to test/fixtures/cassettes/recorded/live-eval.json,
+// Add KACOLA_CASSETTES=record to also write the traffic to test/fixtures/cassettes/recorded/live-eval.json,
 // a real recording that can later replace or sit beside the hand-authored cassettes.
 //
 // Without a key every test here is skipped and the reason is printed; nothing passes vacuously.
 import { join } from 'node:path'
-import { cassetteMode, useCassette } from '@gnomeola/testkit/cassettes'
+import { cassetteMode, useCassette } from '@kacola/testkit/cassettes'
 import { afterAll, describe, expect, it } from 'vitest'
 import { AnthropicProvider } from '../src/anthropic.ts'
 import { type AskDone, ask } from '../src/ask.ts'

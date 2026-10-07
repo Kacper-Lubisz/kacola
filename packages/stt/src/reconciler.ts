@@ -1,4 +1,4 @@
-import { newId, type Segment, speakerForTrack, type TrackKind } from '@gnomeola/protocol'
+import { newId, type Segment, speakerForTrack, type TrackKind } from '@kacola/protocol'
 import type { LiveHypothesis, TimedWord } from './types.ts'
 
 // T-5 — the reconciler: a pure, deterministic state machine per session that turns what the speech

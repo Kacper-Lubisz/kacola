@@ -1,5 +1,5 @@
-import type { Citation } from '@gnomeola/protocol'
-import { _ } from '@gnomeola/ui-core/i18n'
+import type { Citation } from '@kacola/protocol'
+import { _ } from '@kacola/ui-core/i18n'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Button, Card, IconButton, TextField, useToast } from '../../design/primitives/index.ts'

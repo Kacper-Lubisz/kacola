@@ -1,4 +1,4 @@
-import type { JoinLink, MeetingProvider } from '@gnomeola/protocol'
+import type { JoinLink, MeetingProvider } from '@kacola/protocol'
 
 // C-1: finding the "join" link of a meeting. Invitations put it in different places depending on who
 // sent them — Google in an X-GOOGLE-CONFERENCE property and the description, Outlook/Teams in an HTML

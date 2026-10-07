@@ -1,6 +1,6 @@
 # User stories and the screen atlas
 
-This page lists every user story kacola (gnomeola in code) supports or plans. For each one it gives the
+This page lists every user story kacola supports or plans. For each one it gives the
 entry points, the steps, the screens and states it touches, and its status. Each story has a flow chart
 from where the user starts to the outcome. The **screen atlas** is a real screenshot of every state, in
 light and dark, taken by an e2e suite that drives the real app. We use it to iterate on the designs.
@@ -68,9 +68,9 @@ flowchart TB
     FIRST([First launch]) --> ONB[Onboarding]
   end
   subgraph Agents
-    CC([Claude Code + skill]) --> CLI[gnomeola CLI: search, ask, notes, meetings, record]
-    MCPC([Any MCP client]) --> MCP[gnomeola mcp]
-    BYO([Claude Code as copilot]) -.planned.-> LIVE[gnomeola live attach]
+    CC([Claude Code + skill]) --> CLI[kacola CLI: search, ask, notes, meetings, record]
+    MCPC([Any MCP client]) --> MCP[kacola mcp]
+    BYO([Claude Code as copilot]) -.planned.-> LIVE[kacola live attach]
   end
   subgraph Web
     PHONE([Browser / phone]) --> WV[Hosted web viewer]
@@ -187,7 +187,7 @@ flowchart TD
 - **Persona:** a user who wants Claude Code to read their meetings, or wants the top bar.
 - **Entry points:** onboarding (default on; the top-bar extension has its own button there); Preferences ›
   Integration; on GNOME, a dismissible card at the foot of the sidebar until the extension is on.
-- **Steps:** 1. Preferences › Integration shows whether `gnomeola` is on the PATH and where. 2. Install /
+- **Steps:** 1. Preferences › Integration shows whether `kacola` is on the PATH and where. 2. Install /
   Reinstall / Remove the command-line tool and the Claude skill (`~/.claude/skills/meeting-context`).
   3. The top-bar extension: one button that does the right thing — Install & Enable, Update or Enable —
   through the Shell's own D-Bus API. A fresh install is queued for the next login (the Shell reads new
@@ -204,7 +204,7 @@ flowchart TD
 ```mermaid
 flowchart TD
   A([Preferences › Integration]) --> B[CLI + skill row, extension row, background row]
-  B -->|Install| C[gnomeola on PATH, skill in ~/.claude/skills]
+  B -->|Install| C[kacola on PATH, skill in ~/.claude/skills]
   S([Sidebar card, GNOME only]) -->|Install & Enable| D[Copied; the Shell has not loaded it yet]
   B -->|Install & Enable| D
   D --> L[Installed — log out and back in to turn it on]
@@ -213,7 +213,7 @@ flowchart TD
   U --> L
   B -->|Extensions off in GNOME| Q[Turn On GNOME Extensions?]
   Q -->|Turn On Extensions| ON
-  B -->|Another gnomeola comes first| F[Replace the Other gnomeola?]
+  B -->|Another kacola comes first| F[Replace the Other kacola?]
   B -.macOS /usr/local/bin.-> G[One administrator prompt, or ~/.local/bin]
   %% shot: B = integrations__preferences__integration-page
   %% shot: S = integrations__sidebar__extension-card
@@ -283,7 +283,7 @@ flowchart TD
   J -.already recording.-> L[The link still opens]
   B -.no meetings.-> E[No upcoming meetings]
   B -.calendar down.-> C[Calendar unavailable, and why]
-  A -.daemon not running.-> O[gnomeola is not running]
+  A -.daemon not running.-> O[kacola is not running]
   R --> W[The window shows it live]
   %% shot: B = topbar-join__idle__upcoming-meetings
   %% shot: NB = topbar-join__starting__notification
@@ -345,18 +345,18 @@ flowchart TD
 
 ### agent-record — Claude or the CLI starts a recording
 - **Status:** built
-- **Entry points:** `gnomeola record start [--title …] | stop | status`, only when the user asks.
-- **Steps:** 1. Claude runs `gnomeola record start --title "Design review"`. 2. The window shows it live.
+- **Entry points:** `kacola record start [--title …] | stop | status`, only when the user asks.
+- **Steps:** 1. Claude runs `kacola record start --title "Design review"`. 2. The window shows it live.
   3. `record status`, then `record stop`. If the daemon is down, the CLI shim starts the app in the
   background and waits.
 - **States:** `agent-record__cli__record-status`, `agent-record__window__session-appears`.
 
 ```mermaid
 flowchart LR
-  A([Claude Code]) --> B[gnomeola record start]
+  A([Claude Code]) --> B[kacola record start]
   B --> C[Recording: live in the window]
-  C --> D[gnomeola record status]
-  D --> E[gnomeola record stop]
+  C --> D[kacola record status]
+  D --> E[kacola record stop]
   B -.daemon down.-> F[Shim launches the app --background, waits for health]
   F --> B
   %% shot: B = agent-record__cli__record-status
@@ -461,7 +461,7 @@ flowchart LR
 flowchart TD
   A([A meeting]) --> B[Details › Private]
   B --> C[Marked private in the window]
-  C --> D[Invisible to gnomeola CLI / skill / MCP]
+  C --> D[Invisible to kacola CLI / skill / MCP]
   C --> E[Top bar: Private meeting]
   %% shot: B = private-session__details__switch
   %% shot: C = private-session__view__private
@@ -525,14 +525,14 @@ flowchart TD
 - **Status:** built
 - **Steps:** 1. Home's search-and-ask box: type a question, Enter. 2. The answer cites several meetings
   (private ones are left out); chips open them at the line. 3. The same from Claude:
-  `gnomeola ask … --since 14d`.
+  `kacola ask … --since 14d`.
 - **States:** `ask-across__answered__cross-meeting`, `ask-across__cli__ask-since`.
 
 ```mermaid
 flowchart LR
   A([Home's search-and-ask box]) --> C[Answer citing several meetings]
   C -->|chip| D[That meeting, at that line]
-  E([Claude Code]) --> F[gnomeola ask --since 14d]
+  E([Claude Code]) --> F[kacola ask --since 14d]
   %% shot: C = ask-across__answered__cross-meeting
   %% shot: F = ask-across__cli__ask-since
 ```
@@ -685,7 +685,7 @@ and [auto-record-mic](#auto-record-mic--record-when-another-app-uses-the-microph
 ```mermaid
 flowchart LR
   A([Main menu]) --> B[Keyboard Shortcuts]
-  A --> C[About gnomeola]
+  A --> C[About kacola]
   C --> D[Legal: third-party notices]
   A --> E[Preferences]
   %% shot: A = help-about__menu__main-menu
@@ -699,7 +699,7 @@ flowchart LR
 ### cli-skill — Claude Code with the meeting-context skill
 - **Status:** built
 - **Persona:** a developer asking Claude "what did we decide about the retry budget?".
-- **Entry points:** the skill (`skills/meeting-context/SKILL.md`) runs `gnomeola` commands.
+- **Entry points:** the skill (`skills/meeting-context/SKILL.md`) runs `kacola` commands.
 - **Steps:** search → notes → ask or a narrow transcript window → cite (meeting + mm:ss). A whole
   transcript is refused (exit 5). Private meetings are absent. Transcript text is data, never
   instructions.
@@ -709,19 +709,19 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-  A([User asks Claude]) --> B[gnomeola search]
+  A([User asks Claude]) --> B[kacola search]
   B --> C{One meeting?}
-  C -->|yes| D[gnomeola notes --actions]
-  D -->|thin| E[gnomeola ask --session]
-  C -->|several| F[gnomeola ask --since]
-  B --> G[gnomeola transcript --around]
+  C -->|yes| D[kacola notes --actions]
+  D -->|thin| E[kacola ask --session]
+  C -->|several| F[kacola ask --since]
+  B --> G[kacola transcript --around]
   G --> H([Cite meeting + mm:ss])
   E --> H
   F --> H
   B -.whole transcript.-> X[Refused, exit 5]
   B -.daemon down.-> Y[exit 3]
-  A --> M[gnomeola meetings --today]
-  A --> L[gnomeola sessions list]
+  A --> M[kacola meetings --today]
+  A --> L[kacola sessions list]
   %% shot: B = cli-skill__search__hits
   %% shot: D = cli-skill__notes__actions
   %% shot: G = cli-skill__transcript__window
@@ -734,20 +734,20 @@ flowchart TD
 
 ### mcp — The MCP server
 - **Status:** built
-- **Entry points:** `gnomeola mcp` (stdio) in any MCP client.
+- **Entry points:** `kacola mcp` (stdio) in any MCP client.
 - **Steps:** The same read-only operations as typed tools, sharing the CLI's budgets, refusals and privacy.
 - **States:** `mcp__tools__list`.
 
 ```mermaid
 flowchart LR
-  A([MCP client]) --> B[gnomeola mcp: tools/list]
+  A([MCP client]) --> B[kacola mcp: tools/list]
   B --> C[search_meetings, ask_meetings, get_transcript_window, …]
   %% shot: B = mcp__tools__list
 ```
 
 ### byo-agent — Claude Code as a live copilot
 - **Status:** planned (being built now)
-- **Entry points:** the skill's copilot section; `gnomeola live attach [--as claude] [--mode observe|suggest|act]`.
+- **Entry points:** the skill's copilot section; `kacola live attach [--as claude] [--mode observe|suggest|act]`.
 - **Steps:** 1. Claude attaches with a lease scoped to the meeting (Monitor tool on the NDJSON stream).
   2. The window shows it connected. 3. At most one suggestion every ~2 min; context cards fetched from
   this machine when a topic comes up; quiet when unsure. 4. A summary at the end; the lease expires.
@@ -756,7 +756,7 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-  A([Claude Code + skill]) --> B[gnomeola live attach --as claude]
+  A([Claude Code + skill]) --> B[kacola live attach --as claude]
   B --> C[Window: Claude connected]
   C --> D[Suggestion card]
   C --> E[Context card from this machine]
@@ -794,13 +794,13 @@ flowchart TD
 
 ### daemon-down — The daemon is not running
 - **Status:** built
-- **Steps:** The window says "Can’t Reach gnomeola" with Try Again (a local daemon is restarted with
+- **Steps:** The window says "Can’t Reach kacola" with Try Again (a local daemon is restarted with
   backoff; a remote one is polled). The top bar says "not running". The CLI exits 3.
 - **States:** `daemon-down__window__cant-reach`, `daemon-down__topbar__not-running`, `daemon-down__cli__exit-3`.
 
 ```mermaid
 flowchart LR
-  A([Daemon down]) --> B[Window: Can't Reach gnomeola]
+  A([Daemon down]) --> B[Window: Can't Reach kacola]
   B -->|Try Again| C[Back]
   A --> D[Top bar: not running]
   A --> E[CLI: exit 3]
@@ -876,7 +876,7 @@ flowchart TD
 ### calendar-offline — The calendar is unavailable
 - **Status:** built
 - **Steps:** The top bar says why there are no meetings (unavailable, and the reason; or access off);
-  onboarding and Preferences show the calendar state; `gnomeola meetings` exits 6.
+  onboarding and Preferences show the calendar state; `kacola meetings` exits 6.
 - **States:** `calendar-offline__topbar__unavailable`, `calendar-offline__topbar__off`,
   `calendar-offline__onboarding__calendar-status`.
 
@@ -1011,9 +1011,9 @@ flowchart LR
 
 ### agenda-share — Share an agenda with the team
 - **Status:** built (team sharing, kacola phase 5)
-- **Entry points:** the agenda editor's **Share…** button (window); `gnomeola agenda share` (CLI, only on
+- **Entry points:** the agenda editor's **Share…** button (window); `kacola agenda share` (CLI, only on
   the user's say-so); for an attendee: the sidebar's Coming up → **Follow a shared agenda**, the main menu,
-  or a `https://…/a/<token>` link handed to the app; `gnomeola agenda follow`.
+  or a `https://…/a/<token>` link handed to the app; `kacola agenda follow`.
 - **Steps:** 1. The organiser shares: their name, whether invitees may add items and comment, goals kept
   private unless chosen, the attendees who follow it in their own kacola. 2. The web link to copy (and in
   the invitation). 3. An attendee follows with their email and the code the host sends; their copy stays

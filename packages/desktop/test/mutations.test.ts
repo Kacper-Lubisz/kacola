@@ -1,5 +1,5 @@
-import type { AskStreamEvent, QaMessage, Session } from '@gnomeola/protocol'
-import type { SessionsState } from '@gnomeola/ui-core/sessions'
+import type { AskStreamEvent, QaMessage, Session } from '@kacola/protocol'
+import type { SessionsState } from '@kacola/ui-core/sessions'
 import { MutationObserver, onlineManager, QueryClient } from '@tanstack/react-query'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createEphemeralStore } from '../src/renderer/data/ephemeral.ts'

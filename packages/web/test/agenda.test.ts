@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { SharedAgendaPage } from '@gnomeola/protocol'
+import type { SharedAgendaPage } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import { buildViewer } from '../scripts/build.ts'
 import {
@@ -163,7 +163,7 @@ describe('shared agenda page: views', () => {
   })
 
   it('builds agenda.html/js/css with the brand tokens, favicon and fonts', async () => {
-    const out = mkdtempSync(join(tmpdir(), 'gnomeola-agenda-build-'))
+    const out = mkdtempSync(join(tmpdir(), 'kacola-agenda-build-'))
     try {
       await buildViewer(out)
       for (const f of [

@@ -15,16 +15,16 @@ import { trayMenuModel, trayTooltip } from '../src/main/tray.ts'
 // Background mode (autostart / Background portal, the macOS Tray menu). The packaged app runs them for
 // real in desktop-packaged.e2e and flatpak.e2e. (The top-bar extension: packages/e2e/test/extension-setup.)
 
-const tmp = () => mkdtempSync(join(tmpdir(), 'gnomeola-bg-'))
+const tmp = () => mkdtempSync(join(tmpdir(), 'kacola-bg-'))
 
 describe('autostart', () => {
   it('writes an XDG autostart entry that starts this binary in the background, and removes only ours', async () => {
     const cfg = tmp()
-    const d = { env: { XDG_CONFIG_HOME: cfg }, exec: ['/opt/gnomeola app/gnomeola', '--background'] }
+    const d = { env: { XDG_CONFIG_HOME: cfg }, exec: ['/opt/kacola app/kacola', '--background'] }
     expect(autostartStatus(d)).toEqual({ enabled: false })
     expect(await setAutostart(d, true)).toEqual({ enabled: true })
-    const text = readFileSync(join(cfg, 'autostart', 'org.gnome.Gnomeola.desktop'), 'utf8')
-    expect(text).toContain('Exec="/opt/gnomeola app/gnomeola" --background')
+    const text = readFileSync(join(cfg, 'autostart', 'com.kacperlubisz.Kacola.desktop'), 'utf8')
+    expect(text).toContain('Exec="/opt/kacola app/kacola" --background')
     expect(text).toContain('X-GNOME-Autostart-enabled=true')
     expect(await setAutostart(d, false)).toEqual({ enabled: false })
     expect(existsSync(autostartPath(d.env))).toBe(false)
@@ -36,7 +36,7 @@ describe('autostart', () => {
   })
 
   it('quotes Exec arguments per the Desktop Entry spec', () => {
-    expect(execArg('/usr/bin/gnomeola')).toBe('/usr/bin/gnomeola')
+    expect(execArg('/usr/bin/kacola')).toBe('/usr/bin/kacola')
     expect(execArg('/a b/"c"$')).toBe('"/a b/\\"c\\"\\$"')
     expect(autostartEntry(['/x', '--background'])).toMatch(/^Exec=\/x --background$/m)
   })
@@ -45,7 +45,7 @@ describe('autostart', () => {
     const cfg = tmp()
     const calls: string[][] = []
     const d = {
-      env: { FLATPAK_ID: 'org.gnome.Gnomeola', XDG_CONFIG_HOME: cfg },
+      env: { FLATPAK_ID: 'com.kacperlubisz.Kacola', XDG_CONFIG_HOME: cfg },
       exec: [],
       gdbus: async (a: string[]) => {
         calls.push(a)
@@ -65,7 +65,7 @@ describe('autostart', () => {
       '',
     ])
     expect(calls[0]![9]).toContain("'autostart': <true>")
-    expect(calls[0]![9]).toContain("'commandline': <['gnomeola-app', '--background']>")
+    expect(calls[0]![9]).toContain("'commandline': <['kacola-app', '--background']>")
     expect(autostartStatus(d)).toEqual({ enabled: true })
     // nothing written to the (sandboxed) autostart dir: the portal owns the host entry
     expect(existsSync(autostartPath(d.env))).toBe(false)

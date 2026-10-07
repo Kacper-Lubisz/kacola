@@ -8,16 +8,16 @@ import {
   ingestPcm,
   type Segment,
   type TrackKind,
-} from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { loadFixture } from '@gnomeola/testkit/fixtures'
+} from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { loadFixture } from '@kacola/testkit/fixtures'
 import {
   assertNoViolations,
   checkEventLog,
   checkSegmentHistory,
   checkSegments,
-} from '@gnomeola/testkit/invariants'
-import { compareToBaseline, readBaseline, wer } from '@gnomeola/testkit/metrics'
+} from '@kacola/testkit/invariants'
+import { compareToBaseline, readBaseline, wer } from '@kacola/testkit/metrics'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { pacedFrames } from '../src/external-client.ts'
 import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
@@ -87,7 +87,7 @@ describe('a real meeting through external capture, on the bundled Electron runti
       entry: join(runtime, 'daemon.mjs'),
       env: {
         ...AS_NODE,
-        GNOMEOLA_CAPTURE: 'external',
+        KACOLA_CAPTURE: 'external',
         ANTHROPIC_API_KEY: 'sk-ant-e2e-external',
         ANTHROPIC_BASE_URL: api.url,
       },
@@ -206,7 +206,7 @@ describe('a real meeting through external capture, on the bundled Electron runti
   })
 
   it('the bundled CLI searches and asks over the transcript it produced', async () => {
-    const env = { GNOMEOLA_URL: d.baseUrl }
+    const env = { KACOLA_URL: d.baseUrl }
     const s = await bundledCli(runtime, ['search', 'retry budget'], env)
     expect(s.code, s.stderr).toBe(0)
     expect(JSON.parse(s.stdout).hits.some((h: { sessionId: string }) => h.sessionId === sessionId)).toBe(true)
@@ -222,7 +222,7 @@ describe('a real meeting through external capture, on the bundled Electron runti
 describe('external capture chaos (daemon from source, plain Node)', () => {
   let d: DaemonHandle
   beforeAll(async () => {
-    d = await startDaemon({ fake: false, env: { GNOMEOLA_CAPTURE: 'external' } })
+    d = await startDaemon({ fake: false, env: { KACOLA_CAPTURE: 'external' } })
   }, 60_000)
   afterAll(async () => {
     await d?.stop()

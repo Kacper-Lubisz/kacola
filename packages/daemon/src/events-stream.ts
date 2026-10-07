@@ -1,5 +1,5 @@
-import type { AnyEvent, DurableEvent } from '@gnomeola/protocol'
-import type { Store } from '@gnomeola/store'
+import type { AnyEvent, DurableEvent } from '@kacola/protocol'
+import type { Store } from '@kacola/store'
 import type { EventBus } from './bus.ts'
 import type { SseWriter } from './http.ts'
 
@@ -75,7 +75,7 @@ export async function streamEvents(o: EventStreamOptions): Promise<void> {
   })
 
   // A comment first: flushes headers through any proxy and tells the client the stream is up.
-  sse.comment(`gnomeola events; lastSeq=${store.lastSeq()}`)
+  sse.comment(`kacola events; lastSeq=${store.lastSeq()}`)
 
   if (o.since === undefined) {
     // only new events: everything already committed is behind us. Say where "now" is (a data-less id

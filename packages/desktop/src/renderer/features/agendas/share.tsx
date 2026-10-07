@@ -7,10 +7,10 @@ import type {
   SharedComment,
   ShareStatus,
   ShareSyncState,
-} from '@gnomeola/protocol'
-import { personName } from '@gnomeola/ui-core/agendas'
-import { formatClockTime } from '@gnomeola/ui-core/format'
-import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
+} from '@kacola/protocol'
+import { personName } from '@kacola/ui-core/agendas'
+import { formatClockTime } from '@kacola/ui-core/format'
+import { _, fmt, ngettext } from '@kacola/ui-core/i18n'
 import { useState } from 'react'
 import { useServices } from '../../data/services.tsx'
 import {
@@ -352,7 +352,7 @@ function ShareDialog({
           <Banner
             tone="warning"
             title={_(
-              'Sharing needs a hosted kacola server. Pair with one (gnomeola pair --url …), or set GNOMEOLA_SHARE_URL and GNOMEOLA_SHARE_TOKEN.',
+              'Sharing needs a hosted kacola server. Pair with one (kacola pair --url …), or set KACOLA_SHARE_URL and KACOLA_SHARE_TOKEN.',
             )}
           />
         ) : null}

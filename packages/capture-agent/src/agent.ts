@@ -1,12 +1,12 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { type CaptureSource, PipeWireCaptureSource, type TrackSpec } from '@gnomeola/capture'
-import type { GnomeolaClient, Session, TrackKind } from '@gnomeola/protocol'
+import { type CaptureSource, PipeWireCaptureSource, type TrackSpec } from '@kacola/capture'
+import type { KacolaClient, Session, TrackKind } from '@kacola/protocol'
 import { ChunkUploader, retrying, TrackChunker, type UploadStats } from './upload.ts'
 
-// H-2 — the capture-agent: the half of gnomeola that can never leave the laptop (PipeWire capture),
+// H-2 — the capture-agent: the half of kacola that can never leave the laptop (PipeWire capture),
 // split from the half that can (sessions, transcripts, search, the event stream). With it, the daemon
-// is relocatable: point the agent at any gnomeola server — the local daemon, a self-hosted box, Vercel —
+// is relocatable: point the agent at any kacola server — the local daemon, a self-hosted box, Vercel —
 // and it records locally and streams the audio up as chunked, idempotent uploads (H-3); the server
 // transcribes with a cloud provider on finalize (H-8, full offload).
 //
@@ -19,7 +19,7 @@ import { ChunkUploader, retrying, TrackChunker, type UploadStats } from './uploa
 
 export type CaptureAgentOptions = {
   /** The server to upload to (with its token). */
-  remote: GnomeolaClient
+  remote: KacolaClient
   /** Where the local WAVs go: `<spoolDir>/<sessionId>/{mic,system}.wav`. */
   spoolDir: string
   /** The capture source (default: PipeWire, following the default devices). */

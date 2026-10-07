@@ -1,4 +1,4 @@
-import { NoteStore, Store } from '@gnomeola/store'
+import { NoteStore, Store } from '@kacola/store'
 import { describe, expect, it } from 'vitest'
 import { markSnippet, matchText, queryParts, searchMoments } from '../src/moments.ts'
 

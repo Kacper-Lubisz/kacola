@@ -1,8 +1,8 @@
 import { join } from 'node:path'
-import { AnyEvent, createClient, type DurableEvent, isDurable } from '@gnomeola/protocol'
-import { Store } from '@gnomeola/store'
-import { type DaemonHandle, seededRandom, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { assertNoViolations, checkEventLog } from '@gnomeola/testkit/invariants'
+import { AnyEvent, createClient, type DurableEvent, isDurable } from '@kacola/protocol'
+import { Store } from '@kacola/store'
+import { type DaemonHandle, seededRandom, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { assertNoViolations, checkEventLog } from '@kacola/testkit/invariants'
 import { afterEach, describe, expect, it } from 'vitest'
 import { cuttingFetch, durable, readEvents, sleep } from './helpers.ts'
 
@@ -19,7 +19,7 @@ afterEach(async () => {
   daemons = []
 })
 async function daemon(env: Record<string, string> = {}): Promise<DaemonHandle> {
-  const d = await startDaemon({ env: { GNOMEOLA_FAKE_PIPELINE: FAST, GNOMEOLA_HEARTBEAT_MS: '200', ...env } })
+  const d = await startDaemon({ env: { KACOLA_FAKE_PIPELINE: FAST, KACOLA_HEARTBEAT_MS: '200', ...env } })
   daemons.push(d)
   return d
 }
@@ -51,7 +51,7 @@ function produce(d: DaemonHandle) {
 
 /** Read the store's log straight from the SQLite file (after the daemon has exited). */
 function logOnDisk(d: DaemonHandle): DurableEvent[] {
-  const s = Store.open(join(d.dataDir, 'gnomeola.db'), { readonly: true })
+  const s = Store.open(join(d.dataDir, 'kacola.db'), { readonly: true })
   try {
     return s.eventsAfter(0)
   } finally {
@@ -151,8 +151,8 @@ describe('the replay → live seam under concurrent writes', () => {
     // small replay pages: the handover from store to bus happens many times per connection, while the
     // producers keep committing between pages
     const d = await daemon({
-      GNOMEOLA_REPLAY_PAGE_SIZE: '25',
-      GNOMEOLA_FAKE_PIPELINE: JSON.stringify({ segmentEveryMs: 10, finalizeAfterMs: 5, levelEveryMs: 10 }),
+      KACOLA_REPLAY_PAGE_SIZE: '25',
+      KACOLA_FAKE_PIPELINE: JSON.stringify({ segmentEveryMs: 10, finalizeAfterMs: 5, levelEveryMs: 10 }),
     })
     const p = produce(d)
     await waitFor(async () => (await d.client.call('health')).lastSeq > 1500, 30_000, 'history to build up')
@@ -206,7 +206,7 @@ const seams: { seq: number }[] = []
 
 describe('stream contents', () => {
   it('filters by session, carries ephemeral levels/partials without ids, and heartbeats', async () => {
-    const d = await daemon({ GNOMEOLA_HEARTBEAT_MS: '100' })
+    const d = await daemon({ KACOLA_HEARTBEAT_MS: '100' })
     const a = await d.client.call('createSession', {})
     const b = await d.client.call('createSession', {})
     const ac = new AbortController()

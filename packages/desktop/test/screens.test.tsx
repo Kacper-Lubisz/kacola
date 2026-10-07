@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { Session } from '@gnomeola/protocol'
+import type { Session } from '@kacola/protocol'
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { shouldOnboard } from '../src/renderer/features/onboarding/onboarding-state.ts'
@@ -103,21 +103,21 @@ describe('Preferences', () => {
     fireEvent.mouseDown(within(prefs).getByRole('tab', { name: 'Integration' }))
     fireEvent.click(within(prefs).getByRole('tab', { name: 'Integration' }))
     fireEvent.click(await within(prefs).findByRole('button', { name: 'Install' }))
-    await within(prefs).findByText('Installed at /home/u/.local/bin/gnomeola')
+    await within(prefs).findByText('Installed at /home/u/.local/bin/kacola')
     expect(fb.bridge.installCli).toHaveBeenCalledWith(false)
     app.stop()
   })
 
-  it('a foreign gnomeola is replaced only after confirming', async () => {
+  it('a foreign kacola is replaced only after confirming', async () => {
     const fb = fakeBridge()
-    fb.setCli({ state: 'foreign', path: '/usr/bin/gnomeola', detail: 'x' })
+    fb.setCli({ state: 'foreign', path: '/usr/bin/kacola', detail: 'x' })
     const app = renderApp({ bridge: fb })
     const prefs = await openPreferences()
     fireEvent.mouseDown(within(prefs).getByRole('tab', { name: 'Integration' }))
     fireEvent.click(within(prefs).getByRole('tab', { name: 'Integration' }))
-    await within(prefs).findByText('A different gnomeola command is already installed at /usr/bin/gnomeola')
+    await within(prefs).findByText('A different kacola command is already installed at /usr/bin/kacola')
     fireEvent.click(within(prefs).getByRole('button', { name: 'Replace…' }))
-    const confirm = await screen.findByRole('alertdialog', { name: 'Replace the other gnomeola command?' })
+    const confirm = await screen.findByRole('alertdialog', { name: 'Replace the other kacola command?' })
     expect(fb.bridge.installCli).not.toHaveBeenCalled()
     fireEvent.click(within(confirm).getByRole('button', { name: 'Replace' }))
     await until(() => fb.bridge.installCli.mock.calls.length === 1)

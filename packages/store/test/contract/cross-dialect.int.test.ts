@@ -1,4 +1,4 @@
-import { seededRandom } from '@gnomeola/testkit/daemon'
+import { seededRandom } from '@kacola/testkit/daemon'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { StoreApi } from '../../src/api.ts'
 import { SqliteStoreApi } from '../../src/index.ts'

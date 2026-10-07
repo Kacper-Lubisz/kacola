@@ -2,8 +2,8 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient } from '@gnomeola/protocol'
-import { startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import { createClient } from '@kacola/protocol'
+import { startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterEach, describe, expect, it } from 'vitest'
 import { DaemonSupervisor } from '../../desktop/src/main/supervisor.ts'
 import type { DaemonStatus } from '../../desktop/src/shared/bridge.ts'
@@ -40,20 +40,20 @@ afterEach(async () => {
 const testEnv = (): NodeJS.ProcessEnv => {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
-    GNOMEOLA_FAKES: '1',
-    GNOMEOLA_KEYRING: 'memory',
-    GNOMEOLA_CALENDAR: 'off',
-    GNOMEOLA_DBUS: 'off',
-    GNOMEOLA_MIC_ACTIVITY: 'off',
+    KACOLA_FAKES: '1',
+    KACOLA_KEYRING: 'memory',
+    KACOLA_CALENDAR: 'off',
+    KACOLA_DBUS: 'off',
+    KACOLA_MIC_ACTIVITY: 'off',
   }
-  delete env.GNOMEOLA_DATA_DIR
+  delete env.KACOLA_DATA_DIR
   delete env.ANTHROPIC_API_KEY
   return env
 }
 
 async function supervised(o: { baseUrl?: string } = {}) {
   const port = await freePort()
-  const dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-supervised-'))
+  const dataDir = mkdtempSync(join(tmpdir(), 'kacola-supervised-'))
   const statuses: DaemonStatus[] = []
   const baseUrl = o.baseUrl ?? `http://127.0.0.1:${port}`
   const sup = new DaemonSupervisor({

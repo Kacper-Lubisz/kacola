@@ -15,7 +15,7 @@ describe('headless display harness', () => {
 
   beforeAll(async () => {
     d = await startHeadlessDisplay({ size: '1024x768' })
-    id = d.env.GNOMEOLA_HEADLESS_ID!
+    id = d.env.KACOLA_HEADLESS_ID!
     d.launchApp({ command: 'python3', args: [join(import.meta.dirname, 'fixture-app.py')] })
     await d.findOne({ app: APP, role: 'frame', name: 'Harness fixture' }, 20_000)
   })
@@ -32,7 +32,7 @@ describe('headless display harness', () => {
     expect(env.XDG_RUNTIME_DIR!.startsWith(d.tempDir)).toBe(true)
     expect(env.HOME!.startsWith(d.tempDir)).toBe(true)
     expect(env.DISPLAY).toBeUndefined()
-    expect(env.WAYLAND_DISPLAY).toBe('wayland-gnomeola')
+    expect(env.WAYLAND_DISPLAY).toBe('wayland-kacola')
     expect(env.GSETTINGS_BACKEND).toBe('keyfile')
     // and the processes really run with it: read the Shell's own environment back from /proc
     const pids = markedPids(id)

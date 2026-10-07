@@ -5,7 +5,7 @@ import { deflateSync, inflateSync } from 'node:zlib'
 // Screenshot baselines for the desktop e2e (Playwright's toHaveScreenshot, for vitest): decode two PNGs,
 // count pixels whose colour differs by more than `threshold` (0..1 of the max channel distance), and
 // fail when more than `maxDiffRatio` of the image differs. A missing baseline — or
-// GNOMEOLA_UPDATE_SCREENSHOTS=1 — writes the current image as the new baseline. On a mismatch a diff
+// KACOLA_UPDATE_SCREENSHOTS=1 — writes the current image as the new baseline. On a mismatch a diff
 // image (changed pixels in red over a dimmed copy) is written next to the actual one.
 
 export type Rgba = { width: number; height: number; data: Uint8Array }
@@ -161,7 +161,7 @@ export function matchBaseline(
   baselinePath: string,
   o: { maxDiffRatio?: number; threshold?: number } = {},
 ): string | null {
-  if (!existsSync(baselinePath) || process.env.GNOMEOLA_UPDATE_SCREENSHOTS === '1') {
+  if (!existsSync(baselinePath) || process.env.KACOLA_UPDATE_SCREENSHOTS === '1') {
     mkdirSync(dirname(baselinePath), { recursive: true })
     copyFileSync(actualPath, baselinePath)
     return null
@@ -175,5 +175,5 @@ export function matchBaseline(
   if (c.ratio <= (o.maxDiffRatio ?? 0.005)) return null
   const diffPath = actualPath.replace(/\.png$/, '.diff.png')
   if (c.diff) writeFileSync(diffPath, encodePng(c.diff))
-  return `${actualPath}: ${c.diffPixels} pixels (${(c.ratio * 100).toFixed(2)}%) differ from ${baselinePath}; diff at ${diffPath} (GNOMEOLA_UPDATE_SCREENSHOTS=1 to accept)`
+  return `${actualPath}: ${c.diffPixels} pixels (${(c.ratio * 100).toFixed(2)}%) differ from ${baselinePath}; diff at ${diffPath} (KACOLA_UPDATE_SCREENSHOTS=1 to accept)`
 }

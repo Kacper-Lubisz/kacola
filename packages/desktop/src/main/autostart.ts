@@ -9,13 +9,13 @@ import type { AutostartState } from '../shared/bridge.ts'
 // background at login"), so recording from the top bar, the CLI or auto-record works from boot.
 //
 //   Flatpak  the Background portal (org.freedesktop.portal.Background.RequestBackground, autostart +
-//            commandline `gnomeola-app --background`): the portal writes the autostart entry on the host,
+//            commandline `kacola-app --background`): the portal writes the autostart entry on the host,
 //            and GNOME lists the app under "Background Apps". The sandbox cannot see that entry, so the
-//            choice is remembered in ${XDG_CONFIG_HOME}/gnomeola/autostart.json.
-//   Linux    ${XDG_CONFIG_HOME:-~/.config}/autostart/org.gnome.Gnomeola.desktop, Exec = this binary.
+//            choice is remembered in ${XDG_CONFIG_HOME}/kacola/autostart.json.
+//   Linux    ${XDG_CONFIG_HOME:-~/.config}/autostart/com.kacperlubisz.Kacola.desktop, Exec = this binary.
 //   macOS    a login item (app.setLoginItemSettings, args --background), wired in index.ts.
 
-export const APP_ID = 'org.gnome.Gnomeola'
+export const APP_ID = 'com.kacperlubisz.Kacola'
 
 export function autostartPath(env: Record<string, string | undefined>): string {
   return join(env.XDG_CONFIG_HOME || join(env.HOME || homedir(), '.config'), 'autostart', `${APP_ID}.desktop`)
@@ -37,8 +37,8 @@ export function autostartEntry(exec: string[]): string {
     'Terminal=false',
     'NoDisplay=true',
     'X-GNOME-Autostart-enabled=true',
-    // written by gnomeola's Preferences; turning the switch off removes this file
-    'X-Gnomeola-Autostart=1',
+    // written by kacola's Preferences; turning the switch off removes this file
+    'X-Kacola-Autostart=1',
     '',
   ].join('\n')
 }
@@ -48,7 +48,7 @@ export function backgroundRequestOptions(o: { autostart: boolean; reason: string
   const str = (s: string) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
   return (
     `{'handle_token': <${str(o.token)}>, 'reason': <${str(o.reason)}>, 'autostart': <${o.autostart}>, ` +
-    `'commandline': <['gnomeola-app', '--background']>, 'dbus-activatable': <false>}`
+    `'commandline': <['kacola-app', '--background']>, 'dbus-activatable': <false>}`
   )
 }
 
@@ -66,11 +66,11 @@ const runGdbus = (args: string[]) =>
   )
 
 const choiceFile = (env: Record<string, string | undefined>) =>
-  join(env.XDG_CONFIG_HOME || join(env.HOME || homedir(), '.config'), 'gnomeola', 'autostart.json')
+  join(env.XDG_CONFIG_HOME || join(env.HOME || homedir(), '.config'), 'kacola', 'autostart.json')
 
 /** Ask the Background portal (Flatpak): with autostart, or just "may run with no window". */
 export async function requestBackground(d: AutostartDeps, autostart: boolean): Promise<void> {
-  const token = `gnomeola${process.pid}${Date.now()}`
+  const token = `kacola${process.pid}${Date.now()}`
   await (d.gdbus ?? runGdbus)([
     'call',
     '--session',
@@ -103,7 +103,7 @@ export function autostartStatus(d: AutostartDeps): AutostartState {
     }
   }
   const p = autostartPath(d.env)
-  return { enabled: existsSync(p) && readFileSync(p, 'utf8').includes('X-Gnomeola-Autostart=1') }
+  return { enabled: existsSync(p) && readFileSync(p, 'utf8').includes('X-Kacola-Autostart=1') }
 }
 
 export async function setAutostart(d: AutostartDeps, enabled: boolean): Promise<AutostartState> {
@@ -120,7 +120,7 @@ export async function setAutostart(d: AutostartDeps, enabled: boolean): Promise<
     const tmp = `${p}.tmp-${process.pid}`
     writeFileSync(tmp, autostartEntry(d.exec))
     renameSync(tmp, p)
-  } else if (existsSync(p) && readFileSync(p, 'utf8').includes('X-Gnomeola-Autostart=1')) {
+  } else if (existsSync(p) && readFileSync(p, 'utf8').includes('X-Kacola-Autostart=1')) {
     // only ever remove our own entry
     rmSync(p, { force: true })
   }

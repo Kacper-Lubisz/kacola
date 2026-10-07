@@ -1,12 +1,12 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the gnomeola package.
+# This file is distributed under the same license as the kacola package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: gnomeola 0.1.0\n"
+"Project-Id-Version: kacola 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
@@ -1137,8 +1137,8 @@ msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:355
 msgid ""
-"Sharing needs a hosted kacola server. Pair with one (gnomeola pair --url …), "
-"or set GNOMEOLA_SHARE_URL and GNOMEOLA_SHARE_TOKEN."
+"Sharing needs a hosted kacola server. Pair with one (kacola pair --url …), "
+"or set KACOLA_SHARE_URL and KACOLA_SHARE_TOKEN."
 msgstr ""
 
 #: src/renderer/features/agendas/share.tsx:364
@@ -2551,7 +2551,7 @@ msgstr ""
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:283
 #: src/renderer/features/preferences/integration-rows.tsx:34
 msgid ""
-"Lets agents like Claude Code read your meetings through the gnomeola command"
+"Lets agents like Claude Code read your meetings through the kacola command"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:288
@@ -2718,7 +2718,7 @@ msgid "Installed at {path}"
 msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:25
-msgid "Another gnomeola command at {path} comes first on your PATH."
+msgid "Another kacola command at {path} comes first on your PATH."
 msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:27
@@ -2734,7 +2734,7 @@ msgid "An older version is installed at {path}"
 msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:37
-msgid "A different gnomeola command is already installed at {path}"
+msgid "A different kacola command is already installed at {path}"
 msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:82
@@ -2762,7 +2762,7 @@ msgid "Replace…"
 msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:116
-msgid "Replace the other gnomeola command?"
+msgid "Replace the other kacola command?"
 msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:119
@@ -2771,7 +2771,7 @@ msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:126
 msgid ""
-"{path} was not installed by this app. Replacing it points the gnomeola "
+"{path} was not installed by this app. Replacing it points the kacola "
 "command at this app instead."
 msgstr ""
 

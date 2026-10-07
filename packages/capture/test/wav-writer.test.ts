@@ -12,7 +12,7 @@ import {
   wavToInt16,
 } from '../src/index.ts'
 
-const dir = mkdtempSync(join(tmpdir(), 'gnomeola-writer-'))
+const dir = mkdtempSync(join(tmpdir(), 'kacola-writer-'))
 
 function tone(n: number, offset = 0): Int16Array {
   const s = new Int16Array(n)

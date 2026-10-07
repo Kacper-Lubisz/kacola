@@ -1,4 +1,4 @@
-import { _ } from '@gnomeola/ui-core/i18n'
+import { _ } from '@kacola/ui-core/i18n'
 import { Button as AriaButton } from 'react-aria-components'
 import { useServices } from '../../data/services.tsx'
 import { Icon, type IconName } from '../icon.tsx'

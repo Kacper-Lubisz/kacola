@@ -1,4 +1,4 @@
-import type { Settings, SettingsPatch } from '@gnomeola/protocol'
+import type { Settings, SettingsPatch } from '@kacola/protocol'
 import type { QueryClient } from '@tanstack/react-query'
 import { keys } from '../../data/keys.ts'
 import { optimistic } from '../../data/mutations.ts'

@@ -1,7 +1,7 @@
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { AGENDA_RULES, HashingEmbedder, LocalDecisionProvider } from '@gnomeola/decisions'
+import { AGENDA_RULES, HashingEmbedder, LocalDecisionProvider } from '@kacola/decisions'
 import { describe, expect, it } from 'vitest'
 import type { ProviderSetup } from '../src/providers.ts'
 import {

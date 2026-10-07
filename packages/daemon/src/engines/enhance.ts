@@ -1,10 +1,10 @@
-import { enhance, providerFromSettings } from '@gnomeola/llm'
-import { isKeyedProvider } from '@gnomeola/protocol'
+import { enhance, providerFromSettings } from '@kacola/llm'
+import { isKeyedProvider } from '@kacola/protocol'
 import type { EnhanceChunk, EnhanceRequest, NotesEngine } from '../notes/engine.ts'
 import { notReadyError } from '../privacy.ts'
 import { toWireError } from './llm.ts'
 
-// N-2 — the real enhancement engine: @gnomeola/llm's `enhance` (effort high, cached transcript prefix,
+// N-2 — the real enhancement engine: @kacola/llm's `enhance` (effort high, cached transcript prefix,
 // citations, refusal handling) behind the daemon's NotesEngine seam. Same provider selection and error
 // mapping as Q&A, so Anthropic and Ollama both work.
 

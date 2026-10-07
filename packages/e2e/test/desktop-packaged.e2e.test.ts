@@ -3,27 +3,27 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { join } from 'node:path'
 import { FuseV1Options, getCurrentFuseWire } from '@electron/fuses'
-import { createClient } from '@gnomeola/protocol'
-import { waitFor } from '@gnomeola/testkit/daemon'
-import { type CdpWindow, connectCdp } from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { createClient } from '@kacola/protocol'
+import { waitFor } from '@kacola/testkit/daemon'
+import { type CdpWindow, connectCdp } from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildLinuxApp } from '../../../scripts/build-desktop.ts'
 import { REPO } from '../src/runtime.ts'
 
-// P-7: the PACKAGED Linux app (scripts/build-desktop.ts: electron-builder `dir`, executable gnomeola,
+// P-7: the PACKAGED Linux app (scripts/build-desktop.ts: electron-builder `dir`, executable kacola,
 // fuses flipped, the runtime in resources/runtime) — what the Flatpak ships — run for real inside the
 // headless GNOME Shell. The fuses switch off --inspect, so Playwright drives the window over the
-// DevTools protocol, which the build allows only with GNOMEOLA_ALLOW_REMOTE_DEBUGGING=1.
+// DevTools protocol, which the build allows only with KACOLA_ALLOW_REMOTE_DEBUGGING=1.
 //
 // First run: onboarding installs the CLI (+ skill) whose shim starts this binary with --background;
 // Preferences installs the top-bar extension (queued for the next login) and the autostart entry; closing the
 // window keeps main and the daemon; a second launch re-opens the window; quitting stops the daemon; and
 // the shim brings the app up in the background when the daemon is down.
 //
-// GNOMEOLA_DESKTOP_APP_DIR=dir skips the build and tests that linux-unpacked directory.
+// KACOLA_DESKTOP_APP_DIR=dir skips the build and tests that linux-unpacked directory.
 
-const EXT = 'gnomeola@gnomeola.org'
+const EXT = 'kacola@kacperlubisz.com'
 /** @electron/fuses' FuseState: the sentinel bytes '1' / '0'. */
 const FuseState = { ENABLE: 49, DISABLE: 48 } as const
 
@@ -45,12 +45,12 @@ const children = new Set<ChildProcess>()
 /** The app's environment: the headless session, a private loopback daemon with fakes. */
 const env = (extra: Record<string, string> = {}): NodeJS.ProcessEnv => ({
   ...display.env,
-  GNOMEOLA_URL: url,
-  GNOMEOLA_FAKES: '1',
-  GNOMEOLA_KEYRING: 'memory',
-  GNOMEOLA_CALENDAR: 'off',
-  GNOMEOLA_DBUS: 'off',
-  GNOMEOLA_MIC_ACTIVITY: 'off',
+  KACOLA_URL: url,
+  KACOLA_FAKES: '1',
+  KACOLA_KEYRING: 'memory',
+  KACOLA_CALENDAR: 'off',
+  KACOLA_DBUS: 'off',
+  KACOLA_MIC_ACTIVITY: 'off',
   ...extra,
 })
 
@@ -87,15 +87,15 @@ const exited = (p: ChildProcess, ms = 20_000) =>
   })
 
 beforeAll(async () => {
-  appDir = process.env.GNOMEOLA_DESKTOP_APP_DIR ?? ''
+  appDir = process.env.KACOLA_DESKTOP_APP_DIR ?? ''
   if (!appDir) {
     const r = await buildLinuxApp({ outDir: join(REPO, 'dist', 'desktop') })
     appDir = r.appDir
     console.log(`[desktop] linux-unpacked ${(r.bytes / 1024 / 1024).toFixed(1)} MiB`)
   }
-  exe = join(appDir, 'gnomeola')
+  exe = join(appDir, 'kacola')
   display = await startHeadlessDisplay({ size: '1280x800' })
-  markerId = display.env.GNOMEOLA_HEADLESS_ID!
+  markerId = display.env.KACOLA_HEADLESS_ID!
   url = `http://127.0.0.1:${await freePort()}`
 }, 600_000)
 
@@ -136,7 +136,7 @@ describe('the packaged Linux app (linux-unpacked)', () => {
       env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
       encoding: 'utf8',
     })
-    expect(v).toMatch(/^gnomeola 0\.1\.0/)
+    expect(v).toMatch(/^kacola 0\.1\.0/)
   })
 
   it('refuses a remote-debugging port unless the test switch is set', async () => {
@@ -153,7 +153,7 @@ describe('the packaged Linux app (linux-unpacked)', () => {
 
     beforeAll(async () => {
       port = await freePort()
-      app = launch([`--remote-debugging-port=${port}`], { GNOMEOLA_ALLOW_REMOTE_DEBUGGING: '1' })
+      app = launch([`--remote-debugging-port=${port}`], { KACOLA_ALLOW_REMOTE_DEBUGGING: '1' })
       cdp = await connectCdp(port)
     }, 90_000)
     afterAll(async () => {
@@ -179,10 +179,10 @@ describe('the packaged Linux app (linux-unpacked)', () => {
         await welcome.getByRole('switch', { name: 'Install command-line tool and Claude skill' }).isChecked(),
       ).toBe(true)
       await welcome.getByRole('button', { name: 'Skip for now' }).click()
-      const shim = join(home(), '.local', 'bin', 'gnomeola')
+      const shim = join(home(), '.local', 'bin', 'kacola')
       await waitFor(() => existsSync(shim), 30_000, 'the CLI shim from onboarding')
       const text = readFileSync(shim, 'utf8')
-      expect(text).toContain('# gnomeola-cli-shim v1 (dev)')
+      expect(text).toContain('# kacola-cli-shim v1 (dev)')
       expect(text).toContain(
         `ELECTRON_RUN_AS_NODE='1' '${exe}' '${join(appDir, 'resources', 'runtime', 'cli.mjs')}'`,
       )
@@ -211,7 +211,7 @@ describe('the packaged Linux app (linux-unpacked)', () => {
       const sw = prefs.getByRole('switch', { name: 'Start in the background at login' })
       await sw.focus()
       await cdp.window.keyboard.press('Space')
-      const entry = join(display.env.XDG_CONFIG_HOME!, 'autostart', 'org.gnome.Gnomeola.desktop')
+      const entry = join(display.env.XDG_CONFIG_HOME!, 'autostart', 'com.kacperlubisz.Kacola.desktop')
       await waitFor(() => existsSync(entry), 10_000, 'the autostart entry')
       expect(readFileSync(entry, 'utf8')).toContain(`Exec=${exe} --background`)
       await expect.poll(() => sw.isChecked()).toBe(true)
@@ -223,7 +223,7 @@ describe('the packaged Linux app (linux-unpacked)', () => {
     })
 
     it('closing the window keeps main and the daemon; a second launch re-opens it', async () => {
-      await cdp.window.evaluate('window.gnomeola.windowControl("close")')
+      await cdp.window.evaluate('window.kacola.windowControl("close")')
       await waitFor(
         async () =>
           !cdp.browser.contexts().some((c) => c.pages().some((p) => p.url().includes('index.html'))),
@@ -249,11 +249,11 @@ describe('the packaged Linux app (linux-unpacked)', () => {
 
   it('the CLI shim starts the packaged app with --background when the daemon is down', async () => {
     expect(await healthy()).toBe(false)
-    const shim = join(display.env.HOME!, '.local', 'bin', 'gnomeola')
+    const shim = join(display.env.HOME!, '.local', 'bin', 'kacola')
     const client = createClient({ baseUrl: url })
     const r = await new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve) => {
       const c = spawn('sh', [shim, 'sessions', 'list'], {
-        env: env({ GNOMEOLA_START_TIMEOUT: '40' }),
+        env: env({ KACOLA_START_TIMEOUT: '40' }),
         stdio: ['ignore', 'pipe', 'pipe'],
       })
       let stdout = ''

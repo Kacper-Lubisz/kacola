@@ -1,11 +1,11 @@
 import type {
   AgendaItemStatus,
-  GnomeolaClient,
+  KacolaClient,
   PublicComment,
   PublicItem,
   SharedAgendaPage,
   ShareOccurrence,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 
 // L-19 — the shared agenda page (`https://<host>/a/<token>`): what an invitee without kacola sees.
 // DOM-free so it is unit-tested in Node: routing, the calls it makes (the same typed protocol client),
@@ -44,7 +44,7 @@ export const participantKey = (token: string): string => `kacola.share.${token.s
 
 // ----------------------------------------------------------------------------------- data
 
-export function agendaData(client: GnomeolaClient, token: string) {
+export function agendaData(client: KacolaClient, token: string) {
   return {
     page(occurrence: string | null, signal?: AbortSignal): Promise<SharedAgendaPage> {
       return client.call('getSharedPage', {

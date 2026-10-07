@@ -13,7 +13,7 @@
 // [n] footnote markers indexing `citations`, exactly as for answers. The user's own words are the
 // point: the prompt makes the model keep every line of the notes verbatim, and the daemon stores the
 // result as a new version beside the notes, never over them (see protocol notes-diff.ts for the review).
-import type { Citation, Usage } from '@gnomeola/protocol'
+import type { Citation, Usage } from '@kacola/protocol'
 import { CitationRewriter } from './citations.ts'
 import { LlmError } from './errors.ts'
 import { assemblePrompt } from './prompt.ts'

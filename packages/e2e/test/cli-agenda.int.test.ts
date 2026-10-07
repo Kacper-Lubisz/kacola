@@ -1,16 +1,16 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { BUDGET, countTokens } from '@gnomeola/cli'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import { BUDGET, countTokens } from '@kacola/cli'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { gnomeola } from '../src/cli.ts'
+import { kacola } from '../src/cli.ts'
 
 // Agendas from the CLI, through the REAL daemon (its calendar fed by a calendar file, like
 // cli-meetings.int.test.ts): every verb's JSON is compared to a reviewed golden file (ids and times
 // normalised), every output stays under its token budget, and the exit codes are the contract's.
 
-const box = mkdtempSync(join(tmpdir(), 'gnomeola-e2e-agenda-'))
+const box = mkdtempSync(join(tmpdir(), 'kacola-e2e-agenda-'))
 const calFile = join(box, 'calendar.json')
 let d: DaemonHandle
 
@@ -59,7 +59,7 @@ beforeAll(async () => {
     }),
   )
   d = await startDaemon({
-    env: { GNOMEOLA_CALENDAR: `file:${calFile}`, GNOMEOLA_AGENDA_WEB_BASE: 'https://kacola.example' },
+    env: { KACOLA_CALENDAR: `file:${calFile}`, KACOLA_AGENDA_WEB_BASE: 'https://kacola.example' },
   })
   await waitFor(async () => (await d.client.call('nextMeeting')).next !== null, 10_000, 'the calendar file')
 }, 60_000)
@@ -92,7 +92,7 @@ function stable(out: string): string {
 }
 
 async function ok(argv: string[], opts: { stdin?: string } = {}) {
-  const r = await gnomeola(argv, d.baseUrl, opts)
+  const r = await kacola(argv, d.baseUrl, opts)
   expect(r.stderr, argv.join(' ')).toBe('')
   expect(r.code, argv.join(' ')).toBe(0)
   expect(countTokens(r.stdout), argv.join(' ')).toBeLessThanOrEqual(BUDGET.agenda)
@@ -117,7 +117,7 @@ describe('agenda verbs through the real daemon', () => {
     expect(j.links.app).toBe('kacola://meeting/one-on-one%40x')
     await expect(stable(r.stdout)).toMatchFileSnapshot(golden('agenda-create'))
     // the occurrence has an agenda now: a second create is refused with the way forward
-    const again = await gnomeola(['agenda', 'create', '--meeting', 'next'], d.baseUrl)
+    const again = await kacola(['agenda', 'create', '--meeting', 'next'], d.baseUrl)
     expect(again.code).toBe(1)
     expect(again.stderr).toMatch(/already has an agenda[\s\S]*--reuse/)
     const reused = await ok(['agenda', 'create', '--meeting', 'next', '--reuse'])
@@ -180,13 +180,13 @@ describe('agenda verbs through the real daemon', () => {
     ])
     await expect(stable(r.stdout)).toMatchFileSnapshot(golden('agenda-status'))
     // acting as an agent needs a live lease (agent channel: live-agent.int.test.ts); without one, exit 7
-    const asAgent = await gnomeola(['agenda', 'status', 'next', 'promo', 'open', '--as', 'claude'], d.baseUrl)
+    const asAgent = await kacola(['agenda', 'status', 'next', 'promo', 'open', '--as', 'claude'], d.baseUrl)
     expect(asAgent.code).toBe(7)
     expect(asAgent.stderr).toMatch(/no live lease for "claude"[\s\S]*live attach --as claude/)
     await ok(['agenda', 'status', 'next', '2', 'in-progress'])
     const show = await ok(['agenda', 'show', 'next', '--history'])
     await expect(stable(show.stdout)).toMatchFileSnapshot(golden('agenda-show'))
-    const tty = await gnomeola(['agenda', 'show'], d.baseUrl, { tty: true })
+    const tty = await kacola(['agenda', 'show'], d.baseUrl, { tty: true })
     expect(tty.stdout).toMatch(
       / 1\. \[x\] Promo timeline \(10m, @ana\) \[must-cover\]\n {6}→ launch in March/,
     )
@@ -229,12 +229,12 @@ describe('agenda verbs through the real daemon', () => {
     ])
     expect(JSON.parse(shared.stdout).card.visibility).toBe('shared')
     // suggestions come from a connected agent (the agenda-suggest golden is live-agent.int.test.ts's)
-    const s = await gnomeola(
+    const s = await kacola(
       ['suggest', 'ask how the Q1 hiring plan is funded', '--kind', 'question', '--item', 'hiring'],
       d.baseUrl,
     )
     expect(s.code).toBe(7)
-    expect(s.stderr).toMatch(/suggest needs a live lease[\s\S]*gnomeola live attach/)
+    expect(s.stderr).toMatch(/suggest needs a live lease[\s\S]*kacola live attach/)
   })
 
   it('invite: the invitation block; a read-only calendar hands it back to paste', async () => {
@@ -245,7 +245,7 @@ describe('agenda verbs through the real daemon', () => {
       written: false,
       reason: expect.stringMatching(/file calendar provider is read-only/),
     })
-    const text = await gnomeola(['agenda', 'invite', 'next'], d.baseUrl, { tty: true })
+    const text = await kacola(['agenda', 'invite', 'next'], d.baseUrl, { tty: true })
     // not shared: the block carries the app link only (team sharing adds `web: <host>/a/<token>`)
     expect(text.stdout).toMatch(/^-- kacola agenda --\nAgenda: kacola:\/\/meeting\/one-on-one%40x\n/)
   })
@@ -265,11 +265,11 @@ describe('agenda verbs through the real daemon', () => {
         ref,
       ).toEqual(['1:1 with Ana'])
     }
-    expect((await gnomeola(['agenda', 'show', hidden], d.baseUrl)).code).toBe(4)
+    expect((await kacola(['agenda', 'show', hidden], d.baseUrl)).code).toBe(4)
   })
 
   it('exit codes: usage 2, not found 4, over budget 5', async () => {
-    const code = async (argv: string[]) => (await gnomeola(argv, d.baseUrl)).code
+    const code = async (argv: string[]) => (await kacola(argv, d.baseUrl)).code
     expect(await code(['agenda'])).toBe(2)
     expect(await code(['agenda', 'create'])).toBe(2)
     expect(await code(['agenda', 'status', 'next', '1', 'done'])).toBe(2)
@@ -289,28 +289,28 @@ describe('agenda verbs through the real daemon', () => {
       (_, n) => `Item ${n} ${'with a rather long description '.repeat(5)}`,
     )
     await ok(['agenda', 'add', id, ...long.slice(0, 20)])
-    await gnomeola(['agenda', 'add', id, ...long.slice(20)], d.baseUrl)
-    const refused = await gnomeola(['agenda', 'show', id], d.baseUrl)
+    await kacola(['agenda', 'add', id, ...long.slice(20)], d.baseUrl)
+    const refused = await kacola(['agenda', 'show', id], d.baseUrl)
     expect(refused.code).toBe(5)
     expect(refused.stderr).toMatch(/token ceiling[\s\S]*agenda export/)
-    expect((await gnomeola(['agenda', 'show', id, '--full'], d.baseUrl)).code).toBe(0)
+    expect((await kacola(['agenda', 'show', id, '--full'], d.baseUrl)).code).toBe(0)
   })
 })
 
 describe('agenda verbs without a calendar', () => {
   it('--meeting next is a capability problem (exit 6); an unlinked agenda still works', async () => {
-    const off = await startDaemon({ env: { GNOMEOLA_CALENDAR: 'off' } })
+    const off = await startDaemon({ env: { KACOLA_CALENDAR: 'off' } })
     try {
-      const r = await gnomeola(['agenda', 'create', '--meeting', 'next'], off.baseUrl)
+      const r = await kacola(['agenda', 'create', '--meeting', 'next'], off.baseUrl)
       expect(r.code).toBe(6)
       expect(r.stderr).toMatch(/calendar reading is off/)
-      const u = await gnomeola(['agenda', 'create', '--title', 'Standalone', '--stdin'], off.baseUrl, {
+      const u = await kacola(['agenda', 'create', '--title', 'Standalone', '--stdin'], off.baseUrl, {
         stdin: PLAN,
       })
       expect(u.code).toBe(0)
       expect(JSON.parse(u.stdout)).toMatchObject({ agenda: { title: 'Standalone', meeting: null } })
-      expect((await gnomeola(['agenda', 'show', 'latest'], off.baseUrl)).code).toBe(0)
-      expect((await gnomeola(['agenda', 'show'], off.baseUrl)).code).toBe(4)
+      expect((await kacola(['agenda', 'show', 'latest'], off.baseUrl)).code).toBe(0)
+      expect((await kacola(['agenda', 'show'], off.baseUrl)).code).toBe(4)
     } finally {
       await off.stop()
     }

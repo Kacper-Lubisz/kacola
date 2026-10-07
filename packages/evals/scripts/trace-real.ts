@@ -15,7 +15,7 @@
 // and, per decision kind, how many calls and their latency. It prints ids, times, speakers and numbers
 // only, never transcript text (the fixture is private).
 import { resolve } from 'node:path'
-import type { DecisionProvider, DecisionRequest } from '@gnomeola/decisions'
+import type { DecisionProvider, DecisionRequest } from '@kacola/decisions'
 import type { TrackerOptions } from '../../daemon/src/agendas/tracker.ts'
 import { trackerStatusRunner } from '../../daemon/src/agendas/tracker-eval.ts'
 import {

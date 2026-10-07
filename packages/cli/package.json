@@ -1,8 +1,8 @@
 {
-  "name": "@gnomeola/cli",
+  "name": "@kacola/cli",
   "version": "0.1.0",
   "private": true,
-  "description": "gnomeola(1): the agent-facing CLI. Protocol client only.",
+  "description": "kacola(1): the agent-facing CLI. Protocol client only.",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "exports": {
@@ -13,11 +13,11 @@
   },
   "dependencies": {
     "@anthropic-ai/tokenizer": "^0.0.4",
-    "@gnomeola/protocol": "workspace:*",
+    "@kacola/protocol": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.30.1",
     "zod": "^4.6.5"
   },
   "bin": {
-    "gnomeola": "./bin/gnomeola"
+    "kacola": "./bin/kacola"
   }
 }

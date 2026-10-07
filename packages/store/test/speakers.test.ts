@@ -1,5 +1,5 @@
-import { newId, type Segment } from '@gnomeola/protocol'
-import { assertNoViolations, checkAttribution, foldSegments } from '@gnomeola/testkit/invariants'
+import { newId, type Segment } from '@kacola/protocol'
+import { assertNoViolations, checkAttribution, foldSegments } from '@kacola/testkit/invariants'
 import { describe, expect, it } from 'vitest'
 import { Store, StoreError } from '../src/index.ts'
 

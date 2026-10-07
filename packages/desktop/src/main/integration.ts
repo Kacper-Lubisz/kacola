@@ -6,9 +6,9 @@ import type { CliInstallState, ExtensionState } from '../shared/bridge.ts'
 // Desktop integration from Preferences and onboarding: "Install command-line tool and Claude skill"
 // and "Install top-bar extension".
 //
-// The CLI install is the bundled CLI's own `gnomeola install-cli --json` (packages/cli/src/install.ts —
+// The CLI install is the bundled CLI's own `kacola install-cli --json` (packages/cli/src/install.ts —
 // the logic lives there once), run on this same Electron binary as Node. Its status is the same command
-// with --dry-run: "unchanged" means our shim is there and current. A `gnomeola` we did not write makes
+// with --dry-run: "unchanged" means our shim is there and current. A `kacola` we did not write makes
 // the CLI refuse (exit 5); that is reported as `foreign`, and only an explicit "Replace" passes --force.
 //
 // Packaged Linux (outside Flatpak) passes `--launch '<this binary>' --background`, so the shim starts
@@ -18,12 +18,12 @@ import type { CliInstallState, ExtensionState } from '../shared/bridge.ts'
 //
 // The top-bar extension is extension.ts (install / update / switch on through the Shell's D-Bus API).
 
-/** Which CLI entry to run: GNOMEOLA_CLI_ENTRY, the packaged runtime, the built runtime, the dev source. */
+/** Which CLI entry to run: KACOLA_CLI_ENTRY, the packaged runtime, the built runtime, the dev source. */
 export function cliEntry(
   env: Record<string, string | undefined>,
   o: { resourcesPath?: string; appDir: string },
 ): string | null {
-  if (env.GNOMEOLA_CLI_ENTRY) return env.GNOMEOLA_CLI_ENTRY
+  if (env.KACOLA_CLI_ENTRY) return env.KACOLA_CLI_ENTRY
   const repo = join(o.appDir, '..', '..', '..', '..') // out/main → packages/desktop → repo
   const candidates = [
     ...(o.resourcesPath ? [join(o.resourcesPath, 'runtime', 'cli.mjs')] : []),
@@ -73,7 +73,7 @@ function errorText(stderr: string): string {
     if (typeof j.error === 'string') return j.error
     if (j.error?.message) return j.error.message
   } catch {}
-  return firstLine(stderr).replace(/^gnomeola:\s*/, '') || 'the command-line tool could not be installed'
+  return firstLine(stderr).replace(/^kacola:\s*/, '') || 'the command-line tool could not be installed'
 }
 
 /** One install-cli run → the state Preferences shows. `dryRun`: only look. */
@@ -116,7 +116,7 @@ export const appleString = (s: string) => `"${s.replace(/\\/g, '\\\\').replace(/
  * it lives, so the fallback copy is installed as is.
  */
 export function adminInstallCommand(shim: string, dir: string): string[] {
-  const sh = `/bin/mkdir -p ${shq(dir)} && /usr/bin/install -m 0755 ${shq(shim)} ${shq(`${dir}/gnomeola`)}`
+  const sh = `/bin/mkdir -p ${shq(dir)} && /usr/bin/install -m 0755 ${shq(shim)} ${shq(`${dir}/kacola`)}`
   return ['/usr/bin/osascript', '-e', `do shell script ${appleString(sh)} with administrator privileges`]
 }
 

@@ -1,4 +1,4 @@
-import { type PcmFrame, INGEST_SAMPLE_RATE as SAMPLE_RATE_HZ } from '@gnomeola/protocol'
+import { type PcmFrame, INGEST_SAMPLE_RATE as SAMPLE_RATE_HZ } from '@kacola/protocol'
 
 // A stand-in for the desktop app's capture on macOS: plays a fixture track into the daemon's ingest route
 // in real time, as 16 kHz s16 frames — the same wire format the app's AudioWorklet feeds.

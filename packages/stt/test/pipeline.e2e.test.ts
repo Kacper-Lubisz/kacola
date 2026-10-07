@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { cpus } from 'node:os'
 import { join } from 'node:path'
-import { listFixtures, loadFixture } from '@gnomeola/testkit/fixtures'
-import { assertNoViolations, checkSegmentHistory, checkSegments } from '@gnomeola/testkit/invariants'
+import { listFixtures, loadFixture } from '@kacola/testkit/fixtures'
+import { assertNoViolations, checkSegmentHistory, checkSegments } from '@kacola/testkit/invariants'
 import {
   type Baseline,
   compareToBaseline,
@@ -11,7 +11,7 @@ import {
   updatingBaselines,
   wer,
   writeBaseline,
-} from '@gnomeola/testkit/metrics'
+} from '@kacola/testkit/metrics'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { DEFAULT_MODELS } from '../src/model-manager/catalog.ts'
 import type { FinalPass } from '../src/reconciler.ts'
@@ -29,7 +29,7 @@ import {
 // V-2a + V-2b over real models: every fixture through VAD + tier 1 + tier 2 + reconciler.
 //   V-2a  the segment invariants hold on the real event stream (history and final state)
 //   V-2b  WER per track stays inside the committed baseline band, and so does the real-time factor
-// GNOMEOLA_UPDATE_BASELINES=1 records new baselines instead of comparing (a reviewed change).
+// KACOLA_UPDATE_BASELINES=1 records new baselines instead of comparing (a reviewed change).
 
 let engines: Engines
 beforeAll(async () => {
@@ -103,7 +103,7 @@ function gate(id: string, pass: FinalPass, metrics: Record<string, number>) {
   }
   const base = readBaseline(id, config)
   if (!base)
-    throw new Error(`no committed baseline for ${id} × ${config} — run with GNOMEOLA_UPDATE_BASELINES=1`)
+    throw new Error(`no committed baseline for ${id} × ${config} — run with KACOLA_UPDATE_BASELINES=1`)
   const c = compareToBaseline(base, metrics)
   if (!c.ok) throw new Error(`${id}: regression beyond the baseline band:\n  ${c.failures.join('\n  ')}`)
 }

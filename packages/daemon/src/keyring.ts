@@ -22,7 +22,7 @@ export class SecretToolKeyring implements Keyring {
   private readonly bin: string
 
   constructor(opts: SecretToolOptions = {}) {
-    this.service = opts.service ?? 'gnomeola'
+    this.service = opts.service ?? 'kacola'
     this.timeoutMs = opts.timeoutMs ?? 10_000
     this.bin = opts.bin ?? 'secret-tool'
   }

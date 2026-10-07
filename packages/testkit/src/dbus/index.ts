@@ -26,7 +26,7 @@ function hook() {
 
 export async function startPrivateBus(): Promise<PrivateBus> {
   hook()
-  const dir = mkdtempSync(join(tmpdir(), 'gnomeola-bus-'))
+  const dir = mkdtempSync(join(tmpdir(), 'kacola-bus-'))
   chmodSync(dir, 0o700)
   const socket = join(dir, 'bus')
   const conf = join(dir, 'session.conf')

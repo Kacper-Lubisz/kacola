@@ -1,5 +1,5 @@
 // A fixture meeting with hand-labelled facts, shared by the unit tests, the cassette tests and the live eval.
-import type { Segment, Session } from '@gnomeola/protocol'
+import type { Segment, Session } from '@kacola/protocol'
 import type { TranscriptInput } from '../../src/types.ts'
 
 export const INJECTION_LINE =

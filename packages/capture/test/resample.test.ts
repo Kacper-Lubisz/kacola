@@ -1,4 +1,4 @@
-import { goertzel } from '@gnomeola/testkit/rig'
+import { goertzel } from '@kacola/testkit/rig'
 import { describe, expect, it } from 'vitest'
 import { floatToInt16, resample } from '../src/index.ts'
 

@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
 import { afterAll, describe, expect, it } from 'vitest'
 import { SecretToolKeyring } from '../src/keyring.ts'
 
@@ -38,7 +38,7 @@ const usable = keyringUsable()
 if (!usable.ok) console.warn(`[keyring.int] SKIPPING real-keyring tests: ${usable.why}`)
 
 describe.skipIf(!usable.ok)('real keyring via secret-tool', () => {
-  const service = `gnomeola-test-${randomBytes(6).toString('hex')}`
+  const service = `kacola-test-${randomBytes(6).toString('hex')}`
   const key = `planted-keyring-${randomBytes(12).toString('hex')}`
   /** One lookup. A timed-out or failed secret-tool is an error, never an empty answer: under a loaded
    *  full run a 10 s timeout once surfaced as stdout '' — indistinguishable from "no key". */
@@ -77,7 +77,7 @@ describe.skipIf(!usable.ok)('real keyring via secret-tool', () => {
   })
 
   it('the daemon stores the key in the keyring, keeps it across restarts, and nowhere else', async () => {
-    d = await startDaemon({ env: { GNOMEOLA_KEYRING: 'secret-tool', GNOMEOLA_KEYRING_SERVICE: service } })
+    d = await startDaemon({ env: { KACOLA_KEYRING: 'secret-tool', KACOLA_KEYRING_SERVICE: service } })
     expect((await d.client.call('getSettings')).llm.apiKeyConfigured).toBe(false)
     expect(await d.client.call('setApiKey', { body: { key } })).toEqual({ configured: true })
     expect(lookup(key).stdout).toBe(key)

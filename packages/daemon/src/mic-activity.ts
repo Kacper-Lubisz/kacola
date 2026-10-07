@@ -3,7 +3,7 @@ import { execFile } from 'node:child_process'
 // C-8: "another application opened the microphone". Watches the PipeWire graph for capture streams
 // that are not ours: nodes of media.class Stream/Input/Audio in the running state, excluding
 //
-//   * our own capture streams (node.name gnomeola-capture-*),
+//   * our own capture streams (node.name kacola-capture-*),
 //   * streams recording a sink's monitor (stream.capture.sink — screen recorders, not calls),
 //   * level meters (stream.monitor — Settings' input level bar, pavucontrol's peak detectors).
 //
@@ -39,7 +39,7 @@ export function otherMicUsers(dump: unknown, opts: { onlyTarget?: string } = {})
     if (p['media.class'] !== 'Stream/Input/Audio') continue
     if (o.info?.state !== 'running') continue
     const nodeName = typeof p['node.name'] === 'string' ? p['node.name'] : ''
-    if (nodeName.startsWith('gnomeola-')) continue
+    if (nodeName.startsWith('kacola-')) continue
     if (truthy(p['stream.capture.sink']) || truthy(p['stream.monitor'])) continue
     if (opts.onlyTarget !== undefined && p['target.object'] !== opts.onlyTarget) continue
     const app =

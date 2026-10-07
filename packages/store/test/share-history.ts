@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
-import type { AgendaItemStatus, ShareOp, ShareParticipant } from '@gnomeola/protocol'
-import { seededRandom } from '@gnomeola/testkit/daemon'
+import type { AgendaItemStatus, ShareOp, ShareParticipant } from '@kacola/protocol'
+import { seededRandom } from '@kacola/testkit/daemon'
 import type { StoreApi } from '../src/api.ts'
 import * as shares from '../src/shares.ts'
 

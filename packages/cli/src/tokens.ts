@@ -17,13 +17,13 @@ export const BUDGET = {
   search: 1_500,
   /** Default ceiling for a `transcript` window; raise with --max-tokens, bypass with --full. */
   transcriptWindow: 4_000,
-  /** A meeting's notes (`gnomeola notes`); bypass with --full. */
+  /** A meeting's notes (`kacola notes`); bypass with --full. */
   notes: 4_000,
   /** An `ask` result, rendered — an answer and its citations, never raw transcript. */
   ask: 1_500,
-  /** An agenda (`gnomeola agenda show`/`create`/`import`), rendered; bypass with --full. */
+  /** An agenda (`kacola agenda show`/`create`/`import`), rendered; bypass with --full. */
   agenda: 3_000,
-  /** One context card's body (`gnomeola context add`): something to glance at in a meeting, not a document. */
+  /** One context card's body (`kacola context add`): something to glance at in a meeting, not a document. */
   contextCard: 2_000,
   /** One search snippet, in characters (server snippets are already capped; this is belt and braces). */
   snippetChars: 240,

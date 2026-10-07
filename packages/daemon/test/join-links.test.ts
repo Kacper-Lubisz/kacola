@@ -79,8 +79,8 @@ describe('classify', () => {
     ['https://acme.webex.com/acme/j.php?MTID=m1a2b3c4d5e6f', 'webex'],
     ['https://acme.webex.com/meet/kacper', 'webex'],
     ['https://acme.webex.com/wbxmjs/joinservice/sites/acme/meeting/download/abc', 'webex'],
-    ['https://meet.jit.si/GnomeolaStandup', 'jitsi'],
-    ['https://whereby.com/gnomeola', 'whereby'],
+    ['https://meet.jit.si/KacolaStandup', 'jitsi'],
+    ['https://whereby.com/kacola', 'whereby'],
   ])('%s → %s', (url, provider) => {
     expect(classify(url)).toBe(provider)
   })

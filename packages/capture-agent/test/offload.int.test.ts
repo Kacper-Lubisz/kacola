@@ -1,14 +1,14 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { encodeWav, FileCaptureSource, WAV_HEADER_BYTES } from '@gnomeola/capture'
-import { AUDIO_CHUNK_BYTES, createClient, type GnomeolaClient } from '@gnomeola/protocol'
-import { createHostedApp, type HostedApp, type Served, serve } from '@gnomeola/server'
-import { SqliteStoreApi } from '@gnomeola/store'
-import { MemoryBlobStore } from '@gnomeola/store/blob'
-import { DeepgramProvider, decodeWav } from '@gnomeola/stt/cloud'
-import { type FakeDeepgram, startFakeDeepgram } from '@gnomeola/testkit/cloud-stt'
-import { seededRandom } from '@gnomeola/testkit/daemon'
+import { encodeWav, FileCaptureSource, WAV_HEADER_BYTES } from '@kacola/capture'
+import { AUDIO_CHUNK_BYTES, createClient, type KacolaClient } from '@kacola/protocol'
+import { createHostedApp, type HostedApp, type Served, serve } from '@kacola/server'
+import { SqliteStoreApi } from '@kacola/store'
+import { MemoryBlobStore } from '@kacola/store/blob'
+import { DeepgramProvider, decodeWav } from '@kacola/stt/cloud'
+import { type FakeDeepgram, startFakeDeepgram } from '@kacola/testkit/cloud-stt'
+import { seededRandom } from '@kacola/testkit/daemon'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { CaptureAgent } from '../src/agent.ts'
 import { ChunkUploader, chunksOfWav, resumeUpload } from '../src/upload.ts'
@@ -24,7 +24,7 @@ let dir: string
 let inputs: { mic: string; system: string }
 beforeAll(async () => {
   dg = await startFakeDeepgram()
-  dir = mkdtempSync(join(tmpdir(), 'gnomeola-offload-'))
+  dir = mkdtempSync(join(tmpdir(), 'kacola-offload-'))
   // 12 s per track: two full chunks and a short tail each
   const tone = (hz: number, seconds: number) =>
     Int16Array.from({ length: seconds * 16000 }, (_, i) =>
@@ -48,7 +48,7 @@ type Server = {
   served: Served
   store: SqliteStoreApi
   blobs: MemoryBlobStore
-  client: GnomeolaClient
+  client: KacolaClient
 }
 async function server(fetchImpl?: typeof fetch): Promise<Server> {
   const store = SqliteStoreApi.open(':memory:')

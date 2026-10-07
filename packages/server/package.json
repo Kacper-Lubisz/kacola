@@ -1,8 +1,8 @@
 {
-  "name": "@gnomeola/server",
+  "name": "@kacola/server",
   "version": "0.1.0",
   "private": true,
-  "description": "The hosted gnomeola server (M8): the protocol over the async store, as fetch handlers — pairing auth, hybrid sync, chunked audio, cursor-resumable SSE under a duration cap.",
+  "description": "The hosted kacola server (M8): the protocol over the async store, as fetch handlers — pairing auth, hybrid sync, chunked audio, cursor-resumable SSE under a duration cap.",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "exports": {
@@ -11,20 +11,20 @@
     "./node": "./src/node.ts"
   },
   "bin": {
-    "gnomeola-server": "./src/bin/serve.ts"
+    "kacola-server": "./src/bin/serve.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@gnomeola/protocol": "workspace:*",
-    "@gnomeola/store": "workspace:*",
-    "@gnomeola/stt": "workspace:*",
+    "@kacola/protocol": "workspace:*",
+    "@kacola/store": "workspace:*",
+    "@kacola/stt": "workspace:*",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
-    "@gnomeola/testkit": "workspace:*",
+    "@kacola/testkit": "workspace:*",
     "@types/pg": "^8.23.1",
     "kysely": "^0.29.6",
     "pg": "^8.23.0"

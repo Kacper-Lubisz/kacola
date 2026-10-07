@@ -1,5 +1,5 @@
-import type { Segment, TrackKind } from '@gnomeola/protocol'
-import { assertNoViolations, checkAttribution, checkSegments } from '@gnomeola/testkit/invariants'
+import type { Segment, TrackKind } from '@kacola/protocol'
+import { assertNoViolations, checkAttribution, checkSegments } from '@kacola/testkit/invariants'
 import { describe, expect, it } from 'vitest'
 import { agglomerate, cosine, normalize, OnlineClusterer, stabilise } from '../src/diarize/clustering.ts'
 import { changePoints, EmbeddingDiarizer } from '../src/diarize/session.ts'

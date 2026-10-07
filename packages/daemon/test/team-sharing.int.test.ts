@@ -4,13 +4,13 @@ import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
-import { type AgendaView, createClient, type GnomeolaClient, type SharedChange } from '@gnomeola/protocol'
-import { createHostedApp, MemoryMailer, type Served, serve } from '@gnomeola/server'
-import type { StoreApi } from '@gnomeola/store/core'
-import { openPglite, openPostgres } from '@gnomeola/store/pg'
-import { waitFor } from '@gnomeola/testkit/daemon'
-import { assertNoViolations, checkAgendaLog, checkEventLog } from '@gnomeola/testkit/invariants'
-import { type PostgresContainer, podmanPostgresAvailable, startPostgres } from '@gnomeola/testkit/postgres'
+import { type AgendaView, createClient, type KacolaClient, type SharedChange } from '@kacola/protocol'
+import { createHostedApp, MemoryMailer, type Served, serve } from '@kacola/server'
+import type { StoreApi } from '@kacola/store/core'
+import { openPglite, openPostgres } from '@kacola/store/pg'
+import { waitFor } from '@kacola/testkit/daemon'
+import { assertNoViolations, checkAgendaLog, checkEventLog } from '@kacola/testkit/invariants'
+import { type PostgresContainer, podmanPostgresAvailable, startPostgres } from '@kacola/testkit/postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ManualCalendarProvider } from '../src/calendar/providers.ts'
 import { createDaemon, type Daemon } from '../src/daemon.ts'
@@ -110,14 +110,14 @@ for (const dialect of dialects) {
     let proxy: Awaited<ReturnType<typeof recordingProxy>>
     let A: Daemon // the organiser
     let B: Daemon // an attendee who runs kacola
-    let a: GnomeolaClient
-    let b: GnomeolaClient
+    let a: KacolaClient
+    let b: KacolaClient
     const s = { agenda: '', link: '', bAgenda: '', next: '', bNext: '', session: '' }
     /** `agenda.share` states the organiser's window was told about (ephemeral events). */
     const shareEvents: string[] = []
 
     const daemon = async (o: { share?: boolean }) => {
-      const dir = mkdtempSync(join(tmpdir(), 'gnomeola-share-'))
+      const dir = mkdtempSync(join(tmpdir(), 'kacola-share-'))
       dirs.push(dir)
       const cal = new ManualCalendarProvider()
       const d = await createDaemon({
@@ -152,7 +152,7 @@ for (const dialect of dialects) {
       hosted = await serve(
         createHostedApp({
           store: hostedStore,
-          blobs: new (await import('@gnomeola/store/blob')).MemoryBlobStore(),
+          blobs: new (await import('@kacola/store/blob')).MemoryBlobStore(),
           auth: { secret: 's'.repeat(40), adminToken: ADMIN },
           trustLoopback: false,
           mailer,
@@ -177,9 +177,9 @@ for (const dialect of dialects) {
       for (const d of dirs) rmSync(d, { recursive: true, force: true })
     })
 
-    const view = (c: GnomeolaClient, id: string): Promise<AgendaView> =>
+    const view = (c: KacolaClient, id: string): Promise<AgendaView> =>
       c.call('getAgenda', { params: { id }, query: { includePrivate: true } })
-    const itemOf = async (c: GnomeolaClient, id: string, text: string) =>
+    const itemOf = async (c: KacolaClient, id: string, text: string) =>
       (await view(c, id)).items.find((i) => i.text === text)!
     const sync = async () => {
       await a.call('syncAgendaShare', { params: { id: s.agenda } })
@@ -271,7 +271,7 @@ for (const dialect of dialects) {
         params: { token },
         body: { email: 'ivy@example.com', code },
       })
-      const ivy = createClient({ baseUrl: proxy.url, headers: { 'x-gnomeola-participant': conf.token } })
+      const ivy = createClient({ baseUrl: proxy.url, headers: { 'x-kacola-participant': conf.token } })
       const item = await ivy.call('shareAddItem', { params: { token }, body: { text: 'Offsite dates' } })
       await ivy.call('shareAddComment', {
         params: { token },

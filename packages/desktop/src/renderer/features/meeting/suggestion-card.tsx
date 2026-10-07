@@ -1,5 +1,5 @@
-import type { AgendaView } from '@gnomeola/protocol'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import type { AgendaView } from '@kacola/protocol'
+import { _, fmt } from '@kacola/ui-core/i18n'
 import { useNavigate } from '@tanstack/react-router'
 import { Button, Card, Icon } from '../../design/primitives/index.ts'
 import { useAgendaMutation } from '../agendas/agenda-data.ts'

@@ -1,12 +1,12 @@
 import { PGlite } from '@electric-sql/pglite'
-import { createClient, type GnomeolaClient } from '@gnomeola/protocol'
-import { createHostedApp, MemoryMailer, type Served, serve } from '@gnomeola/server'
-import type { StoreApi } from '@gnomeola/store/core'
-import { openPglite } from '@gnomeola/store/pg'
+import { createClient, type KacolaClient } from '@kacola/protocol'
+import { createHostedApp, MemoryMailer, type Served, serve } from '@kacola/server'
+import type { StoreApi } from '@kacola/store/core'
+import { openPglite } from '@kacola/store/pg'
 
 // A local hosted server for team sharing (docs/sharing.md), the same set-up as the daemon's
 // team-sharing.int test: the real hosted app over PGlite (Postgres in WASM), its pairing admin token
-// for the owner's daemon (GNOMEOLA_SHARE_URL / GNOMEOLA_SHARE_TOKEN), and an in-memory mailer the test
+// for the owner's daemon (KACOLA_SHARE_URL / KACOLA_SHARE_TOKEN), and an in-memory mailer the test
 // reads magic-link codes from. Tests that need it: the CLI's sharing goldens, the window's sharing e2e,
 // the atlas.
 
@@ -21,9 +21,9 @@ export type ShareHost = {
   /** The magic-link code last mailed to `email`. */
   codeFor: (email: string) => string
   /** A client acting through the public link (an invitee's browser). */
-  web: (participantToken?: string) => GnomeolaClient
+  web: (participantToken?: string) => KacolaClient
   /** An invitee confirms `email` on the link: returns a client that adds items and comments as them. */
-  invitee: (token: string, email: string, name?: string) => Promise<GnomeolaClient>
+  invitee: (token: string, email: string, name?: string) => Promise<KacolaClient>
   close: () => Promise<void>
 }
 
@@ -33,7 +33,7 @@ export async function startShareHost(): Promise<ShareHost> {
   const served: Served = await serve(
     createHostedApp({
       store,
-      blobs: new (await import('@gnomeola/store/blob')).MemoryBlobStore(),
+      blobs: new (await import('@kacola/store/blob')).MemoryBlobStore(),
       auth: { secret: 's'.repeat(40), adminToken: SHARE_ADMIN },
       trustLoopback: false,
       mailer,
@@ -47,17 +47,17 @@ export async function startShareHost(): Promise<ShareHost> {
   const web = (participantToken?: string) =>
     createClient({
       baseUrl: served.url,
-      ...(participantToken ? { headers: { 'x-gnomeola-participant': participantToken } } : {}),
+      ...(participantToken ? { headers: { 'x-kacola-participant': participantToken } } : {}),
     })
   return {
     url: served.url,
     store,
     mailer,
     ownerEnv: ({ name, email }) => ({
-      GNOMEOLA_SHARE_URL: served.url,
-      GNOMEOLA_SHARE_TOKEN: SHARE_ADMIN,
-      GNOMEOLA_OWNER_NAME: name,
-      GNOMEOLA_OWNER_EMAIL: email,
+      KACOLA_SHARE_URL: served.url,
+      KACOLA_SHARE_TOKEN: SHARE_ADMIN,
+      KACOLA_OWNER_NAME: name,
+      KACOLA_OWNER_EMAIL: email,
     }),
     codeFor,
     web,

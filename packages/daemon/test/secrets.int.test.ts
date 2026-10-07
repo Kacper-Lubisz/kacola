@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterEach, describe, expect, it } from 'vitest'
 
 // A planted API key must never appear in any HTTP response, any SSE frame, the event log, the database
@@ -84,7 +84,7 @@ describe('secrets never leak', () => {
   it('a key set via PUT /settings/api-key (keyring) appears nowhere', async () => {
     // deliberately NOT shaped like an Anthropic key, so pattern-based redaction cannot be what saves us
     const key = `planted${randomBytes(12).toString('hex')}`
-    d = await startDaemon({ env: { GNOMEOLA_FAKE_QA: '1' } })
+    d = await startDaemon({ env: { KACOLA_FAKE_QA: '1' } })
     expect(await d.client.call('setApiKey', { body: { key } })).toEqual({ configured: true })
     expect((await d.client.call('getSettings')).llm.apiKeyConfigured).toBe(true)
     const id = await exercise(d)
@@ -101,7 +101,7 @@ describe('secrets never leak', () => {
 
   it('a key from ANTHROPIC_API_KEY appears nowhere, even with logs echoed to stderr', async () => {
     const key = `sk-ant-api03-${randomBytes(24).toString('base64url')}`
-    d = await startDaemon({ env: { GNOMEOLA_FAKE_QA: '1', ANTHROPIC_API_KEY: key, GNOMEOLA_ECHO_LOGS: '1' } })
+    d = await startDaemon({ env: { KACOLA_FAKE_QA: '1', ANTHROPIC_API_KEY: key, KACOLA_ECHO_LOGS: '1' } })
     expect((await d.client.call('getSettings')).llm.apiKeyConfigured).toBe(true)
     expect((await d.client.call('health')).llm).toEqual({ provider: 'anthropic', ready: true })
     const id = await exercise(d)
@@ -117,7 +117,7 @@ describe('secrets never leak', () => {
 
   it('a key from OPENAI_API_KEY appears nowhere, even with logs echoed to stderr', async () => {
     const key = `sk-proj-${randomBytes(24).toString('base64url')}`
-    d = await startDaemon({ env: { GNOMEOLA_FAKE_QA: '1', OPENAI_API_KEY: key, GNOMEOLA_ECHO_LOGS: '1' } })
+    d = await startDaemon({ env: { KACOLA_FAKE_QA: '1', OPENAI_API_KEY: key, KACOLA_ECHO_LOGS: '1' } })
     expect((await d.client.call('getSettings')).llm).toMatchObject({
       provider: 'openai',
       apiKeyConfigured: true,

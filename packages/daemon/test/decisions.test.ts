@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient } from '@gnomeola/protocol'
+import { createClient } from '@kacola/protocol'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createDaemon, type Daemon } from '../src/daemon.ts'
 import { MemoryKeyring } from '../src/keyring.ts'
@@ -18,7 +18,7 @@ afterEach(async () => {
 })
 
 async function start(env: NodeJS.ProcessEnv = {}, keyring = new MemoryKeyring()) {
-  const dir = mkdtempSync(join(tmpdir(), 'gnomeola-decisions-'))
+  const dir = mkdtempSync(join(tmpdir(), 'kacola-decisions-'))
   const d = await createDaemon({ dataDir: dir, port: 0, keyring, env })
   open.push({ d, dir })
   return { d, c: createClient({ baseUrl: d.url }) }

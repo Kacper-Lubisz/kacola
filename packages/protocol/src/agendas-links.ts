@@ -5,8 +5,6 @@
 //   kacola://meeting/<eventUid>?start=<iso>          one occurrence of a calendar event: opens its agenda
 //                                                    (or offers to create one); live → Join and record
 //   kacola://meeting/<eventUid>                      a series: its current or next occurrence
-//
-// The user-facing scheme is already `kacola` (the product rename); code identifiers stay `gnomeola`.
 
 export const KACOLA_SCHEME = 'kacola'
 

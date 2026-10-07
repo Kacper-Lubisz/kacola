@@ -16,4 +16,4 @@ const bridge: CaptureBridge = {
   state: (s) => ipcRenderer.send(CAPTURE_IPC.state, s),
 }
 
-contextBridge.exposeInMainWorld('gnomeolaCapture', bridge)
+contextBridge.exposeInMainWorld('kacolaCapture', bridge)

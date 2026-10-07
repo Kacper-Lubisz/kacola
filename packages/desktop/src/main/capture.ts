@@ -1,8 +1,8 @@
-import type { ExternalCaptureStatus, IngestOptions, IngestResult, PcmFrame } from '@gnomeola/protocol'
+import type { ExternalCaptureStatus, IngestOptions, IngestResult, PcmFrame } from '@kacola/protocol'
 import type { CaptureCommand, CaptureState, CaptureTrack } from '../shared/capture.ts'
 
 // In-app capture, main's half (docs/desktop-app.md, "In-app capture"). When the daemon records with the
-// `external` backend (macOS always; Linux with GNOMEOLA_CAPTURE=external), it cannot reach the sound
+// `external` backend (macOS always; Linux with KACOLA_CAPTURE=external), it cannot reach the sound
 // server itself: it lists each recording that waits for audio at GET /capture/external. This controller
 // makes that list true:
 //
@@ -269,12 +269,12 @@ export class CaptureController {
   }
 }
 
-/** The tracks the capture window can open on this platform (GNOMEOLA_CAPTURE_TRACKS overrides, tests). */
+/** The tracks the capture window can open on this platform (KACOLA_CAPTURE_TRACKS overrides, tests). */
 export function captureTracks(
   platform: NodeJS.Platform,
   env: Record<string, string | undefined>,
 ): CaptureTrack[] {
-  const o = env.GNOMEOLA_CAPTURE_TRACKS
+  const o = env.KACOLA_CAPTURE_TRACKS
   if (o) return o.split(',').filter((t): t is CaptureTrack => t === 'mic' || t === 'system')
   return platform === 'darwin' ? ['mic', 'system'] : ['mic']
 }

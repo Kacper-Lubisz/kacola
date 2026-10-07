@@ -23,7 +23,7 @@ export async function cli(
       stderr += s
     },
     isTTY: o.tty ?? false,
-    env: { HOME: '/nonexistent', ...o.env, GNOMEOLA_URL: o.url },
+    env: { HOME: '/nonexistent', ...o.env, KACOLA_URL: o.url },
   }
   const code = await run(argv, io)
   return { code, stdout, stderr, json: () => JSON.parse(stdout) }

@@ -15,7 +15,7 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
-import { type RouteDef, routes } from '@gnomeola/protocol'
+import { type RouteDef, routes } from '@kacola/protocol'
 import { build } from 'esbuild'
 import { buildViewer } from '../../web/scripts/build.ts'
 import { type FunctionName, MAX_DURATION } from '../src/app.ts'
@@ -69,7 +69,7 @@ export async function buildOutput(
           // top of the ESM output and break every cold start; kept external it stays a lazy import().
           name: 'sqlite-entry-external',
           setup(b) {
-            b.onResolve({ filter: /^@gnomeola\/store$/ }, (a) => ({ path: a.path, external: true }))
+            b.onResolve({ filter: /^@kacola\/store$/ }, (a) => ({ path: a.path, external: true }))
           },
         },
       ],

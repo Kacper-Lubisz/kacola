@@ -1,11 +1,4 @@
-import type {
-  Agenda,
-  AgendaItem,
-  AgendaView,
-  ContextCard,
-  StatusChange,
-  Suggestion,
-} from '@gnomeola/protocol'
+import type { Agenda, AgendaItem, AgendaView, ContextCard, StatusChange, Suggestion } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import {
   type AgendaEventData,

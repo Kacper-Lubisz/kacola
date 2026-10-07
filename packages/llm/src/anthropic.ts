@@ -13,7 +13,7 @@
 // server-side fallbacks (`fallbacks: "default"` + beta `server-side-fallback-2026-07-01`, which routes by
 // refusal category) and always branch on stop_reason before trusting the text.
 import Anthropic from '@anthropic-ai/sdk'
-import type { Usage } from '@gnomeola/protocol'
+import type { Usage } from '@kacola/protocol'
 import { LlmError } from './errors.ts'
 import type {
   AssembledPrompt,

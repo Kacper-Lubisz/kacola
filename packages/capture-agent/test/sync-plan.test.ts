@@ -1,4 +1,4 @@
-import { createClient, type DurableEvent, type DurableEventData, type Session } from '@gnomeola/protocol'
+import { createClient, type DurableEvent, type DurableEventData, type Session } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import { SyncAgent } from '../src/sync.ts'
 
@@ -18,7 +18,7 @@ const session = (id: string, priv: boolean): Session => ({
       kind: 'mic',
       device: 'x',
       sampleRate: 16000,
-      audioPath: '/home/u/.local/share/gnomeola/a.wav',
+      audioPath: '/home/u/.local/share/kacola/a.wav',
       archivePath: null,
       gaps: [],
     },

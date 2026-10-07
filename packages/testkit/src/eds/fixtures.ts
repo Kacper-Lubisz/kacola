@@ -78,7 +78,7 @@ export const LINKS = {
 
 export const CALENDARS: FixtureCalendar[] = [
   {
-    uid: 'gnomeola-work',
+    uid: 'kacola-work',
     name: 'Work',
     enabled: true,
     components: [
@@ -207,7 +207,7 @@ export const CALENDARS: FixtureCalendar[] = [
     ],
   },
   {
-    uid: 'gnomeola-personal',
+    uid: 'kacola-personal',
     name: 'Personal things',
     enabled: true,
     components: [
@@ -215,7 +215,7 @@ export const CALENDARS: FixtureCalendar[] = [
     ],
   },
   {
-    uid: 'gnomeola-disabled',
+    uid: 'kacola-disabled',
     name: 'Disabled',
     enabled: false,
     components: [
@@ -224,7 +224,7 @@ export const CALENDARS: FixtureCalendar[] = [
   },
 ]
 
-const W = 'gnomeola-work'
+const W = 'kacola-work'
 const base = {
   sourceUid: W,
   allDay: false,
@@ -301,7 +301,7 @@ export const EXPECTED: ExpectedOccurrence[] = [
   }),
   timed('webex@test', 'Webex call', z('2026-10-27T16:00:00'), z('2026-10-27T17:00:00'), { url: LINKS.webex }),
   timed('dentist@test', 'Dentist', z('2026-10-28T07:00:00'), z('2026-10-28T08:00:00'), {
-    sourceUid: 'gnomeola-personal',
+    sourceUid: 'kacola-personal',
   }),
   // before the US DST end: 10:00 EDT = 14:00Z
   series('ny-sync@test', 'NY sync', z('2026-10-29T14:00:00'), z('2026-10-29T14:30:00'), {
@@ -325,7 +325,7 @@ export const EXPECTED: ExpectedOccurrence[] = [
 export function toIcs(components: string[]): string {
   const body = [
     'BEGIN:VCALENDAR',
-    'PRODID:-//gnomeola//testkit//EN',
+    'PRODID:-//kacola//testkit//EN',
     'VERSION:2.0',
     ...components,
     'END:VCALENDAR',
@@ -365,7 +365,7 @@ export function liveFixture(now: Date = new Date(), tz: string = FIXTURE_TZ): Li
     today,
     times,
     calendar: {
-      uid: 'gnomeola-live',
+      uid: 'kacola-live',
       name: 'Live',
       enabled: true,
       components: [

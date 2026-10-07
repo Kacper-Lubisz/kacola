@@ -2,9 +2,9 @@ import { execFileSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop } from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { DESKTOP_ARTIFACTS, uiStatePath } from '../src/desktop.ts'
 import {
@@ -28,7 +28,7 @@ import {
 // gnome-extensions on PATH (fake-shell-extensions.ts): an older copy (Update), a crashed extension
 // (Try again), X11's copy, the Flatpak's command, and no GNOME at all (nothing shown).
 
-const EXT = 'gnomeola@gnomeola.org'
+const EXT = 'kacola@kacperlubisz.com'
 const REPO_EXT = join(import.meta.dirname, '..', '..', '..', 'extensions', EXT)
 const BUNDLED = JSON.parse(readFileSync(join(REPO_EXT, 'metadata.json'), 'utf8'))['version-name'] as string
 
@@ -53,7 +53,7 @@ const shellInfo = (d: HeadlessDisplay) =>
 
 /** ui-state.json: onboarded, the card not dismissed (unless asked). */
 function onboarded(d: HeadlessDisplay, extra: Record<string, unknown> = {}) {
-  mkdirSync(join(d.env.XDG_STATE_HOME!, 'gnomeola'), { recursive: true })
+  mkdirSync(join(d.env.XDG_STATE_HOME!, 'kacola'), { recursive: true })
   writeFileSync(
     uiStatePath(d),
     JSON.stringify({ version: 1, onboardingDone: true, skippedMissing: ['whisper-small.en'], ...extra }),
@@ -82,7 +82,7 @@ let dataDir = ''
 
 beforeAll(async () => {
   buildDesktop()
-  dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-ext-'))
+  dataDir = mkdtempSync(join(tmpdir(), 'kacola-desktop-ext-'))
   daemon = await startDaemon({ dataDir })
 }, 240_000)
 
@@ -97,7 +97,7 @@ describe('against a real GNOME Shell (private, headless)', () => {
   afterAll(async () => {
     for (const d of [first, second]) {
       if (!d) continue
-      const id = d.env.GNOMEOLA_HEADLESS_ID!
+      const id = d.env.KACOLA_HEADLESS_ID!
       await d.close()
       expect(markedPids(id)).toEqual([])
     }
@@ -107,7 +107,7 @@ describe('against a real GNOME Shell (private, headless)', () => {
     first = await startHeadlessDisplay({ size: '1280x800' })
     onboarded(first)
     expect(shellInfo(first)).toBe('(@a{sv} {},)')
-    const app = await launchDesktop({ display: first, env: { GNOMEOLA_URL: daemon.baseUrl } })
+    const app = await launchDesktop({ display: first, env: { KACOLA_URL: daemon.baseUrl } })
     try {
       await card(app).waitFor({ timeout: 20_000 })
       await card(app)
@@ -154,13 +154,13 @@ describe('against a real GNOME Shell (private, headless)', () => {
       prepare: (dirs) => {
         cpSync(join(first.dirs.data, 'gnome-shell'), join(dirs.data, 'gnome-shell'), { recursive: true })
         cpSync(join(first.dirs.config, 'glib-2.0'), join(dirs.config, 'glib-2.0'), { recursive: true })
-        cpSync(join(first.dirs.state, 'gnomeola'), join(dirs.state, 'gnomeola'), { recursive: true })
+        cpSync(join(first.dirs.state, 'kacola'), join(dirs.state, 'kacola'), { recursive: true })
       },
     })
     const d = second
     await waitFor(() => /'state': <1\.0>/.test(shellInfo(d)), 20_000, 'the Shell to start the extension')
     await d.screenshot(join(DESKTOP_ARTIFACTS, 'extension-running-topbar.png'))
-    const app = await launchDesktop({ display: d, env: { GNOMEOLA_URL: daemon.baseUrl } })
+    const app = await launchDesktop({ display: d, env: { KACOLA_URL: daemon.baseUrl } })
     try {
       await app.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
       // on, and the card was dismissed anyway
@@ -212,12 +212,12 @@ describe('the states a real Shell will not show on demand (fake gdbus / gsetting
   let path = ''
   beforeAll(async () => {
     display = await startHeadlessDisplay({ size: '1280x800' })
-    tools = mkdtempSync(join(tmpdir(), 'gnomeola-fake-shell-'))
+    tools = mkdtempSync(join(tmpdir(), 'kacola-fake-shell-'))
     statePath = join(tools, 'state.json')
   }, 120_000)
   afterAll(async () => {
     if (display) {
-      const id = display.env.GNOMEOLA_HEADLESS_ID!
+      const id = display.env.KACOLA_HEADLESS_ID!
       await display.close()
       expect(markedPids(id)).toEqual([])
     }
@@ -250,7 +250,7 @@ describe('the states a real Shell will not show on demand (fake gdbus / gsetting
     // the window stays on this Wayland display even when the session is said to be X11
     launchDesktop({
       display,
-      env: { GNOMEOLA_URL: daemon.baseUrl, PATH: path, ...env },
+      env: { KACOLA_URL: daemon.baseUrl, PATH: path, ...env },
       args: ['--ozone-platform=wayland'],
     })
 
@@ -327,7 +327,7 @@ describe('the states a real Shell will not show on demand (fake gdbus / gsetting
     path = installFakeShellTools(join(tools, 'bin'), statePath, initialFakeShell({ reachable: false }))
     onboarded(display)
     const app = await launch({
-      FLATPAK_ID: 'org.gnome.Gnomeola',
+      FLATPAK_ID: 'com.kacperlubisz.Kacola',
       HOST_XDG_DATA_HOME: display.env.XDG_DATA_HOME!,
     })
     try {

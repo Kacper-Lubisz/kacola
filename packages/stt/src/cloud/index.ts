@@ -1,4 +1,4 @@
-// @gnomeola/stt/cloud — cloud STT providers (H-8). Native-free: safe for the hosted bundle.
+// @kacola/stt/cloud — cloud STT providers (H-8). Native-free: safe for the hosted bundle.
 export type { FinalResult, FinalTranscriber, TimedWord } from '../types.ts'
 export { type DeepgramOptions, DeepgramProvider } from './deepgram.ts'
 export { type BatchAudio, type BatchTranscriber, CloudSttError, type DiarizedUtterance } from './types.ts'

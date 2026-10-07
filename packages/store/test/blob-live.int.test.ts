@@ -10,7 +10,7 @@ describe.skipIf(!token)('VercelBlobStore against Vercel Blob (live)', () => {
   it('round-trips, lists and deletes private blobs', async () => {
     const b = new VercelBlobStore({
       token: token!,
-      prefix: `gnomeola-test-${randomBytes(4).toString('hex')}/`,
+      prefix: `kacola-test-${randomBytes(4).toString('hex')}/`,
     })
     const data = new Uint8Array(randomBytes(4096))
     try {

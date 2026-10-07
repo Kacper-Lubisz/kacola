@@ -30,7 +30,7 @@ import {
 
 const dirs: string[] = []
 const tmp = () => {
-  const d = mkdtempSync(join(tmpdir(), 'gnomeola-lock-'))
+  const d = mkdtempSync(join(tmpdir(), 'kacola-lock-'))
   dirs.push(d)
   return d
 }
@@ -45,7 +45,7 @@ const owner = (o: Partial<LockOwner>): LockOwner => ({
   host: '127.0.0.1',
   procStart: null,
   token: 'tok-old',
-  cmd: 'gnomeolad',
+  cmd: 'kacolad',
   ...o,
 })
 
@@ -62,7 +62,7 @@ describe('the data dir lock', () => {
       err = e
     }
     expect(err).toBeInstanceOf(DataDirLockedError)
-    expect((err as Error).message).toBe(`another gnomeola daemon (pid ${process.pid}, port 8787) owns ${dir}`)
+    expect((err as Error).message).toBe(`another kacola daemon (pid ${process.pid}, port 8787) owns ${dir}`)
     expect(lockOwner(dir)).toMatchObject({ pid: process.pid, port: 8787, token: a.owner.token })
     a.release()
     expect(existsSync(join(dir, LOCK_FILE))).toBe(false)
@@ -186,9 +186,9 @@ describe('the data dir lock', () => {
 
   it('refuses the real data dir inside a test run (VITEST), whatever the platform default', () => {
     const real = realDataDirs({})
-    expect(real).toContain(join(homedir(), '.local', 'share', 'gnomeola'))
-    expect(real).toContain(join(homedir(), 'Library', 'Application Support', 'gnomeola'))
-    expect(realDataDirs({ GNOMEOLA_TEST_REAL_XDG_DATA_HOME: '/xdg' })).toContain('/xdg/gnomeola')
+    expect(real).toContain(join(homedir(), '.local', 'share', 'kacola'))
+    expect(real).toContain(join(homedir(), 'Library', 'Application Support', 'kacola'))
+    expect(realDataDirs({ KACOLA_TEST_REAL_XDG_DATA_HOME: '/xdg' })).toContain('/xdg/kacola')
     for (const d of real)
       expect(() => assertNotRealDataDirInTests(d, { VITEST: 'true' })).toThrow(/refusing to open the real/)
     expect(() => assertNotRealDataDirInTests(`${real[0]}/`, { VITEST: 'true' })).toThrow(/refusing/)
@@ -214,7 +214,7 @@ describe.skipIf(process.platform !== 'linux')('a daemon from before the lock (no
     const c = await holder(join(dir, DB_FILE), 'r+')
     try {
       expect(openWriters(join(dir, DB_FILE)).map((w) => w.pid)).toEqual([c.pid])
-      expect(() => acquireDataDirLock(dir)).toThrow(`another gnomeola daemon (pid ${c.pid}) owns ${dir}`)
+      expect(() => acquireDataDirLock(dir)).toThrow(`another kacola daemon (pid ${c.pid}) owns ${dir}`)
       expect(existsSync(join(dir, LOCK_FILE))).toBe(false) // our attempt leaves nothing behind
     } finally {
       c.kill('SIGKILL')

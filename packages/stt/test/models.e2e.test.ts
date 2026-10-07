@@ -1,8 +1,8 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ModelInfo } from '@gnomeola/protocol'
-import { loadFixture } from '@gnomeola/testkit/fixtures'
+import { ModelInfo } from '@kacola/protocol'
+import { loadFixture } from '@kacola/testkit/fixtures'
 import { afterAll, describe, expect, it } from 'vitest'
 import { CATALOG, catalogEntry, DEFAULT_MODELS } from '../src/model-manager/catalog.ts'
 import { ModelManager, type ModelProgress, sha256File } from '../src/model-manager/manager.ts'
@@ -13,7 +13,7 @@ import type { VadEvent } from '../src/types.ts'
 // sherpa-onnx GitHub release into a throwaway models dir, verified against its pinned sha256, and then
 // actually run.
 
-const dir = mkdtempSync(join(tmpdir(), 'gnomeola-models-e2e-'))
+const dir = mkdtempSync(join(tmpdir(), 'kacola-models-e2e-'))
 afterAll(() => rmSync(dir, { recursive: true, force: true }))
 
 describe('model manager against the real release', () => {

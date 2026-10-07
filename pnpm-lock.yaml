@@ -41,33 +41,33 @@ importers:
 
   packages/capture:
     dependencies:
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
     devDependencies:
-      '@gnomeola/testkit':
+      '@kacola/testkit':
         specifier: workspace:*
         version: link:../testkit
 
   packages/capture-agent:
     dependencies:
-      '@gnomeola/capture':
+      '@kacola/capture':
         specifier: workspace:*
         version: link:../capture
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
     devDependencies:
-      '@gnomeola/server':
+      '@kacola/server':
         specifier: workspace:*
         version: link:../server
-      '@gnomeola/store':
+      '@kacola/store':
         specifier: workspace:*
         version: link:../store
-      '@gnomeola/stt':
+      '@kacola/stt':
         specifier: workspace:*
         version: link:../stt
-      '@gnomeola/testkit':
+      '@kacola/testkit':
         specifier: workspace:*
         version: link:../testkit
 
@@ -76,7 +76,7 @@ importers:
       '@anthropic-ai/tokenizer':
         specifier: ^0.0.4
         version: 0.0.4
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
       '@modelcontextprotocol/sdk':
@@ -88,28 +88,28 @@ importers:
 
   packages/daemon:
     dependencies:
-      '@gnomeola/capture':
+      '@kacola/capture':
         specifier: workspace:*
         version: link:../capture
-      '@gnomeola/capture-agent':
+      '@kacola/capture-agent':
         specifier: workspace:*
         version: link:../capture-agent
-      '@gnomeola/decisions':
+      '@kacola/decisions':
         specifier: workspace:*
         version: link:../decisions
-      '@gnomeola/llm':
+      '@kacola/llm':
         specifier: workspace:*
         version: link:../llm
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
-      '@gnomeola/server':
+      '@kacola/server':
         specifier: workspace:*
         version: link:../server
-      '@gnomeola/store':
+      '@kacola/store':
         specifier: workspace:*
         version: link:../store
-      '@gnomeola/stt':
+      '@kacola/stt':
         specifier: workspace:*
         version: link:../stt
       ical.js:
@@ -122,10 +122,10 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.5.8
         version: 0.5.8
-      '@gnomeola/evals':
+      '@kacola/evals':
         specifier: workspace:*
         version: link:../evals
-      '@gnomeola/testkit':
+      '@kacola/testkit':
         specifier: workspace:*
         version: link:../testkit
 
@@ -134,10 +134,10 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.128.0
         version: 0.128.0(zod@4.6.5)
-      '@gnomeola/llm':
+      '@kacola/llm':
         specifier: workspace:*
         version: link:../llm
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
       '@typesafe-ai/sdk':
@@ -150,10 +150,10 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
-      '@gnomeola/stt':
+      '@kacola/stt':
         specifier: workspace:*
         version: link:../stt
-      '@gnomeola/testkit':
+      '@kacola/testkit':
         specifier: workspace:*
         version: link:../testkit
 
@@ -174,10 +174,10 @@ importers:
       '@codemirror/view':
         specifier: 6.43.13
         version: 6.43.13
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
-      '@gnomeola/ui-core':
+      '@kacola/ui-core':
         specifier: workspace:*
         version: link:../ui-core
       '@lezer/highlight':
@@ -253,37 +253,37 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.5.8
         version: 0.5.8
-      '@gnomeola/cli':
+      '@kacola/cli':
         specifier: workspace:*
         version: link:../cli
-      '@gnomeola/daemon':
+      '@kacola/daemon':
         specifier: workspace:*
         version: link:../daemon
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
-      '@gnomeola/server':
+      '@kacola/server':
         specifier: workspace:*
         version: link:../server
-      '@gnomeola/store':
+      '@kacola/store':
         specifier: workspace:*
         version: link:../store
-      '@gnomeola/testkit':
+      '@kacola/testkit':
         specifier: workspace:*
         version: link:../testkit
 
   packages/evals:
     dependencies:
-      '@gnomeola/decisions':
+      '@kacola/decisions':
         specifier: workspace:*
         version: link:../decisions
-      '@gnomeola/llm':
+      '@kacola/llm':
         specifier: workspace:*
         version: link:../llm
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
-      '@gnomeola/testkit':
+      '@kacola/testkit':
         specifier: workspace:*
         version: link:../testkit
 
@@ -292,14 +292,14 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.128.0
         version: 0.128.0(zod@4.6.5)
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
       zod:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
-      '@gnomeola/testkit':
+      '@kacola/testkit':
         specifier: workspace:*
         version: link:../testkit
 
@@ -311,13 +311,13 @@ importers:
 
   packages/server:
     dependencies:
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
-      '@gnomeola/store':
+      '@kacola/store':
         specifier: workspace:*
         version: link:../store
-      '@gnomeola/stt':
+      '@kacola/stt':
         specifier: workspace:*
         version: link:../stt
       zod:
@@ -327,7 +327,7 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.5.8
         version: 0.5.8
-      '@gnomeola/testkit':
+      '@kacola/testkit':
         specifier: workspace:*
         version: link:../testkit
       '@types/pg':
@@ -345,7 +345,7 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.5.8
         version: 0.5.8
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
       '@vercel/blob':
@@ -364,7 +364,7 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
-      '@gnomeola/testkit':
+      '@kacola/testkit':
         specifier: workspace:*
         version: link:../testkit
       '@types/better-sqlite3':
@@ -376,20 +376,20 @@ importers:
 
   packages/stt:
     dependencies:
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
       sherpa-onnx-node:
         specifier: ^1.13.8
         version: 1.13.8
     devDependencies:
-      '@gnomeola/testkit':
+      '@kacola/testkit':
         specifier: workspace:*
         version: link:../testkit
 
   packages/testkit:
     dependencies:
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
       zod:
@@ -399,7 +399,7 @@ importers:
       '@axe-core/playwright':
         specifier: 4.13.0
         version: 4.13.0(playwright-core@1.63.0)
-      '@gnomeola/stt':
+      '@kacola/stt':
         specifier: workspace:*
         version: link:../stt
       playwright-core:
@@ -408,7 +408,7 @@ importers:
 
   packages/ui-core:
     dependencies:
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
     devDependencies:
@@ -421,23 +421,23 @@ importers:
 
   packages/vercel:
     dependencies:
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
-      '@gnomeola/server':
+      '@kacola/server':
         specifier: workspace:*
         version: link:../server
-      '@gnomeola/store':
+      '@kacola/store':
         specifier: workspace:*
         version: link:../store
-      '@gnomeola/stt':
+      '@kacola/stt':
         specifier: workspace:*
         version: link:../stt
     devDependencies:
-      '@gnomeola/testkit':
+      '@kacola/testkit':
         specifier: workspace:*
         version: link:../testkit
-      '@gnomeola/web':
+      '@kacola/web':
         specifier: workspace:*
         version: link:../web
       '@types/pg':
@@ -458,7 +458,7 @@ importers:
 
   packages/web:
     dependencies:
-      '@gnomeola/protocol':
+      '@kacola/protocol':
         specifier: workspace:*
         version: link:../protocol
     devDependencies:

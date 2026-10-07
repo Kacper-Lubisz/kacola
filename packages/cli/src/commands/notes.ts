@@ -1,4 +1,4 @@
-import type { ActionItem } from '@gnomeola/protocol'
+import type { ActionItem } from '@kacola/protocol'
 import type { Ctx } from '../context.ts'
 import { CliError, EXIT, refused, usage } from '../errors.ts'
 import { localStamp, renderJson } from '../output.ts'
@@ -71,7 +71,7 @@ export async function notes(ctx: Ctx, idArg: string | undefined, o: NotesOpts) {
   if (!o.full && tokens > BUDGET.notes)
     throw refused(
       `the notes for "${session.title}" are ~${tokens} tokens, over the ${BUDGET.notes}-token ceiling`,
-      'use --actions for just the action items, `gnomeola ask` for a specific question, or --full if you truly need all of it',
+      'use --actions for just the action items, `kacola ask` for a specific question, or --full if you truly need all of it',
     )
   if (ctx.format === 'json') {
     const { pendingEnhancement, ...rest } = out

@@ -82,6 +82,6 @@ export function writeBaseline(b: Baseline, dir = BASELINES_DIR): string {
   return p
 }
 
-/** `GNOMEOLA_UPDATE_BASELINES=1` turns a baseline check into a (reviewable) baseline write. */
+/** `KACOLA_UPDATE_BASELINES=1` turns a baseline check into a (reviewable) baseline write. */
 export const updatingBaselines = (env: NodeJS.ProcessEnv = process.env): boolean =>
-  env.GNOMEOLA_UPDATE_BASELINES === '1'
+  env.KACOLA_UPDATE_BASELINES === '1'

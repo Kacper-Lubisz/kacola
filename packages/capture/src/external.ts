@@ -1,6 +1,6 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import type { TrackKind } from '@gnomeola/protocol'
+import type { TrackKind } from '@kacola/protocol'
 import { TrackRecorder, toFatalError } from './track-recorder.ts'
 import {
   type CaptureErrorEvent,

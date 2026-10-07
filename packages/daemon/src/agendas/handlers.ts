@@ -5,7 +5,7 @@ import {
   formatAgendaMarkdown,
   isAutomated,
   parseSince,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import type { AgentChannel } from '../agents/channel.ts'
 import type { Handlers } from '../daemon.ts'
 import { DaemonError } from '../errors.ts'
@@ -51,7 +51,7 @@ export function agendaHandlers(svc: AgendaService, channel: AgentChannel): Pick<
     if (by !== undefined && isAutomated(by))
       throw new DaemonError(
         'unauthorized',
-        `"${by}" is set by a lease, not the request body (gnomeola live attach)`,
+        `"${by}" is set by a lease, not the request body (kacola live attach)`,
       )
     // team sharing: another device's attribution comes only from the share sync
     if (by !== undefined && by.startsWith('peer:'))
@@ -202,7 +202,7 @@ export function agendaHandlers(svc: AgendaService, channel: AgentChannel): Pick<
       if (!lease)
         throw new DaemonError(
           'unauthorized',
-          'suggestions come from the tracker or a connected agent: attach first (gnomeola live attach)',
+          'suggestions come from the tracker or a connected agent: attach first (kacola live attach)',
         )
       return channel.suggest(lease, params.id, body)
     },

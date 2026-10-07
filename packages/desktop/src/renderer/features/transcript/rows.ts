@@ -1,14 +1,14 @@
-import { formatOffset, type Session, type TrackKind } from '@gnomeola/protocol'
-import { formatDuration } from '@gnomeola/ui-core/format'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
-import type { SpeakersState } from '@gnomeola/ui-core/speakers'
+import { formatOffset, type Session, type TrackKind } from '@kacola/protocol'
+import { formatDuration } from '@kacola/ui-core/format'
+import { _, fmt } from '@kacola/ui-core/i18n'
+import type { SpeakersState } from '@kacola/ui-core/speakers'
 import {
   applyPartial,
   type PartialLine,
   type TranscriptRow,
   type TranscriptState,
   transcriptRows,
-} from '@gnomeola/ui-core/transcript'
+} from '@kacola/ui-core/transcript'
 
 // What the transcript list shows, as pure data (unit-tested without a DOM):
 //

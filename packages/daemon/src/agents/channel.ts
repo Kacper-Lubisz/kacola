@@ -28,8 +28,8 @@ import {
   type StatusChange,
   type Suggestion,
   type SuggestionKind,
-} from '@gnomeola/protocol'
-import type { Store } from '@gnomeola/store'
+} from '@kacola/protocol'
+import type { Store } from '@kacola/store'
 import type { AgendaService } from '../agendas/service.ts'
 import type { EventBus } from '../bus.ts'
 import { DaemonError } from '../errors.ts'
@@ -379,7 +379,7 @@ export class AgentChannel {
     const r = this.recs.get(id)
     const h = sha(token)
     if (!r || r.tokenHash.length !== h.length || !timingSafeEqual(r.tokenHash, h))
-      throw new DaemonError('unauthorized', 'unknown lease token (attach again: gnomeola live attach)', 401)
+      throw new DaemonError('unauthorized', 'unknown lease token (attach again: kacola live attach)', 401)
     this.expireIfDue(r)
     if (r.endedAt) throw new DaemonError('unauthorized', `the lease has ended (${r.endReason})`, 401)
     return r

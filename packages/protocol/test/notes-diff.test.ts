@@ -137,8 +137,8 @@ const unterminatedFence = (md: string) => {
   return last !== undefined && isOpenFence(last)
 }
 
-// GNOMEOLA_PROPERTY_RUNS=30000 for a deeper soak than CI needs
-const PAIRS = Number(process.env.GNOMEOLA_PROPERTY_RUNS ?? 3000)
+// KACOLA_PROPERTY_RUNS=30000 for a deeper soak than CI needs
+const PAIRS = Number(process.env.KACOLA_PROPERTY_RUNS ?? 3000)
 
 function* cases(seed: number): Generator<[string, string, Rng]> {
   const r = rng(seed)

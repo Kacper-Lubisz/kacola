@@ -1,0 +1,3 @@
+#!/bin/sh
+# kacolad: the bundled daemon on the app's Electron binary running as Node
+ELECTRON_RUN_AS_NODE=1 exec /app/main/kacola /app/main/resources/runtime/daemon.mjs "$@"

@@ -1,9 +1,9 @@
 import { PGlite } from '@electric-sql/pglite'
-import { createClient, type GnomeolaClient } from '@gnomeola/protocol'
-import { SqliteStoreApi } from '@gnomeola/store'
-import { MemoryBlobStore } from '@gnomeola/store/blob'
-import type { StoreApi } from '@gnomeola/store/core'
-import { migratePg, openPglite, openPostgres, pgliteDialect } from '@gnomeola/store/pg'
+import { createClient, type KacolaClient } from '@kacola/protocol'
+import { SqliteStoreApi } from '@kacola/store'
+import { MemoryBlobStore } from '@kacola/store/blob'
+import type { StoreApi } from '@kacola/store/core'
+import { migratePg, openPglite, openPostgres, pgliteDialect } from '@kacola/store/pg'
 import { Kysely } from 'kysely'
 import { createHostedApp, type HostedApp, type HostedAppOptions } from '../src/app.ts'
 import { type Served, serve } from '../src/node.ts'
@@ -37,7 +37,7 @@ export type Hosted = {
   url: string
   store: StoreApi
   blobs: MemoryBlobStore
-  client: GnomeolaClient
+  client: KacolaClient
   close(): Promise<void>
 }
 

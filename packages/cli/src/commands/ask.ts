@@ -1,4 +1,4 @@
-import { formatOffset, type QaMessage } from '@gnomeola/protocol'
+import { formatOffset, type QaMessage } from '@kacola/protocol'
 import type { Ctx } from '../context.ts'
 import { CliError, EXIT, usage } from '../errors.ts'
 import { renderJson } from '../output.ts'
@@ -12,7 +12,7 @@ export type AskOpts = { session?: string; since?: string; effort?: string }
  */
 export async function ask(ctx: Ctx, question: string | undefined, o: AskOpts) {
   if (!question?.trim())
-    throw usage('a question is required', 'e.g. gnomeola ask "what did we decide about retries?"')
+    throw usage('a question is required', 'e.g. kacola ask "what did we decide about retries?"')
   if (o.session && o.since) throw usage('use either --session or --since, not both')
   if (o.effort && !['low', 'medium', 'high'].includes(o.effort))
     throw usage('--effort must be low, medium or high')

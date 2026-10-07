@@ -3,10 +3,10 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
-import type { AgendaView } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import type { AgendaView } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { gnomeola } from '../src/cli.ts'
+import { kacola } from '../src/cli.ts'
 import { linkToken, type ShareHost, startShareHost } from '../src/share-host.ts'
 
 // Team sharing from the CLI and MCP (docs/sharing.md), through REAL daemons and a local hosted server
@@ -18,7 +18,7 @@ import { linkToken, type ShareHost, startShareHost } from '../src/share-host.ts'
 // (a private agenda, someone else's copy), 5 for a wrong code. MCP exposes the reads only.
 
 const MAIN = join(import.meta.dirname, '..', '..', 'cli', 'src', 'main.ts')
-const box = mkdtempSync(join(tmpdir(), 'gnomeola-e2e-agenda-share-'))
+const box = mkdtempSync(join(tmpdir(), 'kacola-e2e-agenda-share-'))
 let host: ShareHost
 let A: DaemonHandle // the organiser (a sharing host configured)
 let B: DaemonHandle // an attendee who runs kacola
@@ -65,10 +65,10 @@ beforeAll(async () => {
     const d = await startDaemon({
       dataDir: join(box, name),
       env: {
-        GNOMEOLA_CALENDAR: `file:${file}`,
+        KACOLA_CALENDAR: `file:${file}`,
         // sync on demand (the test calls sync), pushes soon after a change
-        GNOMEOLA_SHARE_POLL_MS: '0',
-        GNOMEOLA_SHARE_DEBOUNCE_MS: '20',
+        KACOLA_SHARE_POLL_MS: '0',
+        KACOLA_SHARE_DEBOUNCE_MS: '20',
         ...env,
       },
     })
@@ -76,7 +76,7 @@ beforeAll(async () => {
     return d
   }
   A = await daemon('owner', host.ownerEnv({ name: 'Kacper', email: 'kacper@example.com' }))
-  B = await daemon('attendee', { GNOMEOLA_OWNER_EMAIL: 'ben@example.com' })
+  B = await daemon('attendee', { KACOLA_OWNER_EMAIL: 'ben@example.com' })
   C = await daemon('nohost', {})
 }, 90_000)
 afterAll(async () => {
@@ -111,7 +111,7 @@ function stable(out: string): string {
   return `${JSON.stringify(value, null, 2)}\n`
 }
 
-const cli = (d: DaemonHandle, argv: string[], tty = false) => gnomeola(argv, d.baseUrl, { tty })
+const cli = (d: DaemonHandle, argv: string[], tty = false) => kacola(argv, d.baseUrl, { tty })
 async function ok(d: DaemonHandle, argv: string[]) {
   const r = await cli(d, argv)
   expect(r.stderr, argv.join(' ')).toBe('')
@@ -128,7 +128,7 @@ const sync = async () => {
   await A.client.call('syncAgendaShare', { params: { id: s.agenda } })
 }
 
-describe('gnomeola agenda share|unshare|share-status|follow|follow-confirm|share-recap|share-history', () => {
+describe('kacola agenda share|unshare|share-status|follow|follow-confirm|share-recap|share-history', () => {
   it('share: the web link for invitees; 6 without a sharing host; 1 for a private agenda', async () => {
     const v = await A.client.call('createAgenda', {
       body: {
@@ -157,7 +157,7 @@ describe('gnomeola agenda share|unshare|share-status|follow|follow-confirm|share
     const c = await C.client.call('createAgenda', { body: { title: 'Elsewhere', items: [{ text: 'x' }] } })
     const none = await cli(C, ['agenda', 'share', c.agenda.id])
     expect(none.code).toBe(6)
-    expect(none.stderr).toMatch(/GNOMEOLA_SHARE_URL/)
+    expect(none.stderr).toMatch(/KACOLA_SHARE_URL/)
     // a private agenda cannot be shared: 409 → exit 1 (it stays invisible to `agenda list` either way)
     const p = await A.client.call('createAgenda', {
       body: { title: 'Private prep', private: true, items: [{ text: 'y' }] },
@@ -283,7 +283,7 @@ describe('gnomeola agenda share|unshare|share-status|follow|follow-confirm|share
 
   it('MCP: share status and history are tools (reads); nothing shares from MCP', async () => {
     const child: ChildProcess = spawn(process.execPath, [MAIN, 'mcp'], {
-      env: { ...process.env, GNOMEOLA_URL: A.baseUrl },
+      env: { ...process.env, KACOLA_URL: A.baseUrl },
       stdio: ['pipe', 'pipe', 'inherit'],
     })
     let nextId = 1

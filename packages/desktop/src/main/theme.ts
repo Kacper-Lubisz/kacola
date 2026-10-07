@@ -7,7 +7,7 @@ import type { Theme } from '../shared/bridge.ts'
 // `prefers-color-scheme` follows GNOME's dark style — and pushes the whole Theme to the renderer for
 // accent and high contrast. macOS (and a Linux session without the portal) falls back to nativeTheme.
 //
-// GNOMEOLA_COLOR_SCHEME=light|dark, GNOMEOLA_CONTRAST=high and GNOMEOLA_ACCENT=#rrggbb override, for
+// KACOLA_COLOR_SCHEME=light|dark, KACOLA_CONTRAST=high and KACOLA_ACCENT=#rrggbb override, for
 // tests and screenshots.
 
 const DEST = [
@@ -52,8 +52,8 @@ export function themeFrom(
   env: Record<string, string | undefined>,
 ): Theme {
   const scheme =
-    env.GNOMEOLA_COLOR_SCHEME === 'dark' || env.GNOMEOLA_COLOR_SCHEME === 'light'
-      ? env.GNOMEOLA_COLOR_SCHEME
+    env.KACOLA_COLOR_SCHEME === 'dark' || env.KACOLA_COLOR_SCHEME === 'light'
+      ? env.KACOLA_COLOR_SCHEME
       : raw.colorScheme === 1
         ? 'dark'
         : raw.colorScheme === 2
@@ -61,8 +61,8 @@ export function themeFrom(
           : fallbackDark
             ? 'dark'
             : 'light'
-  const contrast = env.GNOMEOLA_CONTRAST === 'high' || raw.contrast === 1 ? 'high' : 'normal'
-  const accent = /^#[0-9a-f]{6}$/i.test(env.GNOMEOLA_ACCENT ?? '') ? env.GNOMEOLA_ACCENT! : raw.accent
+  const contrast = env.KACOLA_CONTRAST === 'high' || raw.contrast === 1 ? 'high' : 'normal'
+  const accent = /^#[0-9a-f]{6}$/i.test(env.KACOLA_ACCENT ?? '') ? env.KACOLA_ACCENT! : raw.accent
   return { scheme, contrast, accent }
 }
 

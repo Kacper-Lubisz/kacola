@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // P-1: bundle the daemon and the CLI into self-contained ESM files that run on any Node 24 — including
 // Electron 44's (ELECTRON_RUN_AS_NODE=1), which is how the desktop app, the Flatpak and the macOS .app run
-// them: one runtime for the window, gnomeolad and gnomeola(1), like VS Code's `code` CLI.
+// them: one runtime for the window, kacolad and kacola(1), like VS Code's `code` CLI.
 //
 //   node scripts/build-runtime.ts [--out DIR] [--target linux-x64,darwin-arm64,…]
 //
@@ -59,13 +59,13 @@ function require_(spec: string): string {
 }
 
 const assetDirs: Plugin = {
-  name: 'gnomeola-asset-dirs',
+  name: 'kacola-asset-dirs',
   setup(b) {
     b.onLoad({ filter: /[\\/]packages[\\/].*\.ts$/ }, (args) => {
       let src = readFileSync(args.path, 'utf8')
       const rel = relative(REPO, dirname(args.path)).split('\\').join('/')
       if (src.includes('import.meta.dirname'))
-        src = src.replaceAll('import.meta.dirname', `__gnomeolaAssetDir(${JSON.stringify(rel)})`)
+        src = src.replaceAll('import.meta.dirname', `__kacolaAssetDir(${JSON.stringify(rel)})`)
       // the worker is bundled as a sibling entry point
       src = src.replace(
         "new URL('./diarize-worker.ts', import.meta.url)",
@@ -78,14 +78,14 @@ const assetDirs: Plugin = {
 
 // CJS dependencies inside an ESM bundle need `require`; the asset helper resolves under ./root.
 const BANNER = [
-  "import { createRequire as __gnomeolaCreateRequire } from 'node:module';",
-  "import { fileURLToPath as __gnomeolaFileURLToPath } from 'node:url';",
-  "import { dirname as __gnomeolaDirname, join as __gnomeolaJoin } from 'node:path';",
-  'const require = __gnomeolaCreateRequire(import.meta.url);',
+  "import { createRequire as __kacolaCreateRequire } from 'node:module';",
+  "import { fileURLToPath as __kacolaFileURLToPath } from 'node:url';",
+  "import { dirname as __kacolaDirname, join as __kacolaJoin } from 'node:path';",
+  'const require = __kacolaCreateRequire(import.meta.url);',
   // CJS deps that locate files next to themselves (tiktoken's WASM) look beside the bundle instead
-  'const __filename = __gnomeolaFileURLToPath(import.meta.url);',
-  'const __dirname = __gnomeolaDirname(__filename);',
-  'const __gnomeolaAssetDir = (rel) => __gnomeolaJoin(__gnomeolaDirname(__gnomeolaFileURLToPath(import.meta.url)), "root", rel);',
+  'const __filename = __kacolaFileURLToPath(import.meta.url);',
+  'const __dirname = __kacolaDirname(__filename);',
+  'const __kacolaAssetDir = (rel) => __kacolaJoin(__kacolaDirname(__kacolaFileURLToPath(import.meta.url)), "root", rel);',
 ].join('\n')
 
 export type RuntimeInfo = {
@@ -130,7 +130,7 @@ export async function buildRuntime(o: { outDir: string; targets?: Target[] }): P
     outdir: outDir,
     outExtension: { '.js': '.mjs' },
     // skill install writes the skill from the bundle (packages/cli/src/commands/skill.ts)
-    banner: { js: `${BANNER}\nglobalThis.GNOMEOLA_SKILL_MD = ${JSON.stringify(skill)};` },
+    banner: { js: `${BANNER}\nglobalThis.KACOLA_SKILL_MD = ${JSON.stringify(skill)};` },
   })
   for (const a of ASSETS) cpSync(join(REPO, a), join(outDir, 'root', a), { recursive: true })
   // @anthropic-ai/tokenizer (CLI token budgets) loads tiktoken's WASM from __dirname
@@ -209,7 +209,7 @@ export function stageNatives(outDir: string, targets: Target[]): void {
   })
 }
 
-const CACHE = join(REPO, 'node_modules', '.cache', 'gnomeola-natives')
+const CACHE = join(REPO, 'node_modules', '.cache', 'kacola-natives')
 
 /** `npm pack` a package into a cache (once) and unpack it at `dest`. */
 export function fetchPackage(spec: string, dest: string): void {

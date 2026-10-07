@@ -6,11 +6,11 @@ import type {
   QaMessage,
   Settings,
   StatusChange,
-} from '@gnomeola/protocol'
-import { fromHistory, type QaState } from '@gnomeola/ui-core/qa'
-import type { SessionsState } from '@gnomeola/ui-core/sessions'
-import { fromSummaries, type SpeakersState } from '@gnomeola/ui-core/speakers'
-import { fromSegments, type TranscriptState } from '@gnomeola/ui-core/transcript'
+} from '@kacola/protocol'
+import { fromHistory, type QaState } from '@kacola/ui-core/qa'
+import type { SessionsState } from '@kacola/ui-core/sessions'
+import { fromSummaries, type SpeakersState } from '@kacola/ui-core/speakers'
+import { fromSegments, type TranscriptState } from '@kacola/ui-core/transcript'
 import { onlineManager, QueryClient } from '@tanstack/react-query'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createEphemeralStore } from '../src/renderer/data/ephemeral.ts'

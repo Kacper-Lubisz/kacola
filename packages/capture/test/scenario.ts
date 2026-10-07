@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { TrackKind } from '@gnomeola/protocol'
+import type { TrackKind } from '@kacola/protocol'
 import {
   assertDefaultsUnchanged,
   detectBursts,
@@ -11,7 +11,7 @@ import {
   synthesize,
   type ToneFixture,
   writeFixture,
-} from '@gnomeola/testkit/rig'
+} from '@kacola/testkit/rig'
 import { expect } from 'vitest'
 import {
   type CaptureResult,
@@ -62,7 +62,7 @@ export type CaptureRun = {
 }
 
 export function tempDir(label: string): string {
-  const base = join(tmpdir(), 'gnomeola-capture-tests')
+  const base = join(tmpdir(), 'kacola-capture-tests')
   mkdirSync(base, { recursive: true })
   return mkdtempSync(join(base, `${label}-`))
 }

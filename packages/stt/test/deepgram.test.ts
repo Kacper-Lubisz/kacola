@@ -1,4 +1,4 @@
-import { type FakeDeepgram, RECORDED_DEEPGRAM_RESPONSE, startFakeDeepgram } from '@gnomeola/testkit/cloud-stt'
+import { type FakeDeepgram, RECORDED_DEEPGRAM_RESPONSE, startFakeDeepgram } from '@kacola/testkit/cloud-stt'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { CloudSttError, cloudSttFromEnv, DeepgramProvider, decodeWav, encodeWav } from '../src/cloud/index.ts'
 

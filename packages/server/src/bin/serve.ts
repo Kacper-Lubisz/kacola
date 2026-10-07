@@ -1,38 +1,38 @@
 #!/usr/bin/env node
-// gnomeola-server: the hosted server on plain Node — a self-hosted box, or the "remote" that hybrid-sync
+// kacola-server: the hosted server on plain Node — a self-hosted box, or the "remote" that hybrid-sync
 // tests push to. Vercel runs the same app through packages/vercel instead.
 //
-//   gnomeola-server [--host 127.0.0.1] [--port 8788] [--db sqlite:PATH | postgres://…] [--blobs DIR]
+//   kacola-server [--host 127.0.0.1] [--port 8788] [--db sqlite:PATH | postgres://…] [--blobs DIR]
 //
 // Prints one JSON line when listening: {"event":"listening","url":…,"port":…,"pid":…}.
 import { mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
-import { FsBlobStore } from '@gnomeola/store/blob'
-import type { StoreApi } from '@gnomeola/store/core'
-import { cloudSttFromEnv } from '@gnomeola/stt/cloud'
+import { FsBlobStore } from '@kacola/store/blob'
+import type { StoreApi } from '@kacola/store/core'
+import { cloudSttFromEnv } from '@kacola/stt/cloud'
 import { createHostedApp } from '../app.ts'
 import { authConfigFromEnv, isLoopbackRequest } from '../auth.ts'
 import { serve } from '../node.ts'
 
-const USAGE = `usage: gnomeola-server [--host H] [--port N] [--db sqlite:PATH|postgres://URL] [--blobs DIR]
+const USAGE = `usage: kacola-server [--host H] [--port N] [--db sqlite:PATH|postgres://URL] [--blobs DIR]
 
 environment:
-  GNOMEOLA_AUTH_SECRET   HMAC key for device tokens (>= 32 chars); required to listen beyond loopback
-  GNOMEOLA_ADMIN_TOKEN   owner token: approves pairings (>= 16 chars)
+  KACOLA_AUTH_SECRET   HMAC key for device tokens (>= 32 chars); required to listen beyond loopback
+  KACOLA_ADMIN_TOKEN   owner token: approves pairings (>= 16 chars)
   DATABASE_URL           used when --db is not given
   DEEPGRAM_API_KEY       enables full-offload transcription (DEEPGRAM_URL overrides the endpoint)
-  GNOMEOLA_MAX_STREAM_MS end each /events stream after this long (default 240000)
+  KACOLA_MAX_STREAM_MS end each /events stream after this long (default 240000)
 `
 
 async function openStore(spec: string): Promise<StoreApi> {
   if (spec.startsWith('postgres://') || spec.startsWith('postgresql://')) {
-    const { openPostgres } = await import('@gnomeola/store/pg')
+    const { openPostgres } = await import('@kacola/store/pg')
     return openPostgres(spec)
   }
   const path = spec.replace(/^sqlite:/, '')
-  const { SqliteStoreApi } = await import('@gnomeola/store')
+  const { SqliteStoreApi } = await import('@kacola/store')
   return SqliteStoreApi.open(path)
 }
 
@@ -55,9 +55,9 @@ async function main(): Promise<void> {
   const auth = authConfigFromEnv(env)
   if (!auth && !isLoopbackRequest({ remoteAddress: '127.0.0.1', host }))
     throw new Error(
-      `refusing to listen on ${host} without GNOMEOLA_AUTH_SECRET: remote requests need pairing auth`,
+      `refusing to listen on ${host} without KACOLA_AUTH_SECRET: remote requests need pairing auth`,
     )
-  const base = join(env.XDG_DATA_HOME || join(homedir(), '.local', 'share'), 'gnomeola-server')
+  const base = join(env.XDG_DATA_HOME || join(homedir(), '.local', 'share'), 'kacola-server')
   mkdirSync(base, { recursive: true, mode: 0o700 })
   const store = await openStore(values.db ?? env.DATABASE_URL ?? `sqlite:${join(base, 'server.db')}`)
   const app = createHostedApp({
@@ -65,8 +65,8 @@ async function main(): Promise<void> {
     blobs: new FsBlobStore(values.blobs ?? join(base, 'blobs')),
     auth,
     stt: cloudSttFromEnv(env),
-    maxStreamMs: env.GNOMEOLA_MAX_STREAM_MS ? Number(env.GNOMEOLA_MAX_STREAM_MS) : undefined,
-    pollMs: env.GNOMEOLA_POLL_MS ? Number(env.GNOMEOLA_POLL_MS) : undefined,
+    maxStreamMs: env.KACOLA_MAX_STREAM_MS ? Number(env.KACOLA_MAX_STREAM_MS) : undefined,
+    pollMs: env.KACOLA_POLL_MS ? Number(env.KACOLA_POLL_MS) : undefined,
     log: (level, msg, fields) => process.stderr.write(`${JSON.stringify({ level, msg, ...fields })}\n`),
   })
   const served = await serve(app, { host, port: values.port ? Number(values.port) : 8788 })
@@ -84,8 +84,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  process.stderr.write(
-    `gnomeola-server failed to start: ${err instanceof Error ? err.message : String(err)}\n`,
-  )
+  process.stderr.write(`kacola-server failed to start: ${err instanceof Error ? err.message : String(err)}\n`)
   process.exit(1)
 })

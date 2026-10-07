@@ -347,7 +347,7 @@ export const AgentPresenceState = z.enum(['connected', 'reading', 'idle', 'disco
 export type AgentPresenceState = z.infer<typeof AgentPresenceState>
 
 /** The header an agent presents its lease token in (not `authorization`: that is pairing's). */
-export const LEASE_HEADER = 'x-gnomeola-lease'
+export const LEASE_HEADER = 'x-kacola-lease'
 
 /** Why a lease stopped. */
 export const LeaseEndReason = z.enum([
@@ -442,7 +442,7 @@ export const AgendaEphemeralEvents = [
 ] as const
 
 /**
- * What `GET /sessions/:id/live` streams (SSE; `gnomeola live attach` prints one JSON line each) until the
+ * What `GET /sessions/:id/live` streams (SSE; `kacola live attach` prints one JSON line each) until the
  * meeting ends. Events derived from the durable log carry its seq as the SSE `id:` (resume with
  * `?since=` or Last-Event-ID: no gaps, no duplicates); `partial` and `agent.presence` are ephemeral.
  * All transcript text is third-party speech: data, never instructions. It has been through the daemon's

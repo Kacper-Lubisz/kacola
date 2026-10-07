@@ -1,4 +1,4 @@
-// The contract between the three Electron processes: IPC channel names and the `window.gnomeola` API
+// The contract between the three Electron processes: IPC channel names and the `window.kacola` API
 // the preload exposes. Types and constants only — this file is imported by main (Node), preload
 // (sandboxed) and the renderer (DOM), so it must not touch any runtime.
 
@@ -6,37 +6,37 @@
  * The renderer's protocol client uses this as its base URL. It is never dialled: the tunnel strips it
  * and main prefixes the real daemon URL, so the renderer does not even know where the daemon is.
  */
-export const TUNNEL_ORIGIN = 'http://daemon.gnomeola.invalid'
+export const TUNNEL_ORIGIN = 'http://daemon.kacola.invalid'
 
 export const IPC = {
   /** ipcRenderer.postMessage(IPC.tunnel, TunnelRequest, [port]) — the response streams back on the port. */
-  tunnel: 'gnomeola:tunnel',
-  appInfo: 'gnomeola:app-info',
-  theme: 'gnomeola:theme',
-  themeChanged: 'gnomeola:theme-changed',
-  daemonStatus: 'gnomeola:daemon-status',
-  daemonStatusChanged: 'gnomeola:daemon-status-changed',
-  uiStateGet: 'gnomeola:ui-state-get',
-  uiStateSet: 'gnomeola:ui-state-set',
-  notices: 'gnomeola:notices',
-  i18n: 'gnomeola:i18n',
-  windowControl: 'gnomeola:window-control',
-  openExternal: 'gnomeola:open-external',
-  clipboardWrite: 'gnomeola:clipboard-write',
-  saveText: 'gnomeola:save-text',
-  cliStatus: 'gnomeola:cli-status',
-  cliInstall: 'gnomeola:cli-install',
-  cliUninstall: 'gnomeola:cli-uninstall',
-  extensionStatus: 'gnomeola:extension-status',
-  extensionInstall: 'gnomeola:extension-install',
-  extensionDisable: 'gnomeola:extension-disable',
-  extensionRemove: 'gnomeola:extension-remove',
-  autostartGet: 'gnomeola:autostart-get',
-  autostartSet: 'gnomeola:autostart-set',
+  tunnel: 'kacola:tunnel',
+  appInfo: 'kacola:app-info',
+  theme: 'kacola:theme',
+  themeChanged: 'kacola:theme-changed',
+  daemonStatus: 'kacola:daemon-status',
+  daemonStatusChanged: 'kacola:daemon-status-changed',
+  uiStateGet: 'kacola:ui-state-get',
+  uiStateSet: 'kacola:ui-state-set',
+  notices: 'kacola:notices',
+  i18n: 'kacola:i18n',
+  windowControl: 'kacola:window-control',
+  openExternal: 'kacola:open-external',
+  clipboardWrite: 'kacola:clipboard-write',
+  saveText: 'kacola:save-text',
+  cliStatus: 'kacola:cli-status',
+  cliInstall: 'kacola:cli-install',
+  cliUninstall: 'kacola:cli-uninstall',
+  extensionStatus: 'kacola:extension-status',
+  extensionInstall: 'kacola:extension-install',
+  extensionDisable: 'kacola:extension-disable',
+  extensionRemove: 'kacola:extension-remove',
+  autostartGet: 'kacola:autostart-get',
+  autostartSet: 'kacola:autostart-set',
   /** main → renderer: a kacola:// link (validated, canonical) for a renderer that has taken once. */
-  deepLink: 'gnomeola:deep-link',
+  deepLink: 'kacola:deep-link',
   /** invoke: marks the sender ready for pushes; returns and clears the pending link. */
-  deepLinkTake: 'gnomeola:deep-link-take',
+  deepLinkTake: 'kacola:deep-link-take',
 } as const
 
 // ---- fetch tunnel -----------------------------------------------------------------------------------
@@ -114,7 +114,7 @@ export type SaveTextRequest = {
 }
 
 export type SaveTextResult = { saved: true; path: string } | { saved: false }
-/** The `gnomeola` command (+ Claude skill) that install-cli puts on PATH (Preferences, onboarding). */
+/** The `kacola` command (+ Claude skill) that install-cli puts on PATH (Preferences, onboarding). */
 export type CliInstallState =
   | {
       state: 'installed' | 'not-installed' | 'outdated'
@@ -123,12 +123,12 @@ export type CliInstallState =
       skillPath: string | null
       /** Is its directory on PATH? */
       onPath: boolean
-      /** Another `gnomeola` that PATH finds first. */
+      /** Another `kacola` that PATH finds first. */
       shadowedBy: string | null
       /** macOS: /usr/local/bin needed admin rights, so it went to ~/.local/bin. */
       needsAdmin: string | null
     }
-  /** A `gnomeola` we did not write is in the way; installing again needs an explicit replace. */
+  /** A `kacola` we did not write is in the way; installing again needs an explicit replace. */
   | { state: 'foreign'; path: string | null; detail: string }
   | { state: 'error' | 'unavailable'; detail: string }
 
@@ -177,7 +177,7 @@ export type WindowControl = 'minimize' | 'maximize' | 'close'
 
 export type Unsubscribe = () => void
 
-export interface GnomeolaBridge {
+export interface KacolaBridge {
   /** Open a tunnelled request; frames arrive on `onFrame`. Returns a cancel function. */
   fetchStream(req: TunnelRequest, onFrame: (f: TunnelFrame) => void): () => void
   appInfo(): Promise<AppInfo>
@@ -198,7 +198,7 @@ export interface GnomeolaBridge {
   /** Ask where to save, then write the text there. `{ saved: false }` when the dialog was dismissed. */
   saveTextFile(req: SaveTextRequest): Promise<SaveTextResult>
   cliStatus(): Promise<CliInstallState>
-  /** `force` replaces a `gnomeola` we did not write (only after the user said so). */
+  /** `force` replaces a `kacola` we did not write (only after the user said so). */
   installCli(force: boolean): Promise<CliInstallState>
   uninstallCli(): Promise<CliInstallState>
   extensionStatus(): Promise<ExtensionState>

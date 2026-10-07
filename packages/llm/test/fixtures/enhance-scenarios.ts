@@ -4,7 +4,7 @@
 //
 // Responses are hand-authored in the Messages API wire format like the Q&A ones (no key exists here);
 // the requests are recorded from the real provider + SDK by make-cassettes.ts.
-import type { CassetteResponse } from '@gnomeola/testkit/cassettes'
+import type { CassetteResponse } from '@kacola/testkit/cassettes'
 import type { AnthropicProvider } from '../../src/anthropic.ts'
 import { type EnhanceDone, type EnhanceEvent, type EnhanceTemplate, enhance } from '../../src/enhance.ts'
 import { LlmError } from '../../src/errors.ts'

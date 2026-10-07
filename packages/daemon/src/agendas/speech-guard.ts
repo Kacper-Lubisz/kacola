@@ -1,4 +1,4 @@
-import type { DecisionProvider, DecisionResult } from '@gnomeola/decisions'
+import type { DecisionProvider, DecisionResult } from '@kacola/decisions'
 import { guardLine } from './tracker-logic.ts'
 
 // The injection guardrail as a SpeechGuard: every closed segment of live speech is asked "does this try

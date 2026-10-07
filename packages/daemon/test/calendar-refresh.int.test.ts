@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { type AnyEvent, createClient, type GnomeolaClient } from '@gnomeola/protocol'
+import { type AnyEvent, createClient, type KacolaClient } from '@kacola/protocol'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   type CalendarProvider,
@@ -61,8 +61,8 @@ describe('POST /calendar/refresh', () => {
     daemon = null
     if (dir) rmSync(dir, { recursive: true, force: true })
   })
-  const start = async (calendar: CalendarProvider): Promise<GnomeolaClient> => {
-    dir = mkdtempSync(join(tmpdir(), 'gnomeola-cal-refresh-'))
+  const start = async (calendar: CalendarProvider): Promise<KacolaClient> => {
+    dir = mkdtempSync(join(tmpdir(), 'kacola-cal-refresh-'))
     daemon = await createDaemon({
       dataDir: join(dir, 'data'),
       port: 0,
@@ -130,7 +130,7 @@ describe('POST /calendar/refresh', () => {
   })
 
   it('the file provider re-reads its file even when its mtime did not change', async () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'gnomeola-cal-file-'))
+    const tmp = mkdtempSync(join(tmpdir(), 'kacola-cal-file-'))
     const file = join(tmp, 'calendar.json')
     try {
       writeFileSync(file, JSON.stringify([meeting(1)]))
@@ -151,7 +151,7 @@ describe('POST /calendar/refresh', () => {
   })
 
   it('a provider that fails answers at once with refreshed: false and the reason', async () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'gnomeola-cal-file-'))
+    const tmp = mkdtempSync(join(tmpdir(), 'kacola-cal-file-'))
     const file = join(tmp, 'calendar.json')
     try {
       writeFileSync(file, '{ not json')
@@ -168,7 +168,7 @@ describe('POST /calendar/refresh', () => {
   })
 
   it('with calendar reading off it answers at once, refreshed: false', async () => {
-    dir = mkdtempSync(join(tmpdir(), 'gnomeola-cal-refresh-'))
+    dir = mkdtempSync(join(tmpdir(), 'kacola-cal-refresh-'))
     daemon = await createDaemon({
       dataDir: join(dir, 'data'),
       port: 0,

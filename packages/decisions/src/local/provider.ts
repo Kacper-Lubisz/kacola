@@ -1,4 +1,4 @@
-import type { Usage } from '@gnomeola/protocol'
+import type { Usage } from '@kacola/protocol'
 import {
   choiceAnswer,
   deriveCandidates,

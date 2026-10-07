@@ -1,5 +1,5 @@
 {
-  "uuid": "unsafe-mode@gnomeola.test",
+  "uuid": "unsafe-mode@kacola.test",
   "name": "Unsafe mode (tests only)",
   "description": "Puts a throwaway nested GNOME Shell into unsafe mode so tests can use org.gnome.Shell.Eval.",
   "shell-version": ["50"]

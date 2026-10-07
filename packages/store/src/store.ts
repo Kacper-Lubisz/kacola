@@ -19,7 +19,7 @@ import {
   type Track,
   type TrackKind,
   type Voiceprint,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import Database from 'better-sqlite3'
 import {
   type Compilable,

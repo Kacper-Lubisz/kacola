@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { type CalendarState, OfflineCalendar } from '@gnomeola/protocol'
+import { type CalendarState, OfflineCalendar } from '@kacola/protocol'
 import { z } from 'zod'
 import { LineChild } from '../line-child.ts'
 import type { Logger } from '../logger.ts'
@@ -204,7 +204,7 @@ export const CAL_AGENT_PATH = resolve(import.meta.dirname, '../../gjs/cal-agent.
 
 export type EdsProviderOptions = {
   logger: Logger
-  /** gjs binary. Default `gjs` on PATH (GNOMEOLA_GJS overrides in main.ts). */
+  /** gjs binary. Default `gjs` on PATH (KACOLA_GJS overrides in main.ts). */
   gjs?: string
   agentPath?: string
   env?: NodeJS.ProcessEnv

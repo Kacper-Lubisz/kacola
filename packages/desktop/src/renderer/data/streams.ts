@@ -1,5 +1,5 @@
-import type { AskStreamEvent, BodyIn, EnhanceStreamEvent } from '@gnomeola/protocol'
-import { enhanceEvents } from '@gnomeola/protocol'
+import type { AskStreamEvent, BodyIn, EnhanceStreamEvent } from '@kacola/protocol'
+import { enhanceEvents } from '@kacola/protocol'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 import type { EphemeralStore, StreamState } from './ephemeral.ts'

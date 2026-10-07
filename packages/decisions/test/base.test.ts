@@ -1,5 +1,5 @@
-import { LlmError } from '@gnomeola/llm'
-import type { Usage } from '@gnomeola/protocol'
+import { LlmError } from '@kacola/llm'
+import type { Usage } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import {
   choiceAnswer,

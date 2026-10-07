@@ -171,7 +171,7 @@ const KEYFILE = [
 
 // A session mode layered on "user" without the overview, so the Shell starts on the desktop
 // instead of the activities overview (which would sit on top of every app window).
-const SESSION_MODE = 'gnomeola-headless'
+const SESSION_MODE = 'kacola-headless'
 const SESSION_MODE_JSON = JSON.stringify({ parentMode: 'user', hasOverview: false })
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -207,7 +207,7 @@ export async function startHeadlessDisplay(opts: HeadlessOptions = {}): Promise<
   const timeoutMs = (opts.startupTimeoutS ?? 30) * 1000
   const id = randomBytes(8).toString('hex')
   // Unix socket paths are limited to 108 bytes, so this lives directly under the OS temp dir.
-  const tempDir = mkdtempSync(join(tmpdir(), 'gnomeola-ui-'))
+  const tempDir = mkdtempSync(join(tmpdir(), 'kacola-ui-'))
   chmodSync(tempDir, 0o700)
   const record = { id, tempDir, keep: opts.keepTempDir ?? false }
   live.add(record)
@@ -242,7 +242,7 @@ export async function startHeadlessDisplay(opts: HeadlessOptions = {}): Promise<
     session: join(run, 'bus'),
     system: join(run, 'system_bus'),
     a11y: join(run, 'a11y_bus'),
-    wayland: join(run, 'wayland-gnomeola'),
+    wayland: join(run, 'wayland-kacola'),
   }
   writeFileSync(join(tempDir, 'session.conf'), busConfig('session', sockets.session))
   writeFileSync(join(tempDir, 'system.conf'), busConfig('system', sockets.system))
@@ -268,7 +268,7 @@ export async function startHeadlessDisplay(opts: HeadlessOptions = {}): Promise<
     DBUS_SESSION_BUS_ADDRESS: `unix:path=${sockets.session}`,
     DBUS_SYSTEM_BUS_ADDRESS: `unix:path=${sockets.system}`,
     AT_SPI_BUS_ADDRESS: `unix:path=${sockets.a11y}`,
-    WAYLAND_DISPLAY: 'wayland-gnomeola',
+    WAYLAND_DISPLAY: 'wayland-kacola',
     GDK_BACKEND: 'wayland',
     GTK_A11Y: 'atspi',
     // libadwaita would otherwise wait on the settings portal, which does not exist here
@@ -331,7 +331,7 @@ export async function startHeadlessDisplay(opts: HeadlessOptions = {}): Promise<
           '--wayland',
           '--no-x11',
           '--wayland-display',
-          'wayland-gnomeola',
+          'wayland-kacola',
           `--mode=${SESSION_MODE}`,
         ],
         // session modes are only read from the *system* data dirs, so prepend ours for the Shell

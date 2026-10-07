@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Track, TrackKind } from '@gnomeola/protocol'
+import type { Track, TrackKind } from '@kacola/protocol'
 import type {
   PipelineSink,
   PipelineStartOptions,

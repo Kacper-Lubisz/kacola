@@ -18,7 +18,7 @@ import {
 const report = (over: object = {}) =>
   JSON.stringify({
     mode: 'dev',
-    shim: { path: '/h/.local/bin/gnomeola', action: 'installed' },
+    shim: { path: '/h/.local/bin/kacola', action: 'installed' },
     skill: { path: '/h/.claude/skills/meeting-context/SKILL.md', action: 'installed' },
     onPath: true,
     shadowedBy: null,
@@ -32,7 +32,7 @@ describe('cliStateFrom', () => {
   it('a dry run: "unchanged" means installed, "installed" means not yet, "updated" means outdated', () => {
     const at = (action: string) =>
       cliStateFrom(
-        { code: 0, stdout: report({ shim: { path: '/h/.local/bin/gnomeola', action } }), stderr: '' },
+        { code: 0, stdout: report({ shim: { path: '/h/.local/bin/kacola', action } }), stderr: '' },
         true,
       ).state
     expect(at('unchanged')).toBe('installed')
@@ -44,40 +44,39 @@ describe('cliStateFrom', () => {
       cliStateFrom(
         {
           code: 0,
-          stdout: report({ onPath: false, shadowedBy: '/usr/bin/gnomeola', needsAdmin: '/usr/local/bin' }),
+          stdout: report({ onPath: false, shadowedBy: '/usr/bin/kacola', needsAdmin: '/usr/local/bin' }),
           stderr: '',
         },
         false,
       ),
     ).toEqual({
       state: 'installed',
-      path: '/h/.local/bin/gnomeola',
+      path: '/h/.local/bin/kacola',
       skillPath: '/h/.claude/skills/meeting-context/SKILL.md',
       onPath: false,
-      shadowedBy: '/usr/bin/gnomeola',
+      shadowedBy: '/usr/bin/kacola',
       needsAdmin: '/usr/local/bin',
     })
   })
-  it('exit 5 (refused) is a foreign gnomeola, with its path', () => {
+  it('exit 5 (refused) is a foreign kacola, with its path', () => {
     expect(
       cliStateFrom(
         {
           code: 5,
           stdout: '',
           stderr:
-            'gnomeola: a different gnomeola is already installed at /h/.local/bin/gnomeola; pass --force to replace it\n',
+            'kacola: a different kacola is already installed at /h/.local/bin/kacola; pass --force to replace it\n',
         },
         true,
       ),
     ).toEqual({
       state: 'foreign',
-      path: '/h/.local/bin/gnomeola',
-      detail:
-        'a different gnomeola is already installed at /h/.local/bin/gnomeola; pass --force to replace it',
+      path: '/h/.local/bin/kacola',
+      detail: 'a different kacola is already installed at /h/.local/bin/kacola; pass --force to replace it',
     })
   })
   it('anything else is an error with the CLI’s message', () => {
-    expect(cliStateFrom({ code: 1, stdout: '', stderr: 'gnomeola: boom\n' }, false)).toEqual({
+    expect(cliStateFrom({ code: 1, stdout: '', stderr: 'kacola: boom\n' }, false)).toEqual({
       state: 'error',
       detail: 'boom',
     })
@@ -118,13 +117,13 @@ describe('Integration', () => {
         seen.push(args)
         return { code: 0, stdout: report(), stderr: '' }
       },
-      { platform: 'linux', launch: "'/opt/gnomeola/gnomeola' --background" },
+      { platform: 'linux', launch: "'/opt/kacola/kacola' --background" },
     )
     await i.cliStatus()
     await i.installCli(false)
     expect(seen).toEqual([
-      ['install-cli', '--json', '--launch', "'/opt/gnomeola/gnomeola' --background", '--dry-run'],
-      ['install-cli', '--json', '--launch', "'/opt/gnomeola/gnomeola' --background"],
+      ['install-cli', '--json', '--launch', "'/opt/kacola/kacola' --background", '--dry-run'],
+      ['install-cli', '--json', '--launch', "'/opt/kacola/kacola' --background"],
     ])
   })
 
@@ -139,7 +138,7 @@ describe('Integration', () => {
           return {
             code: 0,
             stdout: report({
-              shim: { path: '/usr/local/bin/gnomeola', action: adminDone ? 'unchanged' : 'installed' },
+              shim: { path: '/usr/local/bin/kacola', action: adminDone ? 'unchanged' : 'installed' },
             }),
             stderr: '',
           }
@@ -161,9 +160,9 @@ describe('Integration', () => {
       },
     )
     const st = await i.installCli(false)
-    expect(execs).toEqual([adminInstallCommand('/h/.local/bin/gnomeola', '/usr/local/bin')])
+    expect(execs).toEqual([adminInstallCommand('/h/.local/bin/kacola', '/usr/local/bin')])
     expect(seen[1]).toEqual(['uninstall-cli', '--json', '--keep-skill', '--bin-dir', '/h/.local/bin'])
-    expect(st).toMatchObject({ state: 'installed', path: '/usr/local/bin/gnomeola' })
+    expect(st).toMatchObject({ state: 'installed', path: '/usr/local/bin/kacola' })
   })
 
   it('macOS: declining the admin prompt keeps the fallback and says admin rights were needed', async () => {
@@ -176,7 +175,7 @@ describe('Integration', () => {
     )
     expect(await i.installCli(false)).toMatchObject({
       state: 'installed',
-      path: '/h/.local/bin/gnomeola',
+      path: '/h/.local/bin/kacola',
       needsAdmin: '/usr/local/bin',
     })
   })
@@ -191,7 +190,7 @@ describe('Integration', () => {
               stdout: JSON.stringify({
                 removed: [],
                 keptForeign: [],
-                needsAdmin: ['/usr/local/bin/gnomeola'],
+                needsAdmin: ['/usr/local/bin/kacola'],
               }),
               stderr: '',
             }
@@ -205,7 +204,7 @@ describe('Integration', () => {
       },
     )
     await i.uninstallCli()
-    expect(execs).toEqual([adminRemoveCommand(['/usr/local/bin/gnomeola'])])
+    expect(execs).toEqual([adminRemoveCommand(['/usr/local/bin/kacola'])])
   })
 
   it('never prompts for admin rights on Linux', async () => {
@@ -224,16 +223,16 @@ describe('Integration', () => {
 
 describe('the macOS admin prompt commands', () => {
   it('builds one osascript `do shell script … with administrator privileges`, quoted for sh and AppleScript', () => {
-    expect(adminInstallCommand('/Users/a b/.local/bin/gnomeola', '/usr/local/bin')).toEqual([
+    expect(adminInstallCommand('/Users/a b/.local/bin/kacola', '/usr/local/bin')).toEqual([
       '/usr/bin/osascript',
       '-e',
-      `do shell script "/bin/mkdir -p '/usr/local/bin' && /usr/bin/install -m 0755 '/Users/a b/.local/bin/gnomeola' '/usr/local/bin/gnomeola'" with administrator privileges`,
+      `do shell script "/bin/mkdir -p '/usr/local/bin' && /usr/bin/install -m 0755 '/Users/a b/.local/bin/kacola' '/usr/local/bin/kacola'" with administrator privileges`,
     ])
     // a quote in a path: sh-quoted, then AppleScript-escaped
-    const [, , script] = adminInstallCommand(`/Users/o"brien's/gnomeola`, '/usr/local/bin')
-    expect(script).toContain(`'/Users/o\\"brien'\\\\''s/gnomeola'`)
-    expect(adminRemoveCommand(['/usr/local/bin/gnomeola'])[2]).toBe(
-      `do shell script "/bin/rm -f '/usr/local/bin/gnomeola'" with administrator privileges`,
+    const [, , script] = adminInstallCommand(`/Users/o"brien's/kacola`, '/usr/local/bin')
+    expect(script).toContain(`'/Users/o\\"brien'\\\\''s/kacola'`)
+    expect(adminRemoveCommand(['/usr/local/bin/kacola'])[2]).toBe(
+      `do shell script "/bin/rm -f '/usr/local/bin/kacola'" with administrator privileges`,
     )
   })
   it('sh and AppleScript quoting round-trip', () => {
@@ -243,9 +242,9 @@ describe('the macOS admin prompt commands', () => {
 })
 
 describe('cliEntry', () => {
-  it('prefers GNOMEOLA_CLI_ENTRY, then the packaged runtime, then the checkout', () => {
-    expect(cliEntry({ GNOMEOLA_CLI_ENTRY: '/x/cli.mjs' }, { appDir: '/nowhere' })).toBe('/x/cli.mjs')
-    const res = mkdtempSync(join(tmpdir(), 'gnomeola-res-'))
+  it('prefers KACOLA_CLI_ENTRY, then the packaged runtime, then the checkout', () => {
+    expect(cliEntry({ KACOLA_CLI_ENTRY: '/x/cli.mjs' }, { appDir: '/nowhere' })).toBe('/x/cli.mjs')
+    const res = mkdtempSync(join(tmpdir(), 'kacola-res-'))
     mkdirSync(join(res, 'runtime'))
     writeFileSync(join(res, 'runtime', 'cli.mjs'), '')
     expect(cliEntry({}, { resourcesPath: res, appDir: '/nowhere' })).toBe(join(res, 'runtime', 'cli.mjs'))

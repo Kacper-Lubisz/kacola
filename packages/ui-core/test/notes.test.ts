@@ -1,4 +1,4 @@
-import type { AnyEvent, EnhanceStreamEvent, Note, NotesState, NoteVersion } from '@gnomeola/protocol'
+import type { AnyEvent, EnhanceStreamEvent, Note, NotesState, NoteVersion } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import {
   applyNotesEvent,

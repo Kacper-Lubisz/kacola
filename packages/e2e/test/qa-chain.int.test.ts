@@ -1,11 +1,11 @@
 import { join } from 'node:path'
-import type { Segment } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import type { Segment } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { gnomeola } from '../src/cli.ts'
+import { kacola } from '../src/cli.ts'
 import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
 
-// The whole question-answering chain, for real: gnomeola(1) → gnomeolad (child process) → @gnomeola/llm
+// The whole question-answering chain, for real: kacola(1) → kacolad (child process) → @kacola/llm
 // → @anthropic-ai/sdk → HTTP. Only the far end is a replay of recorded Messages API responses.
 
 const CASSETTES = join(import.meta.dirname, '..', '..', 'llm', 'test', 'fixtures', 'cassettes')
@@ -22,7 +22,7 @@ beforeAll(async () => {
     env: {
       ANTHROPIC_API_KEY: KEY,
       ANTHROPIC_BASE_URL: api.url,
-      GNOMEOLA_FAKE_PIPELINE: JSON.stringify({
+      KACOLA_FAKE_PIPELINE: JSON.stringify({
         speed: 20,
         segmentEveryMs: 4000,
         finalizeAfterMs: 30,
@@ -51,7 +51,7 @@ afterAll(async () => {
 describe('Q&A chain: CLI → daemon → llm → SDK → API', () => {
   it('answers with citations that resolve to real segments of this session', async () => {
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
-    const r = await gnomeola(
+    const r = await kacola(
       ['ask', 'what did we decide about the retry budget?', '--session', sessionId],
       d.baseUrl,
     )
@@ -71,7 +71,7 @@ describe('Q&A chain: CLI → daemon → llm → SDK → API', () => {
 
   it('sent the request shape the plan specifies', async () => {
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
-    await gnomeola(['ask', 'retries?', '--session', sessionId, '--effort', 'medium'], d.baseUrl)
+    await kacola(['ask', 'retries?', '--session', sessionId, '--effort', 'medium'], d.baseUrl)
     expect(api.seen).toHaveLength(1)
     const req = api.seen[0]!
     expect(req.method).toBe('POST')
@@ -102,7 +102,7 @@ describe('Q&A chain: CLI → daemon → llm → SDK → API', () => {
 
   it('persists the exchange as Q&A history', async () => {
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
-    await gnomeola(['ask', 'history check', '--session', sessionId], d.baseUrl)
+    await kacola(['ask', 'history check', '--session', sessionId], d.baseUrl)
     const { messages } = await d.client.call('getQaHistory', { params: { id: sessionId } })
     const last = messages.slice(-2)
     expect(last.map((m) => m.role)).toEqual(['user', 'assistant'])
@@ -112,11 +112,11 @@ describe('Q&A chain: CLI → daemon → llm → SDK → API', () => {
 
   it('surfaces a refusal as a refusal — empty answer, clear note — never as a half answer', async () => {
     api.enqueue(...loadCassette(join(CASSETTES, 'refusal.json')))
-    const json = await gnomeola(['ask', 'something refused', '--session', sessionId], d.baseUrl)
+    const json = await kacola(['ask', 'something refused', '--session', sessionId], d.baseUrl)
     expect(json.code).toBe(0)
     expect(JSON.parse(json.stdout)).toMatchObject({ answer: '', stopReason: 'refusal', citations: [] })
     api.enqueue(...loadCassette(join(CASSETTES, 'refusal.json')))
-    const text = await gnomeola(['ask', 'something refused', '--session', sessionId], d.baseUrl, {
+    const text = await kacola(['ask', 'something refused', '--session', sessionId], d.baseUrl, {
       tty: true,
     })
     expect(text.stdout).toMatch(/model declined to answer this question — disregard the partial text above/)
@@ -125,7 +125,7 @@ describe('Q&A chain: CLI → daemon → llm → SDK → API', () => {
   it('maps a provider outage to exit 6 with the reason, after the SDK has retried', async () => {
     const [overloaded] = loadCassette(join(CASSETTES, 'overloaded.json'))
     api.always(overloaded!)
-    const r = await gnomeola(['ask', 'anyone there?', '--session', sessionId], d.baseUrl)
+    const r = await kacola(['ask', 'anyone there?', '--session', sessionId], d.baseUrl)
     expect(r.code).toBe(6)
     // the provider is busy: retry, never "add an API key", never the raw JSON body
     expect(r.stderr).toMatch(/Anthropic is busy right now\. Try again in a minute\./)
@@ -135,7 +135,7 @@ describe('Q&A chain: CLI → daemon → llm → SDK → API', () => {
 
   it('never leaks the API key into any output', async () => {
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
-    const r = await gnomeola(['ask', 'leak check', '--session', sessionId], d.baseUrl)
+    const r = await kacola(['ask', 'leak check', '--session', sessionId], d.baseUrl)
     const diag = await d.client.call('diagnostics')
     for (const text of [r.stdout, r.stderr, d.output(), JSON.stringify(diag)]) expect(text).not.toContain(KEY)
   })
@@ -146,7 +146,7 @@ describe('Q&A chain without a key', () => {
     const bare = await startDaemon({ env: { ANTHROPIC_BASE_URL: 'http://127.0.0.1:9' } })
     try {
       const s = await bare.client.call('createSession', { body: { title: 'x' } })
-      const r = await gnomeola(['ask', 'q', '--session', s.id], bare.baseUrl)
+      const r = await kacola(['ask', 'q', '--session', s.id], bare.baseUrl)
       expect(r.code).toBe(6)
       expect(r.stderr).toMatch(/Anthropic needs an API key\. Add it in Preferences\./)
       expect(r.stderr).not.toMatch(/not ready|none provider/)

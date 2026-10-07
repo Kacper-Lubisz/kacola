@@ -4,7 +4,7 @@ import type { BrowserWindowConstructorOptions } from 'electron'
 // every item to it (test/security.test.ts). index.ts wires these into the real objects.
 
 export const APP_SCHEME = 'app'
-export const APP_HOST = 'gnomeola'
+export const APP_HOST = 'kacola'
 export const APP_ORIGIN = `${APP_SCHEME}://${APP_HOST}`
 
 /**
@@ -101,7 +101,7 @@ export function captureWindowOptions(o: { preload: string }): BrowserWindowConst
     show: false,
     width: 200,
     height: 100,
-    title: 'gnomeola capture',
+    title: 'kacola capture',
     skipTaskbar: true,
     focusable: false,
     paintWhenInitiallyHidden: false,

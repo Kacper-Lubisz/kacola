@@ -1,4 +1,4 @@
-import type { TrackKind } from '@gnomeola/protocol'
+import type { TrackKind } from '@kacola/protocol'
 
 // T-2 — provider-agnostic speech interfaces. The sherpa-onnx implementations live in ./sherpa; a cloud
 // provider (Deepgram, AssemblyAI, …) implements the same shapes. Everything is on the *session

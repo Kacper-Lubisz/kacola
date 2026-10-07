@@ -1,5 +1,5 @@
-import { LlmError, type LlmProvider } from '@gnomeola/llm'
-import { aiErrorCopy, isLoopbackUrl, isOnDeviceDecisions, isOnDeviceLlm } from '@gnomeola/protocol'
+import { LlmError, type LlmProvider } from '@kacola/llm'
+import { aiErrorCopy, isLoopbackUrl, isOnDeviceDecisions, isOnDeviceLlm } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import { agendaLlm } from '../src/agendas/tracker-wiring.ts'
 import { toWireError } from '../src/engines/llm.ts'

@@ -4,8 +4,8 @@ import {
   type ChangedBy,
   AgendaItemStatus as Statuses,
   SuggestionKind,
-} from '@gnomeola/protocol'
-import { pick, randInt, seededRandom } from '@gnomeola/testkit/daemon'
+} from '@kacola/protocol'
+import { pick, randInt, seededRandom } from '@kacola/testkit/daemon'
 import { AgendaStore, Store, StoreError } from '../src/index.ts'
 
 // Shared by the agenda store tests and the cross-dialect test: a deterministic clock, a recurring

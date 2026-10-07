@@ -1,5 +1,5 @@
-import type { AgendaItem, AgendaView, ItemVersion, ShareStatus } from '@gnomeola/protocol'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import type { AgendaItem, AgendaView, ItemVersion, ShareStatus } from '@kacola/protocol'
+import { _, fmt } from '@kacola/ui-core/i18n'
 import { useServices } from '../../data/services.tsx'
 import { useToast } from '../../design/primitives/index.ts'
 import { refusal, useAgendaMutation } from './agenda-data.ts'

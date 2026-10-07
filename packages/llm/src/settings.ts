@@ -1,4 +1,4 @@
-import type { Settings } from '@gnomeola/protocol'
+import type { Settings } from '@kacola/protocol'
 import { AnthropicProvider, DEFAULT_ANTHROPIC_MODEL } from './anthropic.ts'
 import { OllamaProvider } from './ollama.ts'
 import { DEFAULT_OPENAI_MODEL, OpenAIProvider } from './openai.ts'

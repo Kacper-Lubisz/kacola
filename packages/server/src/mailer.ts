@@ -3,9 +3,9 @@
 //
 //   MemoryMailer    tests: keeps every message
 //   webhookMailer   POSTs {to, subject, text} as JSON to a URL you run (a relay to SES, Postmark, Resend,
-//                   an SMTP bridge, …) — GNOMEOLA_MAIL_WEBHOOK, optional GNOMEOLA_MAIL_WEBHOOK_SECRET sent
+//                   an SMTP bridge, …) — KACOLA_MAIL_WEBHOOK, optional KACOLA_MAIL_WEBHOOK_SECRET sent
 //                   as a Bearer token
-//   consoleMailer   development only (GNOMEOLA_MAILER=console): writes the message to the log
+//   consoleMailer   development only (KACOLA_MAILER=console): writes the message to the log
 //
 // Without a mailer, contributions are off: the page shows the agenda read-only.
 
@@ -58,8 +58,7 @@ export function consoleMailer(
 }
 
 export function mailerFromEnv(env: Record<string, string | undefined>): Mailer | null {
-  if (env.GNOMEOLA_MAIL_WEBHOOK)
-    return webhookMailer(env.GNOMEOLA_MAIL_WEBHOOK, env.GNOMEOLA_MAIL_WEBHOOK_SECRET)
-  if (env.GNOMEOLA_MAILER === 'console') return consoleMailer()
+  if (env.KACOLA_MAIL_WEBHOOK) return webhookMailer(env.KACOLA_MAIL_WEBHOOK, env.KACOLA_MAIL_WEBHOOK_SECRET)
+  if (env.KACOLA_MAILER === 'console') return consoleMailer()
   return null
 }

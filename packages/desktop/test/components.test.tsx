@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { setTranslator } from '@gnomeola/ui-core/i18n'
+import { setTranslator } from '@kacola/ui-core/i18n'
 import { QueryClient } from '@tanstack/react-query'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useState } from 'react'
@@ -11,7 +11,7 @@ import { createQueries } from '../src/renderer/data/queries.ts'
 import { type Services, ServicesProvider } from '../src/renderer/data/services.tsx'
 import { applyTheme } from '../src/renderer/data/theme.ts'
 import { NavigationList, parseButtonLayout, WindowControls } from '../src/renderer/design/primitives/index.ts'
-import type { AppInfo, GnomeolaBridge } from '../src/shared/bridge.ts'
+import type { AppInfo, KacolaBridge } from '../src/shared/bridge.ts'
 import { renderApp } from './app-harness.tsx'
 import { fakeDaemon, session, until, upserted } from './helpers.ts'
 
@@ -35,7 +35,7 @@ function services(over: Partial<Services> = {}): Services {
   const daemon = fakeDaemon()
   const qc = new QueryClient()
   const store = createEphemeralStore()
-  const bridge = { windowControl: vi.fn() } as unknown as GnomeolaBridge
+  const bridge = { windowControl: vi.fn() } as unknown as KacolaBridge
   return {
     bridge,
     api: daemon.client as never,

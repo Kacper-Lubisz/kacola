@@ -19,8 +19,8 @@ import {
   statusPolicy,
   type TrackStatus,
   type TranscriptLine,
-} from '@gnomeola/decisions'
-import { type AgendaItem, type AgendaItemStatus, ME } from '@gnomeola/protocol'
+} from '@kacola/decisions'
+import { type AgendaItem, type AgendaItemStatus, ME } from '@kacola/protocol'
 
 // The live tracker's decisions, as plain functions over a DecisionProvider: the tracker (tracker.ts) calls
 // them per round, and the eval runners (tracker-eval.ts) call exactly the same ones, so an eval of the

@@ -23,7 +23,7 @@ import { randomBytes } from 'node:crypto'
 //     reason, even SIGKILL, the kernel closes the pipe and the nodes disappear. Node names carry the
 //     owning pid, so `cleanupStaleRigs()` can find leftovers from a dead owner and kill their pw-cli.
 
-export const RIG_PREFIX = 'gnomeola-rig-'
+export const RIG_PREFIX = 'kacola-rig-'
 const NO_FALLBACK = 'node.dont-fallback=true node.dont-reconnect=true node.dont-move=true'
 
 export type Defaults = {
@@ -135,7 +135,7 @@ function alive(pid: number): boolean {
  */
 export async function cleanupStaleRigs(): Promise<string[]> {
   const stale = (await listRigNodes()).filter((n) => {
-    const owner = Number(/^gnomeola-rig-(\d+)-/.exec(n.name)?.[1])
+    const owner = Number(/^kacola-rig-(\d+)-/.exec(n.name)?.[1])
     return Number.isFinite(owner) && !alive(owner)
   })
   for (const n of stale) {
@@ -266,7 +266,7 @@ export class PipeWireRig {
    * Audio/Source/Virtual. Its input port is fed by linking a player to it directly (WirePlumber will
    * not route a playback stream to a source), and it is recorded exactly like a microphone.
    */
-  async addSource(suffix: string, description = `gnomeola rig ${suffix}`): Promise<RigDevice> {
+  async addSource(suffix: string, description = `kacola rig ${suffix}`): Promise<RigDevice> {
     const name = `${this.id}-${suffix}`
     const cmd =
       `create-node adapter { factory.name=support.null-audio-sink node.name=${name} ` +
@@ -277,7 +277,7 @@ export class PipeWireRig {
   }
 
   /** Add a virtual speaker (null sink) named `<id>-<suffix>`; capture records its monitor. */
-  async addSink(suffix: string, description = `gnomeola rig ${suffix}`): Promise<RigDevice> {
+  async addSink(suffix: string, description = `kacola rig ${suffix}`): Promise<RigDevice> {
     const name = `${this.id}-${suffix}`
     const cmd =
       `create-node adapter { factory.name=support.null-audio-sink node.name=${name} ` +

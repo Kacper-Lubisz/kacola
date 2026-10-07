@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@gnomeola/testkit/rig'
+import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@kacola/testkit/rig'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { listDevices, PipeWireCaptureSource, PwMetadataWatcher, snapshotGraph } from '../src/index.ts'
 import { sleep, tempDir } from './scenario.ts'
@@ -36,7 +36,7 @@ describe('listDevices (live)', () => {
     const devices = await listDevices()
     const find = (name: string) => devices.filter((d) => d.name === name)
     expect(find(rig.mic.captureTarget)).toEqual([
-      { name: rig.mic.captureTarget, description: 'gnomeola rig mic', kind: 'source', isDefault: false },
+      { name: rig.mic.captureTarget, description: 'kacola rig mic', kind: 'source', isDefault: false },
     ])
     expect(find(rig.system.captureTarget).map((d) => [d.kind, d.isDefault])).toEqual([['sink', false]])
   })

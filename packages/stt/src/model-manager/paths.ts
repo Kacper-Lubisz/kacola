@@ -1,9 +1,9 @@
 import { homedir } from 'node:os'
-import { platformPaths } from '@gnomeola/protocol'
+import { platformPaths } from '@kacola/protocol'
 
 /**
- * `$GNOMEOLA_MODELS_DIR`, else `<platform data root>/models`: `${XDG_DATA_HOME:-~/.local/share}/gnomeola/models`
- * on Linux and in the Flatpak, `~/Library/Application Support/gnomeola/models` on macOS.
+ * `$KACOLA_MODELS_DIR`, else `<platform data root>/models`: `${XDG_DATA_HOME:-~/.local/share}/kacola/models`
+ * on Linux and in the Flatpak, `~/Library/Application Support/kacola/models` on macOS.
  */
 export function defaultModelsDir(
   env: NodeJS.ProcessEnv = process.env,

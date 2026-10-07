@@ -1,5 +1,5 @@
-// @gnomeola/testkit/fake-decisions — local stand-ins for the four hosted decision APIs, speaking their
-// documented wire formats, so @gnomeola/decisions' providers (and the evals' offline mode) run their real
+// @kacola/testkit/fake-decisions — local stand-ins for the four hosted decision APIs, speaking their
+// documented wire formats, so @kacola/decisions' providers (and the evals' offline mode) run their real
 // HTTP, parsing and error paths without keys:
 //
 //   TypeSafe  POST /v1/systemone           docs.typesafe.ai/api.md (request/response/answer types, errors)
@@ -180,7 +180,7 @@ export function startFakeTypeSafe(brain: Brain): Promise<FakeServer> {
 
 // ------------------------------------------------------------------------- LLM prompt parsing
 
-/** Recover state + questions from @gnomeola/decisions' user prompt (<state>…</state><questions>[…]). */
+/** Recover state + questions from @kacola/decisions' user prompt (<state>…</state><questions>[…]). */
 export function parseDecisionPrompt(text: string): { state: string; questions: FakeQuestion[] } {
   const state = /<state>\n([\s\S]*?)\n<\/state>/.exec(text)?.[1] ?? ''
   const qjson = /<questions>\n([\s\S]*?)\n<\/questions>/.exec(text)?.[1]

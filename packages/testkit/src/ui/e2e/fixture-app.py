@@ -50,6 +50,6 @@ def on_activate(app):
     entry.grab_focus()
 
 
-app = Gtk.Application(application_id="org.gnome.Gnomeola.HarnessFixture")
+app = Gtk.Application(application_id="com.kacperlubisz.Kacola.HarnessFixture")
 app.connect("activate", on_activate)
 sys.exit(app.run([]))

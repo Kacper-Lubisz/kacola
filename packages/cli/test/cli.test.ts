@@ -61,7 +61,7 @@ describe('basics and exit codes', () => {
   it('reports an unreachable daemon distinctly (exit 3) with a fix', async () => {
     const r = await cli(['sessions', 'list'], { url: 'http://127.0.0.1:9' })
     expect(r.code).toBe(EXIT.UNREACHABLE)
-    expect(r.stderr).toMatch(/not running.*\n.*systemctl --user start gnomeolad/)
+    expect(r.stderr).toMatch(/not running.*\n.*systemctl --user start kacolad/)
   })
   it('status reports health', async () => {
     const r = await cli(['status'], { url: d.url })
@@ -207,7 +207,7 @@ describe('search', () => {
       speaker: 'me',
     })
     expect(j.hits[0].snippet).toMatch(/\[retry budget\]/)
-    expect(j.next).toBe(`gnomeola transcript ${IDS.standup} --around ${j.hits[0].segmentId}`)
+    expect(j.next).toBe(`kacola transcript ${IDS.standup} --around ${j.hits[0].segmentId}`)
   })
   it('never surfaces private sessions', async () => {
     expect((await cli(['search', 'compensation'], { url: d.url })).json().total).toBe(0)
@@ -342,11 +342,11 @@ describe('meetings (X-5)', () => {
 
 describe('skill install', () => {
   it('installs, is idempotent, and refuses to clobber local edits without --force', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-skill-'))
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-skill-'))
     const first = await cli(['skill', 'install', '--dir', dir], { url: d.url })
     expect(first.json()).toMatchObject({
       action: 'installed',
-      permissions: ['Skill(meeting-context)', 'Bash(gnomeola:*)'],
+      permissions: ['Skill(meeting-context)', 'Bash(kacola:*)'],
     })
     const path = first.json().path as string
     expect(readFileSync(path, 'utf8')).toMatch(/^---\nname: meeting-context/)
@@ -362,7 +362,7 @@ describe('skill install', () => {
 
 describe('bug-report', () => {
   it('writes a private (0600) diagnostics file', async () => {
-    const out = join(mkdtempSync(join(tmpdir(), 'gnomeola-diag-')), 'diag.json')
+    const out = join(mkdtempSync(join(tmpdir(), 'kacola-diag-')), 'diag.json')
     const r = await cli(['bug-report', '--out', out], { url: d.url })
     expect(r.code).toBe(0)
     expect(existsSync(out)).toBe(true)

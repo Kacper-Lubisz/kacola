@@ -6,11 +6,11 @@ import { _electron, type Browser, chromium, type ElectronApplication, type Page 
 import type { HeadlessDisplay } from '../ui/index.ts'
 import { MARKER_VAR } from '../ui/processes.ts'
 
-// @gnomeola/testkit/desktop — the Electron window under Playwright, inside the headless GNOME Shell.
+// @kacola/testkit/desktop — the Electron window under Playwright, inside the headless GNOME Shell.
 //
 //   const display = await startHeadlessDisplay()
 //   buildDesktop()                                   // once per file: an e2e against a stale build proves nothing
-//   const app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
+//   const app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl } })
 //   await app.window.getByRole('listbox', { name: 'Sessions' }).waitFor()
 //   expect(await app.axe()).toEqual([])
 //   await app.close()
@@ -23,7 +23,7 @@ export const DESKTOP_DIR = join(import.meta.dirname, '..', '..', '..', 'desktop'
 export const ELECTRON_BIN = join(DESKTOP_DIR, 'node_modules', 'electron', 'dist', 'electron')
 export const MAIN_ENTRY = join(DESKTOP_DIR, 'out', 'main', 'index.js')
 
-/** `pnpm --filter @gnomeola/desktop build` (electron-vite: main, preload, renderer). */
+/** `pnpm --filter @kacola/desktop build` (electron-vite: main, preload, renderer). */
 export function buildDesktop(): void {
   execFileSync('pnpm', ['run', 'build'], {
     cwd: DESKTOP_DIR,
@@ -35,7 +35,7 @@ export function buildDesktop(): void {
 
 export type LaunchDesktopOptions = {
   display: HeadlessDisplay
-  /** Extra environment (GNOMEOLA_URL, GNOMEOLA_COLOR_SCHEME, GNOMEOLA_DAEMON_ARGS …). */
+  /** Extra environment (KACOLA_URL, KACOLA_COLOR_SCHEME, KACOLA_DAEMON_ARGS …). */
   env?: Record<string, string | undefined>
   /** Extra argv (e.g. --background). */
   args?: string[]
@@ -71,8 +71,8 @@ function desktopEnv(o: Pick<LaunchDesktopOptions, 'display' | 'env'>): Record<st
     else env[k] = v
   }
   env[MARKER_VAR] = o.display.env[MARKER_VAR] ?? ''
-  // never the user's daemon or data: a test must pass GNOMEOLA_URL (or get a daemon spawned on a temp dir)
-  env.GNOMEOLA_URL ??= 'http://127.0.0.1:9'
+  // never the user's daemon or data: a test must pass KACOLA_URL (or get a daemon spawned on a temp dir)
+  env.KACOLA_URL ??= 'http://127.0.0.1:9'
   return env
 }
 
@@ -197,8 +197,8 @@ export async function launchSecondInstance(
 export async function daemonStatus(app: DesktopApp): Promise<{ kind: string }> {
   return app.window.evaluate(() =>
     (
-      globalThis as unknown as { gnomeola: { daemonStatus(): Promise<{ kind: string }> } }
-    ).gnomeola.daemonStatus(),
+      globalThis as unknown as { kacola: { daemonStatus(): Promise<{ kind: string }> } }
+    ).kacola.daemonStatus(),
   )
 }
 
@@ -231,7 +231,7 @@ export async function waitForLog(app: DesktopApp, re: RegExp, timeoutMs = 20_000
 }
 export type CdpWindow = {
   browser: Browser
-  /** The main window's page (app://gnomeola/index.html; the hidden capture window is skipped). */
+  /** The main window's page (app://kacola/index.html; the hidden capture window is skipped). */
   window: Page
   /** Console errors, page errors and CSP violations seen since connecting. */
   problems: () => string[]
@@ -242,7 +242,7 @@ export type CdpWindow = {
 /**
  * The window of a PACKAGED build, over Chromium's DevTools protocol. Playwright's `_electron` cannot
  * drive it: the fuses turn off --inspect, which `_electron` needs for main. The build refuses a
- * remote-debugging port unless GNOMEOLA_ALLOW_REMOTE_DEBUGGING=1 (src/main/index.ts), so launch it with
+ * remote-debugging port unless KACOLA_ALLOW_REMOTE_DEBUGGING=1 (src/main/index.ts), so launch it with
  * that and `--remote-debugging-port=<port>` — directly, or inside the Flatpak sandbox.
  */
 export async function connectCdp(port: number, timeoutMs = 60_000): Promise<CdpWindow> {
@@ -262,7 +262,7 @@ export async function connectCdp(port: number, timeoutMs = 60_000): Promise<CdpW
     window = browser
       .contexts()
       .flatMap((c) => c.pages())
-      .find((p) => p.url().startsWith('app://gnomeola/index.html'))
+      .find((p) => p.url().startsWith('app://kacola/index.html'))
     if (window) break
     if (Date.now() > deadline) throw new Error(`the app's window never appeared at ${url}`)
     await new Promise((r) => setTimeout(r, 250))

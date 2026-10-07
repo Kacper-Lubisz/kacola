@@ -1,6 +1,6 @@
 // Typed decisions on Claude: one strict tool whose input schema is the batch schema (llm-json.ts); the
 // model answers by calling it. Non-streaming `messages.create` (small outputs), through the official SDK
-// so errors map with @gnomeola/llm's toLlmError.
+// so errors map with @kacola/llm's toLlmError.
 //
 //   client.beta.messages.create({
 //     model: 'claude-opus-5', max_tokens: 16000, output_config: { effort: 'low' },
@@ -22,8 +22,8 @@ import {
   LlmError,
   SERVER_SIDE_FALLBACK_BETA,
   toLlmError,
-} from '@gnomeola/llm'
-import type { Usage } from '@gnomeola/protocol'
+} from '@kacola/llm'
+import type { Usage } from '@kacola/protocol'
 import { invalidResponse } from './answers.ts'
 import { BaseDecisionProvider, type BaseOptions, type CallResult } from './base.ts'
 import { batchSchema, DECISION_SYSTEM_PROMPT, parseBatch, userPrompt } from './llm-json.ts'

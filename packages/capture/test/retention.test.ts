@@ -112,7 +112,7 @@ describe('planRetention', () => {
 
 describe('applyRetention', () => {
   it('a failed encode blocks deleting that WAV; other actions proceed; missing files are fine', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-ret-'))
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-ret-'))
     const mic = join(dir, 'mic.wav')
     const sys = join(dir, 'system.wav')
     writeFileSync(mic, 'x')
@@ -147,7 +147,7 @@ describe('applyRetention', () => {
   })
 
   it('treats an encoder that "succeeds" without producing a file as a failure', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-ret-'))
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-ret-'))
     const mic = join(dir, 'mic.wav')
     writeFileSync(mic, 'x')
     const s = session('t', { tracks: [{ wavPath: mic, archivePath: null }] })

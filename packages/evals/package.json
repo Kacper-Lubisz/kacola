@@ -1,5 +1,5 @@
 {
-  "name": "@gnomeola/evals",
+  "name": "@kacola/evals",
   "version": "0.1.0",
   "private": true,
   "description": "AI eval suites for agendas + live intelligence: runners (plug-in hooks for the tracker), graders, scorecards, offline and live modes.",
@@ -12,9 +12,9 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@gnomeola/decisions": "workspace:*",
-    "@gnomeola/llm": "workspace:*",
-    "@gnomeola/protocol": "workspace:*",
-    "@gnomeola/testkit": "workspace:*"
+    "@kacola/decisions": "workspace:*",
+    "@kacola/llm": "workspace:*",
+    "@kacola/protocol": "workspace:*",
+    "@kacola/testkit": "workspace:*"
   }
 }

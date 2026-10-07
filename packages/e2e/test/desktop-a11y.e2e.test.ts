@@ -2,10 +2,10 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient, LEASE_HEADER } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { createClient, LEASE_HEADER } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop } from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { markOnboarded, setTheme } from '../src/desktop.ts'
 import { poll, transcriptList } from '../src/desktop-ui.ts'
@@ -53,7 +53,7 @@ let markerId = ''
 beforeAll(async () => {
   buildDesktop()
   display = await startHeadlessDisplay({ size: '1280x800' })
-  markerId = display.env.GNOMEOLA_HEADLESS_ID!
+  markerId = display.env.KACOLA_HEADLESS_ID!
 }, 240_000)
 
 afterAll(async () => {
@@ -104,7 +104,7 @@ describe('axe over every screen and state (seeded daemon, replayed provider)', (
 
   beforeAll(async () => {
     api = await startFakeAnthropic({ eventDelayMs: 100 })
-    dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-a11y-'))
+    dataDir = mkdtempSync(join(tmpdir(), 'kacola-desktop-a11y-'))
     seedMeetings(dataDir)
     // a calendar meeting happening now: home expands it, and the live page records it with its agenda
     const calFile = join(dataDir, 'calendar.json')
@@ -142,11 +142,11 @@ describe('axe over every screen and state (seeded daemon, replayed provider)', (
     daemon = await startDaemon({
       dataDir,
       env: {
-        GNOMEOLA_CALENDAR: `file:${calFile}`,
+        KACOLA_CALENDAR: `file:${calFile}`,
         ANTHROPIC_API_KEY: KEY,
         ANTHROPIC_BASE_URL: api.url,
-        GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
-        GNOMEOLA_TRACKER: 'off',
+        KACOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
+        KACOLA_TRACKER: 'off',
       },
     })
     await daemon.client.call('updateSettings', { body: { llm: { provider: 'anthropic' } } })
@@ -165,7 +165,7 @@ describe('axe over every screen and state (seeded daemon, replayed provider)', (
       display,
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
-    app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
+    app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl } })
     await home().waitFor({ timeout: 20_000 })
   }, 120_000)
 
@@ -503,11 +503,11 @@ describe('axe on the first run and the empty window (no sessions, a model missin
   })
 
   it('onboarding, then the empty window with its missing-model banner', async () => {
-    dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-a11y-empty-'))
+    dataDir = mkdtempSync(join(tmpdir(), 'kacola-desktop-a11y-empty-'))
     daemon = await startDaemon({ dataDir })
     // a first run: no ui-state (onboarding shows)
-    rmSync(join(display.env.XDG_STATE_HOME!, 'gnomeola'), { recursive: true, force: true })
-    app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
+    rmSync(join(display.env.XDG_STATE_HOME!, 'kacola'), { recursive: true, force: true })
+    app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl } })
     const welcome = app.window.getByRole('dialog', { name: 'Welcome to kacola' })
     await welcome.waitFor({ timeout: 20_000 })
     await sweep(app, 'onboarding', found)
@@ -533,7 +533,7 @@ describe('axe on the error screen (daemon unreachable)', () => {
     // a loopback URL with no daemon entry to spawn: the supervisor gives up and the window explains
     const app = await launchDesktop({
       display,
-      env: { GNOMEOLA_URL: `http://127.0.0.1:${port}`, GNOMEOLA_DAEMON_ENTRY: '/nonexistent' },
+      env: { KACOLA_URL: `http://127.0.0.1:${port}`, KACOLA_DAEMON_ENTRY: '/nonexistent' },
     })
     try {
       await app.window.getByRole('heading', { name: 'Can’t reach kacola' }).waitFor({ timeout: 30_000 })

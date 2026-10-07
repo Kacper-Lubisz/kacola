@@ -2,11 +2,11 @@ import { execFileSync } from 'node:child_process'
 import { mkdtempSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { Segment } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { loadFixture } from '@gnomeola/testkit/fixtures'
-import { assertNoViolations, checkSegments } from '@gnomeola/testkit/invariants'
-import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@gnomeola/testkit/rig'
+import type { Segment } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { loadFixture } from '@kacola/testkit/fixtures'
+import { assertNoViolations, checkSegments } from '@kacola/testkit/invariants'
+import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@kacola/testkit/rig'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // A real meeting through a daemon restart: the REAL daemon records two virtual PipeWire devices with the
@@ -16,7 +16,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 // transcribed into the same transcript.
 
 const FIXTURE = loadFixture('standup-2p')
-const box = mkdtempSync(join(tmpdir(), 'gnomeola-restart-real-'))
+const box = mkdtempSync(join(tmpdir(), 'kacola-restart-real-'))
 
 let rig: PipeWireRig
 let d: DaemonHandle
@@ -43,7 +43,7 @@ const clip = (t: 'mic' | 'system', from: number, len: number) => {
 beforeAll(async () => {
   defaults = await readDefaults()
   rig = await PipeWireRig.create()
-  d = await startDaemon({ fake: false, env: { GNOMEOLA_RESUME_WINDOW_MS: '60000' } })
+  d = await startDaemon({ fake: false, env: { KACOLA_RESUME_WINDOW_MS: '60000' } })
   await d.client.call('updateSettings', {
     body: { capture: { micDevice: rig.mic.captureTarget, systemDevice: rig.system.captureTarget } },
   })

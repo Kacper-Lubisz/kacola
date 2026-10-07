@@ -1,5 +1,5 @@
-import { type LlmProvider, providerFromSettings } from '@gnomeola/llm'
-import { isKeyedProvider, type Session, type trackerRoutes } from '@gnomeola/protocol'
+import { type LlmProvider, providerFromSettings } from '@kacola/llm'
+import { isKeyedProvider, type Session, type trackerRoutes } from '@kacola/protocol'
 import type { Handlers } from '../daemon.ts'
 import { DaemonError } from '../errors.ts'
 import { mayLeave, notReadyError, privateMeetingError } from '../privacy.ts'

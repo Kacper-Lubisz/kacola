@@ -8,8 +8,8 @@ import {
   removeInviteBlock,
   renderInviteBlock,
   upsertInviteBlock,
-} from '@gnomeola/protocol'
-import { type EdsHandle, type FixtureCalendar, startEds, WINDOW } from '@gnomeola/testkit/eds'
+} from '@kacola/protocol'
+import { type EdsHandle, type FixtureCalendar, startEds, WINDOW } from '@kacola/testkit/eds'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AgentMessage, type DescriptionRequestTarget } from '../src/calendar/agent-protocol.ts'
 import { EdsCalendarProvider } from '../src/calendar/providers.ts'
@@ -20,8 +20,8 @@ import { Logger } from '../src/logger.ts'
 // independently (eds-ctl, straight through ECal), never through the code under test.
 
 const AGENT = join(import.meta.dirname, '..', 'gjs', 'cal-agent.js')
-const W = 'gnomeola-work'
-const RO = 'gnomeola-readonly'
+const W = 'kacola-work'
+const RO = 'kacola-readonly'
 const ORGANISER_TEXT = 'Quarterly planning.\nBring numbers, please; thanks.\n\nRoom 4 — ask Ana for the key.'
 
 const ev = (lines: string[]) =>

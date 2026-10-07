@@ -1,8 +1,8 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { type Segment, SessionStatus } from '@gnomeola/protocol'
-import { assertNoViolations, checkSegmentHistory, checkSegments } from '@gnomeola/testkit/invariants'
+import { type Segment, SessionStatus } from '@kacola/protocol'
+import { assertNoViolations, checkSegmentHistory, checkSegments } from '@kacola/testkit/invariants'
 import { describe, expect, it } from 'vitest'
 import { defaultDataDir, parseConfig, UsageError } from '../src/config.ts'
 import { FakePipeline } from '../src/fakes/pipeline.ts'
@@ -31,7 +31,7 @@ describe('lifecycle state machine', () => {
 
 describe('logger', () => {
   it('redacts registered secrets, key-shaped strings and credential-named fields, everywhere', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-log-'))
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-log-'))
     try {
       const file = join(dir, 'logs', 'd.log')
       const log = new Logger({ file, capacity: 3 })
@@ -62,14 +62,14 @@ describe('logger', () => {
 })
 
 describe('config', () => {
-  it('resolves the data dir from GNOMEOLA_DATA_DIR, then XDG_DATA_HOME, then ~/.local/share', () => {
-    expect(defaultDataDir({ GNOMEOLA_DATA_DIR: '/x/y' })).toBe('/x/y')
-    expect(defaultDataDir({ XDG_DATA_HOME: '/xdg' })).toBe('/xdg/gnomeola')
-    expect(defaultDataDir({})).toMatch(/\/\.local\/share\/gnomeola$/)
+  it('resolves the data dir from KACOLA_DATA_DIR, then XDG_DATA_HOME, then ~/.local/share', () => {
+    expect(defaultDataDir({ KACOLA_DATA_DIR: '/x/y' })).toBe('/x/y')
+    expect(defaultDataDir({ XDG_DATA_HOME: '/xdg' })).toBe('/xdg/kacola')
+    expect(defaultDataDir({})).toMatch(/\/\.local\/share\/kacola$/)
   })
 
   it('parses flags and env, and rejects nonsense', () => {
-    const c = parseConfig(['--port', '0', '--data-dir', '/d', '--fake'], { GNOMEOLA_HEARTBEAT_MS: '50' })
+    const c = parseConfig(['--port', '0', '--data-dir', '/d', '--fake'], { KACOLA_HEARTBEAT_MS: '50' })
     expect(c).toMatchObject({
       port: 0,
       dataDir: '/d',
@@ -81,8 +81,8 @@ describe('config', () => {
     expect(parseConfig([], {}).port).toBe(8787)
     expect(() => parseConfig(['--port', 'abc'], {})).toThrow(UsageError)
     expect(() => parseConfig(['--bogus'], {})).toThrow(UsageError)
-    expect(() => parseConfig([], { GNOMEOLA_KEYRING: 'kwallet' })).toThrow(UsageError)
-    expect(() => parseConfig([], { GNOMEOLA_FAKE_PIPELINE: '{' })).toThrow(UsageError)
+    expect(() => parseConfig([], { KACOLA_KEYRING: 'kwallet' })).toThrow(UsageError)
+    expect(() => parseConfig([], { KACOLA_FAKE_PIPELINE: '{' })).toThrow(UsageError)
   })
 
   it('M4 desktop integrations: on for real runs, off under fakes, each overridable', () => {
@@ -100,10 +100,10 @@ describe('config', () => {
     })
     expect(
       parseConfig(['--fake'], {
-        GNOMEOLA_CALENDAR: 'file:/tmp/cal.json',
-        GNOMEOLA_DBUS: 'session',
-        GNOMEOLA_MIC_ACTIVITY: 'pipewire:rig-mic',
-        GNOMEOLA_GJS: '/opt/gjs',
+        KACOLA_CALENDAR: 'file:/tmp/cal.json',
+        KACOLA_DBUS: 'session',
+        KACOLA_MIC_ACTIVITY: 'pipewire:rig-mic',
+        KACOLA_GJS: '/opt/gjs',
       }),
     ).toMatchObject({
       calendar: { kind: 'file', path: '/tmp/cal.json' },
@@ -112,10 +112,10 @@ describe('config', () => {
       gjs: '/opt/gjs',
     })
     for (const env of [
-      { GNOMEOLA_CALENDAR: 'google' },
-      { GNOMEOLA_CALENDAR: 'file:' },
-      { GNOMEOLA_DBUS: 'system' },
-      { GNOMEOLA_MIC_ACTIVITY: 'pulse' },
+      { KACOLA_CALENDAR: 'google' },
+      { KACOLA_CALENDAR: 'file:' },
+      { KACOLA_DBUS: 'system' },
+      { KACOLA_MIC_ACTIVITY: 'pulse' },
     ])
       expect(() => parseConfig([], env), JSON.stringify(env)).toThrow(UsageError)
   })
@@ -151,7 +151,7 @@ describe('fake pipeline', () => {
       attribute: () => {},
       voices: () => {},
     }
-    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-fake-'))
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-fake-'))
     try {
       const p = new FakePipeline({
         segmentEveryMs: 30,
@@ -253,10 +253,7 @@ describe('fake pipeline', () => {
       await rec.stop()
       return atHold
     }
-    const dirs = [
-      mkdtempSync(join(tmpdir(), 'gnomeola-fake-')),
-      mkdtempSync(join(tmpdir(), 'gnomeola-fake-')),
-    ]
+    const dirs = [mkdtempSync(join(tmpdir(), 'kacola-fake-')), mkdtempSync(join(tmpdir(), 'kacola-fake-'))]
     try {
       const [a, b] = [await run(dirs[0]!), await run(dirs[1]!)]
       // provisional and final lines at the hold point, identical across runs

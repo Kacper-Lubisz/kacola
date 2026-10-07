@@ -63,7 +63,7 @@ afterAll(() => {
   for (const d of dirs) rmSync(d, { recursive: true, force: true })
 })
 const tmp = () => {
-  const d = mkdtempSync(join(tmpdir(), 'gnomeola-blob-'))
+  const d = mkdtempSync(join(tmpdir(), 'kacola-blob-'))
   dirs.push(d)
   return d
 }

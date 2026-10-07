@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createClient, DaemonUnreachableError, GnomeolaApiError, toQueryString } from '../src/client.ts'
+import { createClient, DaemonUnreachableError, KacolaApiError, toQueryString } from '../src/client.ts'
 import type { AnyEvent, DurableEvent } from '../src/events.ts'
 import type { Session } from '../src/schemas.ts'
 import { encodeSse } from '../src/sse.ts'
@@ -69,12 +69,12 @@ describe('typed client', () => {
     await expect(client.call('getSession', { params: { id: 'x' } })).rejects.toThrow()
   })
 
-  it('maps error bodies to GnomeolaApiError with code and status', async () => {
+  it('maps error bodies to KacolaApiError with code and status', async () => {
     const client = createClient({
       fetch: async () => json({ error: { code: 'not_found', message: 'no such session' } }, 404),
     })
     const err = await client.call('getSession', { params: { id: 'x' } }).catch((e) => e)
-    expect(err).toBeInstanceOf(GnomeolaApiError)
+    expect(err).toBeInstanceOf(KacolaApiError)
     expect(err).toMatchObject({ status: 404, code: 'not_found', message: 'no such session' })
   })
 

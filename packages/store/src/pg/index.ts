@@ -1,4 +1,4 @@
-// @gnomeola/store/pg — the Postgres dialect of the store (H-1). Importable without better-sqlite3 (the
+// @kacola/store/pg — the Postgres dialect of the store (H-1). Importable without better-sqlite3 (the
 // Vercel bundle uses only this entry point) and without PGlite (only a type import; tests pass one in).
 import type { PGlite } from '@electric-sql/pglite'
 import { Kysely, PostgresDialect } from 'kysely'

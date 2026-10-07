@@ -1,5 +1,5 @@
-import { _ } from '@gnomeola/ui-core/i18n'
-import type { SessionsState } from '@gnomeola/ui-core/sessions'
+import { _ } from '@kacola/ui-core/i18n'
+import type { SessionsState } from '@kacola/ui-core/sessions'
 import {
   createHashHistory,
   createRootRouteWithContext,

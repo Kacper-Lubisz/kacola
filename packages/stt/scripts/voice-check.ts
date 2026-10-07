@@ -5,8 +5,8 @@
 //   node packages/stt/scripts/voice-check.ts [voice-id …]
 
 import { execFileSync } from 'node:child_process'
-import { FIXTURE_SCRIPTS as FIXTURES } from '@gnomeola/testkit/fixtures'
-import { wer } from '@gnomeola/testkit/metrics'
+import { FIXTURE_SCRIPTS as FIXTURES } from '@kacola/testkit/fixtures'
+import { wer } from '@kacola/testkit/metrics'
 import { CATALOG } from '../src/model-manager/catalog.ts'
 import { ModelManager } from '../src/model-manager/manager.ts'
 import { createFinalTranscriber, createTts } from '../src/sherpa/index.ts'

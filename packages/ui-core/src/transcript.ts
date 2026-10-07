@@ -1,4 +1,4 @@
-import type { AnyEvent, Segment, SessionStatus, TrackKind, Transcript } from '@gnomeola/protocol'
+import type { AnyEvent, Segment, SessionStatus, TrackKind, Transcript } from '@kacola/protocol'
 import type { SpeakersState } from './speakers.ts'
 
 // One session's transcript as the UI sees it, and the pure fold that keeps it current. Pure.

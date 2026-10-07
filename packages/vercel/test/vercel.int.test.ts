@@ -6,19 +6,19 @@ import {
   buildPath,
   createClient,
   type DurableEvent,
-  type GnomeolaClient,
   isDurable,
+  type KacolaClient,
   type RouteDef,
   type RouteName,
   routes,
   type SyncItem,
-} from '@gnomeola/protocol'
-import { SHARE_LINK_ROUTES } from '@gnomeola/server'
-import { SqliteStoreApi } from '@gnomeola/store'
-import { type FakeDeepgram, startFakeDeepgram } from '@gnomeola/testkit/cloud-stt'
-import { seededRandom } from '@gnomeola/testkit/daemon'
-import { assertNoViolations, checkEventLog } from '@gnomeola/testkit/invariants'
-import { type PostgresContainer, podmanPostgresAvailable, startPostgres } from '@gnomeola/testkit/postgres'
+} from '@kacola/protocol'
+import { SHARE_LINK_ROUTES } from '@kacola/server'
+import { SqliteStoreApi } from '@kacola/store'
+import { type FakeDeepgram, startFakeDeepgram } from '@kacola/testkit/cloud-stt'
+import { seededRandom } from '@kacola/testkit/daemon'
+import { assertNoViolations, checkEventLog } from '@kacola/testkit/invariants'
+import { type PostgresContainer, podmanPostgresAvailable, startPostgres } from '@kacola/testkit/postgres'
 import pg from 'pg'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { API_PREFIXES, RUNTIME } from '../scripts/build.ts'
@@ -37,7 +37,7 @@ const pgUnavailable = await podmanPostgresAvailable()
 let pgServer: PostgresContainer | null = null
 let admin: pg.Client | null = null
 let dg: FakeDeepgram
-const tmp = mkdtempSync(join(tmpdir(), 'gnomeola-vercel-int-'))
+const tmp = mkdtempSync(join(tmpdir(), 'kacola-vercel-int-'))
 beforeAll(async () => {
   dg = await startFakeDeepgram()
   if (pgUnavailable) return
@@ -73,11 +73,11 @@ async function harness(
   const out = await built({ events, finalize: 20 })
   const h = await startHarness(out, {
     DATABASE_URL: await databaseUrl(dialect),
-    GNOMEOLA_AUTH_SECRET: SECRET,
-    GNOMEOLA_ADMIN_TOKEN: ADMIN,
-    GNOMEOLA_BLOB_DIR: join(tmp, `blobs${n}`),
-    GNOMEOLA_POLL_MS: '25',
-    GNOMEOLA_STREAM_MARGIN_MS: '700',
+    KACOLA_AUTH_SECRET: SECRET,
+    KACOLA_ADMIN_TOKEN: ADMIN,
+    KACOLA_BLOB_DIR: join(tmp, `blobs${n}`),
+    KACOLA_POLL_MS: '25',
+    KACOLA_STREAM_MARGIN_MS: '700',
     ...env,
   })
   harnesses.push(h)
@@ -108,7 +108,7 @@ async function deviceLog(sessions: number, segments: number): Promise<DurableEve
 }
 const items = (es: DurableEvent[]): SyncItem[] => es.map((e) => ({ seq: e.seq, data: e.data }))
 
-async function pairDevice(url: string): Promise<GnomeolaClient> {
+async function pairDevice(url: string): Promise<KacolaClient> {
   const anon = createClient({ baseUrl: url })
   const start = await anon.call('pairStart', { body: { name: 'laptop' } })
   await createClient({ baseUrl: url, token: ADMIN }).call('pairApprove', {
@@ -142,7 +142,7 @@ describe('the build output', () => {
     // nothing local-only or native got bundled
     expect(bundle).not.toMatch(/sherpa-onnx|pw-record|PipeWireCaptureSource|pglite\.wasm/)
     // the SQLite entry (native driver) stays a lazy external import(), reached only by a sqlite: URL
-    expect(bundle).toContain('import("@gnomeola/store")')
+    expect(bundle).toContain('import("@kacola/store")')
     expect(bundle).not.toMatch(/^import [^\n]*better-sqlite3/m)
     expect(readFileSync(join(out, 'static', 'index.html'), 'utf8')).toContain('/app.js')
   })
@@ -158,10 +158,10 @@ for (const dialect of ['sqlite', 'postgres'] as const) {
       expect(await page.text()).toContain('kacola')
       expect((await fetch(`${h.url}/app.js`)).headers.get('content-type')).toMatch(/javascript/)
 
-      const bare = await harness(dialect, { GNOMEOLA_AUTH_SECRET: '' })
+      const bare = await harness(dialect, { KACOLA_AUTH_SECRET: '' })
       const r = await fetch(`${bare.url}/health`)
       expect(r.status).toBe(503)
-      expect(await r.text()).toMatch(/GNOMEOLA_AUTH_SECRET/)
+      expect(await r.text()).toMatch(/KACOLA_AUTH_SECRET/)
     })
 
     it('every route refuses an unauthenticated request (401) — through the function it is routed to', async () => {
@@ -210,7 +210,7 @@ for (const dialect of ['sqlite', 'postgres'] as const) {
       ['streams outlive the cap and the platform kills them', '-3000', true],
     ] as const) {
       it(`SSE across the duration cap: ${label} — zero gaps, zero duplicates`, async () => {
-        const h = await harness(dialect, { GNOMEOLA_STREAM_MARGIN_MS: margin })
+        const h = await harness(dialect, { KACOLA_STREAM_MARGIN_MS: margin })
         const device = await pairDevice(h.url)
         const log = await deviceLog(6, 25)
         const received: DurableEvent[] = []

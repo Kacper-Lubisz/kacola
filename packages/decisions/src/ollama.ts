@@ -6,7 +6,7 @@
 //   → { model, message: { role: 'assistant', content: '<json>' }, done: true, prompt_eval_count, eval_count }
 //
 // Probabilities are self-reported and marked so. No per-token price (local).
-import { LlmError } from '@gnomeola/llm'
+import { LlmError } from '@kacola/llm'
 import { invalidResponse } from './answers.ts'
 import { BaseDecisionProvider, type BaseOptions, type CallResult } from './base.ts'
 import { batchSchema, DECISION_SYSTEM_PROMPT, parseBatch, userPrompt } from './llm-json.ts'

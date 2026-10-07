@@ -1,6 +1,6 @@
-import type { CalendarStatus, Health, ModelInfo, Settings } from '@gnomeola/protocol'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
-import { formatBytes, missingModels, requiredModels, roleLabel } from '@gnomeola/ui-core/settings'
+import type { CalendarStatus, Health, ModelInfo, Settings } from '@kacola/protocol'
+import { _, fmt } from '@kacola/ui-core/i18n'
+import { formatBytes, missingModels, requiredModels, roleLabel } from '@kacola/ui-core/settings'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ReactNode, useRef, useState } from 'react'
 import { keys } from '../../data/keys.ts'
@@ -280,7 +280,7 @@ export function OnboardingDialog({ onFinished }: { onFinished: (skippedMissing: 
               subtitle={
                 cli.status?.state === 'installed'
                   ? cliSubtitle(cli.status)
-                  : _('Lets agents like Claude Code read your meetings through the gnomeola command')
+                  : _('Lets agents like Claude Code read your meetings through the kacola command')
               }
             >
               {cli.status?.state === 'installed' ? (

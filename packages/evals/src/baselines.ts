@@ -1,5 +1,5 @@
-import type { Scorecard } from '@gnomeola/testkit/evals'
-import type { Band } from '@gnomeola/testkit/metrics'
+import type { Scorecard } from '@kacola/testkit/evals'
+import type { Band } from '@kacola/testkit/metrics'
 
 // Tolerance bands for committed baselines of deterministic runs. Lower-is-better metrics (errors,
 // calibration error, latency, leaks) may rise, higher-is-better ones may fall, by the band before a run

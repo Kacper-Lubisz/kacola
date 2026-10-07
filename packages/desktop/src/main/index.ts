@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { join, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { createClient, ingestPcm, MAX_FRAME_BYTES, type Session } from '@gnomeola/protocol'
+import { createClient, ingestPcm, MAX_FRAME_BYTES, type Session } from '@kacola/protocol'
 import {
   webContents as allWebContents,
   app,
@@ -77,13 +77,13 @@ const FLATPAK = Boolean(process.env.FLATPAK_ID)
 
 // A packaged build refuses Chromium's remote debugging (DevTools protocol on a port or pipe: full
 // control of the window) unless a test asks for it explicitly. The flatpak e2e drives the sandboxed
-// window through it (GNOMEOLA_ALLOW_REMOTE_DEBUGGING=1 + --remote-debugging-port).
+// window through it (KACOLA_ALLOW_REMOTE_DEBUGGING=1 + --remote-debugging-port).
 if (
   app.isPackaged &&
   process.argv.some((a) => /^--remote-debugging-(port|pipe)/.test(a)) &&
-  process.env.GNOMEOLA_ALLOW_REMOTE_DEBUGGING !== '1'
+  process.env.KACOLA_ALLOW_REMOTE_DEBUGGING !== '1'
 ) {
-  process.stderr.write('gnomeola: remote debugging is disabled in this build\n')
+  process.stderr.write('kacola: remote debugging is disabled in this build\n')
   app.exit(1)
 }
 
@@ -460,8 +460,8 @@ function wireIpc(): void {
   )
   handle(IPC.i18n, () =>
     loadCatalogue(
-      // GNOMEOLA_LOCALE_DIR: a directory of <lang>.json catalogues (tests)
-      process.env.GNOMEOLA_LOCALE_DIR ||
+      // KACOLA_LOCALE_DIR: a directory of <lang>.json catalogues (tests)
+      process.env.KACOLA_LOCALE_DIR ||
         (app.isPackaged ? join(process.resourcesPath, 'locale') : join(HERE, '..', 'locale')),
       preferredLanguages(process.env, app.getPreferredSystemLanguages()),
     ),
@@ -561,8 +561,7 @@ async function refreshTheme(): Promise<void> {
   )
   // macOS: nativeTheme already follows the system (and 'updated' drives us); overriding it there would
   // make every later 'updated' our own echo
-  if (process.platform !== 'darwin' || process.env.GNOMEOLA_COLOR_SCHEME)
-    nativeTheme.themeSource = theme.scheme
+  if (process.platform !== 'darwin' || process.env.KACOLA_COLOR_SCHEME) nativeTheme.themeSource = theme.scheme
   broadcast(IPC.themeChanged, theme)
 }
 

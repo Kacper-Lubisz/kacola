@@ -1,12 +1,12 @@
 import './zod-config.ts'
 import './styles.css'
-import { setTranslator } from '@gnomeola/ui-core/i18n'
+import { setTranslator } from '@kacola/ui-core/i18n'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { RouterProvider as AriaRouterProvider } from 'react-aria-components'
 import { createRoot } from 'react-dom/client'
-import type { GnomeolaBridge } from '../shared/bridge.ts'
+import type { KacolaBridge } from '../shared/bridge.ts'
 import { createDaemonApi } from './data/client.ts'
 import { createEphemeralStore } from './data/ephemeral.ts'
 import { EventBridge } from './data/event-bridge.ts'
@@ -22,12 +22,12 @@ import { createAppRouter } from './routes/router.tsx'
 
 declare global {
   interface Window {
-    gnomeola: GnomeolaBridge
+    kacola: KacolaBridge
   }
 }
 
 async function boot(): Promise<void> {
-  const bridge = window.gnomeola
+  const bridge = window.kacola
   const [theme, catalogue, appInfo] = await Promise.all([
     bridge.theme(),
     bridge.catalogue(),

@@ -5,7 +5,7 @@ import { mkdir, open, readdir, readFile, rename, rm, stat, unlink, writeFile } f
 import { join, relative } from 'node:path'
 
 import { pipeline } from 'node:stream/promises'
-import type { ModelInfo } from '@gnomeola/protocol'
+import type { ModelInfo } from '@kacola/protocol'
 import { CATALOG, type CatalogEntry, catalogEntry } from './catalog.ts'
 import { defaultModelsDir } from './paths.ts'
 
@@ -13,7 +13,7 @@ import { defaultModelsDir } from './paths.ts'
 //
 // Layout under the models dir:
 //   <id>/                       an installed model (archive's top-level directory stripped)
-//   <id>/.gnomeola-model.json   install manifest: archive sha256 + size and sha256 of every file
+//   <id>/.kacola-model.json   install manifest: archive sha256 + size and sha256 of every file
 //   .downloads/<id>.part        a partial download, resumed with an HTTP Range request
 //   .downloads/<id>.lock        held (with our pid) while a process downloads the model
 //   .downloads/<id>.corrupt     the last attempt failed verification; reason inside
@@ -81,7 +81,7 @@ export type EnsureOptions = {
   signal?: AbortSignal
 }
 
-const MANIFEST = '.gnomeola-model.json'
+const MANIFEST = '.kacola-model.json'
 
 export class ModelManager {
   readonly dir: string

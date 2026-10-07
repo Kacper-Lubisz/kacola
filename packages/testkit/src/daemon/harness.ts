@@ -2,7 +2,7 @@ import { type ChildProcess, spawn } from 'node:child_process'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { createClient, type GnomeolaClient } from '@gnomeola/protocol'
+import { createClient, type KacolaClient } from '@kacola/protocol'
 
 // Runs the REAL daemon (packages/daemon/src/main.ts) as a child process: its own temp data dir, a
 // random loopback port, fakes for capture/STT/devices/models and an in-memory keyring unless told
@@ -16,7 +16,7 @@ export type StartDaemonOptions = {
   env?: Record<string, string | undefined>
   /** Extra CLI args. */
   args?: string[]
-  /** Fake capture/STT, devices and models (GNOMEOLA_FAKES=1). Default true. */
+  /** Fake capture/STT, devices and models (KACOLA_FAKES=1). Default true. */
   fake?: boolean
   startTimeoutMs?: number
   /** Override the entry point (default: the daemon's main.ts in this repo). */
@@ -30,7 +30,7 @@ export type StartDaemonOptions = {
 
 export type DaemonHandle = {
   readonly baseUrl: string
-  readonly client: GnomeolaClient
+  readonly client: KacolaClient
   readonly dataDir: string
   readonly pid: number
   /** Everything the process wrote to stdout and stderr, across restarts. */
@@ -62,29 +62,29 @@ function hookExit(): void {
 export async function startDaemon(opts: StartDaemonOptions = {}): Promise<DaemonHandle> {
   hookExit()
   const owned = opts.dataDir === undefined
-  const dataDir = opts.dataDir ?? mkdtempSync(join(tmpdir(), 'gnomeola-daemon-'))
+  const dataDir = opts.dataDir ?? mkdtempSync(join(tmpdir(), 'kacola-daemon-'))
   if (owned) ownedDirs.add(dataDir)
   let out = ''
   let child: ChildProcess | null = null
   let baseUrl = ''
-  let client: GnomeolaClient = createClient()
+  let client: KacolaClient = createClient()
 
   async function spawnOnce(): Promise<void> {
     const env: Record<string, string | undefined> = {
       ...process.env,
-      GNOMEOLA_DATA_DIR: undefined,
+      KACOLA_DATA_DIR: undefined,
       ANTHROPIC_API_KEY: undefined,
       OPENAI_API_KEY: undefined,
       OPENAI_BASE_URL: undefined,
       TYPESAFE_API_KEY: undefined,
       TYPESAFE_BASE_URL: undefined,
-      GNOMEOLA_KEYRING: 'memory',
-      GNOMEOLA_FAKES: opts.fake === false ? undefined : '1',
+      KACOLA_KEYRING: 'memory',
+      KACOLA_FAKES: opts.fake === false ? undefined : '1',
       // M4 desktop integrations (EDS, the session bus, the PipeWire graph) stay off unless a test opts in:
       // a test daemon must never read the user's calendars or claim a name on their session bus.
-      GNOMEOLA_CALENDAR: 'off',
-      GNOMEOLA_DBUS: 'off',
-      GNOMEOLA_MIC_ACTIVITY: 'off',
+      KACOLA_CALENDAR: 'off',
+      KACOLA_DBUS: 'off',
+      KACOLA_MIC_ACTIVITY: 'off',
       ...opts.env,
     }
     for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k]

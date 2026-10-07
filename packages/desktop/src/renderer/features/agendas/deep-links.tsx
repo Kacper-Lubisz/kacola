@@ -1,5 +1,5 @@
-import { parseShareLink } from '@gnomeola/protocol'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { parseShareLink } from '@kacola/protocol'
+import { _, fmt } from '@kacola/ui-core/i18n'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef } from 'react'
 import { keys } from '../../data/keys.ts'

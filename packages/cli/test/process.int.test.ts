@@ -8,7 +8,7 @@ import { type FakeDaemon, IDS, startFakeDaemon } from './fake-daemon.ts'
 
 // Real processes: the actual launcher, a real pseudo-terminal, a real MCP client over stdio.
 
-const BIN = join(import.meta.dirname, '..', 'bin', 'gnomeola')
+const BIN = join(import.meta.dirname, '..', 'bin', 'kacola')
 const MAIN = join(import.meta.dirname, '..', 'src', 'main.ts')
 
 let d: FakeDaemon
@@ -39,7 +39,7 @@ function proc(
 
 const env = () => ({
   ...process.env,
-  GNOMEOLA_URL: d.url,
+  KACOLA_URL: d.url,
   PATH: `${process.execPath.replace(/\/node$/, '')}:${process.env.PATH}`,
 })
 
@@ -71,7 +71,7 @@ describe('the real binary: TTY vs pipe', () => {
     expect((await proc(BIN, ['sessions', 'show', 'nope'], { env: env() })).status).toBe(4)
     expect((await proc(BIN, ['bogus'], { env: env() })).status).toBe(2)
     expect(
-      (await proc(BIN, ['status'], { env: { ...env(), GNOMEOLA_URL: 'http://127.0.0.1:9' } })).status,
+      (await proc(BIN, ['status'], { env: { ...env(), KACOLA_URL: 'http://127.0.0.1:9' } })).status,
     ).toBe(3)
   })
 
@@ -88,10 +88,10 @@ describe('the real binary: TTY vs pipe', () => {
   })
 })
 
-describe('gnomeola mcp — the same tools over MCP', () => {
+describe('kacola mcp — the same tools over MCP', () => {
   let client: Client
   beforeAll(async () => {
-    client = new Client({ name: 'gnomeola-test', version: '0.0.0' })
+    client = new Client({ name: 'kacola-test', version: '0.0.0' })
     await client.connect(
       new StdioClientTransport({ command: process.execPath, args: [MAIN, 'mcp'], env: env() }),
     )

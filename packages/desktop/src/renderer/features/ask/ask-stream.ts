@@ -1,5 +1,5 @@
-import type { AskScope, AskStreamEvent, BodyIn, ErrorDetail, QaMessage } from '@gnomeola/protocol'
-import type { QaState, QaTurn } from '@gnomeola/ui-core/qa'
+import type { AskScope, AskStreamEvent, BodyIn, ErrorDetail, QaMessage } from '@kacola/protocol'
+import type { QaState, QaTurn } from '@kacola/ui-core/qa'
 import type { EphemeralStore, StreamState } from '../../data/ephemeral.ts'
 import type { Api } from '../../data/queries.ts'
 
@@ -71,7 +71,7 @@ export async function runOwnAsk(
       error: {
         code: e.name === 'AbortError' ? 'aborted' : (e.code ?? 'internal'),
         message: e.message ?? String(err),
-        // a GnomeolaApiError carries the structured detail (reason, action, provider, link)
+        // a KacolaApiError carries the structured detail (reason, action, provider, link)
         ...(e.detail ?? {}),
       },
     }

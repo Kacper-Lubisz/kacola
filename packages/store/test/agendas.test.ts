@@ -10,8 +10,8 @@ import {
   newId,
   AgendaItemStatus as Statuses,
   SuggestionKind,
-} from '@gnomeola/protocol'
-import { assertNoViolations, checkAgendaLog, checkEventLog } from '@gnomeola/testkit/invariants'
+} from '@kacola/protocol'
+import { assertNoViolations, checkAgendaLog, checkEventLog } from '@kacola/testkit/invariants'
 import { describe, expect, it } from 'vitest'
 import { AgendaStore, Store, StoreError } from '../src/index.ts'
 import { clock, randomHistory, replayed, series, setup } from './agenda-history.ts'
@@ -416,7 +416,7 @@ describe('agendas: replay == state', () => {
   )
 
   it('the tables survive closing and reopening the database (dump before == dump after)', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-agendas-'))
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-agendas-'))
     try {
       const path = join(dir, 'db.sqlite')
       const now = clock()

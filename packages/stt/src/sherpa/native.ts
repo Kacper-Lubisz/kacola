@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module'
 
 // sherpa-onnx-node ships JavaScript with JSDoc only, so the slice of its API we use is typed here.
-// Loaded lazily: importing @gnomeola/stt must not require the native addon (unit tests, the reconciler,
+// Loaded lazily: importing @kacola/stt must not require the native addon (unit tests, the reconciler,
 // and cloud providers never touch it).
 
 export type Waveform = { samples: Float32Array; sampleRate: number }

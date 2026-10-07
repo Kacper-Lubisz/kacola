@@ -8,8 +8,8 @@ import {
   LocalDecisionProvider,
   type LocalRule,
   OnnxEmbedder,
-} from '@gnomeola/decisions'
-import { DEFAULT_DECISIONS, type DecisionsHealth, isOnDeviceDecisions } from '@gnomeola/protocol'
+} from '@kacola/decisions'
+import { DEFAULT_DECISIONS, type DecisionsHealth, isOnDeviceDecisions } from '@kacola/protocol'
 import type { Logger } from './logger.ts'
 import type { SettingsService } from './settings.ts'
 

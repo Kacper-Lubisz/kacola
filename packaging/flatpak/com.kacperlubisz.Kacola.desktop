@@ -1,19 +1,19 @@
 [Desktop Entry]
 Type=Application
-Name=gnomeola
+Name=kacola
 Comment=Record, transcribe and search your meetings
-Exec=gnomeola-app %U
+Exec=kacola-app %U
 MimeType=x-scheme-handler/kacola;
-Icon=org.gnome.Gnomeola
+Icon=com.kacperlubisz.Kacola
 Terminal=false
 Categories=Office;Recorder;
 Keywords=meeting;transcript;notes;record;granola;
 StartupNotify=true
-StartupWMClass=gnomeola
+StartupWMClass=kacola
 DBusActivatable=false
 X-GNOME-UsesNotifications=true
 Actions=background;
 
 [Desktop Action background]
 Name=Start in the Background
-Exec=gnomeola-app --background
+Exec=kacola-app --background

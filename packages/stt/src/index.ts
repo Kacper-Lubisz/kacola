@@ -1,4 +1,4 @@
-// @gnomeola/stt — speech-to-text for gnomeola: model manager (T-1), provider interfaces (T-2), the
+// @kacola/stt — speech-to-text for kacola: model manager (T-1), provider interfaces (T-2), the
 // sherpa-onnx live and final tiers (T-3, T-4), Silero VAD, the segment reconciler + pipeline (T-5), and
 // far-end diarization + the mic echo gate (M3).
 //

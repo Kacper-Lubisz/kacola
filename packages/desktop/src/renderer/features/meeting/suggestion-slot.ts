@@ -1,5 +1,5 @@
-import type { AgendaItem, AgendaView, Evidence, Suggestion } from '@gnomeola/protocol'
-import { activeSuggestions, isOpenItem } from '@gnomeola/ui-core/agendas'
+import type { AgendaItem, AgendaView, Evidence, Suggestion } from '@kacola/protocol'
+import { activeSuggestions, isOpenItem } from '@kacola/ui-core/agendas'
 
 // The live screen's one suggestion slot (unit-tested in test/day.test.ts). At most one suggestion is
 // shown, and only when there is one: no fallback card, no "next item" filler, no time pressure.

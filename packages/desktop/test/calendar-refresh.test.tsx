@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { CalendarRefresh, CalendarStatus } from '@gnomeola/protocol'
+import type { CalendarRefresh, CalendarStatus } from '@kacola/protocol'
 import { QueryClient } from '@tanstack/react-query'
 import { cleanup, fireEvent, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'

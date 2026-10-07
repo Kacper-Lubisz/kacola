@@ -3,14 +3,14 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop, waitForDaemon } from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop, waitForDaemon } from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { DESKTOP_ARTIFACTS, markOnboarded } from '../src/desktop.ts'
 import { pathsFor, windowEnv } from '../src/sandbox/cli.ts'
 
-// The sandbox window (`pnpm sandbox start` opens it with GNOMEOLA_PROFILE=sandbox) beside an everyday
+// The sandbox window (`pnpm sandbox start` opens it with KACOLA_PROFILE=sandbox) beside an everyday
 // window on the same desktop, in the headless Shell: both run (the profile has its own user-data dir, so
 // its own single-instance lock), the sandbox one says so in its title and a badge, and each shows its
 // own daemon's day.
@@ -54,7 +54,7 @@ afterAll(async () => {
   if (dir) sandbox('stop')
   await real?.stop()
   if (display) {
-    const id = display.env.GNOMEOLA_HEADLESS_ID!
+    const id = display.env.KACOLA_HEADLESS_ID!
     await display.close()
     expect(markedPids(id)).toEqual([])
   }
@@ -75,7 +75,7 @@ describe('the sandbox window', () => {
     expect(r.status, r.stdout + r.stderr).toBe(0)
     const url = `http://127.0.0.1:${port}`
 
-    everyday = await launchDesktop({ display, env: { GNOMEOLA_URL: real.baseUrl } })
+    everyday = await launchDesktop({ display, env: { KACOLA_URL: real.baseUrl } })
     await waitForDaemon(everyday, 'attached')
     const p = pathsFor(dir)
     sandboxWin = await launchDesktop({ display, env: windowEnv(p, url) })

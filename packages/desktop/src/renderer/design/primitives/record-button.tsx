@@ -1,5 +1,5 @@
-import { formatDuration } from '@gnomeola/ui-core/format'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { formatDuration } from '@kacola/ui-core/format'
+import { _, fmt } from '@kacola/ui-core/i18n'
 import { Button as AriaButton } from 'react-aria-components'
 import { IconButton } from './icon-button.tsx'
 

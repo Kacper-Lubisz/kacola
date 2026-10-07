@@ -1,4 +1,4 @@
-import type { AnyEvent, Segment, Session, Transcript } from '@gnomeola/protocol'
+import type { AnyEvent, Segment, Session, Transcript } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import {
   applyPartial,

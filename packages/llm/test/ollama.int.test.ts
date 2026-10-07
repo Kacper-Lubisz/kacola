@@ -1,7 +1,7 @@
 // Q-8 — the Ollama provider against a local fake of Ollama's /api/chat (NDJSON streaming).
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import type { Settings } from '@gnomeola/protocol'
+import type { Settings } from '@kacola/protocol'
 import { afterEach, describe, expect, it } from 'vitest'
 import { AnthropicProvider } from '../src/anthropic.ts'
 import { ask } from '../src/ask.ts'

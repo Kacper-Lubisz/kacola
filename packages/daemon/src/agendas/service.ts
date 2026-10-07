@@ -18,8 +18,8 @@ import {
   renderInviteBlock,
   type Session,
   upsertInviteBlock,
-} from '@gnomeola/protocol'
-import { AgendaStore, type Store } from '@gnomeola/store'
+} from '@kacola/protocol'
+import { AgendaStore, type Store } from '@kacola/store'
 import type { z } from 'zod'
 import { attending } from '../calendar/meetings.ts'
 import type { CalendarService } from '../calendar/service.ts'

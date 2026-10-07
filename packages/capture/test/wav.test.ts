@@ -14,7 +14,7 @@ import {
   wavToInt16,
 } from '../src/index.ts'
 
-const dir = mkdtempSync(join(tmpdir(), 'gnomeola-wav-'))
+const dir = mkdtempSync(join(tmpdir(), 'kacola-wav-'))
 
 function ramp(n: number): Int16Array {
   const s = new Int16Array(n)

@@ -1,4 +1,4 @@
-import type { AnyEvent, Meeting } from '@gnomeola/protocol'
+import type { AnyEvent, Meeting } from '@kacola/protocol'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { EventBus } from '../src/bus.ts'
 import {
@@ -180,7 +180,7 @@ describe('calendar file provider', () => {
 
   it('reports a missing file as unavailable rather than failing', () => {
     const states: string[] = []
-    const p = new FileCalendarProvider('/nonexistent/gnomeola-calendar.json')
+    const p = new FileCalendarProvider('/nonexistent/kacola-calendar.json')
     p.start({ snapshot: () => {}, status: (s, d) => states.push(`${s}:${d ?? ''}`) })
     void p.stop()
     expect(states.at(-1)).toMatch(/^unavailable:.*does not exist/)
@@ -358,7 +358,7 @@ describe('otherMicUsers (pw-dump)', () => {
   it('finds other applications capturing from a microphone, and nothing else', () => {
     const dump = [
       node(40, { 'media.class': 'Audio/Source', 'node.name': 'alsa_input.usb' }),
-      node(41, { 'media.class': 'Stream/Input/Audio', 'node.name': 'gnomeola-capture-mic' }),
+      node(41, { 'media.class': 'Stream/Input/Audio', 'node.name': 'kacola-capture-mic' }),
       node(42, {
         'media.class': 'Stream/Input/Audio',
         'application.name': 'Firefox',

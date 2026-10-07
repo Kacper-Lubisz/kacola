@@ -1,4 +1,4 @@
-// gnomeola-selftest: run inside the sandbox (`flatpak run --command=gnomeola-selftest org.gnome.Gnomeola`)
+// kacola-selftest: run inside the sandbox (`flatpak run --command=kacola-selftest com.kacperlubisz.Kacola`)
 // to check what the daemon depends on, as JSON: the native modules load on this Electron's Node, PipeWire's
 // tools are there and reach the sound server, and the data and models directories are writable.
 import { spawnSync } from 'node:child_process'
@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-const runtime = process.env.GNOMEOLA_RUNTIME_DIR || '/app/main/resources/runtime'
+const runtime = process.env.KACOLA_RUNTIME_DIR || '/app/main/resources/runtime'
 const require = createRequire(join(runtime, 'daemon.mjs'))
 const out = {
   node: process.versions.node,
@@ -73,8 +73,8 @@ attempt('gjs', () => {
   return { version: v, glib: r.stdout.trim() }
 })
 attempt('dirs', () => {
-  const data = join(process.env.XDG_DATA_HOME || join(homedir(), '.local', 'share'), 'gnomeola')
-  const models = process.env.GNOMEOLA_MODELS_DIR || join(data, 'models')
+  const data = join(process.env.XDG_DATA_HOME || join(homedir(), '.local', 'share'), 'kacola')
+  const models = process.env.KACOLA_MODELS_DIR || join(data, 'models')
   mkdirSync(models, { recursive: true })
   const probe = join(models, `.selftest-${process.pid}`)
   writeFileSync(probe, 'ok')

@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import type { ExternalCaptureHub, ExternalConnection } from '@gnomeola/capture'
-import { type IngestResult, PcmFrameDecoder, PcmFrameError, TrackKind } from '@gnomeola/protocol'
+import type { ExternalCaptureHub, ExternalConnection } from '@kacola/capture'
+import { type IngestResult, PcmFrameDecoder, PcmFrameError, TrackKind } from '@kacola/protocol'
 import type { Handlers } from './daemon.ts'
 import { DaemonError } from './errors.ts'
 

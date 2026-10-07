@@ -1,9 +1,9 @@
-// @gnomeola/evals — the AI eval suites for agendas + live intelligence.
+// @kacola/evals — the AI eval suites for agendas + live intelligence.
 //
 //   types.ts        runner hooks a pipeline implements (the tracker wave plugs in here)
 //   runners.ts      reference runners over a DecisionProvider, extractive offline runners
 //   llm-runners.ts  LLM runners for drafting and recap (text LLM layer)
-//   suites.ts       dataset × runner → scorecard (graders from @gnomeola/testkit/evals)
+//   suites.ts       dataset × runner → scorecard (graders from @kacola/testkit/evals)
 //   providers.ts    the offline / fake / live provider matrix
 //   run.ts          run every decision suite for one provider setup
 //   real.ts         the real-meeting coverage suite (private fixtures, skipped when absent)

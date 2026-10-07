@@ -1,42 +1,42 @@
-/* gnomeola indicator. Colours come from the Shell theme except the recording dot, which is the
+/* kacola indicator. Colours come from the Shell theme except the recording dot, which is the
    conventional red so "is it recording?" is answerable at a glance. */
-.gnomeola-recording .system-status-icon {
+.kacola-recording .system-status-icon {
   color: #e0482b; /* kacola's record red */
 }
 
-.gnomeola-paused .system-status-icon {
+.kacola-paused .system-status-icon {
   color: #f6d32d;
 }
 
-.gnomeola-offline .system-status-icon {
+.kacola-offline .system-status-icon {
   opacity: 0.5;
 }
 
-.gnomeola-elapsed {
+.kacola-elapsed {
   font-feature-settings: "tnum";
   padding-left: 4px;
 }
 
-.gnomeola-header {
+.kacola-header {
   font-weight: bold;
 }
 
-.gnomeola-status {
+.kacola-status {
   /* the theme's own text colour, quieter: readable on light and dark menus alike */
   opacity: 0.7;
 }
 
-.gnomeola-meeting-detail {
+.kacola-meeting-detail {
   font-size: smaller;
   opacity: 0.7;
   padding-top: 2px;
 }
 
-.gnomeola-meeting-verb {
+.kacola-meeting-verb {
   font-weight: bold;
   padding-left: 12px;
 }
 
-.gnomeola-meeting-now .gnomeola-meeting-title {
+.kacola-meeting-now .kacola-meeting-title {
   font-weight: bold;
 }

@@ -12,7 +12,7 @@ const img = (w: number, h: number, f: (x: number, y: number) => [number, number,
 
 describe('screenshot baselines', () => {
   afterEach(() => {
-    delete process.env.GNOMEOLA_UPDATE_SCREENSHOTS
+    delete process.env.KACOLA_UPDATE_SCREENSHOTS
   })
 
   it('encodes and decodes a PNG losslessly', () => {
@@ -37,7 +37,7 @@ describe('screenshot baselines', () => {
   })
 
   it('records a missing baseline, passes a match, fails a change with a diff image, and updates on request', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-shots-'))
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-shots-'))
     const actual = join(dir, 'a.png')
     const base = join(dir, 'base', 'a.png')
     writeFileSync(actual, encodePng(img(20, 20, () => [10, 20, 30])))
@@ -47,9 +47,9 @@ describe('screenshot baselines', () => {
     const f = matchBaseline(actual, base)
     expect(f).toMatch(/100 pixels \(25\.00%\) differ/)
     expect(decodePng(readFileSync(join(dir, 'a.diff.png'))).width).toBe(20)
-    process.env.GNOMEOLA_UPDATE_SCREENSHOTS = '1'
+    process.env.KACOLA_UPDATE_SCREENSHOTS = '1'
     expect(matchBaseline(actual, base)).toBeNull()
-    delete process.env.GNOMEOLA_UPDATE_SCREENSHOTS
+    delete process.env.KACOLA_UPDATE_SCREENSHOTS
     expect(matchBaseline(actual, base)).toBeNull()
   })
 })

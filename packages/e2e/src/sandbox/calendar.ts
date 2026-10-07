@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 
 // The sandbox's mock calendar. `meetings.json` is the sandbox's own list (absolute times, who added
-// each); `calendar.json` is what the daemon's file calendar provider reads (GNOMEOLA_CALENDAR=file:…),
+// each); `calendar.json` is what the daemon's file calendar provider reads (KACOLA_CALENDAR=file:…),
 // rendered from it after every change and replaced atomically, so the daemon (which polls the file)
 // picks changes up within a second.
 

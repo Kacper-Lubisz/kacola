@@ -15,8 +15,8 @@ import {
   type StatusThresholds,
   statusPolicy,
   type TrackStatus,
-} from '@gnomeola/decisions'
-import type { EvalMode } from '@gnomeola/testkit/evals'
+} from '@kacola/decisions'
+import type { EvalMode } from '@kacola/testkit/evals'
 import type {
   DraftRunner,
   InjectionRunner,
@@ -30,7 +30,7 @@ import type {
 } from './types.ts'
 
 // Reference pipelines for every behaviour. The decision-based ones are thin: they call the same task
-// functions (@gnomeola/decisions tasks) the tracker will, so an eval of them is an eval of the questions
+// functions (@kacola/decisions tasks) the tracker will, so an eval of them is an eval of the questions
 // + the provider. The text ones (drafting, recap) have an LLM runner (llm-runners.ts) and an extractive,
 // deterministic runner that is the honest offline floor.
 

@@ -1,10 +1,10 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { Store } from '@gnomeola/store'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { Store } from '@kacola/store'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop } from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   expectScreenshot,
@@ -64,10 +64,10 @@ describe('desktop transcript pane against the real daemon', () => {
 
   beforeAll(async () => {
     buildDesktop()
-    dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-transcript-'))
+    dataDir = mkdtempSync(join(tmpdir(), 'kacola-desktop-transcript-'))
     seedMeetings(dataDir)
     // a recorded gap in the retro (a device switch 10 s in), so the gap marker has something to show
-    const store = Store.open(join(dataDir, 'gnomeola.db'))
+    const store = Store.open(join(dataDir, 'kacola.db'))
     store.updateSession(SEED.retro, (s) => ({
       ...s,
       tracks: s.tracks.map((t) =>
@@ -81,7 +81,7 @@ describe('desktop transcript pane against the real daemon', () => {
     daemon = await startDaemon({
       dataDir,
       env: {
-        GNOMEOLA_FAKE_PIPELINE: JSON.stringify({
+        KACOLA_FAKE_PIPELINE: JSON.stringify({
           ...PIPELINE,
           deterministic: true,
           hold: { atMs: HOLD_AT_MS, releaseFile },
@@ -89,14 +89,14 @@ describe('desktop transcript pane against the real daemon', () => {
       },
     })
     display = await startHeadlessDisplay({ size: '1280x800' })
-    markerId = display.env.GNOMEOLA_HEADLESS_ID!
+    markerId = display.env.KACOLA_HEADLESS_ID!
     markOnboarded(
       display,
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
     app = await launchDesktop({
       display,
-      env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
+      env: { KACOLA_URL: daemon.baseUrl, KACOLA_COLOR_SCHEME: 'light' },
     })
     await w().getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
   }, 240_000)

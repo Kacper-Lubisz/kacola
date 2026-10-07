@@ -1,6 +1,6 @@
-import { GnomeolaApiError, type Segment } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { assertNoViolations, checkSegmentHistory, checkSegments } from '@gnomeola/testkit/invariants'
+import { KacolaApiError, type Segment } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { assertNoViolations, checkSegmentHistory, checkSegments } from '@kacola/testkit/invariants'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { durable, readEvents, sleep } from './helpers.ts'
 
@@ -16,7 +16,7 @@ async function status(p: Promise<unknown>): Promise<number> {
     await p
     return 200
   } catch (err) {
-    if (err instanceof GnomeolaApiError) return err.status
+    if (err instanceof KacolaApiError) return err.status
     throw err
   }
 }
@@ -24,7 +24,7 @@ async function status(p: Promise<unknown>): Promise<number> {
 describe('session lifecycle through the real daemon', () => {
   let d: DaemonHandle
   beforeAll(async () => {
-    d = await startDaemon({ env: { GNOMEOLA_FAKE_PIPELINE: FAST } })
+    d = await startDaemon({ env: { KACOLA_FAKE_PIPELINE: FAST } })
   })
   afterAll(async () => {
     await d?.stop()
@@ -169,7 +169,7 @@ describe('session lifecycle through the real daemon', () => {
 describe('pipeline failures', () => {
   it('a fatal pipeline error ends the session as failed, keeping what was captured', async () => {
     const d = await startDaemon({
-      env: { GNOMEOLA_FAKE_PIPELINE: JSON.stringify({ segmentEveryMs: 100, failAfterMs: 450 }) },
+      env: { KACOLA_FAKE_PIPELINE: JSON.stringify({ segmentEveryMs: 100, failAfterMs: 450 }) },
     })
     try {
       const s = await d.client.call('createSession', {})
@@ -193,7 +193,7 @@ describe('pipeline failures', () => {
 
   it('a pipeline that cannot start is a 503 and leaves the session idle with the reason', async () => {
     const d = await startDaemon({
-      env: { GNOMEOLA_FAKE_PIPELINE: JSON.stringify({ failStart: 'no microphone' }) },
+      env: { KACOLA_FAKE_PIPELINE: JSON.stringify({ failStart: 'no microphone' }) },
     })
     try {
       const s = await d.client.call('createSession', {})
@@ -211,8 +211,8 @@ describe('pipeline failures', () => {
     const { mkdtempSync } = await import('node:fs')
     const { tmpdir } = await import('node:os')
     const { join } = await import('node:path')
-    const models = mkdtempSync(join(tmpdir(), 'gnomeola-nomodels-'))
-    const d = await startDaemon({ fake: false, env: { GNOMEOLA_MODELS_DIR: models } })
+    const models = mkdtempSync(join(tmpdir(), 'kacola-nomodels-'))
+    const d = await startDaemon({ fake: false, env: { KACOLA_MODELS_DIR: models } })
     try {
       const h = await d.client.call('health')
       if (h.capture.available) expect(h.capture.detail).toMatch(/models not ready: .*live-nemo/)

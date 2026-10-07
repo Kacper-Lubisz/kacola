@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import type { TrackKind } from '@gnomeola/protocol'
+import type { TrackKind } from '@kacola/protocol'
 import { floatToInt16, resample } from './resample.ts'
 import { TrackRecorder, toFatalError } from './track-recorder.ts'
 import {

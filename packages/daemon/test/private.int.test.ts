@@ -1,5 +1,5 @@
-import { GnomeolaApiError, type GnomeolaClient } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import { KacolaApiError, type KacolaClient } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // X-7 server side. Private sessions are hidden from every read path unless the caller passes
@@ -11,12 +11,12 @@ async function code(p: Promise<unknown>): Promise<number> {
     await p
     return 200
   } catch (err) {
-    if (err instanceof GnomeolaApiError) return err.status
+    if (err instanceof KacolaApiError) return err.status
     throw err
   }
 }
 
-async function record(c: GnomeolaClient, title: string, priv: boolean) {
+async function record(c: KacolaClient, title: string, priv: boolean) {
   const s = await c.call('createSession', { body: { title, private: priv } })
   await c.call('startSession', { params: { id: s.id } })
   await waitFor(
@@ -36,8 +36,8 @@ describe('private sessions', () => {
   beforeAll(async () => {
     d = await startDaemon({
       env: {
-        GNOMEOLA_FAKE_QA: '1',
-        GNOMEOLA_FAKE_PIPELINE: JSON.stringify({ segmentEveryMs: 60, finalizeAfterMs: 30 }),
+        KACOLA_FAKE_QA: '1',
+        KACOLA_FAKE_PIPELINE: JSON.stringify({ segmentEveryMs: 60, finalizeAfterMs: 30 }),
       },
     })
     pub = await record(d.client, 'Public standup', false)
@@ -73,10 +73,10 @@ describe('private sessions', () => {
     expect(await code(c.call('getQaHistory', { params: p }))).toBe(404)
     const missing = { id: 'ses_doesnotexist' }
     const [a, b] = await Promise.all([
-      c.call('getSession', { params: p }).catch((e: GnomeolaApiError) => e.message.replace(priv.id, 'X')),
+      c.call('getSession', { params: p }).catch((e: KacolaApiError) => e.message.replace(priv.id, 'X')),
       c
         .call('getSession', { params: missing })
-        .catch((e: GnomeolaApiError) => e.message.replace(missing.id, 'X')),
+        .catch((e: KacolaApiError) => e.message.replace(missing.id, 'X')),
     ])
     expect(a).toBe(b)
     // and visible when asked for explicitly
@@ -149,8 +149,8 @@ describe('private sessions', () => {
         const err = await collect(
           c.ask({ question: 'salary?', sessionId: priv.id, includePrivate: true }),
         ).catch((e: unknown) => e)
-        expect(err).toBeInstanceOf(GnomeolaApiError)
-        const e = err as GnomeolaApiError
+        expect(err).toBeInstanceOf(KacolaApiError)
+        const e = err as KacolaApiError
         expect(e.status).toBe(409)
         expect(e.code).toBe('conflict')
         expect(e.detail.reason).toBe('private-meeting')

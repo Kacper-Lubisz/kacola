@@ -82,7 +82,7 @@ export class KeychainKeyring implements Keyring {
   private readonly keychain: string | undefined
 
   constructor(opts: KeychainOptions = {}) {
-    this.service = opts.service ?? 'gnomeola'
+    this.service = opts.service ?? 'kacola'
     this.timeoutMs = opts.timeoutMs ?? 10_000
     this.bin = opts.bin ?? '/usr/bin/security'
     this.keychain = opts.keychain

@@ -1,9 +1,9 @@
-import { type AssembledPrompt, estimateCostUsd, type LlmProvider } from '@gnomeola/llm'
-import type { AgendaDraftingCase, RecapCase } from '@gnomeola/testkit/evals'
+import { type AssembledPrompt, estimateCostUsd, type LlmProvider } from '@kacola/llm'
+import type { AgendaDraftingCase, RecapCase } from '@kacola/testkit/evals'
 import type { DraftRunner, RecapRunner, RunUsage } from './types.ts'
 
 // LLM runners for the text behaviours (agenda drafting, recap per item), on the existing text-LLM layer
-// (@gnomeola/llm providers: Anthropic, OpenAI, Ollama). Reference prompts — the recap wave will bring its
+// (@kacola/llm providers: Anthropic, OpenAI, Ollama). Reference prompts — the recap wave will bring its
 // own (M7 enhance plumbing with the agenda as template) and plug it into the same RecapRunner hook.
 
 export const DRAFT_SYSTEM_PROMPT = `You draft meeting agendas for the person preparing the meeting.

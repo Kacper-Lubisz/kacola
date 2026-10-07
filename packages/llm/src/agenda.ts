@@ -1,5 +1,5 @@
 // Agendas wave 2 — the two pieces of TEXT the live tracker needs from the LLM layer (typed decisions are
-// @gnomeola/decisions' job):
+// @kacola/decisions' job):
 //
 //   recap        per agenda item, after the meeting: status, outcome, decisions, actions. Same plumbing as
 //                notes enhancement (docs/notes.md): the transcript is the byte-stable, cached prefix, the
@@ -8,7 +8,7 @@
 //
 // Both treat transcript text as data. A refusal comes back as `refusal` with empty text, never as a
 // recap: the caller keeps what it had.
-import type { Usage } from '@gnomeola/protocol'
+import type { Usage } from '@kacola/protocol'
 import { LlmError } from './errors.ts'
 import { assemblePrompt } from './prompt.ts'
 import type { Effort, LlmProvider, Refusal, TranscriptInput } from './types.ts'

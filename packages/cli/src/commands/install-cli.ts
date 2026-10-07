@@ -14,8 +14,8 @@ import {
 import { renderJson } from '../output.ts'
 import { skillSource } from './skill.ts'
 
-// `gnomeola install-cli` / `uninstall-cli` (P-4): the command side of ../install.ts. Run from inside the
-// installed app — the Flatpak (`flatpak run --command=gnomeola org.gnome.Gnomeola install-cli`), the macOS
+// `kacola install-cli` / `uninstall-cli` (P-4): the command side of ../install.ts. Run from inside the
+// installed app — the Flatpak (`flatpak run --command=kacola com.kacperlubisz.Kacola install-cli`), the macOS
 // .app's runtime, or a dev checkout — it works out which kind of install it is from where it runs.
 
 export type InstallCliFlags = {
@@ -40,7 +40,7 @@ function resolveMode(ctx: Ctx, flag: string | undefined): InstallMode {
   return 'dev'
 }
 
-/** …/gnomeola.app/Contents/MacOS/gnomeola → …/gnomeola.app, when this runs from inside an app bundle. */
+/** …/kacola.app/Contents/MacOS/kacola → …/kacola.app, when this runs from inside an app bundle. */
 export function appBundleOf(execPath: string): string | null {
   const m = /^(.*\.app)\/Contents\/MacOS\/[^/]+$/.exec(execPath)
   return m ? m[1]! : null
@@ -51,8 +51,7 @@ function specFor(mode: InstallMode, f: InstallCliFlags): ShimSpec {
   if (mode === 'flatpak') return shimSpec('flatpak', { launch })
   if (mode === 'macos') {
     const appPath = f.app ?? appBundleOf(process.execPath)
-    if (!appPath)
-      throw usage('not running from a gnomeola.app bundle', 'pass --app /Applications/gnomeola.app')
+    if (!appPath) throw usage('not running from a kacola.app bundle', 'pass --app /Applications/kacola.app')
     return shimSpec('macos', { appPath: resolve(appPath), launch })
   }
   const entry = process.argv[1] ? realpathSync(process.argv[1]) : null
@@ -109,5 +108,5 @@ export function uninstallCliCommand(ctx: Ctx, f: InstallCliFlags & { keepSkill?:
   for (const p of r.keptForeign) ctx.io.stdout(`left alone (not ours): ${p}\n`)
   for (const p of r.needsAdmin) ctx.io.stdout(`needs administrator rights to remove: ${p}\n`)
   if (r.skill) ctx.io.stdout(`skill ${r.skill.action}: ${r.skill.path}\n`)
-  if (!r.removed.length) ctx.io.stdout('no gnomeola command written by install-cli was found\n')
+  if (!r.removed.length) ctx.io.stdout('no kacola command written by install-cli was found\n')
 }

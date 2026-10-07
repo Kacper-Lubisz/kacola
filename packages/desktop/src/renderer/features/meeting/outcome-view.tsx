@@ -1,5 +1,5 @@
-import type { AgendaView, Session } from '@gnomeola/protocol'
-import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
+import type { AgendaView, Session } from '@kacola/protocol'
+import { _, fmt, ngettext } from '@kacola/ui-core/i18n'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useRef, useState } from 'react'

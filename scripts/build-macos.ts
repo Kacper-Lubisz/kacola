@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// P-6: build gnomeola.app for macOS as unsigned zips (arm64 + x64) with electron-builder, from Linux.
+// P-6: build kacola.app for macOS as unsigned zips (arm64 + x64) with electron-builder, from Linux.
 //
 //   node scripts/build-macos.ts [--out DIR] [--arch arm64,x64] [--skip-vite]
 //
@@ -40,7 +40,7 @@ export async function buildMacos(o: {
   for (const arch of archs)
     await buildRuntime({ outDir: join(stage, `runtime-${arch}`), targets: [`darwin-${arch}` as Target] })
   mkdirSync(join(stage, 'bin'))
-  cpSync(join(REPO, 'packaging', 'macos', 'gnomeola-cli.sh'), join(stage, 'bin', 'gnomeola'))
+  cpSync(join(REPO, 'packaging', 'macos', 'kacola-cli.sh'), join(stage, 'bin', 'kacola'))
   // the kacola brand icon (the window icon, resources/icon.png, is only used on Linux)
   cpSync(join(BRAND_ICONS, 'kacola.icns'), join(stage, 'icon.icns'))
   // Chromium's licences ship with every Electron build; the Linux dist has the same file
@@ -65,10 +65,10 @@ export async function buildMacos(o: {
       // before fuses and signing see the bundle
       afterPack: async (ctx) => {
         const arch = Arch[ctx.arch] as MacArch
-        const dest = join(ctx.appOutDir, 'gnomeola.app', 'Contents', 'Resources', 'runtime', 'node_modules')
+        const dest = join(ctx.appOutDir, 'kacola.app', 'Contents', 'Resources', 'runtime', 'node_modules')
         cpSync(join(stage, `runtime-${arch}`, 'node_modules'), dest, { recursive: true, dereference: true })
         // no ad-hoc re-signing from Linux (codesign is macOS-only): see docs/desktop-app.md, "Packaging"
-        await applyFuses(join(ctx.appOutDir, 'gnomeola.app'))
+        await applyFuses(join(ctx.appOutDir, 'kacola.app'))
       },
     },
     publish: 'never',
@@ -78,9 +78,9 @@ export async function buildMacos(o: {
   const outDir = join(out, 'out')
   const zips = archs.map((arch) => {
     const appParent = join(outDir, arch === 'x64' ? 'mac' : `mac-${arch}`)
-    if (!existsSync(join(appParent, 'gnomeola.app'))) throw new Error(`no ${arch} app in ${appParent}`)
-    const path = join(outDir, `gnomeola-${version}-mac-${arch}.zip`)
-    execFileSync('zip', ['-qry', path, 'gnomeola.app'], { cwd: appParent })
+    if (!existsSync(join(appParent, 'kacola.app'))) throw new Error(`no ${arch} app in ${appParent}`)
+    const path = join(outDir, `kacola-${version}-mac-${arch}.zip`)
+    execFileSync('zip', ['-qry', path, 'kacola.app'], { cwd: appParent })
     return { arch, path, bytes: statSync(path).size }
   })
   return { zips }

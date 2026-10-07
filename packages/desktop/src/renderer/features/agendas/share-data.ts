@@ -1,4 +1,4 @@
-import type { ShareStatus } from '@gnomeola/protocol'
+import type { ShareStatus } from '@kacola/protocol'
 import type { QueryClient } from '@tanstack/react-query'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'

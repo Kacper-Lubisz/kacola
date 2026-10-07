@@ -1,5 +1,5 @@
-import type { CalendarRefresh, CalendarStatus, OfflineCalendar } from '@gnomeola/protocol'
-import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
+import type { CalendarRefresh, CalendarStatus, OfflineCalendar } from '@kacola/protocol'
+import { _, fmt, ngettext } from '@kacola/ui-core/i18n'
 import type { QueryClient } from '@tanstack/react-query'
 import { create } from 'zustand'
 import { keys } from '../../data/keys.ts'

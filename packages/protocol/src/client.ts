@@ -21,14 +21,14 @@ import { SseDecoder, type SseMessage } from './sse.ts'
 export const DEFAULT_PORT = 8787
 export const DEFAULT_BASE_URL = `http://127.0.0.1:${DEFAULT_PORT}`
 
-export class GnomeolaApiError extends Error {
+export class KacolaApiError extends Error {
   readonly status: number
   readonly code: string
   /** The structured detail (ai.ts): `reason` to branch on, `action` to offer, `provider`, `link`. */
   readonly detail: ErrorDetail
   constructor(status: number, code: string, message: string, detail: ErrorDetail = {}) {
     super(message)
-    this.name = 'GnomeolaApiError'
+    this.name = 'KacolaApiError'
     this.status = status
     this.code = code
     this.detail = detail
@@ -126,9 +126,9 @@ export function createClient(opts: ClientOptions = {}) {
       } catch {}
       if (parsed?.success) {
         const { code, message, ...detail } = parsed.data.error
-        throw new GnomeolaApiError(res.status, code, message, detail)
+        throw new KacolaApiError(res.status, code, message, detail)
       }
-      throw new GnomeolaApiError(res.status, 'internal', text || res.statusText)
+      throw new KacolaApiError(res.status, 'internal', text || res.statusText)
     }
     return res
   }
@@ -213,4 +213,4 @@ export function createClient(opts: ClientOptions = {}) {
   return { baseUrl, call, stream, ask, subscribe }
 }
 
-export type GnomeolaClient = ReturnType<typeof createClient>
+export type KacolaClient = ReturnType<typeof createClient>

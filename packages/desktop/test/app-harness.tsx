@@ -1,4 +1,4 @@
-import type { ModelInfo, Session, Settings, ShareStatus } from '@gnomeola/protocol'
+import type { ModelInfo, Session, Settings, ShareStatus } from '@kacola/protocol'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router'
 import { render } from '@testing-library/react'
@@ -15,7 +15,7 @@ import type {
   AutostartState,
   CliInstallState,
   ExtensionState,
-  GnomeolaBridge,
+  KacolaBridge,
   UiState,
 } from '../src/shared/bridge.ts'
 import { fakeDaemon, type Handler } from './helpers.ts'
@@ -52,11 +52,11 @@ export const model = (id: string, over: Partial<ModelInfo> = {}): ModelInfo =>
     ...over,
   }) as ModelInfo
 
-export function fakeBridge(over: Partial<GnomeolaBridge> = {}) {
+export function fakeBridge(over: Partial<KacolaBridge> = {}) {
   let ui: UiState = { version: 1, onboardingDone: true, skippedMissing: [] }
   let cli: CliInstallState = {
     state: 'not-installed',
-    path: '/home/u/.local/bin/gnomeola',
+    path: '/home/u/.local/bin/kacola',
     skillPath: null,
     onPath: true,
     shadowedBy: null,
@@ -89,7 +89,7 @@ export function fakeBridge(over: Partial<GnomeolaBridge> = {}) {
       void force
       cli = {
         state: 'installed',
-        path: '/home/u/.local/bin/gnomeola',
+        path: '/home/u/.local/bin/kacola',
         skillPath: '/home/u/.claude/skills/meeting-context/SKILL.md',
         onPath: true,
         shadowedBy: null,
@@ -119,7 +119,7 @@ export function fakeBridge(over: Partial<GnomeolaBridge> = {}) {
   }
   Object.assign(b, over)
   return {
-    bridge: b as unknown as GnomeolaBridge & typeof b,
+    bridge: b as unknown as KacolaBridge & typeof b,
     setUi: (s: UiState) => {
       ui = s
     },

@@ -1,4 +1,4 @@
-import { _ } from '@gnomeola/ui-core/i18n'
+import { _ } from '@kacola/ui-core/i18n'
 import { useEffect, useRef } from 'react'
 import { Dialog, Kbd } from '../../design/primitives/index.ts'
 

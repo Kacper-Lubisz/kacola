@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import type { AudioDevice } from '@gnomeola/protocol'
+import type { AudioDevice } from '@kacola/protocol'
 
 // R-1: device enumeration from `pw-dump` (the JSON snapshot of the PipeWire graph) and the defaults
 // from the `default` metadata object. node.name is the identity everywhere: it is stable across

@@ -1,7 +1,7 @@
-import type { AgendaItemKind, AgendaItemStatus, AgentMode, StatusChange } from '@gnomeola/protocol'
-import { type Actor, type AgendaView, actorOf } from '@gnomeola/protocol'
-import { attributionOf, personName } from '@gnomeola/ui-core/agendas'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import type { AgendaItemKind, AgendaItemStatus, AgentMode, StatusChange } from '@kacola/protocol'
+import { type Actor, type AgendaView, actorOf } from '@kacola/protocol'
+import { attributionOf, personName } from '@kacola/ui-core/agendas'
+import { _, fmt } from '@kacola/ui-core/i18n'
 import type { ChipTone, IconName } from '../../design/primitives/index.ts'
 
 // The words and marks of agendas, in one place: item kinds, statuses (label, icon, tone), agent modes,

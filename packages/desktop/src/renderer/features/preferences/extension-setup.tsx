@@ -1,4 +1,4 @@
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { _, fmt } from '@kacola/ui-core/i18n'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import type { ExtensionState } from '../../../shared/bridge.ts'

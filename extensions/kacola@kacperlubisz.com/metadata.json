@@ -1,0 +1,10 @@
+{
+  "uuid": "kacola@kacperlubisz.com",
+  "name": "kacola",
+  "description": "Meeting recorder in the top bar: recording state, elapsed time and the live transcript line; upcoming meetings from your calendars with one-click Join that opens the call and starts recording. Needs the kacola background service (kacolad).",
+  "shell-version": ["50"],
+  "url": "https://github.com/Kacper-Lubisz/kacola",
+  "settings-schema": "org.gnome.shell.extensions.kacola",
+  "gettext-domain": "kacola",
+  "version-name": "0.1.0"
+}

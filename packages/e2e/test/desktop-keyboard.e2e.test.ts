@@ -1,10 +1,10 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { formatOffset } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { formatOffset } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop } from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { markOnboarded } from '../src/desktop.ts'
 import { poll, rowName, selectedRowNames, speakerName } from '../src/desktop-ui.ts'
@@ -67,26 +67,26 @@ describe('keyboard-only walkthrough against the real daemon', () => {
   beforeAll(async () => {
     buildDesktop()
     api = await startFakeAnthropic({ eventDelayMs: 50 })
-    dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-keyboard-'))
+    dataDir = mkdtempSync(join(tmpdir(), 'kacola-desktop-keyboard-'))
     seedMeetings(dataDir)
     daemon = await startDaemon({
       dataDir,
       env: {
         ANTHROPIC_API_KEY: KEY,
         ANTHROPIC_BASE_URL: api.url,
-        GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
+        KACOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
       },
     })
     await daemon.client.call('updateSettings', { body: { llm: { provider: 'anthropic' } } })
     display = await startHeadlessDisplay({ size: '1280x800' })
-    markerId = display.env.GNOMEOLA_HEADLESS_ID!
+    markerId = display.env.KACOLA_HEADLESS_ID!
     markOnboarded(
       display,
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
     app = await launchDesktop({
       display,
-      env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
+      env: { KACOLA_URL: daemon.baseUrl, KACOLA_COLOR_SCHEME: 'light' },
     })
     await w().getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
     // from here on the tests use only keyboard.press / keyboard.type — no click, hover or mouse call

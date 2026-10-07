@@ -1,5 +1,5 @@
-import type { Moment, SearchMomentsResult, Session } from '@gnomeola/protocol'
-import { capSnippet, NoteStore, type Store } from '@gnomeola/store'
+import type { Moment, SearchMomentsResult, Session } from '@kacola/protocol'
+import { capSnippet, NoteStore, type Store } from '@kacola/store'
 
 // GET /search/moments — the window's home search: titles, notes and transcripts as moments (meeting ·
 // date · speaker · line). Transcript lines come from the store's FTS5 index (the CLI's `/search`, bm25);

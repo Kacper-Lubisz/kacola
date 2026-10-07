@@ -1,8 +1,8 @@
 {
-  "name": "@gnomeola/daemon",
+  "name": "@kacola/daemon",
   "version": "0.1.0",
   "private": true,
-  "description": "gnomeolad: the local backend. HTTP + SSE over the protocol; orchestrates capture, STT, store, LLM.",
+  "description": "kacolad: the local backend. HTTP + SSE over the protocol; orchestrates capture, STT, store, LLM.",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "exports": {
@@ -12,20 +12,20 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@gnomeola/capture": "workspace:*",
-    "@gnomeola/capture-agent": "workspace:*",
-    "@gnomeola/decisions": "workspace:*",
-    "@gnomeola/llm": "workspace:*",
-    "@gnomeola/protocol": "workspace:*",
-    "@gnomeola/server": "workspace:*",
-    "@gnomeola/store": "workspace:*",
-    "@gnomeola/stt": "workspace:*",
+    "@kacola/capture": "workspace:*",
+    "@kacola/capture-agent": "workspace:*",
+    "@kacola/decisions": "workspace:*",
+    "@kacola/llm": "workspace:*",
+    "@kacola/protocol": "workspace:*",
+    "@kacola/server": "workspace:*",
+    "@kacola/store": "workspace:*",
+    "@kacola/stt": "workspace:*",
     "ical.js": "^2.2.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
-    "@gnomeola/evals": "workspace:*",
-    "@gnomeola/testkit": "workspace:*"
+    "@kacola/evals": "workspace:*",
+    "@kacola/testkit": "workspace:*"
   }
 }

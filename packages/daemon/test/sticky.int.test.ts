@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { waitFor } from '@gnomeola/testkit/daemon'
+import { waitFor } from '@kacola/testkit/daemon'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createDaemon, type Daemon, type DaemonOptions } from '../src/daemon.ts'
 import { acquireDataDirLock, DataDirLockedError, LOCK_FILE } from '../src/data-lock.ts'
@@ -20,7 +20,7 @@ afterEach(async () => {
 })
 
 const tmp = () => {
-  const d = mkdtempSync(join(tmpdir(), 'gnomeola-sticky-'))
+  const d = mkdtempSync(join(tmpdir(), 'kacola-sticky-'))
   dirs.push(d)
   return d
 }

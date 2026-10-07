@@ -1,4 +1,4 @@
-import { type AnyEvent, ME, SPEAKER_COLOURS, type SpeakerSummary, THEM } from '@gnomeola/protocol'
+import { type AnyEvent, ME, SPEAKER_COLOURS, type SpeakerSummary, THEM } from '@kacola/protocol'
 
 // M3 — who speaks in one session, as the UI sees it, and the pure fold that keeps it current. Pure.
 //

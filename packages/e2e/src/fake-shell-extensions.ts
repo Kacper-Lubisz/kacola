@@ -74,7 +74,7 @@ function info(s: FakeShellState, uuid: string): string {
   const l = s.loaded[uuid]
   if (!l) return '(@a{sv} {},)'
   const path = join(s.extensionsDir ?? '/nowhere', uuid)
-  return `({'uuid': <${q(uuid)}>, 'name': <'gnomeola'>, 'version-name': <${q(l.version)}>, 'type': <${(l.type ?? 2).toFixed(1)}>, 'state': <${stateOf(s, uuid).toFixed(1)}>, 'enabled': <${enabled(s, uuid)}>, 'path': <${q(path)}>, 'error': <${q(l.error ?? '')}>, 'canChange': <${!s.disableUserExtensions}>},)`
+  return `({'uuid': <${q(uuid)}>, 'name': <'kacola'>, 'version-name': <${q(l.version)}>, 'type': <${(l.type ?? 2).toFixed(1)}>, 'state': <${stateOf(s, uuid).toFixed(1)}>, 'enabled': <${enabled(s, uuid)}>, 'path': <${q(path)}>, 'error': <${q(l.error ?? '')}>, 'canChange': <${!s.disableUserExtensions}>},)`
 }
 
 /** One faked command. null: not ours — the real tool should answer it. */
@@ -161,7 +161,7 @@ export function fakeShellRun(s: FakeShellState, argv: string[]): RunResult | nul
       return ok(
         [
           uuid,
-          '  Name: gnomeola',
+          '  Name: kacola',
           `  Path: ${join(s.extensionsDir ?? '/nowhere', uuid)}`,
           `  Version: ${l.version}`,
           `  Enabled: ${enabled(s, uuid) ? 'Yes' : 'No'}`,

@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
 import {
   buildDesktop,
   ELECTRON_BIN,
@@ -8,8 +8,8 @@ import {
   footprint,
   MAIN_ENTRY,
   processTree,
-} from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+} from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // The E-1 footprint gate, kept on the record for the real app (docs/desktop-app.md). NON-BLOCKING:
@@ -46,7 +46,7 @@ describe('desktop footprint (non-blocking)', () => {
     const app = display.launchApp({
       command: ELECTRON_BIN,
       args: [MAIN_ENTRY],
-      env: { GNOMEOLA_URL: daemon.baseUrl },
+      env: { KACOLA_URL: daemon.baseUrl },
     })
     const firstPixelsMs = await probe(t0)
     let windowReadyMs = -1

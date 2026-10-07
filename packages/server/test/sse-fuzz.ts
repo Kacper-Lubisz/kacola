@@ -1,8 +1,8 @@
-import { AnyEvent, createClient, type DurableEvent, isDurable, newId } from '@gnomeola/protocol'
-import type { StoreApi } from '@gnomeola/store/core'
-import { seededRandom } from '@gnomeola/testkit/daemon'
-import { assertNoViolations, checkEventLog } from '@gnomeola/testkit/invariants'
-import { type PostgresContainer, podmanPostgresAvailable, startPostgres } from '@gnomeola/testkit/postgres'
+import { AnyEvent, createClient, type DurableEvent, isDurable, newId } from '@kacola/protocol'
+import type { StoreApi } from '@kacola/store/core'
+import { seededRandom } from '@kacola/testkit/daemon'
+import { assertNoViolations, checkEventLog } from '@kacola/testkit/invariants'
+import { type PostgresContainer, podmanPostgresAvailable, startPostgres } from '@kacola/testkit/postgres'
 import pg from 'pg'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { cuttingFetch, type Dialect, type Hosted, openStore, sleep, startHosted, waitFor } from './helpers.ts'
@@ -160,7 +160,7 @@ export function sseFuzz(seeds: number[], rawConnections: number): void {
           const res = await cut.fetch(`${h.url}/events?since=0&ephemeral=${rnd() < 0.5}`, {
             headers: { accept: 'text/event-stream', 'last-event-id': String(cursor) },
           })
-          const decoder = new (await import('@gnomeola/protocol')).SseDecoder()
+          const decoder = new (await import('@kacola/protocol')).SseDecoder()
           const text = new TextDecoder()
           try {
             for await (const chunk of res.body as AsyncIterable<Uint8Array>)
@@ -183,7 +183,7 @@ export function sseFuzz(seeds: number[], rawConnections: number): void {
           const res = await fetch(`${h.url}/events?since=${cursor}&ephemeral=false`, {
             headers: { accept: 'text/event-stream' },
           })
-          const decoder = new (await import('@gnomeola/protocol')).SseDecoder()
+          const decoder = new (await import('@kacola/protocol')).SseDecoder()
           for await (const chunk of res.body as AsyncIterable<Uint8Array>)
             for (const m of decoder.push(Buffer.from(chunk).toString('utf8'))) {
               if (!m.data) continue

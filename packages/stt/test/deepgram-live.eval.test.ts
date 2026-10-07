@@ -1,4 +1,4 @@
-import { loadFixture } from '@gnomeola/testkit/fixtures'
+import { loadFixture } from '@kacola/testkit/fixtures'
 import { describe, expect, it } from 'vitest'
 import { DeepgramProvider, float32ToS16 } from '../src/cloud/index.ts'
 

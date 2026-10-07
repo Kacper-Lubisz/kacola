@@ -7,8 +7,8 @@ import {
   createClient,
   type DurableEvent,
   formatShareLink,
-  GnomeolaApiError,
-  type GnomeolaClient,
+  KacolaApiError,
+  type KacolaClient,
   PARTICIPANT_HEADER,
   parseShareLink,
   peerAttribution,
@@ -16,8 +16,8 @@ import {
   type SharedChange,
   type ShareOp,
   type ShareStatus,
-} from '@gnomeola/protocol'
-import type { Store } from '@gnomeola/store'
+} from '@kacola/protocol'
+import type { Store } from '@kacola/store'
 import type { EventBus } from '../bus.ts'
 import { DaemonError } from '../errors.ts'
 import type { Logger } from '../logger.ts'
@@ -36,8 +36,8 @@ import { changeKey, isLocalAuthor, memberOps, ownerOps } from './share-projectio
 //          `invitee:<email>`), the owner's shared cards on a member's copy. Push first, then mirror —
 //          and an item that changed locally while the push was in flight is left for the next round.
 //
-// The owner shares from their device with the configured host's pairing token (GNOMEOLA_SHARE_URL /
-// GNOMEOLA_SHARE_TOKEN, else the hybrid-sync ones). A member follows with the link and their email
+// The owner shares from their device with the configured host's pairing token (KACOLA_SHARE_URL /
+// KACOLA_SHARE_TOKEN, else the hybrid-sync ones). A member follows with the link and their email
 // (a magic-link code) and keeps a participant token. Secrets live in `<dataDir>/agenda-shares.json`
 // (0600), never in the event log.
 
@@ -204,7 +204,7 @@ export class SharingService {
     return formatShareLink(base, f.rec.token)
   }
 
-  private client(rec: ShareRecord): GnomeolaClient {
+  private client(rec: ShareRecord): KacolaClient {
     const owner = rec.role === 'owner'
     return createClient({
       baseUrl: rec.host,
@@ -296,7 +296,7 @@ export class SharingService {
     if (!url || !token)
       throw new DaemonError(
         'unavailable',
-        'sharing needs a hosted server: set GNOMEOLA_SHARE_URL and GNOMEOLA_SHARE_TOKEN (from `gnomeola pair --url …`)',
+        'sharing needs a hosted server: set KACOLA_SHARE_URL and KACOLA_SHARE_TOKEN (from `kacola pair --url …`)',
         503,
         { reason: 'no-share-host', action: 'set-up-sharing' },
       )
@@ -628,7 +628,7 @@ export class SharingService {
       r.lastSyncAt = (this.d.now ?? (() => new Date()))().toISOString()
     } catch (err) {
       const e = this.remoteError(err)
-      const status = err instanceof GnomeolaApiError ? err.status : e.status
+      const status = err instanceof KacolaApiError ? err.status : e.status
       if (status === 410) {
         rec.revoked = 'the organizer stopped sharing this agenda'
         this.save()
@@ -859,7 +859,7 @@ export class SharingService {
 
   // ------------------------------------------------------------------------------------ helpers
 
-  private async call<T>(rec: ShareRecord, fn: (c: GnomeolaClient) => Promise<T>): Promise<T> {
+  private async call<T>(rec: ShareRecord, fn: (c: KacolaClient) => Promise<T>): Promise<T> {
     try {
       return await fn(this.client(rec))
     } catch (err) {
@@ -869,7 +869,7 @@ export class SharingService {
 
   private remoteError(err: unknown): DaemonError {
     if (err instanceof DaemonError) return err
-    if (err instanceof GnomeolaApiError) {
+    if (err instanceof KacolaApiError) {
       const code =
         err.status === 410 || err.status === 404
           ? 'not_found'

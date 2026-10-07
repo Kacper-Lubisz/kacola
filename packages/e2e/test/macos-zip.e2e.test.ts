@@ -30,7 +30,7 @@ import { electronBinary, REPO, testRuntime } from '../src/runtime.ts'
 // shim and an install-cli macOS shim are then executed against a copy of the layout with this machine's
 // Electron and natives swapped in — the scripts are the same ones a Mac runs.
 //
-// GNOMEOLA_MACOS_ZIPS=dir skips the build and inspects the zips in that directory.
+// KACOLA_MACOS_ZIPS=dir skips the build and inspects the zips in that directory.
 
 const ARCHS: MacArch[] = ['arm64', 'x64']
 const CPU = { arm64: 0x0100000c, x64: 0x01000007 } as const
@@ -38,7 +38,7 @@ const CPU = { arm64: 0x0100000c, x64: 0x01000007 } as const
 const FuseState = { ENABLE: 49, DISABLE: 48 } as const
 let zips: Record<MacArch, string>
 const apps = {} as Record<MacArch, string>
-const tmp = mkdtempSync(join(tmpdir(), 'gnomeola-macos-'))
+const tmp = mkdtempSync(join(tmpdir(), 'kacola-macos-'))
 
 function head(path: string, n = 8): Buffer {
   const fd = openSync(path, 'r')
@@ -94,7 +94,7 @@ function asarRead(path: string, file: string): Buffer {
 }
 
 beforeAll(async () => {
-  const dir = process.env.GNOMEOLA_MACOS_ZIPS
+  const dir = process.env.KACOLA_MACOS_ZIPS
   if (dir) {
     const files = readdirSync(dir).filter((f) => f.endsWith('.zip'))
     zips = Object.fromEntries(
@@ -109,18 +109,18 @@ beforeAll(async () => {
     const into = join(tmp, a)
     mkdirSync(into)
     execFileSync('unzip', ['-q', zips[a], '-d', into]) // Info-ZIP keeps the symlinks
-    apps[a] = join(into, 'gnomeola.app')
+    apps[a] = join(into, 'kacola.app')
   }
 }, 1_200_000)
 
 afterAll(() => rmSync(tmp, { recursive: true, force: true }))
 
-describe.each(ARCHS)('gnomeola.app (%s)', (arch) => {
+describe.each(ARCHS)('kacola.app (%s)', (arch) => {
   const app = () => apps[arch]
   const res = () => join(app(), 'Contents', 'Resources')
 
   it('the main executable and every native binary are Mach-O for this architecture', () => {
-    const exe = join(app(), 'Contents', 'MacOS', 'gnomeola')
+    const exe = join(app(), 'Contents', 'MacOS', 'kacola')
     expect(kind(exe)).toBe('macho64')
     expect(cpuOf(exe)).toBe(CPU[arch])
     const natives = walk(res()).filter((p) => /\.(node|dylib)$/.test(p))
@@ -154,9 +154,9 @@ describe.each(ARCHS)('gnomeola.app (%s)', (arch) => {
   it('Info.plist: identity and the privacy usage strings for microphone and system audio', () => {
     const p = plist(join(app(), 'Contents', 'Info.plist'))
     expect(p).toMatchObject({
-      CFBundleIdentifier: 'org.gnome.Gnomeola',
-      CFBundleExecutable: 'gnomeola',
-      CFBundleName: 'gnomeola',
+      CFBundleIdentifier: 'com.kacperlubisz.Kacola',
+      CFBundleExecutable: 'kacola',
+      CFBundleName: 'kacola',
       CFBundleShortVersionString: '0.1.0',
       LSMinimumSystemVersion: '12.0',
     })
@@ -189,7 +189,7 @@ describe.each(ARCHS)('gnomeola.app (%s)', (arch) => {
     for (const f of ['out/main/index.js', 'out/preload/index.cjs', 'out/renderer/index.html'])
       expect(asarRead(asar, f).length, f).toBeGreaterThan(0)
     const pkg = JSON.parse(asarRead(asar, 'package.json').toString('utf8'))
-    expect(pkg).toMatchObject({ name: 'gnomeola', main: 'out/main/index.js', type: 'module' })
+    expect(pkg).toMatchObject({ name: 'kacola', main: 'out/main/index.js', type: 'module' })
     expect(pkg.dependencies).toBeUndefined()
     for (const f of [
       'daemon.mjs',
@@ -201,10 +201,10 @@ describe.each(ARCHS)('gnomeola.app (%s)', (arch) => {
       expect(existsSync(join(res(), 'runtime', f)), f).toBe(true)
     const info = JSON.parse(readFileSync(join(res(), 'runtime', 'runtime.json'), 'utf8'))
     expect(info.targets).toEqual([`darwin-${arch}`])
-    const shim = join(res(), 'bin', 'gnomeola')
+    const shim = join(res(), 'bin', 'kacola')
     expect(lstatSync(shim).mode & 0o111).not.toBe(0) // executable after unzip
     expect(readFileSync(shim, 'utf8')).toContain(
-      'ELECTRON_RUN_AS_NODE=1 exec "$resources/../MacOS/gnomeola" "$resources/runtime/cli.mjs"',
+      'ELECTRON_RUN_AS_NODE=1 exec "$resources/../MacOS/kacola" "$resources/runtime/cli.mjs"',
     )
     expect(existsSync(join(res(), 'LICENSES.chromium.html'))).toBe(true)
     // the menu-bar Tray icon (1x / 2x); no top-bar extension on macOS
@@ -221,7 +221,7 @@ describe.each(ARCHS)('gnomeola.app (%s)', (arch) => {
 })
 
 describe('the macOS CLI shims, executed on a stand-in layout', () => {
-  // gnomeola.app's Contents with this machine's Electron as Contents/MacOS/gnomeola and the Linux
+  // kacola.app's Contents with this machine's Electron as Contents/MacOS/kacola and the Linux
   // runtime (same bundles, Linux natives): the shims' shell logic is what is under test.
   let fakeApp = ''
   let port = 0
@@ -230,11 +230,11 @@ describe('the macOS CLI shims, executed on a stand-in layout', () => {
     fakeApp = join(tmp, 'Stand In.app')
     const contents = join(fakeApp, 'Contents')
     mkdirSync(join(contents, 'MacOS'), { recursive: true })
-    symlinkSync(electronBinary(), join(contents, 'MacOS', 'gnomeola'))
+    symlinkSync(electronBinary(), join(contents, 'MacOS', 'kacola'))
     mkdirSync(join(contents, 'Resources', 'bin'), { recursive: true })
     cpSync(
-      join(apps.arm64, 'Contents', 'Resources', 'bin', 'gnomeola'),
-      join(contents, 'Resources', 'bin', 'gnomeola'),
+      join(apps.arm64, 'Contents', 'Resources', 'bin', 'kacola'),
+      join(contents, 'Resources', 'bin', 'kacola'),
     )
     cpSync(runtime, join(contents, 'Resources', 'runtime'), { recursive: true })
     port = await new Promise<number>((resolve) => {
@@ -257,19 +257,19 @@ describe('the macOS CLI shims, executed on a stand-in layout', () => {
       c.on('close', (code) => resolve({ code, stdout, stderr }))
     })
 
-  it('Resources/bin/gnomeola works through a symlink on PATH (it resolves its own location)', async () => {
+  it('Resources/bin/kacola works through a symlink on PATH (it resolves its own location)', async () => {
     const bin = join(tmp, 'pathbin')
     mkdirSync(bin)
-    symlinkSync(join(fakeApp, 'Contents', 'Resources', 'bin', 'gnomeola'), join(bin, 'gnomeola'))
-    const r = await sh('sh', ['-c', 'gnomeola --version'], { PATH: `${bin}:/usr/bin:/bin` })
+    symlinkSync(join(fakeApp, 'Contents', 'Resources', 'bin', 'kacola'), join(bin, 'kacola'))
+    const r = await sh('sh', ['-c', 'kacola --version'], { PATH: `${bin}:/usr/bin:/bin` })
     expect(r.code, r.stderr).toBe(0)
-    expect(r.stdout).toMatch(/^gnomeola 0\.1\.0/)
+    expect(r.stdout).toMatch(/^kacola 0\.1\.0/)
   })
 
   it('install-cli --mode macos writes a shim that starts the app with `open` when the daemon is down', async () => {
     const home = join(tmp, 'home')
     mkdirSync(home)
-    const inApp = join(fakeApp, 'Contents', 'Resources', 'bin', 'gnomeola')
+    const inApp = join(fakeApp, 'Contents', 'Resources', 'bin', 'kacola')
     const binDir = join(home, '.local', 'bin')
     const inst = await sh(inApp, ['install-cli', '--mode', 'macos', '--app', fakeApp, '--no-skill'], {
       HOME: home,
@@ -278,7 +278,7 @@ describe('the macOS CLI shims, executed on a stand-in layout', () => {
     expect(inst.code, inst.stderr).toBe(0)
     const report = JSON.parse(inst.stdout)
     // /usr/local/bin is not writable here: the fallback, reported
-    expect(report.shim.path).toBe(join(binDir, 'gnomeola'))
+    expect(report.shim.path).toBe(join(binDir, 'kacola'))
     expect(readFileSync(report.shim.path, 'utf8')).toContain(`open -g -a '${fakeApp}' --args --background`)
 
     // a stand-in for macOS's `open`: records its arguments, starts the bundled daemon like the app would
@@ -288,13 +288,13 @@ describe('the macOS CLI shims, executed on a stand-in layout', () => {
     const log = join(tmp, 'open.log')
     writeFileSync(
       join(fakeBin, 'open'),
-      `#!/bin/sh\necho "$@" > ${log}\nGNOMEOLA_FAKES=1 GNOMEOLA_KEYRING=memory GNOMEOLA_CALENDAR=off GNOMEOLA_DBUS=off ELECTRON_RUN_AS_NODE=1 exec "${fakeApp}/Contents/MacOS/gnomeola" "${fakeApp}/Contents/Resources/runtime/daemon.mjs" --port ${port} --data-dir ${data} >/dev/null 2>&1\n`,
+      `#!/bin/sh\necho "$@" > ${log}\nKACOLA_FAKES=1 KACOLA_KEYRING=memory KACOLA_CALENDAR=off KACOLA_DBUS=off ELECTRON_RUN_AS_NODE=1 exec "${fakeApp}/Contents/MacOS/kacola" "${fakeApp}/Contents/Resources/runtime/daemon.mjs" --port ${port} --data-dir ${data} >/dev/null 2>&1\n`,
     )
     chmodSync(join(fakeBin, 'open'), 0o755)
     const r = await sh('sh', [report.shim.path, 'sessions', 'list'], {
       PATH: `${fakeBin}:/usr/bin:/bin`,
-      GNOMEOLA_URL: `http://127.0.0.1:${port}`,
-      GNOMEOLA_START_TIMEOUT: '20',
+      KACOLA_URL: `http://127.0.0.1:${port}`,
+      KACOLA_START_TIMEOUT: '20',
     })
     try {
       expect(r.code, r.stderr).toBe(0)

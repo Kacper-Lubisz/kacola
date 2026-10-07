@@ -12,7 +12,7 @@ import {
   statusQuestions,
   type TranscriptLine,
   yesNoAnswer,
-} from '@gnomeola/decisions'
+} from '@kacola/decisions'
 import { describe, expect, it } from 'vitest'
 import {
   aggregate,

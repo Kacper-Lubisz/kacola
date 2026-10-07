@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { Store } from '@gnomeola/store'
+import { Store } from '@kacola/store'
 
 // A messy, real-world day for home (invented content, real shapes): what a person with ten calendars
 // through Evolution Data Server actually has. Thursday 1 October 2026, in Europe/London (BST, UTC+1):
@@ -242,7 +242,7 @@ export function seedMessySessions(dataDir: string): void {
   // the store's clock set to each recording's start, so createdAt and the stand-in title are what the
   // store itself would have made then
   let clock = 0
-  const store = Store.open(join(dataDir, 'gnomeola.db'), { now: () => new Date(clock) })
+  const store = Store.open(join(dataDir, 'kacola.db'), { now: () => new Date(clock) })
   const rec = (
     id: string,
     t: number,

@@ -7,7 +7,7 @@ import { type Migration, migrate, migrations, SchemaError, Store, schemaVersion 
 
 const dirs: string[] = []
 const tmp = () => {
-  const d = mkdtempSync(join(tmpdir(), 'gnomeola-mig-'))
+  const d = mkdtempSync(join(tmpdir(), 'kacola-mig-'))
   dirs.push(d)
   return join(d, 'db.sqlite')
 }

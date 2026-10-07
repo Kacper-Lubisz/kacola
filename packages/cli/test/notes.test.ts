@@ -4,7 +4,7 @@ import { BUDGET } from '../src/tokens.ts'
 import { type FakeDaemon, IDS, seed, startFakeDaemon } from './fake-daemon.ts'
 import { cli } from './helpers.ts'
 
-// N-5 — `gnomeola notes`: the notes head, action items, the version list, one old version. Read-only,
+// N-5 — `kacola notes`: the notes head, action items, the version list, one old version. Read-only,
 // private sessions invisible, capped like a transcript window.
 
 let d: FakeDaemon
@@ -23,7 +23,7 @@ afterAll(async () => {
 
 const brief = { id: IDS.standup, title: 'Platform standup', status: 'stopped' }
 
-describe('gnomeola notes', () => {
+describe('kacola notes', () => {
   it('prints the head as JSON: session, version, markdown, and whether an enhancement awaits review', async () => {
     const r = await cli(['notes', IDS.standup], { url: d.url })
     expect(r.code).toBe(EXIT.OK)

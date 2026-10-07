@@ -12,7 +12,7 @@ import {
 // kacola:// deep links, main's half (docs/desktop-app.md, "Deep links").
 
 describe('deepLinkFromArgv', () => {
-  const electron = ['/usr/lib/gnomeola/gnomeola', '--no-sandbox']
+  const electron = ['/usr/lib/kacola/kacola', '--no-sandbox']
 
   it('finds an agenda or meeting link among the other arguments', () => {
     expect(deepLinkFromArgv([...electron, 'kacola://agenda/agd_1'])).toBe('kacola://agenda/agd_1')
@@ -91,7 +91,7 @@ describe('schemeRegistration', () => {
         ...base,
         packaged: true,
         platform: 'linux',
-        env: { GNOMEOLA_REGISTER_SCHEME: '1' },
+        env: { KACOLA_REGISTER_SCHEME: '1' },
       }),
     ).toBeNull()
   })
@@ -104,14 +104,14 @@ describe('schemeRegistration', () => {
     })
   })
 
-  it('dev on Linux never touches xdg-settings unless GNOMEOLA_REGISTER_SCHEME=1', () => {
+  it('dev on Linux never touches xdg-settings unless KACOLA_REGISTER_SCHEME=1', () => {
     expect(schemeRegistration({ ...base, packaged: false, platform: 'linux' })).toBeNull()
     expect(
       schemeRegistration({
         ...base,
         packaged: false,
         platform: 'linux',
-        env: { GNOMEOLA_REGISTER_SCHEME: 'yes' },
+        env: { KACOLA_REGISTER_SCHEME: 'yes' },
       }),
     ).toBeNull()
     expect(
@@ -119,13 +119,13 @@ describe('schemeRegistration', () => {
         ...base,
         packaged: false,
         platform: 'linux',
-        env: { GNOMEOLA_REGISTER_SCHEME: '1' },
+        env: { KACOLA_REGISTER_SCHEME: '1' },
       }),
     ).toMatchObject({ scheme: 'kacola', args: [resolve('out/main/index.js')] })
   })
 
-  it('GNOMEOLA_REGISTER_SCHEME=0 turns it off everywhere', () => {
-    const env = { GNOMEOLA_REGISTER_SCHEME: '0' }
+  it('KACOLA_REGISTER_SCHEME=0 turns it off everywhere', () => {
+    const env = { KACOLA_REGISTER_SCHEME: '0' }
     for (const packaged of [true, false])
       for (const platform of ['darwin', 'linux'] as const)
         expect(schemeRegistration({ ...base, env, packaged, platform })).toBeNull()
@@ -194,11 +194,11 @@ describe('packaging declares the scheme', () => {
   const read = (...p: string[]) => readFileSync(join(repo, ...p), 'utf8')
 
   it('the Flatpak desktop file handles x-scheme-handler/kacola and passes the link on (%U)', () => {
-    const entry = read('packaging', 'flatpak', 'org.gnome.Gnomeola.desktop')
+    const entry = read('packaging', 'flatpak', 'com.kacperlubisz.Kacola.desktop')
     const main = entry.split(/^\[Desktop Action/m)[0]!
     expect(main).toMatch(/^MimeType=(.*;)?x-scheme-handler\/kacola;/m)
-    expect(main).toMatch(/^Exec=gnomeola-app %U$/m)
-    expect(read('packaging', 'flatpak', 'bin', 'gnomeola-app')).toContain('"$@"')
+    expect(main).toMatch(/^Exec=kacola-app %U$/m)
+    expect(read('packaging', 'flatpak', 'bin', 'kacola-app')).toContain('"$@"')
   })
 
   it('electron-builder writes CFBundleURLTypes (macOS) and the Linux MimeType from `protocols`', () => {

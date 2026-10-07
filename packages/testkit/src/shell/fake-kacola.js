@@ -1,18 +1,18 @@
-// A scriptable stand-in for gnomeolad's D-Bus bridge, for testing the Shell extension against every state
-// it must render without a daemon behind it. Run: `gjs -m fake-gnomeola.js <interface.xml>`.
+// A scriptable stand-in for kacolad's D-Bus bridge, for testing the Shell extension against every state
+// it must render without a daemon behind it. Run: `gjs -m fake-kacola.js <interface.xml>`.
 //
 // It speaks the SAME line protocol as the real bridge (packages/daemon/src/dbus/bridge-protocol.ts), so
 // the Node side (./fake-bus.ts) plays the daemon: it sets properties, emits signals, and answers the
-// method calls this script forwards. Owns org.gnome.Gnomeola on whatever session bus
+// method calls this script forwards. Owns com.kacperlubisz.Kacola on whatever session bus
 // DBUS_SESSION_BUS_ADDRESS names — the tests only ever point that at a throwaway bus.
 
 import Gio from 'gi://Gio'
 import GLib from 'gi://GLib'
 import System from 'system'
 
-const BUS_NAME = 'org.gnome.Gnomeola'
-const OBJECT_PATH = '/org/gnome/Gnomeola'
-const IFACE = 'org.gnome.Gnomeola'
+const BUS_NAME = 'com.kacperlubisz.Kacola'
+const OBJECT_PATH = '/com/kacperlubisz/Kacola'
+const IFACE = 'com.kacperlubisz.Kacola'
 
 const [xmlPath] = ARGV
 const [, bytes] = GLib.file_get_contents(xmlPath)

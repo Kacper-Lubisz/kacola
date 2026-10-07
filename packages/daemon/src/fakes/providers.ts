@@ -1,4 +1,4 @@
-import type { AudioDevice, ModelInfo } from '@gnomeola/protocol'
+import type { AudioDevice, ModelInfo } from '@kacola/protocol'
 import { DaemonError } from '../errors.ts'
 import type {
   DeviceProvider,

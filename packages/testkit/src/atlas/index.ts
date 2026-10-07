@@ -19,7 +19,7 @@ import { ATLAS, type AtlasEntry, type Surface, WIDTHS_MAIN, WIDTHS_ONE } from '.
 // (declared per shot, listed on the page).
 
 export const ATLAS_DIR =
-  process.env.GNOMEOLA_ATLAS_DIR ?? join(import.meta.dirname, '..', '..', '..', '..', 'dist', 'atlas')
+  process.env.KACOLA_ATLAS_DIR ?? join(import.meta.dirname, '..', '..', '..', '..', 'dist', 'atlas')
 export const SHOTS = join(ATLAS_DIR, 'shots')
 const PREVIOUS = join(ATLAS_DIR, 'previous')
 
@@ -97,10 +97,10 @@ export class Atlas {
     const e = entry(id)
     if (e.surface !== this.surface) throw new Error(`atlas: ${id} belongs to the ${e.surface} surface`)
     for (const l of [o.expect].flat()) await l.waitFor({ state: 'visible', timeout: 20_000 })
-    // GNOMEOLA_ATLAS_WIDTHS=all (or GNOMEOLA_ATLAS_ALL_WIDTHS=1): every window / web shot at every
+    // KACOLA_ATLAS_WIDTHS=all (or KACOLA_ATLAS_ALL_WIDTHS=1): every window / web shot at every
     // main width, for a design review pass; shell shots keep their one size
     const all =
-      (process.env.GNOMEOLA_ATLAS_WIDTHS === 'all' || process.env.GNOMEOLA_ATLAS_ALL_WIDTHS === '1') &&
+      (process.env.KACOLA_ATLAS_WIDTHS === 'all' || process.env.KACOLA_ATLAS_ALL_WIDTHS === '1') &&
       e.surface !== 'shell'
     const widths = o.widths ?? (e.responsive || all ? WIDTHS_MAIN : WIDTHS_ONE)
     const files: CapturedFile[] = []

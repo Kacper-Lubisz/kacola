@@ -1,4 +1,4 @@
-import { formatOffset, parseDuration, parseOffset, type Segment, type Transcript } from '@gnomeola/protocol'
+import { formatOffset, parseDuration, parseOffset, type Segment, type Transcript } from '@kacola/protocol'
 import type { Ctx } from '../context.ts'
 import { CliError, EXIT, refused, usage } from '../errors.ts'
 import { localStamp, renderJson } from '../output.ts'
@@ -38,7 +38,7 @@ export async function transcript(ctx: Ctx, idArg: string | undefined, o: Transcr
       .catch(mapApiError)
     throw refused(
       `refusing to print the whole transcript of "${probe.session.title}" (${probe.total} segments)`,
-      'search first (`gnomeola search "<topic>"`), then fetch a window: --around <mm:ss|segment-id>, ' +
+      'search first (`kacola search "<topic>"`), then fetch a window: --around <mm:ss|segment-id>, ' +
         'or --from/--to. Pass --full only if you truly need all of it.',
     )
   }

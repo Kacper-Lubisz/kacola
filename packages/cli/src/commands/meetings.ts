@@ -1,10 +1,10 @@
-import type { CalendarStatus, Meeting } from '@gnomeola/protocol'
+import type { CalendarStatus, Meeting } from '@kacola/protocol'
 import type { Ctx } from '../context.ts'
 import { CliError, EXIT } from '../errors.ts'
 import { renderJson } from '../output.ts'
 import { mapApiError } from '../sessions.ts'
 
-// X-5: `gnomeola meetings --next | --today` — what is on the user's calendar, as the daemon sees it
+// X-5: `kacola meetings --next | --today` — what is on the user's calendar, as the daemon sees it
 // (C-3). Read-only. Useful to an agent for "what is my next meeting", and for tying a recorded session
 // to the meeting it was for (sessions carry the meeting id).
 
@@ -31,7 +31,7 @@ function requireCalendar(c: CalendarStatus): void {
     throw new CliError(
       EXIT.UNAVAILABLE,
       'calendar reading is off in the daemon',
-      'set GNOMEOLA_CALENDAR=eds for gnomeolad',
+      'set KACOLA_CALENDAR=eds for kacolad',
     )
   if (c.state === 'unavailable')
     throw new CliError(EXIT.UNAVAILABLE, `calendar unavailable: ${c.detail ?? 'unknown reason'}`)

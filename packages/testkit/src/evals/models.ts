@@ -9,21 +9,21 @@ import { join } from 'node:path'
 export const TEXT_EMBEDDER_ID = 'text-embedding-minilm-l6-v2-int8'
 
 export function testModelsDir(env: NodeJS.ProcessEnv = process.env): string {
-  if (env.GNOMEOLA_TEST_MODELS_DIR) return env.GNOMEOLA_TEST_MODELS_DIR
-  return join(env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'gnomeola', 'test-models')
+  if (env.KACOLA_TEST_MODELS_DIR) return env.KACOLA_TEST_MODELS_DIR
+  return join(env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'kacola', 'test-models')
 }
 
 /** The installed embedder's directory (manifest present = verified install), or null. */
 export function findTextEmbedder(env: NodeJS.ProcessEnv = process.env): string | null {
   const roots = [
     testModelsDir(env),
-    env.GNOMEOLA_MODELS_DIR,
-    join(env.XDG_DATA_HOME || join(homedir(), '.local', 'share'), 'gnomeola', 'models'),
+    env.KACOLA_MODELS_DIR,
+    join(env.XDG_DATA_HOME || join(homedir(), '.local', 'share'), 'kacola', 'models'),
   ]
   for (const root of roots) {
     if (!root) continue
     const dir = join(root, TEXT_EMBEDDER_ID)
-    if (existsSync(join(dir, 'model_quantized.onnx')) && existsSync(join(dir, '.gnomeola-model.json')))
+    if (existsSync(join(dir, 'model_quantized.onnx')) && existsSync(join(dir, '.kacola-model.json')))
       return dir
   }
   return null

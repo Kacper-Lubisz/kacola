@@ -1,4 +1,4 @@
-import type { ExternalCaptureStatus, IngestResult, PcmFrame } from '@gnomeola/protocol'
+import type { ExternalCaptureStatus, IngestResult, PcmFrame } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import { CaptureController, captureTracks, RESEND_SECONDS } from '../src/main/capture.ts'
 import type { CaptureCommand } from '../src/shared/capture.ts'
@@ -221,6 +221,6 @@ describe('captureTracks', () => {
   it('macOS captures mic + system (loopback); Linux Chromium the mic only; the env overrides', () => {
     expect(captureTracks('darwin', {})).toEqual(['mic', 'system'])
     expect(captureTracks('linux', {})).toEqual(['mic'])
-    expect(captureTracks('linux', { GNOMEOLA_CAPTURE_TRACKS: 'system,bogus' })).toEqual(['system'])
+    expect(captureTracks('linux', { KACOLA_CAPTURE_TRACKS: 'system,bogus' })).toEqual(['system'])
   })
 })

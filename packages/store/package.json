@@ -1,5 +1,5 @@
 {
-  "name": "@gnomeola/store",
+  "name": "@kacola/store",
   "version": "0.1.0",
   "private": true,
   "description": "Persistence: kysely schema, migrations, SQLite (+FTS5) and Postgres dialects, BlobStore.",
@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
-    "@gnomeola/protocol": "workspace:*",
+    "@kacola/protocol": "workspace:*",
     "@vercel/blob": "^2.8.0",
     "better-sqlite3": "^13.0.3",
     "kysely": "^0.29.6",
@@ -24,7 +24,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@gnomeola/testkit": "workspace:*",
+    "@kacola/testkit": "workspace:*",
     "@types/better-sqlite3": "^9.6.0",
     "@types/pg": "^8.23.1"
   }

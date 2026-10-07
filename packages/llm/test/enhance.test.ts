@@ -1,4 +1,4 @@
-import { extractActionItems } from '@gnomeola/protocol'
+import { extractActionItems } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import {
   ENHANCE_SYSTEM_PROMPT,

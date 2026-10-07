@@ -9,13 +9,13 @@ packages/ui-core/          the data layer, DOM-free, Node-free (moved from the G
   src/{sessions,transcript,qa,notes,speakers,settings,format}.ts   pure folds, feeds + view logic
   src/hooks.ts                                                     useNow()
   src/i18n.ts                                                      _(), ngettext(), fmt()
-  import as '@gnomeola/ui-core/<file>' (subpath exports, no barrel)
+  import as '@kacola/ui-core/<file>' (subpath exports, no barrel)
 
 packages/desktop/
   electron.vite.config.ts   main (ESM) · preload (sandboxed CJS) · renderer (React SPA)
   fuses.config.ts           Electron fuses for packaged builds (applyFuses(binary))
   src/shared/               types + constants shared by all three processes (no runtime imports)
-    bridge.ts               IPC channel names, the window.gnomeola API type, TUNNEL_ORIGIN
+    bridge.ts               IPC channel names, the window.kacola API type, TUNNEL_ORIGIN
     tunnel-port.ts          the preload half of the fetch tunnel (runtime-free)
   src/main/                 Node + electron
     index.ts                single instance, --background, app:// protocol, IPC, window, quit
@@ -23,12 +23,12 @@ packages/desktop/
     tunnel.ts               fetch tunnel: route check, header allow-list, token, streamed frames
     supervisor.ts           DaemonSupervisor: attach / spawn / restart with backoff
     config.ts theme.ts resources.ts   env + token, portal theme, ui-state / notices / catalogues
-    integration.ts          "Install command-line tool and Claude skill" (runs `gnomeola install-cli --json`)
+    integration.ts          "Install command-line tool and Claude skill" (runs `kacola install-cli --json`)
     extension.ts            "Install top-bar extension" (a copy into the user's extensions dir, never enabled)
     autostart.ts tray.ts    background mode: autostart entry / Background portal; the macOS Tray menu model
     capture.ts              in-app capture: CaptureController (daemon's waiting list → capture window → ingest)
     deep-link.ts            kacola:// links: argv parsing, scheme registration rule, DeepLinkQueue (pure)
-  src/preload/index.ts      contextBridge.exposeInMainWorld('gnomeola', …) — one function per capability
+  src/preload/index.ts      contextBridge.exposeInMainWorld('kacola', …) — one function per capability
   src/preload/capture.ts    the capture window's bridge only (start/stop in, frames and state out)
   src/renderer/capture.html + capture/   the hidden capture window: getUserMedia / getDisplayMedia, AudioWorklet
   src/renderer/             React 19, no Node, no network
@@ -49,31 +49,31 @@ packages/desktop/
     features/onboarding/    first run: models, capture, calendar, CLI + skill
     features/about/         About (Granola credit, licence, notices)
   test/                     unit + jsdom component tests (vitest `unit` project)
-  translations/             gnomeola.pot + LINGUAS (scripts/i18n-pot.ts; see "Translations")
+  translations/             kacola.pot + LINGUAS (scripts/i18n-pot.ts; see "Translations")
 packages/testkit/src/desktop/   Playwright-for-Electron harness + footprint probes
 packages/e2e/test/desktop-*.{int,e2e}.test.ts   tunnel/supervisor against the real daemon; window e2e
 ```
 
-Scripts: `pnpm --filter @gnomeola/desktop dev` (HMR; the renderer is served by Vite), `build` (to `out/`),
+Scripts: `pnpm --filter @kacola/desktop dev` (HMR; the renderer is served by Vite), `build` (to `out/`),
 `start` (preview the build). `pnpm check` typechecks (`tsconfig.json` = main/preload/tests,
 `tsconfig.web.json` = renderer), lints and unit-tests the package.
 
 ## Process model
 
-- **Main supervises the daemon** (`supervisor.ts`). If `GNOMEOLA_URL` (default `http://127.0.0.1:8787`)
+- **Main supervises the daemon** (`supervisor.ts`). If `KACOLA_URL` (default `http://127.0.0.1:8787`)
   answers `/health` it attaches (systemd install, a remote host). Otherwise, for a loopback URL only, it
   spawns the daemon entry on Electron's own runtime (`ELECTRON_RUN_AS_NODE=1 electron <entry> --host
   --port …`) and waits for `/health`; a crash restarts it with backoff (1 s doubling to 30 s, reset
   after 60 s up); if something else takes the port meanwhile it attaches instead. A remote URL that does
   not answer is reported unreachable and polled, never replaced by a local daemon.
-- **Entry**: `GNOMEOLA_DAEMON_ENTRY`, else `resources/runtime/daemon.mjs` (packaged), else
+- **Entry**: `KACOLA_DAEMON_ENTRY`, else `resources/runtime/daemon.mjs` (packaged), else
   `packages/daemon/dist/daemon.mjs`, else `packages/daemon/src/main.ts` (dev; Electron 44's Node 24.21
-  strips types). `GNOMEOLA_DAEMON_ARGS` (JSON array) adds arguments (tests pass `--data-dir`).
+  strips types). `KACOLA_DAEMON_ARGS` (JSON array) adds arguments (tests pass `--data-dir`).
 - **Window close keeps running** (main + daemon). Quit is explicit (Ctrl+Q, `app.quit()`, SIGTERM, the
   macOS Tray's Quit) and stops the daemon we spawned — never one we attached to.
   `app.requestSingleInstanceLock()`: a second launch re-opens the first instance's window.
   `--background` starts with no window (the CLI's shim, autostart). See "Background mode".
-- The daemon's status is on the bridge (`gnomeola.daemonStatus()` / `onDaemonStatus`) and on main's
+- The daemon's status is on the bridge (`kacola.daemonStatus()` / `onDaemonStatus`) and on main's
   stdout as `{"event":"daemon","kind":…}` lines.
 
 ## Security baseline
@@ -83,7 +83,7 @@ All of it is data or pure functions in `src/main/security.ts` + `fuses.config.ts
 
 - `contextIsolation`, `sandbox`, no `nodeIntegration` (also not in workers/subframes), `webSecurity`, no
   `webviewTag`, no insecure content, no drag-drop navigation.
-- Content from `app://gnomeola/` (a privileged standard scheme), not `file://`; path traversal refused.
+- Content from `app://kacola/` (a privileged standard scheme), not `file://`; path traversal refused.
 - CSP (response header): `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:;
   font-src 'self'; connect-src 'none'; …` — no eval, no inline anything, **no network**. Consequences:
   React Aria's injected pressable `<style>` is pre-empted (`index.html` + `styles.css`), Zod runs
@@ -95,7 +95,7 @@ All of it is data or pure functions in `src/main/security.ts` + `fuses.config.ts
   video the page drops) for the window registered as the capture window. IPC handlers reject senders
   that are not our origin; the capture channels accept only the capture window.
 - A packaged build exits at start if given `--remote-debugging-port` / `--remote-debugging-pipe` unless
-  `GNOMEOLA_ALLOW_REMOTE_DEBUGGING=1` (the packaged e2e drives the window over CDP that way; the fuses
+  `KACOLA_ALLOW_REMOTE_DEBUGGING=1` (the packaged e2e drives the window over CDP that way; the fuses
   keep `--inspect` off, so Playwright's `_electron` cannot attach to a packaged build).
 - Fuses: RunAsNode **on** (one runtime runs the daemon and the CLI), NODE_OPTIONS and `--inspect` off,
   ASAR integrity + only-load-from-ASAR on, cookie encryption on, file:// privileges off; every fuse
@@ -104,7 +104,7 @@ All of it is data or pure functions in `src/main/security.ts` + `fuses.config.ts
 ## In-app capture (macOS; Linux opt-in)
 
 When the daemon records with the `external` capture backend (`/health` → `capture.backend`; the
-default on macOS, `GNOMEOLA_CAPTURE=external` on Linux), it cannot reach the sound server itself and
+default on macOS, `KACOLA_CAPTURE=external` on Linux), it cannot reach the sound server itself and
 lists each recording that waits for audio at `GET /capture/external`. Main makes that list true
 (`src/main/capture.ts`, `CaptureController`):
 
@@ -124,7 +124,7 @@ lists each recording that waits for audio at `GET /capture/external`. Main makes
   it. Pause needs nothing: the daemon discards audio while paused. Levels in the window come from the
   daemon's `audio.level` events, as with PipeWire.
 - **Linux**: Chromium has no loopback `getDisplayMedia`, so only the mic is captured
-  (`GNOMEOLA_CAPTURE_TRACKS` overrides); the system track waits unfed and is recorded as a gap. PipeWire
+  (`KACOLA_CAPTURE_TRACKS` overrides); the system track waits unfed and is recorded as a gap. PipeWire
   capture in the daemon stays the Linux default.
 - **Tested** by `packages/e2e/test/desktop-capture.e2e.test.ts`: Chromium's fake device plays the
   standup-2p mic track (`--use-fake-device-for-media-stream --use-file-for-fake-audio-capture=<wav>%noloop`)
@@ -137,26 +137,26 @@ lists each recording that waits for audio at `GET /capture/external`. Main makes
 Closing the window never stops main or the daemon. To also start that way at login: Preferences →
 Desktop Integration → "Start in the background at login" (`src/main/autostart.ts`):
 
-- **Flatpak**: the Background portal (`RequestBackground`, `autostart` + `commandline: gnomeola-app
+- **Flatpak**: the Background portal (`RequestBackground`, `autostart` + `commandline: kacola-app
   --background`) writes the host's autostart entry; the choice is remembered in
-  `$XDG_CONFIG_HOME/gnomeola/autostart.json` (the sandbox cannot see the entry). The first window close
+  `$XDG_CONFIG_HOME/kacola/autostart.json` (the sandbox cannot see the entry). The first window close
   also asks the portal (without autostart), so GNOME lists the app under Background Apps.
-- **Linux**: `$XDG_CONFIG_HOME/autostart/org.gnome.Gnomeola.desktop`, `Exec=<this binary> --background`
-  (only an entry carrying our `X-Gnomeola-Autostart=1` is ever removed).
+- **Linux**: `$XDG_CONFIG_HOME/autostart/com.kacperlubisz.Kacola.desktop`, `Exec=<this binary> --background`
+  (only an entry carrying our `X-Kacola-Autostart=1` is ever removed).
 - **macOS**: a login item with `--background`, and the menu-bar **Tray** (`src/main/tray.ts`, a pure menu
   model: status line, Record — or Pause/Resume + Stop —, Open, Quit; private meetings stay "Private
   meeting"). The Dock icon re-opens the window.
 
 ## Desktop integration installs
 
-- **CLI + skill** (`integration.ts`): the bundled `gnomeola install-cli --json`. Packaged Linux (outside
+- **CLI + skill** (`integration.ts`): the bundled `kacola install-cli --json`. Packaged Linux (outside
   Flatpak) passes `--launch '<binary>' --background`, so the shim starts this app when the daemon is
   down. In the Flatpak the CLI detects `FLATPAK_ID` and writes the host shim (`flatpak run
-  --command=gnomeola org.gnome.Gnomeola`) through `--filesystem=~/.local/bin:create`. macOS: when
+  --command=kacola com.kacperlubisz.Kacola`) through `--filesystem=~/.local/bin:create`. macOS: when
   `/usr/local/bin` needs an administrator, one `osascript … with administrator privileges` prompt installs
   the shim there and the `~/.local/bin` fallback is removed; declining keeps the fallback. Uninstall
   reports admin-only removals (`needsAdmin`) and removes them with one prompt.
-- **Top-bar extension** (`extension.ts`): copies `resources/extension/gnomeola@gnomeola.org` (schema
+- **Top-bar extension** (`extension.ts`): copies `resources/extension/kacola@kacperlubisz.com` (schema
   compiled at build time; the checkout's `extensions/` in dev, compiled at install) to
   `${XDG_DATA_HOME:-~/.local/share}/gnome-shell/extensions/` — in the Flatpak the host's
   (`HOST_XDG_DATA_HOME`, else `~/.local/share`, via `--filesystem=xdg-data/gnome-shell/extensions:create`).
@@ -169,12 +169,12 @@ app (`src/main/deep-link.ts`, pure and unit-tested; wired in `index.ts`):
 
 - **Registered**: macOS — `CFBundleURLTypes` in Info.plist (electron-builder `protocols` in
   `packaging/macos/electron-builder.yml`) and `app.setAsDefaultProtocolClient('kacola')` when packaged.
-  Flatpak — `MimeType=x-scheme-handler/kacola;` + `Exec=gnomeola-app %U` in
-  `packaging/flatpak/org.gnome.Gnomeola.desktop` (the wrapper forwards `"$@"`). `build-desktop.ts` passes
+  Flatpak — `MimeType=x-scheme-handler/kacola;` + `Exec=kacola-app %U` in
+  `packaging/flatpak/com.kacperlubisz.Kacola.desktop` (the wrapper forwards `"$@"`). `build-desktop.ts` passes
   the same `protocols`, so any desktop entry electron-builder writes carries the MimeType (the `dir`
   target writes none). Packaged Linux never calls `setAsDefaultProtocolClient`: the desktop file is the
   registration. Dev (unpackaged) registers Electron + the main script on macOS (unless
-  `GNOMEOLA_REGISTER_SCHEME=0`) and on Linux **only** with `GNOMEOLA_REGISTER_SCHEME=1` — there it runs
+  `KACOLA_REGISTER_SCHEME=0`) and on Linux **only** with `KACOLA_REGISTER_SCHEME=1` — there it runs
   `xdg-settings` and changes the user's real default handler, which tests and CI must never do.
 - **Arrival**: the first argv entry that `parseKacolaLink` accepts (≤ 4000 chars, any case of the
   scheme; anything else is ignored) on a cold start; a second launch's argv via `'second-instance'` (a
@@ -182,8 +182,8 @@ app (`src/main/deep-link.ts`, pure and unit-tested; wired in `index.ts`):
   normalised to the canonical `formatAgendaLink` / `formatMeetingLink` form — the renderer never sees
   anything else.
 - **Handshake**: `DeepLinkQueue` holds one pending link (a newer one replaces it; the same link twice
-  within 1 s counts once). The renderer subscribes with `gnomeola.onDeepLink(cb)` and then calls
-  `gnomeola.takeDeepLink()` (`IPC.deepLinkTake`, trusted senders only), which returns and clears the
+  within 1 s counts once). The renderer subscribes with `kacola.onDeepLink(cb)` and then calls
+  `kacola.takeDeepLink()` (`IPC.deepLinkTake`, trusted senders only), which returns and clears the
   pending link and marks that webContents ready. Only a ready window gets links pushed
   (`IPC.deepLink`); a reload (main-frame navigation) or a new window must take again, so a link is never
   pushed before anyone listens.
@@ -196,24 +196,24 @@ app (`src/main/deep-link.ts`, pure and unit-tested; wired in `index.ts`):
 
 ```sh
 node scripts/build-desktop.ts   # dist/desktop/linux-unpacked (electron-builder dir), ~326 MiB
-node scripts/build-flatpak.ts   # dist/flatpak: repo/ + gnomeola.flatpak (builds the above first)
-node scripts/build-macos.ts     # dist/macos/out/gnomeola-<v>-mac-{arm64,x64}.zip (unsigned)
+node scripts/build-flatpak.ts   # dist/flatpak: repo/ + kacola.flatpak (builds the above first)
+node scripts/build-macos.ts     # dist/macos/out/kacola-<v>-mac-{arm64,x64}.zip (unsigned)
 ```
 
 - `build-desktop.ts` stages `package.json` (no dependencies: main, preload and renderer are complete
   bundles — zod is bundled into main too) + `packages/desktop/out`, and runs electron-builder with
-  `executableName: gnomeola`, app id `org.gnome.Gnomeola`, the brand icons, the installed Electron as
+  `executableName: kacola`, app id `com.kacperlubisz.Kacola`, the brand icons, the installed Electron as
   `electronDist`, and extraResources `runtime/` (`scripts/build-runtime.ts`: daemon.mjs, cli.mjs,
   natives), `icon.png`, `THIRD_PARTY_NOTICES.md`, `extension/`. afterPack copies the runtime's
   `node_modules` (electron-builder drops them from extraResources) and flips the fuses from
   `fuses.config.ts`. The macOS build stages the same app (+ tray icons, `brand/icons/kacola.icns`).
 - The Flatpak installs `linux-unpacked` as `/app/main` and the brand hicolor icons renamed to the app id;
-  `gnomeola-app` runs it through `zypak-wrapper` (Chromium's renderer sandboxes are spawned through the
+  `kacola-app` runs it through `zypak-wrapper` (Chromium's renderer sandboxes are spawned through the
   Flatpak portal).
 - macOS from Linux: no code signing (no `codesign` / notarisation off a Mac). Flipping fuses changes the
   Electron framework binary after Electron's own ad-hoc signature was made, and Apple silicon refuses
   arm64 code without a valid signature — so expect the arm64 zip to need `codesign --force --deep -s -
-  gnomeola.app` (or a real identity) on a Mac before it runs. Not verified: nothing here can run a
+  kacola.app` (or a real identity) on a Mac before it runs. Not verified: nothing here can run a
   Mach-O; the zips are inspected (`macos-zip.e2e`) and need a Mac-side signing step until CI has a Mac.
 - Tests: `desktop-packaged.e2e` (the Linux app, windowed over CDP), `flatpak.e2e` (headless + windowed
   under zypak), `macos-zip.e2e` (Mach-O natives, Info.plist usage strings, fuses, shims).
@@ -224,7 +224,7 @@ The renderer's protocol client is the ordinary `createClient` with `baseUrl: TUN
 `fetch` from `data/tunnel-fetch.ts`. A request becomes a `TunnelRequest` sent with a `MessagePort` over
 `ipcRenderer.postMessage`; main (`tunnel.ts`) checks method + path against the protocol route table
 (403 otherwise, without touching the network), keeps only `accept` / `content-type` / `last-event-id`,
-adds `Authorization: Bearer <token>` (GNOMEOLA_TOKEN or `~/.config/gnomeola/hosts.json`), fetches with
+adds `Authorization: Bearer <token>` (KACOLA_TOKEN or `~/.config/kacola/hosts.json`), fetches with
 `redirect: 'error'`, and streams `head` / `chunk` / `end` / `error` frames back. The renderer sees a
 real `Response` with a streaming body, so SSE, `ask` and enhance work unchanged; aborting cancels in
 main. Node sends no `Origin`, so the daemon's CSRF / DNS-rebinding guard is untouched. The token never
@@ -233,7 +233,7 @@ pairing auth on).
 
 ## Files and clipboard
 
-The renderer has no file system: `gnomeola.copyText(text)` and `gnomeola.saveTextFile({ title,
+The renderer has no file system: `kacola.copyText(text)` and `kacola.saveTextFile({ title,
 defaultName, text })` go to main (`src/main/files.ts`: size-checked text, the suggested name reduced to
 one path component, `dialog.showSaveDialog` starting in Documents, then the write). An e2e stands in for
 the native dialog by replacing `dialog.showSaveDialog` through `app.evaluateMain` (it is looked up per
@@ -277,8 +277,8 @@ Main reads `org.freedesktop.appearance` (`color-scheme`, `contrast`) from the po
 follows changes with `gdbus monitor`, falls back to `nativeTheme`, and pushes a `Theme`; the renderer
 sets `<html data-theme data-scheme data-contrast>` — attributes, not `prefers-color-scheme`, which
 Chromium on Linux does not reliably map from `nativeTheme.themeSource`. **The accent is fixed** (record
-red): the portal's accent colour is ignored. Tests and screenshots: `GNOMEOLA_COLOR_SCHEME=light|dark`,
-`GNOMEOLA_CONTRAST=high`.
+red): the portal's accent colour is ignored. Tests and screenshots: `KACOLA_COLOR_SCHEME=light|dark`,
+`KACOLA_CONTRAST=high`.
 
 Deviations forced by the axe gate (4.5:1 for our 13–15px text), all brand tokens now (brand/README.md,
 held by `brand/scripts/tokens.test.ts`): filled record-red surfaces that carry white text (the Record
@@ -334,9 +334,9 @@ To open the transcript at a line: `navigate({ to: '.', search: atLine(segmentId,
 (`features/meeting/search-params.ts`); old `?tab=transcript` links still work.
 Dialogs: `useDialogs().open('preferences')`; toasts: `useToast()(text, { tone: 'error' })`.
 
-**Strings.** Every user-visible string through `_()` / `ngettext()` from `@gnomeola/ui-core/i18n`,
+**Strings.** Every user-visible string through `_()` / `ngettext()` from `@kacola/ui-core/i18n`,
 the literal msgid as the first argument (never a variable). Catalogues are JSON from main
-(`gnomeola.catalogue()`); see "Translations".
+(`kacola.catalogue()`); see "Translations".
 
 **Tests.**
 - Pure logic, data layer: `packages/desktop/test/*.test.ts` (unit project, Node).
@@ -347,18 +347,18 @@ the literal msgid as the first argument (never a variable). Catalogues are JSON 
   are the examples.
 - Real daemon, no window: `packages/e2e/test/desktop-*.int.test.ts` (`int` project) — the tunnel via
   `packages/desktop/test/tunnel-harness.ts`, the supervisor on Electron's runtime.
-- The window: `packages/e2e/test/desktop-*.e2e.test.ts` with `@gnomeola/testkit/desktop`:
-  `buildDesktop()` once, `startHeadlessDisplay()`, `launchDesktop({ display, env: { GNOMEOLA_URL } })`,
+- The window: `packages/e2e/test/desktop-*.e2e.test.ts` with `@kacola/testkit/desktop`:
+  `buildDesktop()` once, `startHeadlessDisplay()`, `launchDesktop({ display, env: { KACOLA_URL } })`,
   then `app.window.getByRole(...)` (Playwright), `app.axe()` → `[]`, `app.problems()` → `[]` (console
   errors, page errors, CSP violations), `app.screenshot(path)`, `waitForDaemon(app, 'attached')`,
   `app.evaluateMain(({ BrowserWindow }) => …)`, `app.close()` (explicit quit). Screenshot baselines:
   `baseline(app, name)` from `packages/e2e/src/desktop.ts` compares with
-  `test/__screenshots__/desktop/<name>.png` (a missing one is recorded; `GNOMEOLA_UPDATE_SCREENSHOTS=1`
+  `test/__screenshots__/desktop/<name>.png` (a missing one is recorded; `KACOLA_UPDATE_SCREENSHOTS=1`
   re-records after a deliberate design change; a mismatch writes `<name>.diff.png` in `__artifacts__`).
   A first-run window opens onboarding: tests about something else call `markOnboarded(display)`. Test code compiled by
   `packages/e2e` has no DOM lib: pass page-side code to `evaluate` as a string.
 - Baselines of one pane (the notes suite): an element screenshot of the pane (not the frame, which
-  shows live times) through `matchBaseline(png, baselinePng)` from `@gnomeola/testkit/desktop`. Blur
+  shows live times) through `matchBaseline(png, baselinePng)` from `@kacola/testkit/desktop`. Blur
   focus and park the pointer first, and `emulateMedia({ reducedMotion: 'reduce' })` for still spinners — Playwright's
   `animations: 'disabled'` injects a `<style>` the CSP refuses.
 - **Baselines are deterministic, and every threshold is ≤ 1%** (`expectScreenshot` default `maxDiff`
@@ -406,7 +406,7 @@ the literal msgid as the first argument (never a variable). Catalogues are JSON 
 ## Agendas (kacola wave 2)
 
 Contracts: docs/agendas.md (agenda core, drafting) and the agent channel's owner routes in
-`packages/protocol/src/agendas.ts`. Code: `features/agendas/`, folds in `@gnomeola/ui-core/agendas`.
+`packages/protocol/src/agendas.ts`. Code: `features/agendas/`, folds in `@kacola/ui-core/agendas`.
 
 - **Data.** `['agenda', id]` holds an `AgendaView`, `['agendaHistory', id]` its `StatusChange`s — both
   folded by `EventBridge.foldAgenda` with ui-core's `applyAgendaEvent` / `applyHistoryEvent`
@@ -485,7 +485,7 @@ its tiny Zustand store `useFollow`), attribution in `labels.ts` over ui-core's `
 
 ## Headless test display
 
-Every window e2e runs inside a throwaway GNOME session from `@gnomeola/testkit/ui`
+Every window e2e runs inside a throwaway GNOME session from `@kacola/testkit/ui`
 (`startHeadlessDisplay()`), never on the developer's desktop:
 
 | process | why |
@@ -499,11 +499,11 @@ Host requirements: `gnome-shell` 50, `dbus-daemon` (the reference implementation
 `python3` with PyGObject and the `Atspi-2.0` typelib, and `setpriv` (util-linux). A missing piece fails
 `startHeadlessDisplay()` loudly with every process's log — tests never skip.
 
-Isolation: `XDG_RUNTIME_DIR`, `HOME` and every `XDG_*_HOME` point into a fresh `/tmp/gnomeola-ui-*` dir;
+Isolation: `XDG_RUNTIME_DIR`, `HOME` and every `XDG_*_HOME` point into a fresh `/tmp/kacola-ui-*` dir;
 `GSETTINGS_BACKEND=keyfile` with a seeded keyfile (no welcome dialog, animations, lock or notification
 banners); the environment is built from scratch, so `DISPLAY` / `WAYLAND_DISPLAY` / the session bus
 cannot leak in. Every child runs under `setpriv --pdeathsig SIGKILL` and carries
-`GNOMEOLA_HEADLESS_ID=<id>`; `close()` stops them in reverse order, then kills anything in `/proc` still
+`KACOLA_HEADLESS_ID=<id>`; `close()` stops them in reverse order, then kills anything in `/proc` still
 carrying the marker (`markedPids(id)` → `[]` is how suites assert a clean teardown).
 `startHeadlessDisplay({ extensions: [dir] })` installs and enables Shell extensions in that session only
 (the extension suites and `install.e2e`). The harness's own e2e (`packages/testkit/src/ui/e2e/
@@ -511,20 +511,20 @@ harness.e2e.test.ts`) drives a 60-line PyGObject app (`fixture-app.py`).
 
 ## Translations
 
-Every user-visible string goes through `_()` / `ngettext()` from `@gnomeola/ui-core/i18n`, with `fmt()` for
+Every user-visible string goes through `_()` / `ngettext()` from `@kacola/ui-core/i18n`, with `fmt()` for
 named placeholders *after* translation (`fmt(_('{speaker} at {time}: {text}'), {…})`, so translators can
 reorder). Module-level label tables are functions (`providers()`, `statusLabel()`), so they translate
 when used, not at import time.
 
-- `packages/desktop/translations/gnomeola.pot` is generated by `pnpm --filter @gnomeola/desktop i18n:pot`
+- `packages/desktop/translations/kacola.pot` is generated by `pnpm --filter @kacola/desktop i18n:pot`
   (GNU xgettext ≥ 0.23 reads TSX) from `src/renderer` and `packages/ui-core/src`, deterministically (no
   creation date). `test/i18n.test.ts` (unit, no xgettext) fails when a wrapped string is missing from the
   template, when the template has stale entries, or when `_()` is called with a non-literal.
 - At run time main loads `<lang>.json` for the first preferred language (`LANGUAGE`, then `LC_ALL` /
-  `LC_MESSAGES` / `LANG`, then the system's) from `resources/locale` (packaged) or `GNOMEOLA_LOCALE_DIR`,
+  `LC_MESSAGES` / `LANG`, then the system's) from `resources/locale` (packaged) or `KACOLA_LOCALE_DIR`,
   and the renderer installs it with `setTranslator` before the first paint; English is the source strings.
   Asserted by desktop-shell's translation test with a catalogue in a temp dir.
-- Only English exists. Adding a language: `msginit -i translations/gnomeola.pot -l de -o
+- Only English exists. Adding a language: `msginit -i translations/kacola.pot -l de -o
   translations/de.po`, list it in `translations/LINGUAS`; compiling `.po` → `<lang>.json` into the
   packaged `resources/locale` is not wired yet (E-10).
 
@@ -636,7 +636,7 @@ run as an unprivileged user (Chromium's sandbox refuses root).
 | `desktop-keyboard` | A keyboard-only walkthrough (only `keyboard.press` / `type`): Ctrl+R record and stop; Ctrl+F, type, Tab to the meeting, Enter; Ctrl+2 / Ctrl+1 and the arrows on the tab list; Tab to the Question field, ask; Shift+Tab back to a citation chip, Enter (the cited line selected); Ctrl+3, Tab into the editor, type; Shift+Tab to Enhance Notes, Enter; Tab to a change's switch, Space; Shift+Tab to Apply, Enter. The focus is asserted by role and name at every stop; each step is checked against the daemon. |
 | `desktop-atspi` | What Orca sees: with accessibility support on, Chromium's AT-SPI tree on the headless session's private a11y bus (read with the testkit driver the GTK suites used) has the named frame, the Record and Main menu buttons, the Search entry, the Sessions list box with named items, the selected session's `selected` state, the page tabs, the transcript lines — and no unnamed visible control. Not covered: the platform `focused` state (neither CDP nor RemoteDesktop keys give the window a platform focus that Chromium reports in the headless Shell). |
 | `desktop-voiceprints` | The Preferences speaker switches round-trip (and follow changes made elsewhere; Escape closes, it reopens); Record / Pause / Resume / Stop with the window's buttons (paused means the pipeline says nothing); a far-end speaker named in the Speakers dialog becomes a voiceprint; the next meeting recorded from the window names them by voice (the fake pipeline's `diarize`, as in the daemon's speakers.int test); voiceprints off forgets them. |
-| `desktop-calendar` | A file calendar fixture (`GNOMEOLA_CALENDAR=file:`): the auto-record rule switched on in Preferences records a meeting when it begins, linked and titled; the session's Notes suggest the Interview template "suggested by the calendar event" even after a rename that matches nothing, and Enhance defaults to it. |
+| `desktop-calendar` | A file calendar fixture (`KACOLA_CALENDAR=file:`): the auto-record rule switched on in Preferences records a meeting when it begins, linked and titled; the session's Notes suggest the Interview template "suggested by the calendar event" even after a rename that matches nothing, and Enhance defaults to it. |
 | `desktop-dialogs` (added) | The Ask "Questions aren't available right now" and Notes "Enhancing needs a language model provider" notices, each with Open Preferences, nothing sent to the provider; then a key typed into Preferences reaches the provider from the Ask button while the earlier notice stays. |
 
 **Screenshot thresholds** (the share of differing pixels tolerated): before phase 3, `transcript-live-*`
@@ -685,17 +685,17 @@ and where the Electron window asserts it, so nothing was dropped. ✓ = asserted
 | ui-transcript › live recording: partials, provisional → final in place | desktop-transcript › shows a live recording… (started over HTTP so the pipeline can be held; the window's Record button starts recordings in desktop-voiceprints, -keyboard, -ask and -shell) | ✓ |
 | ui-transcript › follows live output; Jump to Live | desktop-transcript › follows live output… | ✓ |
 | ui-transcript › stops (UI Stop): every line final, matching the daemon | desktop-transcript › stops… (window Stop) | ✓ |
-| gnomeola-ui › split view, named rows, search, Record, nothing selected | desktop-shell › shows a split view… + desktop-smoke | ✓ |
-| gnomeola-ui › the list grows live | desktop-smoke / desktop-shell › shows a session started over HTTP live… | ✓ |
-| gnomeola-ui › selecting replaces the detail; the selection survives the list growing | desktop-shell › selecting a row shows that session… (sessions created above it) | ✓ |
-| gnomeola-ui › filters from real keyboard input | desktop-shell › filters the list… | ✓ |
-| gnomeola-ui › records and stops from the header button; meters move | desktop-shell › records… | ✓ |
-| gnomeola-ui › a screenshot of the running window | desktop-smoke › captures a screenshot… | ✓ |
-| gnomeola-ui › unreachable daemon, Try Again | desktop-shell › explains an unreachable daemon… | ✓ |
-| gnomeola-ui › the event stream resumes from its cursor, drives recording | desktop-shell › follows the event stream… | ✓ |
-| gnomeola-ui › narrow screen: collapse and navigate back | desktop-shell › the main window on a narrow screen | ✓ |
-| gnomeola-ui › Preferences / About close with Escape and reopen | desktop-voiceprints (Preferences), desktop-dialogs (About) | ✓ |
-| gnomeola-ui › widget gallery (switch, entry, combo, toasts, alert dialog) | `packages/desktop/test/primitives.test.tsx` (jsdom) + the desktop-visual gallery | ✓ (component level) |
-| gnomeola-ui › the `gtkx dev` dev server with HMR | — | n/a (GTKX tooling; `electron-vite dev` has no e2e) |
-| gnomeola-ui › demo mode (`GNOMEOLA_UI_DEMO`) | — | n/a (no demo mode: the real daemon or the stub instead) |
+| kacola-ui › split view, named rows, search, Record, nothing selected | desktop-shell › shows a split view… + desktop-smoke | ✓ |
+| kacola-ui › the list grows live | desktop-smoke / desktop-shell › shows a session started over HTTP live… | ✓ |
+| kacola-ui › selecting replaces the detail; the selection survives the list growing | desktop-shell › selecting a row shows that session… (sessions created above it) | ✓ |
+| kacola-ui › filters from real keyboard input | desktop-shell › filters the list… | ✓ |
+| kacola-ui › records and stops from the header button; meters move | desktop-shell › records… | ✓ |
+| kacola-ui › a screenshot of the running window | desktop-smoke › captures a screenshot… | ✓ |
+| kacola-ui › unreachable daemon, Try Again | desktop-shell › explains an unreachable daemon… | ✓ |
+| kacola-ui › the event stream resumes from its cursor, drives recording | desktop-shell › follows the event stream… | ✓ |
+| kacola-ui › narrow screen: collapse and navigate back | desktop-shell › the main window on a narrow screen | ✓ |
+| kacola-ui › Preferences / About close with Escape and reopen | desktop-voiceprints (Preferences), desktop-dialogs (About) | ✓ |
+| kacola-ui › widget gallery (switch, entry, combo, toasts, alert dialog) | `packages/desktop/test/primitives.test.tsx` (jsdom) + the desktop-visual gallery | ✓ (component level) |
+| kacola-ui › the `gtkx dev` dev server with HMR | — | n/a (GTKX tooling; `electron-vite dev` has no e2e) |
+| kacola-ui › demo mode (`KACOLA_UI_DEMO`) | — | n/a (no demo mode: the real daemon or the stub instead) |
 | harness.e2e (private session, AT-SPI queries, real keystrokes, screenshots, cleanup) | tests of `startHeadlessDisplay` itself, which the desktop suites still use; desktop-atspi uses its AT-SPI driver | keep with the harness (needs PyGObject) |

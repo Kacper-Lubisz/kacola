@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// gnomeolad entry point: `node packages/daemon/src/main.ts --port 8787 --data-dir …`
+// kacolad entry point: `node packages/daemon/src/main.ts --port 8787 --data-dir …`
 //
 // This file is the composition root: it picks the implementation behind every injectable interface.
 // Real capture/STT, the model manager, device listing and the LLM engine are wired here (by the lead)
 // as those packages land; until then the daemon runs with "unavailable" stubs, or with fakes under
-// --fake / GNOMEOLA_FAKES=1.
+// --fake / KACOLA_FAKES=1.
 //
 // Once listening it prints one JSON line to stdout — {"event":"listening","url":…,"port":…,"pid":…} —
 // which the test harness (and anything else that started it with --port 0) reads to find it.
@@ -17,10 +17,10 @@ import { spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ExternalCaptureHub } from '@gnomeola/capture'
-import { SyncAgent } from '@gnomeola/capture-agent/sync'
-import { createClient, DAEMON_EXIT } from '@gnomeola/protocol'
-import { DEFAULT_MODELS, defaultModelsDir, ModelManager } from '@gnomeola/stt'
+import { ExternalCaptureHub } from '@kacola/capture'
+import { SyncAgent } from '@kacola/capture-agent/sync'
+import { createClient, DAEMON_EXIT } from '@kacola/protocol'
+import { DEFAULT_MODELS, defaultModelsDir, ModelManager } from '@kacola/stt'
 import { heuristicGuard, passThroughGuard } from './agents/guard.ts'
 import { IcsCalendarProvider } from './calendar/ics.ts'
 import { EdsCalendarProvider, FileCalendarProvider, NoCalendar } from './calendar/providers.ts'
@@ -52,9 +52,9 @@ function loadOrCreateSecret(dataDir: string): string {
 function keyringFor(kind: string, service: string): Keyring {
   if (kind === 'memory') return new MemoryKeyring()
   if (kind === 'none') return new NoKeyring()
-  // macOS: the login keychain through /usr/bin/security (GNOMEOLA_SECURITY_BIN: tests' fake)
+  // macOS: the login keychain through /usr/bin/security (KACOLA_SECURITY_BIN: tests' fake)
   if (kind === 'keychain') {
-    const bin = process.env.GNOMEOLA_SECURITY_BIN
+    const bin = process.env.KACOLA_SECURITY_BIN
     return keychainAvailable(bin)
       ? new KeychainKeyring({ service, ...(bin ? { bin } : {}) })
       : new NoKeyring()
@@ -69,8 +69,8 @@ async function main(): Promise<void> {
     process.env.TYPESAFE_API_KEY = process.env.TYPESAFE_AI_API_KEY
   let cfg: ReturnType<typeof parseConfig>
   try {
-    // GNOMEOLA_PLATFORM: resolve the config as another platform would (tests run the macOS setup here)
-    cfg = parseConfig(process.argv.slice(2), process.env, process.env.GNOMEOLA_PLATFORM || process.platform)
+    // KACOLA_PLATFORM: resolve the config as another platform would (tests run the macOS setup here)
+    cfg = parseConfig(process.argv.slice(2), process.env, process.env.KACOLA_PLATFORM || process.platform)
   } catch (err) {
     if (err instanceof UsageError) {
       process.stderr.write(`${err.message}\n`)
@@ -86,7 +86,7 @@ async function main(): Promise<void> {
   } catch (err) {
     if (err instanceof DataDirLockedError) {
       process.stderr.write(
-        `gnomeolad: ${err.message}; not starting (stop that one first, or use another --data-dir)\n`,
+        `kacolad: ${err.message}; not starting (stop that one first, or use another --data-dir)\n`,
       )
       process.exit(DAEMON_EXIT.LOCKED)
     }
@@ -118,7 +118,7 @@ async function main(): Promise<void> {
   }
   // M4: the logger is created here (not by createDaemon) because the calendar provider needs it too
   mkdirSync(cfg.dataDir, { recursive: true, mode: 0o700 })
-  opts.logger = new Logger({ file: join(cfg.dataDir, 'logs', 'gnomeolad.log'), echo: cfg.echoLogs })
+  opts.logger = new Logger({ file: join(cfg.dataDir, 'logs', 'kacolad.log'), echo: cfg.echoLogs })
   opts.calendar =
     cfg.calendar.kind === 'eds'
       ? new EdsCalendarProvider({ logger: opts.logger, gjs: cfg.gjs })
@@ -252,6 +252,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  process.stderr.write(`gnomeolad failed to start: ${err instanceof Error ? err.message : String(err)}\n`)
+  process.stderr.write(`kacolad failed to start: ${err instanceof Error ? err.message : String(err)}\n`)
   process.exit(1)
 })

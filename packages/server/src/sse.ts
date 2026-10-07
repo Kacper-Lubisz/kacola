@@ -1,5 +1,5 @@
-import { type AnyEvent, encodeSse, encodeSseComment } from '@gnomeola/protocol'
-import type { StoreApi } from '@gnomeola/store/core'
+import { type AnyEvent, encodeSse, encodeSseComment } from '@kacola/protocol'
+import type { StoreApi } from '@kacola/store/core'
 
 // H-4 — GET /events on a stateless host. There is no in-process bus to go live from (the writer may be
 // another function instance, or another region), so the stream IS the log: page `seq > cursor` from
@@ -51,7 +51,7 @@ export async function* eventStream(o: EventStreamOptions): AsyncGenerator<string
   try {
     const last = await store.lastSeq()
     let cursor = o.since ?? last
-    yield encodeSseComment(`gnomeola events; lastSeq=${last}; maxStreamMs=${o.maxStreamMs}`)
+    yield encodeSseComment(`kacola events; lastSeq=${last}; maxStreamMs=${o.maxStreamMs}`)
     // "new events only": announce the starting cursor (a data-less id line) so a client that loses this
     // stream to the duration cap resumes from exactly here
     if (o.since === undefined) yield encodeSse({ id: String(cursor), data: '' })

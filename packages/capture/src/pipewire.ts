@@ -1,7 +1,7 @@
 import { type ChildProcess, spawn, spawnSync } from 'node:child_process'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import type { TrackKind } from '@gnomeola/protocol'
+import type { TrackKind } from '@kacola/protocol'
 import { trackChild } from './children.ts'
 import { type DefaultsWatcher, PwMetadataWatcher } from './defaults-watcher.ts'
 import { type Defaults, type GraphSnapshot, snapshotGraph } from './devices.ts'
@@ -366,8 +366,8 @@ export class PipeWireCaptureSource implements CaptureSource {
       'node.dont-fallback=true',
       'node.dont-reconnect=true',
       'node.dont-move=true',
-      `node.name=gnomeola-capture-${t.spec.kind}`,
-      `node.description="gnomeola ${t.spec.kind} capture"`,
+      `node.name=kacola-capture-${t.spec.kind}`,
+      `node.description="kacola ${t.spec.kind} capture"`,
       'media.role=Communication',
       ...(isSink ? ['stream.capture.sink=true'] : []),
     ]

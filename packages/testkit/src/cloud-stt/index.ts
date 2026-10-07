@@ -1,4 +1,4 @@
-// @gnomeola/testkit/cloud-stt — a fake Deepgram pre-recorded API (POST /v1/listen) for H-8 tests. There
+// @kacola/testkit/cloud-stt — a fake Deepgram pre-recorded API (POST /v1/listen) for H-8 tests. There
 // is no Deepgram key on the dev machine, so every non-live test runs against this. Its responses copy
 // the shape of a recorded Deepgram response (RECORDED_DEEPGRAM_RESPONSE below, from the API reference's
 // pre-recorded example, trimmed): metadata + results.channels[].alternatives[] + results.utterances[],

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { AudioDevice } from '@gnomeola/protocol'
+import { AudioDevice } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import { metadataName, parseMetadataLine, parsePwDump } from '../src/index.ts'
 

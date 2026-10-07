@@ -1,12 +1,12 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { formatOffset, type QaMessage } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { formatOffset, type QaMessage } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop } from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { gnomeola } from '../src/cli.ts'
+import { kacola } from '../src/cli.ts'
 import {
   expectScreenshot,
   poll,
@@ -27,7 +27,7 @@ import { SEED, seedMeetings } from '../src/seed.ts'
 import { markOnboarded } from '../src/ui.ts'
 
 // Port of ui-ask.e2e.test.ts (V-9a / Q-5) to the Electron window. The whole chain is real — Electron
-// renderer → fetch tunnel → gnomeolad (child process) → @gnomeola/llm → provider SDK → HTTP — and only
+// renderer → fetch tunnel → kacolad (child process) → @kacola/llm → provider SDK → HTTP — and only
 // the far end is a replay of recorded streams, trickled one SSE event at a time so the streaming state
 // is visible. Plus what the GTK pane did not have: cross-meeting asking (from home), the no-credits notice.
 
@@ -116,7 +116,7 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
   beforeAll(async () => {
     buildDesktop()
     api = await startFakeAnthropic({ eventDelayMs: 350 })
-    dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-ask-'))
+    dataDir = mkdtempSync(join(tmpdir(), 'kacola-desktop-ask-'))
     seedMeetings(dataDir)
     daemon = await startDaemon({
       dataDir,
@@ -125,19 +125,19 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
         ANTHROPIC_BASE_URL: api.url,
         OPENAI_API_KEY: OPENAI_KEY,
         OPENAI_BASE_URL: `${api.url}/v1`,
-        GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
+        KACOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
       },
     })
     await daemon.client.call('updateSettings', { body: { llm: { provider: 'anthropic' } } })
     display = await startHeadlessDisplay({ size: '1280x800' })
-    markerId = display.env.GNOMEOLA_HEADLESS_ID!
+    markerId = display.env.KACOLA_HEADLESS_ID!
     markOnboarded(
       display,
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
     app = await launchDesktop({
       display,
-      env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
+      env: { KACOLA_URL: daemon.baseUrl, KACOLA_COLOR_SCHEME: 'light' },
     })
     await w().getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
   }, 240_000)
@@ -301,7 +301,7 @@ describe('desktop Ask pane against the real daemon and a replayed provider API',
   it('shows questions asked by another client live, and reloads the history from the daemon', async () => {
     // the CLI asks about the same session: qa.message events bring it into the open pane
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
-    const cli = await gnomeola(['ask', 'Asked from the CLI?', '--session', SEED.long], daemon.baseUrl)
+    const cli = await kacola(['ask', 'Asked from the CLI?', '--session', SEED.long], daemon.baseUrl)
     expect(cli.code).toBe(0)
     await pane().getByText('Asked from the CLI?', { exact: true }).waitFor({ timeout: 10_000 })
     await poll(

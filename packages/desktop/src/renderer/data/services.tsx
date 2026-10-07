@@ -1,6 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { createContext, type ReactNode, useContext } from 'react'
-import type { AppInfo, GnomeolaBridge } from '../../shared/bridge.ts'
+import type { AppInfo, KacolaBridge } from '../../shared/bridge.ts'
 import type { EphemeralStore } from './ephemeral.ts'
 import type { EventBridge } from './event-bridge.ts'
 import type { Api, Queries } from './queries.ts'
@@ -9,7 +9,7 @@ import type { Api, Queries } from './queries.ts'
 // its context, for loaders). Tests build their own with fakes.
 
 export type Services = {
-  bridge: GnomeolaBridge
+  bridge: KacolaBridge
   api: Api
   queries: Queries
   queryClient: QueryClient

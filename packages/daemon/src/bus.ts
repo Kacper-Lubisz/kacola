@@ -1,4 +1,4 @@
-import type { AnyEvent, EphemeralEvent, EphemeralEventData } from '@gnomeola/protocol'
+import type { AnyEvent, EphemeralEvent, EphemeralEventData } from '@kacola/protocol'
 
 // In-process fan-out. Durable events arrive here from Store.onCommit (after the transaction, in seq
 // order, exactly once); ephemeral ones are published directly. Subscribers are called synchronously.

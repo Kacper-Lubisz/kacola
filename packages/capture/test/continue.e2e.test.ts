@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@gnomeola/testkit/rig'
+import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@kacola/testkit/rig'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PipeWireCaptureSource, recoverWav, SAMPLES_PER_MS } from '../src/index.ts'
 import { observe, readTrack, sleep, tempDir } from './scenario.ts'

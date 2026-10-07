@@ -59,7 +59,7 @@ describe('asciiOnly (bundle output)', () => {
   it('escapes every non-ASCII unit, and the code means the same', () => {
     const src =
       // biome-ignore lint/suspicious/noTemplateCurlyInString: source code under test, not a template
-      'const s = "Starting… — ☝️ 😀", t = `gnomeola — ${1}`, r = /[—–]/u, q = /[—–]/; ' +
+      'const s = "Starting… — ☝️ 😀", t = `kacola — ${1}`, r = /[—–]/u, q = /[—–]/; ' +
       '[s, t, r.test("–"), q.test("—"), "😀".length]'
     const out = run(src)
     expect([...out].filter((c) => c.charCodeAt(0) > 0x7f)).toEqual([])

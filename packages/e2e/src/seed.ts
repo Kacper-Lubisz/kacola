@@ -1,6 +1,6 @@
 import { join } from 'node:path'
-import { defaultChoices, diffNoteBlocks } from '@gnomeola/protocol'
-import { NoteStore, Store } from '@gnomeola/store'
+import { defaultChoices, diffNoteBlocks } from '@kacola/protocol'
+import { NoteStore, Store } from '@kacola/store'
 
 // A seeded world for system tests, written through the store's own API (so the event log is exactly what
 // the daemon would have produced) before the daemon starts on the same data dir. The content mirrors the
@@ -31,7 +31,7 @@ const STANDUP: Line[] = [
 ]
 
 export function seedMeetings(dataDir: string): void {
-  const store = Store.open(join(dataDir, 'gnomeola.db'))
+  const store = Store.open(join(dataDir, 'kacola.db'))
   let n = 0
   const segId = () => `seg_${String(++n).padStart(9, '0')}${'e'.repeat(12)}`
   const meeting = (id: string, title: string, durationMs: number, lines: Line[], priv = false) => {

@@ -10,7 +10,7 @@ sync) + `share-projection.ts` (the privacy boundary), `packages/web/src/agenda*.
 
 | role | how they act | may |
 | --- | --- | --- |
-| **owner** | their own daemon, with the hosted server's pairing token (`GNOMEOLA_SHARE_URL` / `GNOMEOLA_SHARE_TOKEN`, else the hybrid-sync ones) | share, unshare, edit everything, share the recap, moderate |
+| **owner** | their own daemon, with the hosted server's pairing token (`KACOLA_SHARE_URL` / `KACOLA_SHARE_TOKEN`, else the hybrid-sync ones) | share, unshare, edit everything, share the recap, moderate |
 | **member** | an attendee running kacola whose email the owner listed (`members`): their daemon follows with the link + a magic-link code and keeps a participant token | push their own status changes (person, tracker, agent), add and edit their own items |
 | **invitee** | anyone with the link who confirmed an email (magic link), in the browser | add an item (topic or question), comment |
 | anyone with the link | the page | read the agenda; outcomes only once the recap is shared |
@@ -98,7 +98,7 @@ Hosted server (`sharingRoutes`; schemas in `protocol/src/sharing.ts`):
 | `POST /shared/:shareId/participants/:id/revoke`, `…/comments/:id/hide` | owner | moderation |
 | `GET /shared/link/:token?occurrence` | anyone | `SharedAgendaPage` |
 | `POST /shared/link/:token/verify {email, name?}` | anyone | always `{sent: true}`; mails a code only to a listed member or, with invitees allowed, anyone |
-| `POST /shared/link/:token/confirm {email, code}` | anyone | `{shareId, participant, token}` — present the token in `x-gnomeola-participant` |
+| `POST /shared/link/:token/confirm {email, code}` | anyone | `{shareId, participant, token}` — present the token in `x-kacola-participant` |
 | `POST /shared/link/:token/items` · `…/comments` | participant | an item (topic / question) · a comment (on an item or the agenda) |
 
 Durable events (hosted only, appended to `DurableEventData`): `share.upserted`, `share.revoked`,
@@ -111,9 +111,9 @@ codes per link per hour; 5 wrong guesses burn a code; 20 contributions per parti
 contributed items and 500 comments per share; 300 items per occurrence. A hit is a **429** with
 `retry-after`. Verifying never reveals whether an address may join.
 
-Mailer (`packages/server/src/mailer.ts`): `GNOMEOLA_MAIL_WEBHOOK` (+ `GNOMEOLA_MAIL_WEBHOOK_SECRET`, sent
-as a Bearer token) POSTs `{to, subject, text}` to a relay you run; `GNOMEOLA_MAILER=console` logs (dev);
-none → the page is read-only and `verify` is a 501. `GNOMEOLA_PUBLIC_URL` sets the base of the links in
+Mailer (`packages/server/src/mailer.ts`): `KACOLA_MAIL_WEBHOOK` (+ `KACOLA_MAIL_WEBHOOK_SECRET`, sent
+as a Bearer token) POSTs `{to, subject, text}` to a relay you run; `KACOLA_MAILER=console` logs (dev);
+none → the page is read-only and `verify` is a 501. `KACOLA_PUBLIC_URL` sets the base of the links in
 emails (default: the request's origin).
 
 ## What the window needs (routes on the local daemon)
@@ -136,10 +136,10 @@ emails (default: the request's origin).
 - `agendaInviteBlock` now carries `web: <link>` once the agenda is shared (no web link before).
 - Owner-only routes refuse an agent's lease token (403), like the rest of the owner surface.
 
-Configuration (daemon): `GNOMEOLA_SHARE_URL`, `GNOMEOLA_SHARE_TOKEN` (default the `GNOMEOLA_SYNC_*`
-ones), `GNOMEOLA_OWNER_NAME`, `GNOMEOLA_OWNER_EMAIL` (your `peer:` label on others' devices),
-`GNOMEOLA_AGENDA_WEB_BASE` (the link's base, default the host), `GNOMEOLA_SHARE_POLL_MS` (default 15 000),
-`GNOMEOLA_SHARE_DEBOUNCE_MS` (default 500).
+Configuration (daemon): `KACOLA_SHARE_URL`, `KACOLA_SHARE_TOKEN` (default the `KACOLA_SYNC_*`
+ones), `KACOLA_OWNER_NAME`, `KACOLA_OWNER_EMAIL` (your `peer:` label on others' devices),
+`KACOLA_AGENDA_WEB_BASE` (the link's base, default the host), `KACOLA_SHARE_POLL_MS` (default 15 000),
+`KACOLA_SHARE_DEBOUNCE_MS` (default 500).
 
 ## The window, the CLI and MCP (L-23…L-27)
 

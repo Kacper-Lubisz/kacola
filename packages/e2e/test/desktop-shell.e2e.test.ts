@@ -2,17 +2,17 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
-import { makeSession, type StubDaemon, startStubDaemon } from '@gnomeola/testkit/stub-daemon'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop } from '@kacola/testkit/desktop'
+import { makeSession, type StubDaemon, startStubDaemon } from '@kacola/testkit/stub-daemon'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { DESKTOP_ARTIFACTS, markOnboarded } from '../src/desktop.ts'
 import { SEED, seedMeetings } from '../src/seed.ts'
 
 // The Electron window's shell against the real daemon and the protocol stub — home (the day, search,
 // New recording), the meeting page and Back to Today; originally the port of the GTK suites' session-list /
-// record assertions (packages/testkit/src/ui/e2e/gnomeola-ui.e2e.test.ts, the
+// record assertions (packages/testkit/src/ui/e2e/kacola-ui.e2e.test.ts, the
 // session-list and record parts of ui-transcript.e2e.test.ts) and ui-i18n.e2e.test.ts. Same
 // behaviours, role + name locators.
 
@@ -24,7 +24,7 @@ let markerId = ''
 beforeAll(async () => {
   buildDesktop()
   display = await startHeadlessDisplay({ size: '1280x800' })
-  markerId = display.env.GNOMEOLA_HEADLESS_ID!
+  markerId = display.env.KACOLA_HEADLESS_ID!
   markOnboarded(display)
 }, 240_000)
 
@@ -59,10 +59,10 @@ describe('the main window against the real daemon (seeded, fake capture)', () =>
   let dataDir: string
 
   beforeAll(async () => {
-    dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-shell-'))
+    dataDir = mkdtempSync(join(tmpdir(), 'kacola-desktop-shell-'))
     seedMeetings(dataDir)
     daemon = await startDaemon({ dataDir })
-    app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
+    app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl } })
     await app.window.getByRole('list', { name: 'Today’s meetings' }).waitFor({ timeout: 20_000 })
   }, 120_000)
 
@@ -319,7 +319,7 @@ describe('the main window against the protocol stub', () => {
     // a remote-looking URL is never replaced by a spawned daemon: point at a loopback one with no entry
     const app = await launchDesktop({
       display,
-      env: { GNOMEOLA_URL: url, GNOMEOLA_DAEMON_ENTRY: '/nonexistent' },
+      env: { KACOLA_URL: url, KACOLA_DAEMON_ENTRY: '/nonexistent' },
     })
     try {
       await app.window.getByRole('heading', { name: 'Can’t reach kacola' }).waitFor({ timeout: 30_000 })
@@ -347,7 +347,7 @@ describe('the main window against the protocol stub', () => {
       startedAt: '2026-09-20T09:00:00.000Z',
     })
     stub = await startStubDaemon([older, newer])
-    const app = await launchDesktop({ display, env: { GNOMEOLA_URL: stub.url } })
+    const app = await launchDesktop({ display, env: { KACOLA_URL: stub.url } })
     try {
       await expect
         .poll(() => rowNames(app), { timeout: 30_000 })
@@ -405,7 +405,7 @@ describe('the main window on a narrow screen', () => {
     markOnboarded(d)
     const daemon = await startDaemon()
     await daemon.client.call('createSession', { body: { title: '1:1 with Sam' } })
-    const app = await launchDesktop({ display: d, env: { GNOMEOLA_URL: daemon.baseUrl } })
+    const app = await launchDesktop({ display: d, env: { KACOLA_URL: daemon.baseUrl } })
     try {
       await app.window.setViewportSize({ width: 360, height: 760 })
       await home(app).waitFor({ timeout: 20_000 })
@@ -430,7 +430,7 @@ describe('the main window on a narrow screen', () => {
 
 describe('translations', () => {
   it('shows strings from a catalogue when LANGUAGE asks for it; untranslated ones fall back to English', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-locale-'))
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-desktop-locale-'))
     mkdirSync(dir, { recursive: true })
     writeFileSync(
       join(dir, 'de.json'),
@@ -447,8 +447,8 @@ describe('translations', () => {
     const app = await launchDesktop({
       display,
       env: {
-        GNOMEOLA_URL: daemon.baseUrl,
-        GNOMEOLA_LOCALE_DIR: dir,
+        KACOLA_URL: daemon.baseUrl,
+        KACOLA_LOCALE_DIR: dir,
         LANGUAGE: 'de',
         LC_ALL: 'de_DE.UTF-8',
         LANG: 'de_DE.UTF-8',

@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Worker } from 'node:worker_threads'
-import { assertNoViolations, checkEventLog } from '@gnomeola/testkit/invariants'
+import { assertNoViolations, checkEventLog } from '@kacola/testkit/invariants'
 import { afterAll, describe, expect, it } from 'vitest'
 import { Store } from '../src/index.ts'
 
@@ -10,7 +10,7 @@ import { Store } from '../src/index.ts'
 // transactions + the counter row must keep seq gap-free and unique across all of them, and every
 // event must be in the log exactly once with its state row.
 describe('concurrent writers on one database file', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'gnomeola-conc-'))
+  const dir = mkdtempSync(join(tmpdir(), 'kacola-conc-'))
   afterAll(() => rmSync(dir, { recursive: true, force: true }))
 
   it('keeps the log gap-free and duplicate-free', async () => {

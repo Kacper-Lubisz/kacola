@@ -6,7 +6,7 @@ import {
   type SharedActor,
   type SharedChange,
   type ShareStatus,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import type { Ctx } from '../context.ts'
 import { CliError, EXIT, refused, usage } from '../errors.ts'
 import { renderJson } from '../output.ts'
@@ -180,7 +180,7 @@ export async function agendaSend(ctx: Ctx, ref: string | undefined, o: ShareOpts
     ctx.io.stdout(`${r.message}${r.writeReason ? ` (not written: ${r.writeReason})` : ''}\n`)
   }
   if (r.state === 'no-share-host')
-    throw new CliError(EXIT.UNAVAILABLE, r.message, 'pair with a sharing server: gnomeola pair --url <URL>')
+    throw new CliError(EXIT.UNAVAILABLE, r.message, 'pair with a sharing server: kacola pair --url <URL>')
   if (r.state === 'not-shareable') throw refused(r.message)
 }
 
@@ -241,7 +241,7 @@ export async function agendaFollow(ctx: Ctx, link: string | undefined, o: { emai
     .catch(mapApiError)
   if (ctx.format === 'json') return ctx.io.stdout(renderJson(r, ctx.io))
   ctx.io.stdout(
-    `if ${o.email} may follow it, a code is on its way (valid until ${r.expiresAt})\nthen: gnomeola agenda follow-confirm ${l} --email ${o.email} --code <CODE>\n`,
+    `if ${o.email} may follow it, a code is on its way (valid until ${r.expiresAt})\nthen: kacola agenda follow-confirm ${l} --email ${o.email} --code <CODE>\n`,
   )
 }
 

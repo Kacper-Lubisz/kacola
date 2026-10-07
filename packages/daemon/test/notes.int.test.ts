@@ -3,12 +3,12 @@ import {
   diffNoteBlocks,
   type EnhanceStreamEvent,
   enhanceEvents,
-  GnomeolaApiError,
-  type GnomeolaClient,
+  KacolaApiError,
+  type KacolaClient,
   mergeNoteBlocks,
-} from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { assertNoViolations, checkEventLog } from '@gnomeola/testkit/invariants'
+} from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { assertNoViolations, checkEventLog } from '@kacola/testkit/invariants'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { durable, readEvents } from './helpers.ts'
 
@@ -21,12 +21,12 @@ async function status(p: Promise<unknown>): Promise<number> {
     await p
     return 200
   } catch (err) {
-    if (err instanceof GnomeolaApiError) return err.status
+    if (err instanceof KacolaApiError) return err.status
     throw err
   }
 }
 
-async function record(c: GnomeolaClient, title: string, priv = false) {
+async function record(c: KacolaClient, title: string, priv = false) {
   const s = await c.call('createSession', { body: { title, private: priv } })
   await c.call('startSession', { params: { id: s.id } })
   await waitFor(
@@ -38,7 +38,7 @@ async function record(c: GnomeolaClient, title: string, priv = false) {
   return s
 }
 
-async function enhanceAll(c: GnomeolaClient, id: string, body: Record<string, unknown> = {}) {
+async function enhanceAll(c: KacolaClient, id: string, body: Record<string, unknown> = {}) {
   const events: EnhanceStreamEvent[] = []
   for await (const e of enhanceEvents(c.stream('enhanceNotes', { params: { id }, body }))) events.push(e)
   return events
@@ -46,15 +46,15 @@ async function enhanceAll(c: GnomeolaClient, id: string, body: Record<string, un
 
 describe('notes through the real daemon', () => {
   let d: DaemonHandle
-  let c: GnomeolaClient
+  let c: KacolaClient
   let s: { id: string }
   let priv: { id: string }
 
   beforeAll(async () => {
     d = await startDaemon({
       env: {
-        GNOMEOLA_FAKE_QA: '1',
-        GNOMEOLA_FAKE_PIPELINE: JSON.stringify({ segmentEveryMs: 60, finalizeAfterMs: 30 }),
+        KACOLA_FAKE_QA: '1',
+        KACOLA_FAKE_PIPELINE: JSON.stringify({ segmentEveryMs: 60, finalizeAfterMs: 30 }),
       },
     })
     c = d.client
@@ -208,9 +208,9 @@ describe('notes through the real daemon', () => {
     )
     // private means never sent to the cloud: a typed 409 with the default (cloud) provider…
     const refused = await enhanceAll(c, priv.id, { includePrivate: true }).catch((e: unknown) => e)
-    expect(refused).toBeInstanceOf(GnomeolaApiError)
-    expect((refused as GnomeolaApiError).status).toBe(409)
-    expect((refused as GnomeolaApiError).detail.reason).toBe('private-meeting')
+    expect(refused).toBeInstanceOf(KacolaApiError)
+    expect((refused as KacolaApiError).status).toBe(409)
+    expect((refused as KacolaApiError).detail.reason).toBe('private-meeting')
     // …and allowed with Ollama on this computer
     await c.call('updateSettings', { body: { llm: { provider: 'ollama' } } })
     try {

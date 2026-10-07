@@ -1,4 +1,4 @@
-import { _ } from '@gnomeola/ui-core/i18n'
+import { _ } from '@kacola/ui-core/i18n'
 import type { ReactNode } from 'react'
 import { Dialog as AriaDialog, Heading, Modal, ModalOverlay } from 'react-aria-components'
 import { Button } from './button.tsx'

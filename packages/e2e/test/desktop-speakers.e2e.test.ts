@@ -1,11 +1,11 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { Segment, SpeakerSummary } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
-import { assertNoViolations, checkAttribution } from '@gnomeola/testkit/invariants'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import type { Segment, SpeakerSummary } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop } from '@kacola/testkit/desktop'
+import { assertNoViolations, checkAttribution } from '@kacola/testkit/invariants'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   expectScreenshot,
@@ -89,8 +89,8 @@ describe('desktop speakers against the real daemon', () => {
 
   beforeAll(async () => {
     buildDesktop()
-    dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-speakers-'))
-    daemon = await startDaemon({ dataDir, env: { GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE) } })
+    dataDir = mkdtempSync(join(tmpdir(), 'kacola-desktop-speakers-'))
+    daemon = await startDaemon({ dataDir, env: { KACOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE) } })
     // a short recording, diarized by the fake pipeline: far-end voices in the pattern 0 1 1 0 2 0 1
     const s = await daemon.client.call('createSession', { body: { title: TITLE } })
     sessionId = s.id
@@ -102,14 +102,14 @@ describe('desktop speakers against the real daemon', () => {
     )
     await daemon.client.call('stopSession', { params: { id: s.id } })
     display = await startHeadlessDisplay({ size: '1280x800' })
-    markerId = display.env.GNOMEOLA_HEADLESS_ID!
+    markerId = display.env.KACOLA_HEADLESS_ID!
     markOnboarded(
       display,
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
     app = await launchDesktop({
       display,
-      env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
+      env: { KACOLA_URL: daemon.baseUrl, KACOLA_COLOR_SCHEME: 'light' },
     })
     await w().getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
   }, 240_000)

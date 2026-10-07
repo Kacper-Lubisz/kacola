@@ -4,7 +4,7 @@
 //   e.g. node packages/evals/scripts/export-real.ts ses_… packages/testkit/fixtures/evals/private/my-meeting
 //
 // Only GET routes are called (GET /sessions/:id/transcript), so nothing in the daemon changes. The daemon
-// is GNOMEOLA_URL (default http://127.0.0.1:8787); a remote host needs GNOMEOLA_TOKEN. Writes
+// is KACOLA_URL (default http://127.0.0.1:8787); a remote host needs KACOLA_TOKEN. Writes
 // <outDir>/transcript.json (segments in time order: id, speaker, track, startMs, endMs, text).
 //
 // The output is a real conversation: keep it in a gitignored directory (fixtures/evals/private/ is one)
@@ -18,9 +18,9 @@ if (!sessionId || !outDir) {
   console.error('usage: node packages/evals/scripts/export-real.ts <sessionId> <outDir>')
   process.exit(2)
 }
-const base = (process.env.GNOMEOLA_URL ?? 'http://127.0.0.1:8787').replace(/\/+$/, '')
+const base = (process.env.KACOLA_URL ?? 'http://127.0.0.1:8787').replace(/\/+$/, '')
 const headers: Record<string, string> = { accept: 'application/json' }
-if (process.env.GNOMEOLA_TOKEN) headers.authorization = `Bearer ${process.env.GNOMEOLA_TOKEN}`
+if (process.env.KACOLA_TOKEN) headers.authorization = `Bearer ${process.env.KACOLA_TOKEN}`
 
 const res = await fetch(`${base}/sessions/${encodeURIComponent(sessionId)}/transcript?quality=best`, {
   method: 'GET',

@@ -1,10 +1,10 @@
-# gnomeola as a Flatpak: the Electron app (window + daemon + CLI on one runtime) on the freedesktop 25.08
+# kacola as a Flatpak: the Electron app (window + daemon + CLI on one runtime) on the freedesktop 25.08
 # runtime and the Electron BaseApp.
 #
 # Build with scripts/build-flatpak.ts, which first assembles ./input (git-ignored):
 #
 #   input/app/                     the unpacked Electron app — electron-builder's `linux-unpacked` output
-#     gnomeola                     of packages/desktop (scripts/build-desktop.ts, or --app-dir): the
+#     kacola                     of packages/desktop (scripts/build-desktop.ts, or --app-dir): the
 #     resources/app.asar           Electron 44 binary (fuses flipped) and the app's main/preload/renderer
 #     resources/runtime/           dist/runtime from scripts/build-runtime.ts: daemon.mjs, cli.mjs,
 #                                  diarize-worker.mjs, root/ (gjs helpers, D-Bus XML), node_modules/
@@ -15,13 +15,13 @@
 # The runtime already ships pw-record / pw-dump (PipeWire), ffmpeg and stdbuf. It lacks secret-tool
 # (built below from libsecret) and gjs (the D-Bus bridge and the EDS calendar agent run on it):
 # modules/gjs.yml builds mozjs 140 + gjs 1.88.
-id: org.gnome.Gnomeola
+id: com.kacperlubisz.Kacola
 runtime: org.freedesktop.Platform
 runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
 base: org.electronjs.Electron2.BaseApp
 base-version: '25.08'
-command: gnomeola-app
+command: kacola-app
 separate-locales: false
 # only to build mozjs (modules/gjs.yml)
 sdk-extensions:
@@ -40,10 +40,10 @@ finish-args:
   # calendar: Evolution Data Server (GNOME Online Accounts calendars) through the cal-agent
   - --talk-name=org.gnome.evolution.dataserver.*
   # the top-bar extension reaches the daemon on the session bus
-  - --own-name=org.gnome.Gnomeola
+  - --own-name=com.kacperlubisz.Kacola
   # API keys in the user's keyring (secret-tool)
   - --talk-name=org.freedesktop.secrets
-  # install-cli: the `gnomeola` shim and the Claude skill; the "install top-bar extension" button
+  # install-cli: the `kacola` shim and the Claude skill; the "install top-bar extension" button
   - --filesystem=~/.local/bin:create
   - --filesystem=~/.claude/skills:create
   - --filesystem=xdg-data/gnome-shell/extensions:create
@@ -77,19 +77,19 @@ modules:
 
   - modules/gjs.yml
 
-  - name: gnomeola
+  - name: kacola
     buildsystem: simple
     sources:
       - type: dir
         path: input
     build-commands:
       - cp -a app /app/main
-      - chmod +x /app/main/gnomeola
-      # bin/: gnomeola-app (the window, through zypak so Chromium's sandbox works inside Flatpak's),
-      # gnomeola and gnomeolad (the CLI and the daemon: the same Electron binary as Node — the RunAsNode
-      # fuse stays on), gnomeola-selftest (natives, PipeWire and the data dirs, from inside the sandbox)
+      - chmod +x /app/main/kacola
+      # bin/: kacola-app (the window, through zypak so Chromium's sandbox works inside Flatpak's),
+      # kacola and kacolad (the CLI and the daemon: the same Electron binary as Node — the RunAsNode
+      # fuse stays on), kacola-selftest (natives, PipeWire and the data dirs, from inside the sandbox)
       - install -Dm755 -t /app/bin bin/*
-      - install -Dm644 share/selftest.mjs /app/share/gnomeola/selftest.mjs
-      - install -Dm644 share/org.gnome.Gnomeola.desktop /app/share/applications/org.gnome.Gnomeola.desktop
-      - install -Dm644 share/org.gnome.Gnomeola.metainfo.xml /app/share/metainfo/org.gnome.Gnomeola.metainfo.xml
+      - install -Dm644 share/selftest.mjs /app/share/kacola/selftest.mjs
+      - install -Dm644 share/com.kacperlubisz.Kacola.desktop /app/share/applications/com.kacperlubisz.Kacola.desktop
+      - install -Dm644 share/com.kacperlubisz.Kacola.metainfo.xml /app/share/metainfo/com.kacperlubisz.Kacola.metainfo.xml
       - cp -r share/icons /app/share/icons

@@ -2,7 +2,7 @@
 //
 //   ANTHROPIC_API_KEY=… pnpm exec vitest run --project eval packages/llm/test/enhance.eval.test.ts
 //
-// Add GNOMEOLA_CASSETTES=record to also write the traffic to
+// Add KACOLA_CASSETTES=record to also write the traffic to
 // test/fixtures/cassettes/recorded/enhance-eval.json. The deterministic stand-in that runs in CI is
 // enhance.cassettes.int.test.ts, which scores hand-authored responses with the same scorer.
 //
@@ -14,8 +14,8 @@
 //
 // Without a key every test here is skipped and the reason is printed; nothing passes vacuously.
 import { join } from 'node:path'
-import { extractActionItems } from '@gnomeola/protocol'
-import { cassetteMode, useCassette } from '@gnomeola/testkit/cassettes'
+import { extractActionItems } from '@kacola/protocol'
+import { cassetteMode, useCassette } from '@kacola/testkit/cassettes'
 import { afterAll, describe, expect, it } from 'vitest'
 import { AnthropicProvider } from '../src/anthropic.ts'
 import { estimateCostUsd } from '../src/cost.ts'

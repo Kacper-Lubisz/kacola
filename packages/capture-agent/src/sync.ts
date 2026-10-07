@@ -1,18 +1,18 @@
 import {
   AnyEvent,
   type DurableEvent,
-  type GnomeolaClient,
   isDurable,
+  type KacolaClient,
   type Session,
   SYNC_MAX_ITEMS,
   type SyncItem,
   type SyncPushResult,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 
 // H-7 — hybrid sync, the recommended hosted topology: capture AND transcription stay on the laptop;
 // transcripts, notes and Q&A are pushed up to a hosted server. The agent is a protocol client of both
 // ends — it reads the local daemon's /events and POSTs /sync/push to the remote — so it needs nothing
-// from the daemon's internals and can run in the daemon, beside it, or in `gnomeola-agent sync`.
+// from the daemon's internals and can run in the daemon, beside it, or in `kacola-agent sync`.
 //
 // Idempotent and resumable by construction: items carry the LOCAL seq; the server keeps a cursor per
 // device and skips anything at or below it, inside the same transaction that applies the rest. After any
@@ -28,8 +28,8 @@ import {
 // on every start (pushing only what lies beyond the server's cursor).
 
 export type SyncAgentOptions = {
-  local: GnomeolaClient
-  remote: GnomeolaClient
+  local: KacolaClient
+  remote: KacolaClient
   /** Identifies this device when the remote has no auth (tests); a device token overrides it. */
   deviceId?: string
   /** Items per push (default and max SYNC_MAX_ITEMS). */
@@ -315,7 +315,7 @@ export class SyncAgent {
     }
   }
 
-  /** Push everything the local log holds right now, then return (gnomeola-agent sync --once, tests). */
+  /** Push everything the local log holds right now, then return (kacola-agent sync --once, tests). */
   async syncOnce(signal?: AbortSignal): Promise<SyncStats> {
     await this.start(signal)
     const { lastSeq } = await this.o.local.call('health', { signal })

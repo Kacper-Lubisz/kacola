@@ -1,6 +1,6 @@
-import { extractInviteBlock, INVITE_BLOCK_START, type Meeting } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { CALENDARS, type EdsHandle, type LiveFixture, liveFixture, startEds } from '@gnomeola/testkit/eds'
+import { extractInviteBlock, INVITE_BLOCK_START, type Meeting } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { CALENDARS, type EdsHandle, type LiveFixture, liveFixture, startEds } from '@kacola/testkit/eds'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // The invitation block through the whole stack: the REAL daemon, its REAL cal-agent, a REAL (isolated,
@@ -19,7 +19,7 @@ const ics = (d: Date) => `${d.toISOString().slice(0, 19).replace(/[-:]/g, '')}Z`
 async function addEvent(uid: string, summary: string, organizer: string, startInMin: number) {
   const start = new Date(Math.ceil(Date.now() / 60_000) * 60_000 + startInMin * 60_000)
   await eds.createEvent(
-    'gnomeola-live',
+    'kacola-live',
     [
       'BEGIN:VEVENT',
       `UID:${uid}`,
@@ -50,7 +50,7 @@ async function meetingFor(uid: string): Promise<Meeting> {
 }
 
 const description = async (uid: string) => {
-  const comps = await eds.getEvent('gnomeola-live', uid)
+  const comps = await eds.getEvent('kacola-live', uid)
   const master = comps.find((c) => c.recurrenceId === null) ?? comps[0]!
   expect(master.descriptions).toBeLessThanOrEqual(1)
   return master.description
@@ -60,7 +60,7 @@ describe('agenda invitation block into EDS through the real daemon', () => {
   beforeAll(async () => {
     live = liveFixture(new Date())
     eds = await startEds({ calendars: [...CALENDARS, live.calendar] })
-    daemon = await startDaemon({ env: { ...eds.env, GNOMEOLA_CALENDAR: 'eds', GNOMEOLA_DBUS: 'off' } })
+    daemon = await startDaemon({ env: { ...eds.env, KACOLA_CALENDAR: 'eds', KACOLA_DBUS: 'off' } })
     await waitFor(
       async () => (await daemon.client.call('calendarStatus')).state === 'ok',
       30_000,

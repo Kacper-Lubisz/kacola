@@ -10,23 +10,23 @@ import {
   OnnxEmbedder,
   OpenAIDecisionProvider,
   overlap,
-} from '@gnomeola/decisions'
-import { LlmError } from '@gnomeola/llm'
-import { type EvalMode, findTextEmbedder, NO_EMBEDDER_REASON } from '@gnomeola/testkit/evals'
+} from '@kacola/decisions'
+import { LlmError } from '@kacola/llm'
+import { type EvalMode, findTextEmbedder, NO_EMBEDDER_REASON } from '@kacola/testkit/evals'
 import {
   type Brain,
   startFakeAnthropicDecisions,
   startFakeOllama,
   startFakeOpenAI,
   startFakeTypeSafe,
-} from '@gnomeola/testkit/fake-decisions'
+} from '@kacola/testkit/fake-decisions'
 
 // The provider matrix the eval runs iterate over, per mode:
 //   offline  local + hashing embedder (always), local + MiniLM (when installed) — real, deterministic numbers
 //   fake     jev / openai / anthropic / ollama against local fakes with a trivial lexical "brain": tests the
 //            providers' HTTP, parsing and the suites end to end; the numbers mean nothing about quality
 //   live     each hosted provider whose key is in the environment (TYPESAFE_API_KEY, OPENAI_API_KEY,
-//            ANTHROPIC_API_KEY; Ollama with GNOMEOLA_EVAL_OLLAMA_URL) — skipped with the reason otherwise
+//            ANTHROPIC_API_KEY; Ollama with KACOLA_EVAL_OLLAMA_URL) — skipped with the reason otherwise
 
 export type ProviderSetup = {
   label: string
@@ -132,7 +132,7 @@ export function liveProviders(env: NodeJS.ProcessEnv = process.env): ProviderSet
   const ts = k('TYPESAFE_API_KEY') ?? k('TYPESAFE_AI_API_KEY')
   const oa = k('OPENAI_API_KEY')
   const an = k('ANTHROPIC_API_KEY')
-  const ol = k('GNOMEOLA_EVAL_OLLAMA_URL')
+  const ol = k('KACOLA_EVAL_OLLAMA_URL')
   return [
     ts
       ? {
@@ -140,7 +140,7 @@ export function liveProviders(env: NodeJS.ProcessEnv = process.env): ProviderSet
           mode: 'live',
           provider: new JevDecisionProvider({
             apiKey: ts,
-            ...(env.GNOMEOLA_EVAL_JEV_MODEL ? { model: env.GNOMEOLA_EVAL_JEV_MODEL } : {}),
+            ...(env.KACOLA_EVAL_JEV_MODEL ? { model: env.KACOLA_EVAL_JEV_MODEL } : {}),
           }),
           skip: null,
         }
@@ -151,7 +151,7 @@ export function liveProviders(env: NodeJS.ProcessEnv = process.env): ProviderSet
           mode: 'live',
           provider: new OpenAIDecisionProvider({
             apiKey: oa,
-            ...(env.GNOMEOLA_EVAL_OPENAI_MODEL ? { model: env.GNOMEOLA_EVAL_OPENAI_MODEL } : {}),
+            ...(env.KACOLA_EVAL_OPENAI_MODEL ? { model: env.KACOLA_EVAL_OPENAI_MODEL } : {}),
           }),
           skip: null,
         }
@@ -162,7 +162,7 @@ export function liveProviders(env: NodeJS.ProcessEnv = process.env): ProviderSet
           mode: 'live',
           provider: new AnthropicDecisionProvider({
             apiKey: an,
-            ...(env.GNOMEOLA_EVAL_ANTHROPIC_MODEL ? { model: env.GNOMEOLA_EVAL_ANTHROPIC_MODEL } : {}),
+            ...(env.KACOLA_EVAL_ANTHROPIC_MODEL ? { model: env.KACOLA_EVAL_ANTHROPIC_MODEL } : {}),
           }),
           skip: null,
         }
@@ -173,7 +173,7 @@ export function liveProviders(env: NodeJS.ProcessEnv = process.env): ProviderSet
           mode: 'live',
           provider: new OllamaDecisionProvider({
             url: ol,
-            ...(env.GNOMEOLA_EVAL_OLLAMA_MODEL ? { model: env.GNOMEOLA_EVAL_OLLAMA_MODEL } : {}),
+            ...(env.KACOLA_EVAL_OLLAMA_MODEL ? { model: env.KACOLA_EVAL_OLLAMA_MODEL } : {}),
           }),
           skip: null,
         }
@@ -181,7 +181,7 @@ export function liveProviders(env: NodeJS.ProcessEnv = process.env): ProviderSet
           label: 'ollama',
           mode: 'live',
           provider: null,
-          skip: 'no GNOMEOLA_EVAL_OLLAMA_URL (set it to run against a local Ollama)',
+          skip: 'no KACOLA_EVAL_OLLAMA_URL (set it to run against a local Ollama)',
         },
   ]
 }

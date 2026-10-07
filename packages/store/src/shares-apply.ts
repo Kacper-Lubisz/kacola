@@ -6,7 +6,7 @@ import type {
   SharedComment,
   SharedItem,
   ShareParticipant,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import type { Op, SqlParam } from './agendas-apply.ts'
 import type { Row } from './rows.ts'
 

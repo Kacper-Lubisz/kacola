@@ -1,6 +1,6 @@
-# Hosting gnomeola remotely (M8)
+# Hosting kacola remotely (M8)
 
-The local build needs none of this: `gnomeolad` on loopback, no tokens, everything on the laptop. This
+The local build needs none of this: `kacolad` on loopback, no tokens, everything on the laptop. This
 document is for putting your meetings somewhere else too — your phone, a browser, a second machine —
 and it follows the plan's "Hosting it remotely" section.
 
@@ -10,7 +10,7 @@ and it follows the plan's "Hosting it remotely" section.
 | --- | --- | --- | --- | --- |
 | **local** (default) | laptop | laptop | nothing | 0 |
 | **hybrid sync** (recommended) | laptop | laptop | transcripts, notes, Q&A of non-private sessions | 0 |
-| **full offload** | laptop (`gnomeola-agent record`) | cloud STT on the server (Deepgram) | the audio | the provider's |
+| **full offload** | laptop (`kacola-agent record`) | cloud STT on the server (Deepgram) | the audio | the provider's |
 | **remote daemon** | the daemon's machine | the daemon's machine | — (clients reach it over the network with a token) | 0 |
 
 Capture never moves (PipeWire lives on the laptop); that half is `packages/capture-agent`. Everything
@@ -36,16 +36,16 @@ included. The only routes an unpaired device can reach are the two it uses to ge
 
 The flow is a device code (RFC 8628 shaped):
 
-1. the new device: `gnomeola pair --url https://you.example` → prints a code like `BDFG-HJKL` and waits;
-2. a trusted party approves it: `gnomeola pair approve BDFG-HJKL` on the machine running the daemon
+1. the new device: `kacola pair --url https://you.example` → prints a code like `BDFG-HJKL` and waits;
+2. a trusted party approves it: `kacola pair approve BDFG-HJKL` on the machine running the daemon
    (loopback needs no token), or with an owner/paired token, or in the web viewer at `…/#/pair/BDFG-HJKL`;
-3. the new device receives its token once; the CLI saves it in `${XDG_CONFIG_HOME:-~/.config}/gnomeola/hosts.json`
-   (0600) and uses it for that URL from then on. `gnomeola pair token --url …` prints it (e.g. for
-   `GNOMEOLA_SYNC_TOKEN`); `GNOMEOLA_TOKEN` / `--token` override it; the GTK app reads the same file.
+3. the new device receives its token once; the CLI saves it in `${XDG_CONFIG_HOME:-~/.config}/kacola/hosts.json`
+   (0600) and uses it for that URL from then on. `kacola pair token --url …` prints it (e.g. for
+   `KACOLA_SYNC_TOKEN`); `KACOLA_TOKEN` / `--token` override it; the GTK app reads the same file.
 
 Tokens are `gnm1.<payload>.<HMAC-SHA256>` over {device id, issued-at}, signed with the server's secret;
 a token is valid only while its device row exists and is not revoked, so revocation
-(`gnomeola pair revoke dev_…`, `POST /pair/revoke`) is immediate. Device
+(`kacola pair revoke dev_…`, `POST /pair/revoke`) is immediate. Device
 codes are stored only as SHA-256 and expire after ten minutes. "Loopback" means a loopback socket AND a
 loopback `Host` AND no `X-Forwarded-For`/`Forwarded` header — a reverse proxy on the same machine does not
 make its callers anonymous. Browsers: cross-origin requests are refused; the viewer is same-origin.
@@ -53,22 +53,22 @@ make its callers anonymous. Browsers: cross-origin requests are refused; the vie
 ### Letting the local daemon accept remote devices
 
 ```sh
-gnomeolad --host 0.0.0.0 --remote      # --remote = pairing auth on; the secret is created in <data-dir>/auth-secret
-gnomeola pair approve BDFG-HJKL        # on this machine, when a device asks
+kacolad --host 0.0.0.0 --remote      # --remote = pairing auth on; the secret is created in <data-dir>/auth-secret
+kacola pair approve BDFG-HJKL        # on this machine, when a device asks
 ```
 
-Without `--remote` (or `GNOMEOLA_AUTH_SECRET`), `gnomeolad` still refuses any non-loopback `--host`.
+Without `--remote` (or `KACOLA_AUTH_SECRET`), `kacolad` still refuses any non-loopback `--host`.
 
 ## Hybrid sync (H-7) — the recommended hosted mode
 
 ```sh
-gnomeola pair --url https://you.example                    # once, on the laptop
-GNOMEOLA_SYNC_URL=https://you.example \
-GNOMEOLA_SYNC_TOKEN=$(gnomeola pair token --url https://you.example) gnomeolad
-# or, beside an existing daemon:  gnomeola-agent sync --remote https://you.example --token …
+kacola pair --url https://you.example                    # once, on the laptop
+KACOLA_SYNC_URL=https://you.example \
+KACOLA_SYNC_TOKEN=$(kacola pair token --url https://you.example) kacolad
+# or, beside an existing daemon:  kacola-agent sync --remote https://you.example --token …
 ```
 
-The daemon (or `gnomeola-agent sync`) reads its own `/events` and POSTs `/sync/push`. Each pushed item
+The daemon (or `kacola-agent sync`) reads its own `/events` and POSTs `/sync/push`. Each pushed item
 carries the **device's** seq; the server keeps a cursor per device and, in one transaction, skips items at
 or below it, applies the rest and advances it. So a push is idempotent (a lost response is simply pushed
 again) and resumable (after any restart the agent asks for its cursor and continues).
@@ -99,8 +99,8 @@ dialects):
 ## Full offload (H-2, H-3, H-8)
 
 ```sh
-gnomeola-agent record --remote https://you.example --token … --title "Standup"   # Ctrl-C to stop
-gnomeola-agent resume --remote … --session ses_… --duration-ms N                  # after a crash
+kacola-agent record --remote https://you.example --token … --title "Standup"   # Ctrl-C to stop
+kacola-agent resume --remote … --session ses_… --duration-ms N                  # after a crash
 ```
 
 The agent records through the same capture code as the daemon (the WAVs are still written locally),
@@ -115,14 +115,14 @@ unfinished track).
 
 ## Postgres and blobs (H-1)
 
-`@gnomeola/store/pg` is the Postgres dialect: the same migrations (versions and names must match the
+`@kacola/store/pg` is the Postgres dialect: the same migrations (versions and names must match the
 SQLite list — a test enforces it), the same single-writer rule (every commit takes the counter row
 `FOR UPDATE` before reading state, so seq is gap-free and commits become visible in seq order), and a
 mapping of FTS5 search onto a normalised `tsvector` (same query affordances; snippets computed in JS).
 The one store contract suite runs on SQLite, on PGlite, and on a real Postgres 17 in podman when present;
 a cross-dialect test drives both with the same history and requires byte-identical logs and results.
 
-`@gnomeola/store/blob`: `FsBlobStore`, `VercelBlobStore` (private blobs, stable keys), `MemoryBlobStore`.
+`@kacola/store/blob`: `FsBlobStore`, `VercelBlobStore` (private blobs, stable keys), `MemoryBlobStore`.
 
 ## Vercel (H-5)
 
@@ -141,7 +141,7 @@ where it began; the protocol client adopts it as its cursor, so even a subscribe
 an event resumes exactly after a cap.
 
 The event stream on a stateless host is the log itself: it pages `seq > cursor` from Postgres and polls
-(`GNOMEOLA_POLL_MS`, default 1 s). There is no replay→live seam to get wrong, and the exactness of resume
+(`KACOLA_POLL_MS`, default 1 s). There is no replay→live seam to get wrong, and the exactness of resume
 rests on the commit-order property above. V-8 proves it with a 150 ms cap and random byte cuts on SQLite,
 PGlite and a real Postgres (`packages/server/test/sse-fuzz*.test.ts`), and through the built functions in
 a harness that hard-kills responses at `maxDuration` (`packages/vercel/test/vercel.int.test.ts`).
@@ -158,12 +158,12 @@ Nothing in this repository deploys or logs in on its own. To deploy:
 
    | variable | |
    | --- | --- |
-   | `GNOMEOLA_AUTH_SECRET` | required; ≥ 32 random characters (`openssl rand -hex 32`). Without it every request is refused (503). |
-   | `GNOMEOLA_ADMIN_TOKEN` | required in practice; ≥ 16 characters; the owner credential that approves the first device |
+   | `KACOLA_AUTH_SECRET` | required; ≥ 32 random characters (`openssl rand -hex 32`). Without it every request is refused (503). |
+   | `KACOLA_ADMIN_TOKEN` | required in practice; ≥ 16 characters; the owner credential that approves the first device |
    | `DEEPGRAM_API_KEY` | optional; enables full-offload transcription |
-   | `GNOMEOLA_POLL_MS` | optional; event-stream poll interval (default 1000) |
-   | `GNOMEOLA_MAIL_WEBHOOK` | optional; team sharing: where magic-link codes are POSTed (`{to, subject, text}`); without it shared pages are read-only |
-   | `GNOMEOLA_PUBLIC_URL` | optional; base of the links in those emails (default the request's origin) |
+   | `KACOLA_POLL_MS` | optional; event-stream poll interval (default 1000) |
+   | `KACOLA_MAIL_WEBHOOK` | optional; team sharing: where magic-link codes are POSTed (`{to, subject, text}`); without it shared pages are read-only |
+   | `KACOLA_PUBLIC_URL` | optional; base of the links in those emails (default the request's origin) |
 
 4. Deploy: push to the connected Git repository, or from a checkout:
    ```sh
@@ -174,19 +174,19 @@ Nothing in this repository deploys or logs in on its own. To deploy:
    ```
    (`vercel build` also works offline without a login, given a `.vercel/project.json`; that is how it
    was checked here. `node scripts/build.ts` produces the same output.)
-5. Pair your first device with the admin token: on the laptop `gnomeola pair --url https://…`, then
-   approve it with `GNOMEOLA_TOKEN=<admin token> gnomeola pair approve CODE --url https://…`. Open the
+5. Pair your first device with the admin token: on the laptop `kacola pair --url https://…`, then
+   approve it with `KACOLA_TOKEN=<admin token> kacola pair approve CODE --url https://…`. Open the
    URL in a browser, and approve the browser's code the same way (or from the paired laptop).
-6. Smoke-test the preview: `GNOMEOLA_PREVIEW_URL=… GNOMEOLA_PREVIEW_ADMIN_TOKEN=… pnpm test:e2e
+6. Smoke-test the preview: `KACOLA_PREVIEW_URL=… KACOLA_PREVIEW_ADMIN_TOKEN=… pnpm test:e2e
    packages/vercel/test/preview.e2e.test.ts` (add `VERCEL_AUTOMATION_BYPASS_SECRET` for a protected
-   preview, `GNOMEOLA_PREVIEW_WRITE=1` to round-trip a throwaway session).
+   preview, `KACOLA_PREVIEW_WRITE=1` to round-trip a throwaway session).
 
 Migrations run on the first request of a cold instance, under a Postgres advisory lock.
 
 ### Self-hosting without Vercel
 
-`gnomeola-server --host 0.0.0.0 --db postgres://… --blobs /srv/gnomeola/blobs` with
-`GNOMEOLA_AUTH_SECRET` (it refuses a non-loopback host without it). `--db sqlite:/path` works for a
+`kacola-server --host 0.0.0.0 --db postgres://… --blobs /srv/kacola/blobs` with
+`KACOLA_AUTH_SECRET` (it refuses a non-loopback host without it). `--db sqlite:/path` works for a
 single box.
 
 ## Team sharing
@@ -194,8 +194,8 @@ single box.
 The hosted server also holds shared agendas (only agendas — never transcripts): the organiser's daemon
 pushes a strict projection, attendees' daemons follow with a magic-link code, invitees use the page at
 `/a/<token>`. Everything — privacy model, merge rules, routes, limits — is in [docs/sharing.md](sharing.md).
-On Vercel set `GNOMEOLA_MAIL_WEBHOOK` (a relay that sends `{to, subject, text}`; optional
-`GNOMEOLA_MAIL_WEBHOOK_SECRET`) to let invitees contribute, and `GNOMEOLA_PUBLIC_URL` if links in emails
+On Vercel set `KACOLA_MAIL_WEBHOOK` (a relay that sends `{to, subject, text}`; optional
+`KACOLA_MAIL_WEBHOOK_SECRET`) to let invitees contribute, and `KACOLA_PUBLIC_URL` if links in emails
 should not use the request's origin. Without a mailer shared pages are read-only.
 
 ## Known limits
@@ -203,7 +203,7 @@ should not use the request's origin. Without a mailer shared pages are read-only
 - `/pair/start` is necessarily anonymous and writes a row per call (expired rows are purged on the next
   call). Put a rate limit in front of it (Vercel Firewall rule on `/pair/start`) on a public deployment.
 - Any paired device can approve another device, and every token has full read + sync rights; there are no
-  scopes yet. Revoke a lost device with `gnomeola pair revoke dev_…` (immediate).
+  scopes yet. Revoke a lost device with `kacola pair revoke dev_…` (immediate).
 - Finalize assembles a session's audio in memory (≈ 115 MB per track-hour); very long full-offload
   recordings want the function's memory raised.
 

@@ -16,7 +16,7 @@ import {
   type SyncItem,
   type SyncPushResult,
   THEM,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import { type Kysely, type RawBuilder, sql, type Transaction } from 'kysely'
 import {
   AGENDA_SNAPSHOT_QUERIES,

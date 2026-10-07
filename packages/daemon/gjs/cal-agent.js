@@ -1,5 +1,5 @@
 // cal-agent — C-2. Reads the user's calendars from Evolution Data Server and reports every occurrence in
-// a time window to gnomeolad as JSON lines. Run as `gjs -m cal-agent.js`; the protocol (both directions)
+// a time window to kacolad as JSON lines. Run as `gjs -m cal-agent.js`; the protocol (both directions)
 // is specified, with its zod schema, in packages/daemon/src/calendar/agent-protocol.ts.
 //
 // What only EDS can do happens here: listing the enabled calendars (whatever GNOME Online Accounts and

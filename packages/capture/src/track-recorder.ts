@@ -1,4 +1,4 @@
-import type { Track, TrackKind } from '@gnomeola/protocol'
+import type { Track, TrackKind } from '@kacola/protocol'
 import { LevelMeter } from './levels.ts'
 import type { CaptureErrorEvent, CaptureEvents, GapReason } from './types.ts'
 import { LEVEL_WINDOW_SAMPLES, SAMPLE_RATE, SAMPLES_PER_MS } from './types.ts'

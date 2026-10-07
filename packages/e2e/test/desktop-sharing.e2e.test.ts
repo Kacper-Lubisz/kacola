@@ -1,10 +1,10 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { AgendaView, ShareStatus } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop, matchBaseline } from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import type { AgendaView, ShareStatus } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop, matchBaseline } from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { BASELINES, DESKTOP_ARTIFACTS, setTheme } from '../src/desktop.ts'
 import { linkToken, type ShareHost, startShareHost } from '../src/share-host.ts'
@@ -72,7 +72,7 @@ describe('desktop: team sharing', () => {
     })
 
   const launch = async (d: DaemonHandle) => {
-    app = await launchDesktop({ display, env: { GNOMEOLA_URL: d.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' } })
+    app = await launchDesktop({ display, env: { KACOLA_URL: d.baseUrl, KACOLA_COLOR_SCHEME: 'light' } })
     await w().getByRole('button', { name: 'New recording', exact: true }).waitFor({ timeout: 20_000 })
     await w().emulateMedia({ reducedMotion: 'reduce' })
   }
@@ -136,7 +136,7 @@ describe('desktop: team sharing', () => {
 
   beforeAll(async () => {
     buildDesktop()
-    dir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-sharing-'))
+    dir = mkdtempSync(join(tmpdir(), 'kacola-desktop-sharing-'))
     const now = Date.now()
     const t = (min: number) => new Date(now + min * 60_000).toISOString()
     // a weekly team sync under way (started 5 min ago), and next week's
@@ -176,21 +176,21 @@ describe('desktop: team sharing', () => {
       return startDaemon({
         dataDir: join(dir, name),
         env: {
-          GNOMEOLA_CALENDAR: `file:${file}`,
-          GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
-          GNOMEOLA_TRACKER: 'off',
-          GNOMEOLA_SPEECH_GUARD: 'none',
+          KACOLA_CALENDAR: `file:${file}`,
+          KACOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
+          KACOLA_TRACKER: 'off',
+          KACOLA_SPEECH_GUARD: 'none',
           // the window sees others' changes within a second
-          GNOMEOLA_SHARE_POLL_MS: '500',
-          GNOMEOLA_SHARE_DEBOUNCE_MS: '100',
+          KACOLA_SHARE_POLL_MS: '500',
+          KACOLA_SHARE_DEBOUNCE_MS: '100',
           ...env,
         },
       })
     }
     A = await daemon('owner', host.ownerEnv({ name: 'Kacper', email: 'kacper@example.com' }))
-    B = await daemon('attendee', { GNOMEOLA_OWNER_EMAIL: 'ben@example.com' })
+    B = await daemon('attendee', { KACOLA_OWNER_EMAIL: 'ben@example.com' })
     display = await startHeadlessDisplay({ size: '1280x800' })
-    markerId = display.env.GNOMEOLA_HEADLESS_ID!
+    markerId = display.env.KACOLA_HEADLESS_ID!
     markOnboarded(
       display,
       (await A.client.call('listModels')).models.map((m) => m.id),

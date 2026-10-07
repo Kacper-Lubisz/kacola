@@ -1,17 +1,17 @@
 import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { networkInterfaces, tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { run } from '@gnomeola/cli'
-import { createClient } from '@gnomeola/protocol'
-import { createHostedApp, serve } from '@gnomeola/server'
-import { SqliteStoreApi } from '@gnomeola/store'
-import { MemoryBlobStore } from '@gnomeola/store/blob'
-import { startDaemon } from '@gnomeola/testkit/daemon'
+import { run } from '@kacola/cli'
+import { createClient } from '@kacola/protocol'
+import { createHostedApp, serve } from '@kacola/server'
+import { SqliteStoreApi } from '@kacola/store'
+import { MemoryBlobStore } from '@kacola/store/blob'
+import { startDaemon } from '@kacola/testkit/daemon'
 import { afterEach, describe, expect, it } from 'vitest'
 
-// H-6 from the command line, end to end: `gnomeola pair` on a new device, approval on a trusted one,
+// H-6 from the command line, end to end: `kacola pair` on a new device, approval on a trusted one,
 // the token saved and used transparently afterwards — against the hosted server and against a local
-// daemon that accepts remote devices (`gnomeolad --host 0.0.0.0 --remote`), reached over the LAN.
+// daemon that accepts remote devices (`kacolad --host 0.0.0.0 --remote`), reached over the LAN.
 
 const cleanup: (() => unknown)[] = []
 afterEach(async () => {
@@ -36,7 +36,7 @@ function cli(argv: string[], env: Record<string, string>, onOutput?: (all: strin
   }).then((code) => ({ code, stdout, stderr }))
 }
 
-/** `gnomeola pair` while `approve(code)` happens elsewhere, as soon as the code is printed. */
+/** `kacola pair` while `approve(code)` happens elsewhere, as soon as the code is printed. */
 async function pairWith(
   url: string,
   env: Record<string, string>,
@@ -52,12 +52,12 @@ async function pairWith(
 }
 
 function configDir(): Record<string, string> {
-  const dir = mkdtempSync(join(tmpdir(), 'gnomeola-pair-cli-'))
+  const dir = mkdtempSync(join(tmpdir(), 'kacola-pair-cli-'))
   cleanup.push(() => rmSync(dir, { recursive: true, force: true }))
   return { XDG_CONFIG_HOME: dir, HOME: dir }
 }
 
-describe('gnomeola pair', () => {
+describe('kacola pair', () => {
   it('against a hosted server: refused without a token, paired by the owner, then transparent', async () => {
     const admin = 'cli-pair-admin-token-012345'
     const store = SqliteStoreApi.open(':memory:')
@@ -74,14 +74,14 @@ describe('gnomeola pair', () => {
 
     const before = await cli(['sessions', 'list', '--url', served.url], env)
     expect(before.code).toBe(1)
-    expect(before.stderr).toMatch(/gnomeola pair --url/)
+    expect(before.stderr).toMatch(/kacola pair --url/)
 
     const paired = await pairWith(served.url, env, (code) =>
       createClient({ baseUrl: served.url, token: admin }).call('pairApprove', { body: { userCode: code } }),
     )
     expect(paired.code).toBe(0)
     expect(paired.stdout).toMatch(/"event":"paired"/)
-    const file = join(env.XDG_CONFIG_HOME!, 'gnomeola', 'hosts.json')
+    const file = join(env.XDG_CONFIG_HOME!, 'kacola', 'hosts.json')
     expect(statSync(file).mode & 0o777).toBe(0o600)
     const hosts = JSON.parse(readFileSync(file, 'utf8'))
     expect(hosts[served.url].token).toMatch(/^gnm1\./)
@@ -93,7 +93,7 @@ describe('gnomeola pair', () => {
     expect(tok.stdout.trim()).toBe(hosts[served.url].token)
 
     // the owner revokes the device: its saved token stops working at once
-    const ownerEnv = { ...configDir(), GNOMEOLA_TOKEN: admin }
+    const ownerEnv = { ...configDir(), KACOLA_TOKEN: admin }
     const rev = await cli(['pair', 'revoke', hosts[served.url].deviceId, '--url', served.url], ownerEnv)
     expect(rev.code).toBe(0)
     expect((await cli(['sessions', 'list', '--url', served.url], env)).code).toBe(1)
@@ -103,7 +103,7 @@ describe('gnomeola pair', () => {
     .flat()
     .find((i) => i && i.family === 'IPv4' && !i.internal)?.address
 
-  it.skipIf(!lan)('against gnomeolad --remote over the LAN, approved at the machine itself', async () => {
+  it.skipIf(!lan)('against kacolad --remote over the LAN, approved at the machine itself', async () => {
     const d = await startDaemon({ args: ['--host', '0.0.0.0', '--remote'] })
     cleanup.push(() => d.stop())
     const port = new URL(d.baseUrl).port

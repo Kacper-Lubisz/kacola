@@ -1,4 +1,4 @@
-import type { Citation, Segment, Session, Usage } from '@gnomeola/protocol'
+import type { Citation, Segment, Session, Usage } from '@kacola/protocol'
 
 /** Mirrors protocol `Effort`. `low` for live Q&A (latency is the feature), `high` for heavier work. */
 export type Effort = 'low' | 'medium' | 'high'

@@ -5,7 +5,7 @@
 // accumulation, typed errors). Nothing above the socket is faked.
 //
 //   replay (default)  every request is served from the cassette file, in order. Offline, free, deterministic.
-//   record            only when ANTHROPIC_API_KEY is set AND GNOMEOLA_CASSETTES=record. Requests go to the
+//   record            only when ANTHROPIC_API_KEY is set AND KACOLA_CASSETTES=record. Requests go to the
 //                     real API and request + response are written back to the cassette file on save().
 //
 // A cassette stores the *normalised* request (method, url, headers minus credentials and volatile SDK
@@ -57,10 +57,10 @@ const KEEP_RESPONSE_HEADER = /^(content-type|retry-after|retry-after-ms|x-should
  * silent fall back to replay.
  */
 export function cassetteMode(env: NodeJS.ProcessEnv = process.env): CassetteMode {
-  if (env.GNOMEOLA_CASSETTES !== 'record') return 'replay'
+  if (env.KACOLA_CASSETTES !== 'record') return 'replay'
   if (!env.ANTHROPIC_API_KEY && !env.OPENAI_API_KEY) {
     throw new Error(
-      'GNOMEOLA_CASSETTES=record needs ANTHROPIC_API_KEY or OPENAI_API_KEY to be set; refusing to guess',
+      'KACOLA_CASSETTES=record needs ANTHROPIC_API_KEY or OPENAI_API_KEY to be set; refusing to guess',
     )
   }
   return 'record'
@@ -98,7 +98,7 @@ export function normaliseRequest(input: string | URL | Request, init: RequestIni
 export function loadCassette(path: string): Cassette {
   if (!existsSync(path)) {
     throw new Error(
-      `cassette not found: ${path}. Record it with ANTHROPIC_API_KEY=… GNOMEOLA_CASSETTES=record, ` +
+      `cassette not found: ${path}. Record it with ANTHROPIC_API_KEY=… KACOLA_CASSETTES=record, ` +
         'or hand-author it (see docs/llm.md).',
     )
   }

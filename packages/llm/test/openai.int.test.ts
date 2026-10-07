@@ -3,7 +3,7 @@
 // `credit_balance_exhausted`), plus the documented text, refusal, completed and incomplete events.
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import type { Settings } from '@gnomeola/protocol'
+import type { Settings } from '@kacola/protocol'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ask } from '../src/ask.ts'
 import { LlmError } from '../src/errors.ts'

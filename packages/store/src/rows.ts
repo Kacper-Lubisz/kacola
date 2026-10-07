@@ -1,4 +1,4 @@
-import type { NoteVersion, QaMessage, Segment, Speaker, Track, TrackKind } from '@gnomeola/protocol'
+import type { NoteVersion, QaMessage, Segment, Speaker, Track, TrackKind } from '@kacola/protocol'
 import type { AudioChunkRecord, DeviceRecord } from './api.ts'
 
 // Row → protocol mapping shared by the StoreApi implementations. Both dialects store the same column

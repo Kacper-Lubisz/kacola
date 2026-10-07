@@ -1,9 +1,9 @@
-import { createClient, type GnomeolaClient, type Session } from '@gnomeola/protocol'
-import { createHostedApp, type HostedApp, type Served, serve } from '@gnomeola/server'
-import { SqliteStoreApi } from '@gnomeola/store'
-import { MemoryBlobStore } from '@gnomeola/store/blob'
-import { type DaemonHandle, seededRandom, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { assertNoViolations, checkEventLog } from '@gnomeola/testkit/invariants'
+import { createClient, type KacolaClient, type Session } from '@kacola/protocol'
+import { createHostedApp, type HostedApp, type Served, serve } from '@kacola/server'
+import { SqliteStoreApi } from '@kacola/store'
+import { MemoryBlobStore } from '@kacola/store/blob'
+import { type DaemonHandle, seededRandom, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { assertNoViolations, checkEventLog } from '@kacola/testkit/invariants'
 import { afterEach, describe, expect, it } from 'vitest'
 import { SyncAgent } from '../src/sync.ts'
 
@@ -18,7 +18,7 @@ const FAST = JSON.stringify({ segmentEveryMs: 30, finalizeAfterMs: 20, partialEv
 const SECRET = 'sync-test-secret-0123456789abcdef0123456'
 const ADMIN = 'sync-admin-token-0123456789'
 
-type Remote = { app: HostedApp; served: Served; store: SqliteStoreApi; url: string; client: GnomeolaClient }
+type Remote = { app: HostedApp; served: Served; store: SqliteStoreApi; url: string; client: KacolaClient }
 
 const cleanup: (() => Promise<unknown>)[] = []
 afterEach(async () => {
@@ -49,14 +49,14 @@ async function pairDevice(r: Remote, name = 'laptop'): Promise<{ token: string; 
 }
 
 async function localDaemon(): Promise<DaemonHandle> {
-  const d = await startDaemon({ env: { GNOMEOLA_FAKE_PIPELINE: FAST, GNOMEOLA_FAKE_QA: '1' } })
+  const d = await startDaemon({ env: { KACOLA_FAKE_PIPELINE: FAST, KACOLA_FAKE_QA: '1' } })
   cleanup.push(() => d.stop())
   return d
 }
 
 /** A recorded meeting with final segments, a question and notes. */
 async function meeting(
-  c: GnomeolaClient,
+  c: KacolaClient,
   title: string,
   opts: { private?: boolean; ms?: number } = {},
 ): Promise<Session> {
@@ -81,7 +81,7 @@ async function meeting(
 }
 
 /** The public part of a server's state, as a client sees it. */
-async function view(c: GnomeolaClient) {
+async function view(c: KacolaClient) {
   const { sessions } = await c.call('listSessions', { query: { limit: 500 } })
   const out = []
   for (const s of sessions.sort((a, b) => (a.id < b.id ? -1 : 1))) {

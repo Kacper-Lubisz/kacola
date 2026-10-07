@@ -15,7 +15,7 @@ import {
   type NoteVersion,
   type Session,
   type TemplateSuggestion,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 
 // M7 — one session's notes in the window: the editor's draft with debounced autosave (optimistic
 // concurrency against the daemon's head), enhancement streaming, and the block-by-block review of an
@@ -86,7 +86,7 @@ const errorOf = (err: unknown): NotesError => {
   return {
     code: typeof e?.code === 'string' ? e.code : 'internal',
     message: typeof e?.message === 'string' ? e.message : String(err),
-    // a GnomeolaApiError carries the structured detail (reason, action, provider, link)
+    // a KacolaApiError carries the structured detail (reason, action, provider, link)
     ...(e?.detail && typeof e.detail === 'object' ? e.detail : {}),
   }
 }

@@ -12,7 +12,7 @@
 // Piper's ONNX graph samples internal noise that onnxruntime seeds per process, so re-running changes
 // the audio at the sample level (and utterance lengths by a few tens of ms); the ground truth is always
 // regenerated from the audio actually written. Regenerating is therefore a reviewed change: re-record
-// the WER baselines (GNOMEOLA_UPDATE_BASELINES=1) in the same commit.
+// the WER baselines (KACOLA_UPDATE_BASELINES=1) in the same commit.
 
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -28,8 +28,8 @@ import {
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
-import type { TrackKind } from '@gnomeola/protocol'
-import { createTts, ModelManager, type SherpaTts, sherpaVersion } from '@gnomeola/stt'
+import type { TrackKind } from '@kacola/protocol'
+import { createTts, ModelManager, type SherpaTts, sherpaVersion } from '@kacola/stt'
 import { AGENDA_FIXTURES_DIR } from '../src/evals/datasets.ts'
 import type { AgendaTruth } from '../src/fixtures/agenda-schema.ts'
 import { AGENDA_FIXTURE_SCRIPTS, type AgendaDef } from '../src/fixtures/agenda-scripts.ts'
@@ -163,7 +163,7 @@ const LIBRI_SHA256 = '39fde525e59672dc6d1551919b1478f724438a95aa55f874b576be2196
 
 async function librispeechRoot(ids: string[]): Promise<string> {
   if (process.env.LIBRISPEECH_TEST_CLEAN) return process.env.LIBRISPEECH_TEST_CLEAN
-  const cache = join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'gnomeola', 'librispeech')
+  const cache = join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'kacola', 'librispeech')
   const root = join(cache, 'LibriSpeech', 'test-clean')
   const have = ids.every((id) => existsSync(libriFlac(root, id)))
   if (have) return root
@@ -347,7 +347,7 @@ async function generate(
 
   const dir = join(root, def.id)
   mkdirSync(dir, { recursive: true })
-  const tmp = join(tmpdir(), `gnomeola-fixture-${process.pid}`)
+  const tmp = join(tmpdir(), `kacola-fixture-${process.pid}`)
   mkdirSync(tmp, { recursive: true })
   for (const track of ['mic', 'system'] as const) {
     const raw = join(tmp, `${track}.f32`)

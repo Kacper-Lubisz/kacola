@@ -1,5 +1,5 @@
 {
-  "name": "@gnomeola/ui-core",
+  "name": "@kacola/ui-core",
   "version": "0.1.0",
   "private": true,
   "description": "The Electron window's data layer: pure folds, feeds, view logic and the i18n shim. DOM-free and Node-free; a protocol client only.",
@@ -12,7 +12,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@gnomeola/protocol": "workspace:*"
+    "@kacola/protocol": "workspace:*"
   },
   "peerDependencies": {
     "react": "19.3.0"

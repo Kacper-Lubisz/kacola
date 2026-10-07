@@ -1,5 +1,5 @@
-import type { Session } from '@gnomeola/protocol'
-import { fromSnapshot, type SessionsState } from '@gnomeola/ui-core/sessions'
+import type { Session } from '@kacola/protocol'
+import { fromSnapshot, type SessionsState } from '@kacola/ui-core/sessions'
 import type { QueryClient, QueryKey } from '@tanstack/react-query'
 import { keys } from './keys.ts'
 import type { Api } from './queries.ts'

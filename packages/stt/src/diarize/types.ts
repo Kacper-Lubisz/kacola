@@ -5,7 +5,7 @@ import type { KnownVoice } from './clustering.ts'
 // segmentation + a speaker-embedding model) lives in ../sherpa/diarize.ts; a cloud provider with its
 // own diarization (H-8) implements DiarizerProvider directly.
 //
-// All PCM is 16 kHz mono float32; all times are session milliseconds, like the rest of @gnomeola/stt.
+// All PCM is 16 kHz mono float32; all times are session milliseconds, like the rest of @kacola/stt.
 
 /** Maps a stretch of speech to a fixed-length voice embedding (unit length not required). */
 export interface SpeakerEmbedder {

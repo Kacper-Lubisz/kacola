@@ -6,7 +6,7 @@ import type {
   Moment as SearchMoment,
   Session,
   Suggestion,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import {
   agendaOf,

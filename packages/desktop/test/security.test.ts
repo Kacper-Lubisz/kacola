@@ -83,7 +83,7 @@ describe('CSP', () => {
 
 describe('navigation and new windows', () => {
   it('lets the window navigate only within app:// (or the dev server in dev)', () => {
-    expect(isAllowedNavigation('app://gnomeola/index.html#/sessions/x')).toBe(true)
+    expect(isAllowedNavigation('app://kacola/index.html#/sessions/x')).toBe(true)
     expect(isAllowedNavigation('app://evil/index.html')).toBe(false)
     expect(isAllowedNavigation('https://example.com/')).toBe(false)
     expect(isAllowedNavigation('file:///etc/passwd')).toBe(false)
@@ -98,7 +98,7 @@ describe('navigation and new windows', () => {
       'file:///etc/passwd',
       'javascript:alert(1)',
       'smb://host/share',
-      'app://gnomeola/',
+      'app://kacola/',
       'https://',
       '',
     ])
@@ -144,15 +144,15 @@ describe('the capture window', () => {
 
 describe('app:// protocol', () => {
   it('maps paths under the renderer dir, index.html for the root', () => {
-    expect(resolveAppPath('app://gnomeola/', '/r')).toBe('/r/index.html')
-    expect(resolveAppPath('app://gnomeola/assets/index-1.js', '/r')).toBe('/r/assets/index-1.js')
-    expect(resolveAppPath('app://gnomeola/index.html?x=1#/y', '/r/')).toBe('/r/index.html')
+    expect(resolveAppPath('app://kacola/', '/r')).toBe('/r/index.html')
+    expect(resolveAppPath('app://kacola/assets/index-1.js', '/r')).toBe('/r/assets/index-1.js')
+    expect(resolveAppPath('app://kacola/index.html?x=1#/y', '/r/')).toBe('/r/index.html')
   })
   it('refuses traversal, other hosts and schemes', () => {
     // the URL parser resolves encoded dot segments itself, so the result stays under the root
-    expect(resolveAppPath('app://gnomeola/%2e%2e/%2e%2e/etc/passwd', '/r')).toBe('/r/etc/passwd')
-    expect(resolveAppPath('app://gnomeola/a/..%2F..%2Fsecret', '/r')).toBeNull()
-    expect(resolveAppPath('app://gnomeola/a%00b', '/r')).toBeNull()
+    expect(resolveAppPath('app://kacola/%2e%2e/%2e%2e/etc/passwd', '/r')).toBe('/r/etc/passwd')
+    expect(resolveAppPath('app://kacola/a/..%2F..%2Fsecret', '/r')).toBeNull()
+    expect(resolveAppPath('app://kacola/a%00b', '/r')).toBeNull()
     expect(resolveAppPath('app://other/index.html', '/r')).toBeNull()
     expect(resolveAppPath('file:///r/index.html', '/r')).toBeNull()
   })

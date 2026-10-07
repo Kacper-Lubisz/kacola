@@ -1,7 +1,7 @@
 import { MessageChannel, type MessagePort } from 'node:worker_threads'
 import { serveTunnel, type TunnelPort } from '../src/main/tunnel.ts'
 import { createTunnelFetch } from '../src/renderer/data/tunnel-fetch.ts'
-import type { GnomeolaBridge, TunnelControl, TunnelFrame, TunnelRequest } from '../src/shared/bridge.ts'
+import type { KacolaBridge, TunnelControl, TunnelFrame, TunnelRequest } from '../src/shared/bridge.ts'
 import { channelOf, openTunnel } from '../src/shared/tunnel-port.ts'
 
 // The fetch tunnel without Electron: the renderer's fetch → the preload's port relay → main's
@@ -26,7 +26,7 @@ export function nodePort(p: MessagePort): TunnelPort {
 export function tunnel(deps: { baseUrl: string; token?: string; fetch?: typeof fetch }) {
   const seen: TunnelFrame[] = []
   const requests: TunnelRequest[] = []
-  const bridge: Pick<GnomeolaBridge, 'fetchStream'> = {
+  const bridge: Pick<KacolaBridge, 'fetchStream'> = {
     fetchStream: (req, onFrame) =>
       openTunnel(
         req,

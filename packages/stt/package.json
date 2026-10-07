@@ -1,5 +1,5 @@
 {
-  "name": "@gnomeola/stt",
+  "name": "@kacola/stt",
   "version": "0.1.0",
   "private": true,
   "description": "Speech-to-text providers (live + final tiers), VAD, model manager, and the segment reconciler.",
@@ -13,10 +13,10 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@gnomeola/protocol": "workspace:*",
+    "@kacola/protocol": "workspace:*",
     "sherpa-onnx-node": "^1.13.8"
   },
   "devDependencies": {
-    "@gnomeola/testkit": "workspace:*"
+    "@kacola/testkit": "workspace:*"
   }
 }

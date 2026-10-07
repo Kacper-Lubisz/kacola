@@ -2,9 +2,9 @@
 
 While a recording linked to an agenda runs, the daemon's `AgendaTracker`
 (`packages/daemon/src/agendas/tracker.ts`) follows the transcript and keeps the agenda current. It asks
-typed decisions (`@gnomeola/decisions` tasks, on whichever decisions provider Preferences selects) and
+typed decisions (`@kacola/decisions` tasks, on whichever decisions provider Preferences selects) and
 writes through `AgendaStore`, so the agenda rules (forward-only, manual wins, history) apply to it like to
-anyone else. Text (bridge lines, the recap) comes from the Q&A LLM (`@gnomeola/llm`).
+anyone else. Text (bridge lines, the recap) comes from the Q&A LLM (`@kacola/llm`).
 
 ## What it does
 
@@ -49,7 +49,7 @@ Ollama clients against the local fakes, and the local provider for real.
 ## Recap (`agendas/recap.ts`)
 
 `daemon.agendas.onRecap` hook: when the recording stops (after the tracker drained its queue), one LLM call
-per item — `recapItem` in `@gnomeola/llm/agenda.ts`, the M7 enhance plumbing: the transcript through
+per item — `recapItem` in `@kacola/llm/agenda.ts`, the M7 enhance plumbing: the transcript through
 `assemblePrompt` is the byte-stable cached prefix, the item (+ what was noted so far) the volatile tail,
 so items 2..n read the cache. Output `Status / Outcome / Decisions / Actions`, stored as the item's
 `outcome` (`agenda.item.upserted` by `tracker`). A user-written outcome is never replaced; the tracker's
@@ -94,7 +94,7 @@ committing each fixture utterance as a closed segment (fixture clock, heartbeat 
 time); `trackerRelevanceRunner` / `trackerInjectionRunner` / `trackerNextPointRunner` /
 `trackerInterviewRunner` are the gate, the guard, the ranking and the interview path as the tracker calls
 them; `trackerRecapRunner` is the daemon's recap prompt. Baselines:
-`packages/daemon/test/fixtures/baselines/tracker-evals` (`GNOMEOLA_UPDATE_BASELINES=1`).
+`packages/daemon/test/fixtures/baselines/tracker-evals` (`KACOLA_UPDATE_BASELINES=1`).
 
 Offline, local provider (deterministic; hashing ≈ MiniLM, the rules dominate). Nothing tuned:
 

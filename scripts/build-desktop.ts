@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // P-7: package the real desktop app (packages/desktop) for Linux: electron-builder's unpacked `dir`
-// target, executable `gnomeola`, with the runtime (scripts/build-runtime.ts) at resources/runtime. The
+// target, executable `kacola`, with the runtime (scripts/build-runtime.ts) at resources/runtime. The
 // Flatpak is built from this (scripts/build-flatpak.ts), and the macOS zips from the same staged app
 // (scripts/build-macos.ts).
 //
 //   node scripts/build-desktop.ts [--out DIR] [--skip-vite]
 //
 //   --out DIR     default dist/desktop: stage/ (the electron-builder project) and linux-unpacked/
-//   --skip-vite   reuse packages/desktop/out (already built by `pnpm --filter @gnomeola/desktop build`)
+//   --skip-vite   reuse packages/desktop/out (already built by `pnpm --filter @kacola/desktop build`)
 //
 // The staged project is only package.json + out/ (main, preload, renderer: electron-vite bundles them
 // completely, so the asar carries no node_modules). extraResources: runtime/ (daemon.mjs, cli.mjs and
@@ -32,10 +32,10 @@ import { parseArgs } from 'node:util'
 import { applyFuses } from '../packages/desktop/fuses.config.ts'
 import { buildRuntime, REPO } from './build-runtime.ts'
 
-export const APP_ID = 'org.gnome.Gnomeola'
+export const APP_ID = 'com.kacperlubisz.Kacola'
 export const DESKTOP = join(REPO, 'packages', 'desktop')
 export const BRAND_ICONS = join(REPO, 'brand', 'icons')
-export const EXTENSION_UUID = 'gnomeola@gnomeola.org'
+export const EXTENSION_UUID = 'kacola@kacperlubisz.com'
 
 export function electronVersion(): string {
   return (
@@ -70,13 +70,13 @@ export function stageDesktopApp(stage: string, o: { skipVite?: boolean } = {}): 
     join(stage, 'package.json'),
     `${JSON.stringify(
       {
-        name: 'gnomeola',
-        productName: 'gnomeola',
+        name: 'kacola',
+        productName: 'kacola',
         version: pkg.version,
         description: 'Record, transcribe and search your meetings',
         license: pkg.license,
-        author: 'The gnomeola contributors',
-        homepage: 'https://github.com/kacperlubisz/gnomeola',
+        author: 'The kacola contributors',
+        homepage: 'https://github.com/Kacper-Lubisz/kacola',
         type: 'module',
         main: 'out/main/index.js',
         desktopName: pkg.desktopName,
@@ -108,7 +108,7 @@ const du = (p: string): number => {
 
 export type LinuxAppBuild = { appDir: string; bytes: number; version: string }
 
-/** The unpacked Linux app: <out>/linux-unpacked/gnomeola + resources/{app.asar,runtime,icon.png,…}. */
+/** The unpacked Linux app: <out>/linux-unpacked/kacola + resources/{app.asar,runtime,icon.png,…}. */
 export async function buildLinuxApp(o: { outDir: string; skipVite?: boolean }): Promise<LinuxAppBuild> {
   const out = resolve(o.outDir)
   const stage = join(out, 'stage')
@@ -130,9 +130,9 @@ export async function buildLinuxApp(o: { outDir: string; skipVite?: boolean }): 
     targets: Platform.LINUX.createTarget('dir', Arch.x64),
     config: {
       appId: APP_ID,
-      productName: 'gnomeola',
-      executableName: 'gnomeola',
-      copyright: 'Copyright © 2026 The gnomeola contributors',
+      productName: 'kacola',
+      executableName: 'kacola',
+      copyright: 'Copyright © 2026 The kacola contributors',
       electronVersion: electronVersion(),
       // the installed Electron (no download): its dist is exactly what the dev and test builds run
       electronDist: join(REPO, 'node_modules', 'electron', 'dist'),
@@ -151,10 +151,10 @@ export async function buildLinuxApp(o: { outDir: string; skipVite?: boolean }): 
       protocols: [{ name: 'kacola', schemes: ['kacola'] }],
       linux: {
         target: [{ target: 'dir', arch: ['x64'] }],
-        executableName: 'gnomeola',
+        executableName: 'kacola',
         icon: 'icons',
         category: 'Office',
-        desktop: { entry: { StartupWMClass: 'gnomeola' } },
+        desktop: { entry: { StartupWMClass: 'kacola' } },
       },
       afterPack: async (ctx) => {
         // electron-builder never copies node_modules as extraResources: the runtime's natives, by hand
@@ -165,12 +165,12 @@ export async function buildLinuxApp(o: { outDir: string; skipVite?: boolean }): 
         )
         // the stock Electron's fallback app, never loaded by a packaged app
         rmSync(join(ctx.appOutDir, 'resources', 'default_app.asar'), { force: true })
-        await applyFuses(join(ctx.appOutDir, 'gnomeola'))
+        await applyFuses(join(ctx.appOutDir, 'kacola'))
       },
     },
   })
   const appDir = join(out, 'linux-unpacked')
-  if (!existsSync(join(appDir, 'gnomeola'))) throw new Error(`no gnomeola executable in ${appDir}`)
+  if (!existsSync(join(appDir, 'kacola'))) throw new Error(`no kacola executable in ${appDir}`)
   return { appDir, bytes: du(appDir), version }
 }
 

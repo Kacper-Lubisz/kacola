@@ -1,5 +1,5 @@
 {
-  "name": "@gnomeola/llm",
+  "name": "@kacola/llm",
   "version": "0.1.0",
   "private": true,
   "description": "LLM providers, transcript prompt assembly with cache breakpoints, Q&A.",
@@ -13,10 +13,10 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
-    "@gnomeola/protocol": "workspace:*",
+    "@kacola/protocol": "workspace:*",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@gnomeola/testkit": "workspace:*"
+    "@kacola/testkit": "workspace:*"
   }
 }

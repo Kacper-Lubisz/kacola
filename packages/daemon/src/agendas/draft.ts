@@ -1,4 +1,4 @@
-import { type AssembledPrompt, providerFromSettings } from '@gnomeola/llm'
+import { type AssembledPrompt, providerFromSettings } from '@kacola/llm'
 import {
   type Agenda,
   type AgendaDraftEvent,
@@ -11,8 +11,8 @@ import {
   isKeyedProvider,
   isOnDeviceLlm,
   MAX_TIMEBOX_MIN,
-} from '@gnomeola/protocol'
-import { type AgendaStore, NoteStore, type Store } from '@gnomeola/store'
+} from '@kacola/protocol'
+import { type AgendaStore, NoteStore, type Store } from '@kacola/store'
 import type { Handlers } from '../daemon.ts'
 import { toWireError } from '../engines/llm.ts'
 import { DaemonError, toDaemonError } from '../errors.ts'

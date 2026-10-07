@@ -1,5 +1,5 @@
 #!/bin/sh
 # Development launcher: runs the TypeScript entry point directly on Node 24 (type stripping).
-# Release builds ship a bundled dist/gnomeola.mjs instead (see packages/cli/scripts/build.ts).
+# Release builds ship a bundled dist/kacola.mjs instead (see packages/cli/scripts/build.ts).
 here="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 exec node "$here/../src/main.ts" "$@"

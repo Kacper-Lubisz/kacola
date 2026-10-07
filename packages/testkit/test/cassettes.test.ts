@@ -42,11 +42,11 @@ describe('cassetteMode', () => {
   it('replays unless both the flag and a key are present', () => {
     expect(cassetteMode({})).toBe('replay')
     expect(cassetteMode({ ANTHROPIC_API_KEY: 'k' })).toBe('replay')
-    expect(cassetteMode({ ANTHROPIC_API_KEY: 'k', GNOMEOLA_CASSETTES: 'record' })).toBe('record')
-    expect(cassetteMode({ OPENAI_API_KEY: 'k', GNOMEOLA_CASSETTES: 'record' })).toBe('record')
+    expect(cassetteMode({ ANTHROPIC_API_KEY: 'k', KACOLA_CASSETTES: 'record' })).toBe('record')
+    expect(cassetteMode({ OPENAI_API_KEY: 'k', KACOLA_CASSETTES: 'record' })).toBe('record')
   })
   it('refuses to "record" without a key instead of silently replaying', () => {
-    expect(() => cassetteMode({ GNOMEOLA_CASSETTES: 'record' })).toThrow(/needs ANTHROPIC_API_KEY/)
+    expect(() => cassetteMode({ KACOLA_CASSETTES: 'record' })).toThrow(/needs ANTHROPIC_API_KEY/)
   })
 })
 

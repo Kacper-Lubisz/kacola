@@ -12,7 +12,7 @@ import workletUrl from './pcm-worklet.ts?worker&url'
 // A 16 kHz AudioContext makes Chromium resample; the worklet (pcm-worklet.ts) cuts 40 ms frames. The page
 // has no network, no Node, and only this bridge (preload/capture.ts).
 
-const bridge = (globalThis as unknown as { gnomeolaCapture: CaptureBridge }).gnomeolaCapture
+const bridge = (globalThis as unknown as { kacolaCapture: CaptureBridge }).kacolaCapture
 
 type Running = { stop: () => void }
 const running = new Map<CaptureTrack, Running>()
@@ -46,7 +46,7 @@ async function start(track: CaptureTrack): Promise<void> {
     if (running.get(track) !== handle) return stop()
     ctx = new AudioContext({ sampleRate: 16_000, latencyHint: 'interactive' })
     await ctx.audioWorklet.addModule(workletUrl)
-    const node = new AudioWorkletNode(ctx, 'gnomeola-pcm', {
+    const node = new AudioWorkletNode(ctx, 'kacola-pcm', {
       numberOfInputs: 1,
       // no outputs: an input-only worklet is pulled by the graph without being routed to the speakers
       numberOfOutputs: 0,

@@ -4,7 +4,7 @@ import {
   type Segment,
   type Session,
   type SessionMeeting,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import type { SegmentInput } from './api.ts'
 import { StoreError } from './errors.ts'
 

@@ -1,4 +1,4 @@
-import { QaMessage } from '@gnomeola/protocol'
+import { QaMessage } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import { type AskDone, type AskEvent, ask } from '../src/ask.ts'
 import { LlmError } from '../src/errors.ts'

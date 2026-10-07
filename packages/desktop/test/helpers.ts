@@ -1,4 +1,4 @@
-import type { DurableEvent, EphemeralEvent, Segment, Session, SubscribeOptions } from '@gnomeola/protocol'
+import type { DurableEvent, EphemeralEvent, Segment, Session, SubscribeOptions } from '@kacola/protocol'
 import type { BridgeClient } from '../src/renderer/data/event-bridge.ts'
 
 export const session = (id: string, over: Partial<Session> = {}): Session => ({

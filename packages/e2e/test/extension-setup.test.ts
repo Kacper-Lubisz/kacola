@@ -33,7 +33,7 @@ const realRun = (argv: string[]) =>
 function world(
   o: { shell?: Partial<FakeShellState>; env?: Record<string, string>; source?: string | null } = {},
 ) {
-  const data = mkdtempSync(join(tmpdir(), 'gnomeola-ext-'))
+  const data = mkdtempSync(join(tmpdir(), 'kacola-ext-'))
   const env = {
     HOME: data,
     XDG_DATA_HOME: data,
@@ -69,11 +69,11 @@ function world(
 describe('reading what gdbus and gsettings print', () => {
   it('parses GetExtensionInfo, an unknown UUID, booleans and string arrays', () => {
     const known = parseGVariant(
-      "({'uuid': <'gnomeola@gnomeola.org'>, 'shell-version': <[<'50'>]>, 'version-name': <'0.1.0'>, 'type': <2.0>, 'state': <1.0>, 'enabled': <true>, 'error': <''>, 'sessionModes': <[<'user'>]>},)",
+      "({'uuid': <'kacola@kacperlubisz.com'>, 'shell-version': <[<'50'>]>, 'version-name': <'0.1.0'>, 'type': <2.0>, 'state': <1.0>, 'enabled': <true>, 'error': <''>, 'sessionModes': <[<'user'>]>},)",
     )
     expect(known).toEqual([
       {
-        uuid: 'gnomeola@gnomeola.org',
+        uuid: 'kacola@kacperlubisz.com',
         'shell-version': ['50'],
         'version-name': '0.1.0',
         type: 2,
@@ -135,7 +135,7 @@ describe('where the extension comes from and goes', () => {
   })
 
   it('finds the packaged copy first, else the checkout’s', () => {
-    const res = mkdtempSync(join(tmpdir(), 'gnomeola-ext-res-'))
+    const res = mkdtempSync(join(tmpdir(), 'kacola-ext-res-'))
     const pkg = join(res, 'extension', EXTENSION_UUID)
     mkdirSync(pkg, { recursive: true })
     writeFileSync(join(pkg, 'metadata.json'), '{}')
@@ -307,7 +307,7 @@ describe('the top-bar extension’s states and its one button', () => {
 
   it('an install that cannot write is an error that says why', async () => {
     // a file where the data directory should be
-    const blocker = join(mkdtempSync(join(tmpdir(), 'gnomeola-ext-')), 'file')
+    const blocker = join(mkdtempSync(join(tmpdir(), 'kacola-ext-')), 'file')
     writeFileSync(blocker, '')
     const w = world({ env: { XDG_DATA_HOME: join(blocker, 'data') } })
     expect(await w.m.turnOn()).toMatchObject({
@@ -358,7 +358,7 @@ describe('the top-bar extension’s states and its one button', () => {
   })
 
   it('in the Flatpak: copies the files, never writes the sandbox’s gsettings, and gives the command to run', async () => {
-    const env = { FLATPAK_ID: 'org.gnome.Gnomeola', HOST_XDG_DATA_HOME: '' }
+    const env = { FLATPAK_ID: 'com.kacperlubisz.Kacola', HOST_XDG_DATA_HOME: '' }
     const w = world({ env, shell: { reachable: false } })
     expect(await w.m.status()).toEqual({ state: 'not-installed', userExtensionsOff: false })
     expect(await w.m.turnOn()).toEqual({

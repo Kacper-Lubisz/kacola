@@ -3,7 +3,7 @@
 // when the account cannot run it (quota / auth) — never passed vacuously, never faked.
 //
 //   TYPESAFE_API_KEY=… OPENAI_API_KEY=… ANTHROPIC_API_KEY=… pnpm test:eval packages/decisions
-import { LlmError } from '@gnomeola/llm'
+import { LlmError } from '@kacola/llm'
 import { describe, expect, it } from 'vitest'
 import { AnthropicDecisionProvider } from '../src/anthropic.ts'
 import { JevDecisionProvider } from '../src/jev.ts'

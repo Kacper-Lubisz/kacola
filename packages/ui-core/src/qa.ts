@@ -1,4 +1,4 @@
-import type { AnyEvent, AskStreamEvent, Citation, ErrorDetail, QaMessage } from '@gnomeola/protocol'
+import type { AnyEvent, AskStreamEvent, Citation, ErrorDetail, QaMessage } from '@kacola/protocol'
 
 // Q&A for one session as the UI sees it: history from GET /sessions/:id/qa, durable `qa.message`
 // events (from this window or any other client), the POST /ask stream of the question this window is
@@ -212,7 +212,7 @@ const errorOf = (err: unknown): AskError => {
   return {
     code: typeof e?.code === 'string' ? e.code : 'internal',
     message: typeof e?.message === 'string' ? e.message : String(err),
-    // a GnomeolaApiError carries the structured detail (reason, action, provider, link)
+    // a KacolaApiError carries the structured detail (reason, action, provider, link)
     ...(e?.detail && typeof e.detail === 'object' ? e.detail : {}),
   }
 }

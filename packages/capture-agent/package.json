@@ -1,8 +1,8 @@
 {
-  "name": "@gnomeola/capture-agent",
+  "name": "@kacola/capture-agent",
   "version": "0.1.0",
   "private": true,
-  "description": "The local-only half (H-2): PipeWire capture with chunked, resumable upload to any gnomeola server, and the hybrid-sync pusher. Protocol client + capture only.",
+  "description": "The local-only half (H-2): PipeWire capture with chunked, resumable upload to any kacola server, and the hybrid-sync pusher. Protocol client + capture only.",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "exports": {
@@ -10,19 +10,19 @@
     "./sync": "./src/sync.ts"
   },
   "bin": {
-    "gnomeola-agent": "./src/main.ts"
+    "kacola-agent": "./src/main.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@gnomeola/capture": "workspace:*",
-    "@gnomeola/protocol": "workspace:*"
+    "@kacola/capture": "workspace:*",
+    "@kacola/protocol": "workspace:*"
   },
   "devDependencies": {
-    "@gnomeola/server": "workspace:*",
-    "@gnomeola/store": "workspace:*",
-    "@gnomeola/stt": "workspace:*",
-    "@gnomeola/testkit": "workspace:*"
+    "@kacola/server": "workspace:*",
+    "@kacola/store": "workspace:*",
+    "@kacola/stt": "workspace:*",
+    "@kacola/testkit": "workspace:*"
   }
 }

@@ -1,16 +1,16 @@
-// P-2: where gnomeola keeps things on each platform, in one place. Pure (no node: imports) so every
+// P-2: where kacola keeps things on each platform, in one place. Pure (no node: imports) so every
 // package — the daemon, the CLI, the desktop app's main process — resolves the same directories from the
 // same inputs, and tests can ask for any platform on any machine.
 //
-//   Linux (dev / install.sh)  ${XDG_DATA_HOME:-~/.local/share}/gnomeola        config ${XDG_CONFIG_HOME:-~/.config}/gnomeola
+//   Linux (dev / install.sh)  ${XDG_DATA_HOME:-~/.local/share}/kacola        config ${XDG_CONFIG_HOME:-~/.config}/kacola
 //   Flatpak                   the same XDG rule: inside the sandbox XDG_DATA_HOME is
-//                             ~/.var/app/org.gnome.Gnomeola/data, so data lands in
-//                             ~/.var/app/org.gnome.Gnomeola/data/gnomeola without special-casing
-//   macOS                     ~/Library/Application Support/gnomeola          (data, models, config)
+//                             ~/.var/app/com.kacperlubisz.Kacola/data, so data lands in
+//                             ~/.var/app/com.kacperlubisz.Kacola/data/kacola without special-casing
+//   macOS                     ~/Library/Application Support/kacola          (data, models, config)
 //                             logs and state below it; XDG variables are honoured when set explicitly,
 //                             as CLI users on macOS sometimes do
 //
-// GNOMEOLA_DATA_DIR and GNOMEOLA_MODELS_DIR override everything (tests, portable installs).
+// KACOLA_DATA_DIR and KACOLA_MODELS_DIR override everything (tests, portable installs).
 
 export type PackagingKind = 'flatpak' | 'macos' | 'linux'
 
@@ -35,7 +35,7 @@ export type PlatformPaths = {
 }
 
 /** The Flatpak app id; also the D-Bus name and the desktop file id. */
-export const APP_ID = 'org.gnome.Gnomeola'
+export const APP_ID = 'com.kacperlubisz.Kacola'
 
 const join = (...parts: string[]) => parts.join('/').replace(/\/+/g, '/')
 
@@ -49,27 +49,27 @@ export function packagingKind(i: Pick<PlatformInput, 'platform' | 'env'>): Packa
 export function platformPaths(i: PlatformInput): PlatformPaths {
   const { env, home } = i
   const kind = packagingKind(i)
-  const appSupport = join(home, 'Library', 'Application Support', 'gnomeola')
+  const appSupport = join(home, 'Library', 'Application Support', 'kacola')
   const mac = kind === 'macos'
   const dataRoot = env.XDG_DATA_HOME
-    ? join(env.XDG_DATA_HOME, 'gnomeola')
+    ? join(env.XDG_DATA_HOME, 'kacola')
     : mac
       ? appSupport
-      : join(home, '.local', 'share', 'gnomeola')
-  const dataDir = env.GNOMEOLA_DATA_DIR || dataRoot
+      : join(home, '.local', 'share', 'kacola')
+  const dataDir = env.KACOLA_DATA_DIR || dataRoot
   return {
     kind,
     dataDir,
-    modelsDir: env.GNOMEOLA_MODELS_DIR || join(dataRoot, 'models'),
+    modelsDir: env.KACOLA_MODELS_DIR || join(dataRoot, 'models'),
     configDir: env.XDG_CONFIG_HOME
-      ? join(env.XDG_CONFIG_HOME, 'gnomeola')
+      ? join(env.XDG_CONFIG_HOME, 'kacola')
       : mac
         ? appSupport
-        : join(home, '.config', 'gnomeola'),
+        : join(home, '.config', 'kacola'),
     stateDir: env.XDG_STATE_HOME
-      ? join(env.XDG_STATE_HOME, 'gnomeola')
+      ? join(env.XDG_STATE_HOME, 'kacola')
       : mac
         ? join(appSupport, 'state')
-        : join(home, '.local', 'state', 'gnomeola'),
+        : join(home, '.local', 'state', 'kacola'),
   }
 }

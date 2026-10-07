@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { INTERFACE_XML } from '../../../extensions/gnomeola@gnomeola.org/dbus.js'
+import { INTERFACE_XML } from '../../../extensions/kacola@kacperlubisz.com/dbus.js'
 import {
   buildView,
   elapsedMs,
@@ -13,7 +13,7 @@ import {
   providerLabel,
   startsIn,
   structureKey,
-} from '../../../extensions/gnomeola@gnomeola.org/model.js'
+} from '../../../extensions/kacola@kacperlubisz.com/model.js'
 import { DBUS_JS_PATH, renderDbusJs, XML_PATH } from '../../../scripts/extension-dbus.ts'
 
 // C-5 … C-7, unit tier: the extension's whole decision logic (model.js has no gi:// imports) and the
@@ -56,7 +56,7 @@ const meeting = (o: Record<string, unknown> = {}) => ({
 })
 
 describe('the embedded D-Bus contract', () => {
-  it('is byte-identical to packages/daemon/dbus/org.gnome.Gnomeola.xml', () => {
+  it('is byte-identical to packages/daemon/dbus/com.kacperlubisz.Kacola.xml', () => {
     expect(INTERFACE_XML).toBe(readFileSync(XML_PATH, 'utf8'))
     expect(readFileSync(DBUS_JS_PATH, 'utf8')).toBe(renderDbusJs(readFileSync(XML_PATH, 'utf8')))
   })
@@ -171,7 +171,7 @@ describe('buildView', () => {
     expect(v.panel).toMatchObject({
       icon: 'media-record-symbolic',
       label: '1:01',
-      styleClass: 'gnomeola-recording',
+      styleClass: 'kacola-recording',
     })
     expect(v.items.slice(0, 4).map((i: { key: string }) => i.key)).toEqual([
       'session',

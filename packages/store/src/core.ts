@@ -1,4 +1,4 @@
-// @gnomeola/store/core — the driver-free part of the store: the StoreApi contract, its error type and
+// @kacola/store/core — the driver-free part of the store: the StoreApi contract, its error type and
 // the pure domain rules. The hosted server imports this (plus ./pg or the SQLite entry at its edge), so
 // its request handling never pulls in a database driver.
 export type * from './api.ts'

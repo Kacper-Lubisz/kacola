@@ -1,4 +1,4 @@
-import type { TrackKind } from '@gnomeola/protocol'
+import type { TrackKind } from '@kacola/protocol'
 import type { CatalogEntry } from '../model-manager/catalog.ts'
 import {
   type LiveHypothesis,

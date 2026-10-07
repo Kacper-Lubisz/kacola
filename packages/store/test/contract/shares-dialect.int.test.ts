@@ -1,4 +1,4 @@
-import { type PostgresContainer, podmanPostgresAvailable, startPostgres } from '@gnomeola/testkit/postgres'
+import { type PostgresContainer, podmanPostgresAvailable, startPostgres } from '@kacola/testkit/postgres'
 import pg from 'pg'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import type { StoreApi } from '../../src/api.ts'

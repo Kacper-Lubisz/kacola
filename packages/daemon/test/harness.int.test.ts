@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { startDaemon } from '@gnomeola/testkit/daemon'
+import { startDaemon } from '@kacola/testkit/daemon'
 import { describe, expect, it } from 'vitest'
 
 const alive = (pid: number) => {

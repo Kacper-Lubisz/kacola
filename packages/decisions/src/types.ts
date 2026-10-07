@@ -1,4 +1,4 @@
-import type { Usage } from '@gnomeola/protocol'
+import type { Usage } from '@kacola/protocol'
 
 // The typed-decision contract. A decision is not text: it is an answer drawn from a set the caller
 // defined (an option, a level, yes/no, or a short value copied from the input), with a probability the

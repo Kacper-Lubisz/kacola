@@ -1,4 +1,4 @@
-import { NoteTemplate } from '@gnomeola/protocol'
+import { NoteTemplate } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import { BUILT_IN_TEMPLATES, keywordMatches, suggestTemplate } from '../src/notes/templates.ts'
 

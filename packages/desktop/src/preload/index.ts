@@ -1,8 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import {
   type DaemonStatus,
-  type GnomeolaBridge,
   IPC,
+  type KacolaBridge,
   type SaveTextRequest,
   type Theme,
   type TunnelRequest,
@@ -11,7 +11,7 @@ import {
 } from '../shared/bridge.ts'
 import { channelOf, openTunnel } from '../shared/tunnel-port.ts'
 
-// The only door between the renderer and everything privileged: a narrow, typed `window.gnomeola`.
+// The only door between the renderer and everything privileged: a narrow, typed `window.kacola`.
 // No ipcRenderer, no generic invoke(channel) — each capability is one named function, and main
 // validates its arguments again (a compromised renderer can call these with anything).
 
@@ -23,7 +23,7 @@ function listen<T>(channel: string, cb: (v: T) => void): () => void {
   }
 }
 
-const bridge: GnomeolaBridge = {
+const bridge: KacolaBridge = {
   fetchStream: (req, onFrame) =>
     openTunnel(
       req,
@@ -57,4 +57,4 @@ const bridge: GnomeolaBridge = {
   takeDeepLink: () => ipcRenderer.invoke(IPC.deepLinkTake),
 }
 
-contextBridge.exposeInMainWorld('gnomeola', bridge)
+contextBridge.exposeInMainWorld('kacola', bridge)

@@ -6,8 +6,8 @@ import {
   publicActorLabel,
   type SharedAgendaState,
   USER_CODE_ALPHABET,
-} from '@gnomeola/protocol'
-import { type ShareKey, type ShareState, type StoreApi, shares } from '@gnomeola/store/core'
+} from '@kacola/protocol'
+import { type ShareKey, type ShareState, type StoreApi, shares } from '@kacola/store/core'
 import type { JsonHandler } from './app.ts'
 import type { Principal } from './auth.ts'
 import { HttpError } from './errors.ts'

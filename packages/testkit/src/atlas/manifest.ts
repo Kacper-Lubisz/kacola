@@ -261,7 +261,7 @@ export const ATLAS: AtlasEntry[] = [
     'session-appears',
     'A recording started by the CLI / Claude appears pinned on top of home',
   ),
-  cli('agent-record', 'cli', 'record-status', '`gnomeola record status` while that recording runs', {
+  cli('agent-record', 'cli', 'record-status', '`kacola record status` while that recording runs', {
     cli: { argv: ['record', 'status'] },
   }),
   win(
@@ -363,7 +363,7 @@ export const ATLAS: AtlasEntry[] = [
     'cross-meeting',
     'Asked from home’s box, across meetings: a cited answer; private meetings left out',
   ),
-  cli('ask-across', 'cli', 'ask-since', '`gnomeola ask … --since 14d` from Claude', {
+  cli('ask-across', 'cli', 'ask-since', '`kacola ask … --since 14d` from Claude', {
     cli: { argv: ['ask', 'What did we decide about the retry budget?', '--since', '30d'] },
   }),
   win(
@@ -441,19 +441,19 @@ export const ATLAS: AtlasEntry[] = [
   win('help-about', 'legal', 'notices', 'About › Legal: third-party notices'),
 
   // ---- Agents and other surfaces
-  cli('cli-skill', 'search', 'hits', '`gnomeola search` — ranked snippets with ids', {
+  cli('cli-skill', 'search', 'hits', '`kacola search` — ranked snippets with ids', {
     cli: { argv: ['search', 'retry budget'] },
   }),
-  cli('cli-skill', 'notes', 'actions', '`gnomeola notes <id> --actions` — the action items', {
+  cli('cli-skill', 'notes', 'actions', '`kacola notes <id> --actions` — the action items', {
     cli: { argv: ['notes', 'ses_000000001aaaaaaaaaaa1', '--actions'] },
   }),
-  cli('cli-skill', 'transcript', 'window', '`gnomeola transcript --around` — a narrow window', {
+  cli('cli-skill', 'transcript', 'window', '`kacola transcript --around` — a narrow window', {
     cli: { argv: ['transcript', 'ses_000000001aaaaaaaaaaa1', '--around', '1:05', '--context', '10s'] },
   }),
-  cli('cli-skill', 'sessions', 'list', '`gnomeola sessions list` — private meetings are absent', {
+  cli('cli-skill', 'sessions', 'list', '`kacola sessions list` — private meetings are absent', {
     cli: { argv: ['sessions', 'list'] },
   }),
-  cli('cli-skill', 'meetings', 'today', '`gnomeola meetings --today` — the calendar', {
+  cli('cli-skill', 'meetings', 'today', '`kacola meetings --today` — the calendar', {
     cli: { argv: ['meetings', '--today'] },
   }),
   cli(
@@ -465,14 +465,14 @@ export const ATLAS: AtlasEntry[] = [
       cli: { argv: ['transcript', 'ses_000000001aaaaaaaaaaa1'] },
     },
   ),
-  cli('mcp', 'tools', 'list', '`gnomeola mcp` — the same operations as MCP tools', {
+  cli('mcp', 'tools', 'list', '`kacola mcp` — the same operations as MCP tools', {
     cli: { argv: ['mcp'], mcp: true },
   }),
   planned(
     'byo-agent',
     'attach',
     'connected',
-    'Claude Code attached (`gnomeola live attach`): presence in the window',
+    'Claude Code attached (`kacola live attach`): presence in the window',
   ),
   planned('byo-agent', 'suggest', 'card', 'A suggestion from the connected agent'),
   planned('byo-agent', 'context', 'card', 'A context card the agent fetched from this machine'),
@@ -480,7 +480,7 @@ export const ATLAS: AtlasEntry[] = [
     'byo-agent',
     'cli',
     'live-attach',
-    '`gnomeola live attach --as claude` — NDJSON events until the meeting ends',
+    '`kacola live attach --as claude` — NDJSON events until the meeting ends',
   ),
   web('web-viewer', 'pair', 'code', 'Web viewer, not signed in: the pairing code', { responsive: true }),
   web('web-viewer', 'list', 'sessions', 'Signed in: the meetings list', { responsive: true }),
@@ -489,7 +489,7 @@ export const ATLAS: AtlasEntry[] = [
 
   // ---- When things go wrong
   win('daemon-down', 'window', 'cant-reach', 'Can’t reach kacola, with Try again', { responsive: true }),
-  shell('daemon-down', 'topbar', 'not-running', 'Top bar: gnomeola is not running'),
+  shell('daemon-down', 'topbar', 'not-running', 'Top bar: kacola is not running'),
   cli('daemon-down', 'cli', 'exit-3', 'The CLI says the daemon is unreachable (exit 3)', {
     cli: { argv: ['search', 'retry budget'] },
   }),

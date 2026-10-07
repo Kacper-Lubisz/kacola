@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { DbusProbe, type PrivateBus, startPrivateBus } from '@gnomeola/testkit/dbus'
+import { DbusProbe, type PrivateBus, startPrivateBus } from '@kacola/testkit/dbus'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import { ManualCalendarProvider } from '../src/calendar/providers.ts'
 import { createDaemon, type Daemon } from '../src/daemon.ts'
@@ -20,7 +20,7 @@ let probe: DbusProbe
 
 beforeAll(async () => {
   bus = await startPrivateBus()
-  dir = mkdtempSync(join(tmpdir(), 'gnomeola-dbus-attr-'))
+  dir = mkdtempSync(join(tmpdir(), 'kacola-dbus-attr-'))
   d = await createDaemon({
     dataDir: dir,
     port: 0,

@@ -1,5 +1,5 @@
 // Translatable strings (S-5). Every user-visible string is wrapped in `_()` (or `ngettext()`), which
-// is what packages/desktop/scripts/i18n-pot.ts scans for to produce translations/gnomeola.pot. At startup
+// is what packages/desktop/scripts/i18n-pot.ts scans for to produce translations/kacola.pot. At startup
 // the renderer installs a translator over the JSON catalogue main hands it; until then — and in unit
 // tests — the source string is returned unchanged.
 //

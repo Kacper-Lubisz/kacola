@@ -1,4 +1,4 @@
-import { LlmError } from '@gnomeola/llm'
+import { LlmError } from '@kacola/llm'
 import type {
   Answer,
   ChoiceAnswer,

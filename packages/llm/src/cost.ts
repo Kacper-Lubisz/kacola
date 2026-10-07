@@ -1,5 +1,5 @@
 // Q-6 — token and cost telemetry.
-import type { Usage } from '@gnomeola/protocol'
+import type { Usage } from '@kacola/protocol'
 
 /** USD per million tokens. Source: claude-api skill model table (cached 2026-06-24). */
 type Price = { input: number; output: number; cacheRead: number }

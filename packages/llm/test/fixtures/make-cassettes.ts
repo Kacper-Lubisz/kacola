@@ -1,6 +1,6 @@
 // Regenerate the hand-authored cassettes:  node packages/llm/test/fixtures/make-cassettes.ts
 // (Recorded cassettes come from the eval/record path instead — see docs/llm.md.)
-import { saveCassette } from '@gnomeola/testkit/cassettes'
+import { saveCassette } from '@kacola/testkit/cassettes'
 import { buildCassette, cassettePath } from './cassette-builder.ts'
 import { ENHANCE_SCENARIOS } from './enhance-scenarios.ts'
 import { SCENARIOS } from './scenarios.ts'

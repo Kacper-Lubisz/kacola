@@ -10,7 +10,7 @@ import type {
   Track,
   TrackKind,
   Usage,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 
 // The seams where real subsystems plug into the daemon. Each is small on purpose: the daemon owns
 // sessions, persistence, the event log and HTTP; everything behind these interfaces owns audio, models

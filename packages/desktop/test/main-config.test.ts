@@ -13,18 +13,18 @@ import {
 } from '../src/main/resources.ts'
 import { parseAccent, parseSettingChanged, parseUint, themeFrom } from '../src/main/theme.ts'
 
-const tmp = () => mkdtempSync(join(tmpdir(), 'gnomeola-desktop-'))
+const tmp = () => mkdtempSync(join(tmpdir(), 'kacola-desktop-'))
 
 describe('config', () => {
   it('a separate profile (the sandbox) is a short lower-case name with its own user-data dir', () => {
     const o = { appDir: '/nowhere' }
     expect(readDesktopConfig({}, [], o)).toMatchObject({ profile: null, userDataDir: null })
     expect(
-      readDesktopConfig({ GNOMEOLA_PROFILE: 'sandbox', GNOMEOLA_USER_DATA_DIR: '/tmp/x/electron' }, [], o),
+      readDesktopConfig({ KACOLA_PROFILE: 'sandbox', KACOLA_USER_DATA_DIR: '/tmp/x/electron' }, [], o),
     ).toMatchObject({ profile: 'sandbox', userDataDir: '/tmp/x/electron' })
-    expect(profileFrom({ GNOMEOLA_PROFILE: ' ' })).toBeNull()
+    expect(profileFrom({ KACOLA_PROFILE: ' ' })).toBeNull()
     for (const bad of ['../real', 'Sandbox', 'a b', 'x'.repeat(40)])
-      expect(() => profileFrom({ GNOMEOLA_PROFILE: bad })).toThrow(/GNOMEOLA_PROFILE/)
+      expect(() => profileFrom({ KACOLA_PROFILE: bad })).toThrow(/KACOLA_PROFILE/)
   })
   it('a packaged build spawns resources/runtime/daemon.mjs (scripts/build-desktop.ts puts it there)', () => {
     const res = tmp()
@@ -33,7 +33,7 @@ describe('config', () => {
     expect(daemonEntry({}, { resourcesPath: res, appDir: '/nowhere' })).toBe(
       join(res, 'runtime', 'daemon.mjs'),
     )
-    expect(daemonEntry({ GNOMEOLA_DAEMON_ENTRY: '/x.mjs' }, { resourcesPath: res, appDir: '/nowhere' })).toBe(
+    expect(daemonEntry({ KACOLA_DAEMON_ENTRY: '/x.mjs' }, { resourcesPath: res, appDir: '/nowhere' })).toBe(
       '/x.mjs',
     )
   })
@@ -42,18 +42,16 @@ describe('config', () => {
     const c = readDesktopConfig({ HOME: tmp() }, ['electron', '.'], { appDir: '/nowhere' })
     expect(c).toMatchObject({ baseUrl: 'http://127.0.0.1:8787', loopback: true, background: false })
     expect(c.token).toBeUndefined()
-    expect(readDesktopConfig({ GNOMEOLA_URL: 'https://g.example.com/' }, [], { appDir: '/x' })).toMatchObject(
-      {
-        baseUrl: 'https://g.example.com',
-        loopback: false,
-      },
-    )
-    expect(() => readDesktopConfig({ GNOMEOLA_URL: 'nope' }, [], { appDir: '/x' })).toThrow(/not a URL/)
+    expect(readDesktopConfig({ KACOLA_URL: 'https://g.example.com/' }, [], { appDir: '/x' })).toMatchObject({
+      baseUrl: 'https://g.example.com',
+      loopback: false,
+    })
+    expect(() => readDesktopConfig({ KACOLA_URL: 'nope' }, [], { appDir: '/x' })).toThrow(/not a URL/)
   })
 
   it('--background, the daemon entry override and extra daemon args', () => {
     const c = readDesktopConfig(
-      { GNOMEOLA_DAEMON_ENTRY: '/d/daemon.mjs', GNOMEOLA_DAEMON_ARGS: '["--data-dir","/x"]' },
+      { KACOLA_DAEMON_ENTRY: '/d/daemon.mjs', KACOLA_DAEMON_ARGS: '["--data-dir","/x"]' },
       ['electron', '.', '--background'],
       { appDir: '/x' },
     )
@@ -62,19 +60,19 @@ describe('config', () => {
       daemonEntry: '/d/daemon.mjs',
       daemonArgs: ['--data-dir', '/x'],
     })
-    expect(() => readDesktopConfig({ GNOMEOLA_DAEMON_ARGS: '"x"' }, [], { appDir: '/x' })).toThrow()
+    expect(() => readDesktopConfig({ KACOLA_DAEMON_ARGS: '"x"' }, [], { appDir: '/x' })).toThrow()
   })
 
   it('finds the M8 token in env, else hosts.json for that URL', () => {
     const home = tmp()
-    mkdirSync(join(home, '.config', 'gnomeola'), { recursive: true })
+    mkdirSync(join(home, '.config', 'kacola'), { recursive: true })
     writeFileSync(
-      join(home, '.config', 'gnomeola', 'hosts.json'),
+      join(home, '.config', 'kacola', 'hosts.json'),
       JSON.stringify({ 'https://g.example.com': { token: 'tok-from-pair' } }),
     )
     expect(tokenFor({ HOME: home }, 'https://g.example.com/')).toBe('tok-from-pair')
     expect(tokenFor({ HOME: home }, 'https://other.example.com')).toBeUndefined()
-    expect(tokenFor({ HOME: home, GNOMEOLA_TOKEN: 'env' }, 'https://g.example.com')).toBe('env')
+    expect(tokenFor({ HOME: home, KACOLA_TOKEN: 'env' }, 'https://g.example.com')).toBe('env')
   })
 })
 
@@ -146,15 +144,15 @@ describe('portal theme', () => {
     expect(themeFrom({ ...none, contrast: 1 }, false, {}).contrast).toBe('high')
     expect(
       themeFrom(none, false, {
-        GNOMEOLA_COLOR_SCHEME: 'dark',
-        GNOMEOLA_CONTRAST: 'high',
-        GNOMEOLA_ACCENT: '#e01b24',
+        KACOLA_COLOR_SCHEME: 'dark',
+        KACOLA_CONTRAST: 'high',
+        KACOLA_ACCENT: '#e01b24',
       }),
     ).toEqual({
       scheme: 'dark',
       contrast: 'high',
       accent: '#e01b24',
     })
-    expect(themeFrom(none, false, { GNOMEOLA_ACCENT: 'red; x' }).accent).toBeNull()
+    expect(themeFrom(none, false, { KACOLA_ACCENT: 'red; x' }).accent).toBeNull()
   })
 })

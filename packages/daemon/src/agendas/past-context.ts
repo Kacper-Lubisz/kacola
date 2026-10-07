@@ -1,6 +1,6 @@
-import { contentWords } from '@gnomeola/decisions'
-import type { SearchHit } from '@gnomeola/protocol'
-import type { Store } from '@gnomeola/store'
+import { contentWords } from '@kacola/decisions'
+import type { SearchHit } from '@kacola/protocol'
+import type { Store } from '@kacola/store'
 
 // Context from past meetings: when a name or a project comes up in the live transcript and earlier
 // recordings mention it too, the tracker adds a private context card ("Last time with Ana: …") with the

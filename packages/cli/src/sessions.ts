@@ -1,4 +1,4 @@
-import { GnomeolaApiError, type Session } from '@gnomeola/protocol'
+import { KacolaApiError, type Session } from '@kacola/protocol'
 import type { Ctx } from './context.ts'
 import { CliError, EXIT, usage } from './errors.ts'
 
@@ -7,7 +7,7 @@ import { CliError, EXIT, usage } from './errors.ts'
  * the `ses_`), or the keywords `latest` / `current`. Ambiguity is an error, never a guess.
  */
 export async function resolveSessionId(ctx: Ctx, input: string | undefined): Promise<string> {
-  if (!input) throw usage('a session id is required', 'use `gnomeola sessions list`, or `latest` / `current`')
+  if (!input) throw usage('a session id is required', 'use `kacola sessions list`, or `latest` / `current`')
   if (/^ses_[0-9a-z]{21}$/.test(input)) return input
   const { sessions } = await ctx.client.call('listSessions', { query: { limit: 500 } })
   if (input === 'latest' || input === 'last') {
@@ -47,7 +47,7 @@ export function briefSession(s: Session) {
 }
 
 export function mapApiError(err: unknown): never {
-  if (err instanceof GnomeolaApiError) {
+  if (err instanceof KacolaApiError) {
     if (err.code === 'not_found') throw new CliError(EXIT.NOT_FOUND, err.message)
     if (err.code === 'unavailable') throw new CliError(EXIT.UNAVAILABLE, err.message)
     if (err.code === 'bad_request' && /^refused/.test(err.message))
@@ -56,7 +56,7 @@ export function mapApiError(err: unknown): never {
     if (err.code === 'conflict') throw new CliError(EXIT.ERROR, err.message)
     // agent channel: a lease that is gone, a mode or rule that refuses, a rate limit
     if (err.status === 401 && /lease/i.test(err.message))
-      throw new CliError(EXIT.LEASE, err.message, 'attach again: gnomeola live attach')
+      throw new CliError(EXIT.LEASE, err.message, 'attach again: kacola live attach')
     if (err.status === 429)
       throw new CliError(EXIT.REFUSED, err.message, 'slow down: at most one suggestion every ~2 minutes')
     if (err.code === 'unauthorized' && err.status === 403) throw new CliError(EXIT.REFUSED, err.message)

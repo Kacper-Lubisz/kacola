@@ -3,7 +3,7 @@ import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient, type ShareOp } from '@gnomeola/protocol'
+import { createClient, type ShareOp } from '@kacola/protocol'
 import { type Browser, chromium, type Page } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { built, type Harness, startHarness } from './harness.ts'
@@ -26,10 +26,10 @@ const ADMIN = 'agenda-web-e2e-admin-0123456789'
 
 type Mail = { to: string; subject: string; text: string }
 
-/** GNOMEOLA_SHOT_DIR=…: keep full-page screenshots for a visual check. */
+/** KACOLA_SHOT_DIR=…: keep full-page screenshots for a visual check. */
 const shot = async (page: Page, name: string) => {
-  if (process.env.GNOMEOLA_SHOT_DIR)
-    await page.screenshot({ path: join(process.env.GNOMEOLA_SHOT_DIR, `${name}.png`), fullPage: true })
+  if (process.env.KACOLA_SHOT_DIR)
+    await page.screenshot({ path: join(process.env.KACOLA_SHOT_DIR, `${name}.png`), fullPage: true })
 }
 
 describe.skipIf(!CHROME)(`shared agenda page in headless Chrome (${CHROME ?? 'no browser found'})`, () => {
@@ -37,7 +37,7 @@ describe.skipIf(!CHROME)(`shared agenda page in headless Chrome (${CHROME ?? 'no
   let browser: Browser
   let sink: Server
   const mails: Mail[] = []
-  const tmp = mkdtempSync(join(tmpdir(), 'gnomeola-agenda-web-'))
+  const tmp = mkdtempSync(join(tmpdir(), 'kacola-agenda-web-'))
   const s = { shareId: '', token: '' }
   const owner = () => createClient({ baseUrl: h.url, token: ADMIN })
   const push = (ops: ShareOp[]) =>
@@ -53,9 +53,9 @@ describe.skipIf(!CHROME)(`shared agenda page in headless Chrome (${CHROME ?? 'no
     await new Promise<void>((r) => sink.listen(0, '127.0.0.1', r))
     h = await startHarness(await built(), {
       DATABASE_URL: `sqlite:${join(tmp, 'db.sqlite')}`,
-      GNOMEOLA_AUTH_SECRET: SECRET,
-      GNOMEOLA_ADMIN_TOKEN: ADMIN,
-      GNOMEOLA_MAIL_WEBHOOK: `http://127.0.0.1:${(sink.address() as AddressInfo).port}/mail`,
+      KACOLA_AUTH_SECRET: SECRET,
+      KACOLA_ADMIN_TOKEN: ADMIN,
+      KACOLA_MAIL_WEBHOOK: `http://127.0.0.1:${(sink.address() as AddressInfo).port}/mail`,
     })
     browser = await chromium.launch({ executablePath: CHROME, headless: true })
     // the organiser's device shares an agenda (what a daemon's share sync pushes)

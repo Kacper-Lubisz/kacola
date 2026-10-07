@@ -1,5 +1,5 @@
 {
-  "name": "@gnomeola/decisions",
+  "name": "@kacola/decisions",
   "version": "0.1.0",
   "private": true,
   "description": "Typed decisions (choice, score, yes/no, extraction) over TypeSafe Jev, OpenAI, Anthropic, Ollama or an on-device embedder, and the agenda tasks built on them.",
@@ -13,14 +13,14 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
-    "@gnomeola/llm": "workspace:*",
-    "@gnomeola/protocol": "workspace:*",
+    "@kacola/llm": "workspace:*",
+    "@kacola/protocol": "workspace:*",
     "@typesafe-ai/sdk": "0.6.0",
     "onnxruntime-node": "1.30.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@gnomeola/stt": "workspace:*",
-    "@gnomeola/testkit": "workspace:*"
+    "@kacola/stt": "workspace:*",
+    "@kacola/testkit": "workspace:*"
   }
 }

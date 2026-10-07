@@ -1,7 +1,7 @@
 import { type ChildProcess, execFileSync, spawn } from 'node:child_process'
-import { otherMicUsers } from '@gnomeola/daemon'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@gnomeola/testkit/rig'
+import { otherMicUsers } from '@kacola/daemon'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@kacola/testkit/rig'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // C-8 on the REAL PipeWire graph: the daemon's microphone-activity rule watches pw-dump, and "another
@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 //
 // Something else on this desktop may be capturing from a real microphone (a call, a browser tab) — the
 // rule would rightly fire for it — so the daemon is told to watch only the rig's microphone
-// (GNOMEOLA_MIC_ACTIVITY=pipewire:<rig source>). The unrestricted detection is unit-tested on pw-dump
+// (KACOLA_MIC_ACTIVITY=pipewire:<rig source>). The unrestricted detection is unit-tested on pw-dump
 // shapes (packages/daemon/test/calendar.test.ts); here the real graph, stream states and polling are.
 
 let rig: PipeWireRig
@@ -24,8 +24,8 @@ describe('auto-record when another app uses the microphone (real PipeWire)', () 
     rig = await PipeWireRig.create()
     d = await startDaemon({
       env: {
-        GNOMEOLA_MIC_ACTIVITY: `pipewire:${rig.mic.captureTarget}`,
-        GNOMEOLA_MIC_IDLE_STOP_MS: '1500',
+        KACOLA_MIC_ACTIVITY: `pipewire:${rig.mic.captureTarget}`,
+        KACOLA_MIC_IDLE_STOP_MS: '1500',
       },
     })
     // the restriction works: whatever else is capturing right now is not what the daemon sees
@@ -64,7 +64,7 @@ describe('auto-record when another app uses the microphone (real PipeWire)', () 
       15_000,
       'a mic-triggered session',
     )
-    expect(s!.title).toBe('Call (gnomeola-e2e-call)')
+    expect(s!.title).toBe('Call (kacola-e2e-call)')
     await stopCall()
     await waitFor(
       async () => (await d.client.call('getSession', { params: { id: s!.id } })).status === 'stopped',
@@ -78,13 +78,7 @@ function startCall(): ChildProcess {
   // a capture stream from "some other app", on the rig's virtual microphone only
   const c = spawn(
     'pw-record',
-    [
-      '--target',
-      rig.mic.captureTarget,
-      '-P',
-      '{ application.name=gnomeola-e2e-call node.name=e2e-call }',
-      '-',
-    ],
+    ['--target', rig.mic.captureTarget, '-P', '{ application.name=kacola-e2e-call node.name=e2e-call }', '-'],
     { stdio: ['ignore', 'ignore', 'ignore'] },
   )
   return c

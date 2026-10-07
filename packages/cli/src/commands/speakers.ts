@@ -1,4 +1,4 @@
-import { formatOffset, ME, THEM } from '@gnomeola/protocol'
+import { formatOffset, ME, THEM } from '@kacola/protocol'
 import type { Ctx } from '../context.ts'
 import { renderJson } from '../output.ts'
 import { briefSession, mapApiError, resolveSessionId } from '../sessions.ts'

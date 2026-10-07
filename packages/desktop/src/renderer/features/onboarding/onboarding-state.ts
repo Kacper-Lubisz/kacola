@@ -1,5 +1,5 @@
-import type { ModelInfo, Settings } from '@gnomeola/protocol'
-import { missingModels } from '@gnomeola/ui-core/settings'
+import type { ModelInfo, Settings } from '@kacola/protocol'
+import { missingModels } from '@kacola/ui-core/settings'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import type { UiState } from '../../../shared/bridge.ts'

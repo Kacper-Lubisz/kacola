@@ -4,7 +4,7 @@ import type { TimedWord } from '../types.ts'
 // interface as the local models (`FinalTranscriber`, ../types.ts), and additionally offers what a
 // hosted server needs and a laptop does not: whole-recording transcription with provider-side
 // diarization (`BatchTranscriber`). Nothing here imports the sherpa native addon, so the hosted
-// bundle can use it (`@gnomeola/stt/cloud`).
+// bundle can use it (`@kacola/stt/cloud`).
 
 /** One utterance of a whole-recording transcript, on the recording's own timeline (ms from 0). */
 export type DiarizedUtterance = {

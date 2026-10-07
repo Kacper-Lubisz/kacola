@@ -1,4 +1,4 @@
-import { Store } from '@gnomeola/store'
+import { Store } from '@kacola/store'
 import { describe, expect, it } from 'vitest'
 import { MemoryKeyring } from '../src/keyring.ts'
 import { Logger } from '../src/logger.ts'

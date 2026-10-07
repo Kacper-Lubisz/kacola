@@ -2,7 +2,7 @@ import { type ChildProcess, execFile, spawn } from 'node:child_process'
 import { mkdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
-import type { TrackKind } from '@gnomeola/protocol'
+import type { TrackKind } from '@kacola/protocol'
 import {
   assertDefaultsUnchanged,
   type Defaults,
@@ -11,7 +11,7 @@ import {
   PipeWireRig,
   readDefaults,
   writeFixture,
-} from '@gnomeola/testkit/rig'
+} from '@kacola/testkit/rig'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   type CaptureResult,

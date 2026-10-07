@@ -16,7 +16,7 @@ import {
 } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { platformPaths } from '@gnomeola/protocol'
+import { platformPaths } from '@kacola/protocol'
 
 // One owner per data dir. Everything that opens the store read-write and may run recovery (the daemon,
 // in whatever process composes it) takes `<dataDir>/daemon.lock` first; a second owner is refused before
@@ -64,7 +64,7 @@ export class DataDirLockedError extends Error {
   readonly dataDir: string
   constructor(dataDir: string, owner: LockOwner) {
     super(
-      `another gnomeola daemon (pid ${owner.pid}${owner.port ? `, port ${owner.port}` : ''}) owns ${dataDir}`,
+      `another kacola daemon (pid ${owner.pid}${owner.port ? `, port ${owner.port}` : ''}) owns ${dataDir}`,
     )
     this.owner = owner
     this.dataDir = dataDir
@@ -88,7 +88,7 @@ export type DataDirLock = {
 }
 
 /** The database file the lock protects (see openWriters). */
-export const DB_FILE = 'gnomeola.db'
+export const DB_FILE = 'kacola.db'
 
 /**
  * Other processes that have `file` (or its -wal / -journal) open for WRITING, from /proc/<pid>/fd and
@@ -176,7 +176,7 @@ export function defaultIsAlive(owner: Pick<LockOwner, 'pid' | 'procStart'>): boo
   try {
     process.kill(owner.pid, 0)
   } catch (err) {
-    // EPERM: it exists but is not ours to signal — alive (and not a gnomeola of this user, but still
+    // EPERM: it exists but is not ours to signal — alive (and not a kacola of this user, but still
     // not something to take the dir from)
     if ((err as NodeJS.ErrnoException).code !== 'EPERM') return false
   }
@@ -199,8 +199,8 @@ export function realDataDirs(env: NodeJS.ProcessEnv = process.env): string[] {
   for (const platform of ['linux', 'darwin'])
     dirs.add(resolve(platformPaths({ platform, env: {}, home }).dataDir))
   // scripts/test-env.ts records the real XDG_DATA_HOME before pointing the tiers at a temp one
-  const realXdg = env.GNOMEOLA_TEST_REAL_XDG_DATA_HOME
-  if (realXdg) dirs.add(resolve(join(realXdg, 'gnomeola')))
+  const realXdg = env.KACOLA_TEST_REAL_XDG_DATA_HOME
+  if (realXdg) dirs.add(resolve(join(realXdg, 'kacola')))
   return [...dirs]
 }
 
@@ -209,7 +209,7 @@ export function assertNotRealDataDirInTests(dataDir: string, env: NodeJS.Process
   const dir = resolve(dataDir)
   if (realDataDirs(env).includes(dir))
     throw new Error(
-      `refusing to open the real gnomeola data dir ${dir} from a test run (VITEST is set): ` +
+      `refusing to open the real kacola data dir ${dir} from a test run (VITEST is set): ` +
         'pass a temp --data-dir (scripts/test-env.ts points XDG_DATA_HOME at a temp dir for every tier)',
     )
 }

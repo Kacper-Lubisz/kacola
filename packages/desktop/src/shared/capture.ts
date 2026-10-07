@@ -3,11 +3,11 @@
 
 export const CAPTURE_IPC = {
   /** main → capture window: CaptureCommand */
-  command: 'gnomeola:capture-command',
+  command: 'kacola:capture-command',
   /** capture window → main: (track, ArrayBuffer of s16 LE samples at 16 kHz) */
-  frame: 'gnomeola:capture-frame',
+  frame: 'kacola:capture-frame',
   /** capture window → main: CaptureState */
-  state: 'gnomeola:capture-state',
+  state: 'kacola:capture-state',
 } as const
 
 export type CaptureTrack = 'mic' | 'system'
@@ -19,7 +19,7 @@ export type CaptureState =
   | { track: CaptureTrack; state: 'stopped' }
   | { track: CaptureTrack; state: 'error'; detail: string }
 
-/** window.gnomeolaCapture, exposed by the capture window's preload only. */
+/** window.kacolaCapture, exposed by the capture window's preload only. */
 export interface CaptureBridge {
   onCommand(cb: (c: CaptureCommand) => void): () => void
   frame(track: CaptureTrack, samples: ArrayBuffer): void

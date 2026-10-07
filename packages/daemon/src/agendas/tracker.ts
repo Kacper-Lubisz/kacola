@@ -1,5 +1,5 @@
-import type { DecisionProvider, DecisionResult, TranscriptLine } from '@gnomeola/decisions'
-import { bridgeLine, LlmError, type LlmProvider } from '@gnomeola/llm'
+import type { DecisionProvider, DecisionResult, TranscriptLine } from '@kacola/decisions'
+import { bridgeLine, LlmError, type LlmProvider } from '@kacola/llm'
 import {
   type Agenda,
   type DurableEvent,
@@ -9,8 +9,8 @@ import {
   type Segment,
   type Session,
   type TrackerStatus,
-} from '@gnomeola/protocol'
-import { type AgendaStore, type Store, StoreError } from '@gnomeola/store'
+} from '@kacola/protocol'
+import { type AgendaStore, type Store, StoreError } from '@kacola/store'
 import type { EventBus } from '../bus.ts'
 import type { Logger } from '../logger.ts'
 import { contextTerms, findPastContext } from './past-context.ts'

@@ -10,11 +10,11 @@ import { FIXTURE_SCRIPTS, listFixtures, loadFixture, SAMPLE_RATE } from '../src/
 
 let cache = ''
 beforeAll(() => {
-  cache = mkdtempSync(join(tmpdir(), 'gnomeola-fixture-cache-'))
-  process.env.GNOMEOLA_FIXTURE_CACHE = cache
+  cache = mkdtempSync(join(tmpdir(), 'kacola-fixture-cache-'))
+  process.env.KACOLA_FIXTURE_CACHE = cache
 })
 afterAll(() => {
-  delete process.env.GNOMEOLA_FIXTURE_CACHE
+  delete process.env.KACOLA_FIXTURE_CACHE
   rmSync(cache, { recursive: true, force: true })
 })
 

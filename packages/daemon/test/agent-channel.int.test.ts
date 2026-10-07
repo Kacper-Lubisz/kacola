@@ -3,19 +3,14 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   createClient,
-  GnomeolaApiError,
-  type GnomeolaClient,
+  KacolaApiError,
+  type KacolaClient,
   LEASE_HEADER,
   type LeaseGrant,
   LiveEvent,
-} from '@gnomeola/protocol'
-import { waitFor } from '@gnomeola/testkit/daemon'
-import {
-  assertNoViolations,
-  checkAgendaLog,
-  checkAgentLog,
-  checkEventLog,
-} from '@gnomeola/testkit/invariants'
+} from '@kacola/protocol'
+import { waitFor } from '@kacola/testkit/daemon'
+import { assertNoViolations, checkAgendaLog, checkAgentLog, checkEventLog } from '@kacola/testkit/invariants'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { INJECTION_FLAG, type SpeechGuard } from '../src/agents/guard.ts'
 import { ManualCalendarProvider } from '../src/calendar/providers.ts'
@@ -67,7 +62,7 @@ const testGuard: SpeechGuard = {
 describe('agent channel', () => {
   let dir: string
   let daemon: Daemon
-  let c: GnomeolaClient
+  let c: KacolaClient
   const cal = new ManualCalendarProvider()
   const now = Date.now()
   let sessionId = ''
@@ -92,7 +87,7 @@ describe('agent channel', () => {
       await p
       return 200
     } catch (err) {
-      if (err instanceof GnomeolaApiError) return err.status
+      if (err instanceof KacolaApiError) return err.status
       throw err
     }
   }
@@ -145,7 +140,7 @@ describe('agent channel', () => {
   }
 
   beforeAll(async () => {
-    dir = mkdtempSync(join(tmpdir(), 'gnomeola-agents-'))
+    dir = mkdtempSync(join(tmpdir(), 'kacola-agents-'))
     daemon = await createDaemon({
       dataDir: dir,
       tracker: false, // the channel on its own

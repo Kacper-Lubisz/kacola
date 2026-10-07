@@ -1,5 +1,5 @@
-import { enhanceEvents, type NoteTemplate } from '@gnomeola/protocol'
-import { NotesFeed, type NotesFeedState } from '@gnomeola/ui-core/notes'
+import { enhanceEvents, type NoteTemplate } from '@kacola/protocol'
+import { NotesFeed, type NotesFeedState } from '@kacola/ui-core/notes'
 import type { QueryClient } from '@tanstack/react-query'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import type { EventBridge } from '../../data/event-bridge.ts'

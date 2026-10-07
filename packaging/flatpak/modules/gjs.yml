@@ -1,4 +1,4 @@
-# gjs for the Flatpak: the daemon's D-Bus bridge (org.gnome.Gnomeola on the session bus, for the top-bar
+# gjs for the Flatpak: the daemon's D-Bus bridge (com.kacperlubisz.Kacola on the session bus, for the top-bar
 # extension) and the EDS calendar agent are GJS scripts, and the freedesktop runtime has no gjs.
 # SpiderMonkey (mozjs 140, the ESR gjs 1.88 is built against) comes from Firefox ESR's source, built as
 # a standalone shared library like gnome-build-meta and Fedora's mozjs140 do. Long (~20–40 min), cached

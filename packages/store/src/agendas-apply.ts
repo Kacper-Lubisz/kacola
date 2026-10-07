@@ -7,7 +7,7 @@ import type {
   Evidence,
   StatusChange,
   Suggestion,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import type { Row } from './rows.ts'
 
 // Agendas — how their events become rows, in both dialects. Driver-free (the hosted bundle imports it).

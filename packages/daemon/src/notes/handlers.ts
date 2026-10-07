@@ -6,8 +6,8 @@ import {
   type NoteTemplate,
   type notesRoutes,
   type Session,
-} from '@gnomeola/protocol'
-import { NoteStore, type Store } from '@gnomeola/store'
+} from '@kacola/protocol'
+import { NoteStore, type Store } from '@kacola/store'
 import type { Handlers } from '../daemon.ts'
 import { DaemonError, toDaemonError } from '../errors.ts'
 import type { Logger } from '../logger.ts'

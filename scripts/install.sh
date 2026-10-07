@@ -1,32 +1,32 @@
 #!/usr/bin/env bash
-# gnomeola user-level installer (non-Flatpak; the plan's S-2 ships this first).
+# kacola user-level installer (non-Flatpak; the plan's S-2 ships this first).
 #
 #   scripts/install.sh [--prefix DIR] [--node PATH] [--no-service] [--no-skill] [--no-extension] [--dry-run] [--force]
 #   scripts/install.sh --uninstall [--prefix DIR] [--purge]
 #
 # Installs, per user and without root:
-#   $PREFIX/share/gnomeola/app/          the daemon + CLI runtime (this repo minus dev-only files, with node_modules)
-#   $PREFIX/share/gnomeola/desktop/      the window: the packaged Electron app (scripts/build-desktop.ts)
-#   $PREFIX/bin/gnomeola                 the CLI
-#   $PREFIX/bin/gnomeolad                the daemon launcher
-#   $PREFIX/bin/gnomeola-ui              the window launcher
-#   ~/.config/systemd/user/gnomeolad.service
-#   $PREFIX/share/applications/org.gnome.Gnomeola.desktop   (shown as "kacola")
-#   $PREFIX/share/icons/hicolor/*/apps/org.gnome.Gnomeola*  the brand icons
+#   $PREFIX/share/kacola/app/          the daemon + CLI runtime (this repo minus dev-only files, with node_modules)
+#   $PREFIX/share/kacola/desktop/      the window: the packaged Electron app (scripts/build-desktop.ts)
+#   $PREFIX/bin/kacola                 the CLI
+#   $PREFIX/bin/kacolad                the daemon launcher
+#   $PREFIX/bin/kacola-ui              the window launcher
+#   ~/.config/systemd/user/kacolad.service
+#   $PREFIX/share/applications/com.kacperlubisz.Kacola.desktop   (shown as "kacola")
+#   $PREFIX/share/icons/hicolor/*/apps/com.kacperlubisz.Kacola*  the brand icons
 #   ~/.claude/skills/meeting-context/    the Claude Code skill (unless --no-skill)
-#   ${XDG_DATA_HOME:-~/.local/share}/gnome-shell/extensions/gnomeola@gnomeola.org/
+#   ${XDG_DATA_HOME:-~/.local/share}/gnome-shell/extensions/kacola@kacperlubisz.com/
 #                                        the top-bar extension: installed, NEVER enabled (unless --no-extension)
 #
-# Recordings, the database and models live in ${XDG_DATA_HOME:-~/.local/share}/gnomeola and are never touched
+# Recordings, the database and models live in ${XDG_DATA_HOME:-~/.local/share}/kacola and are never touched
 # by install or a plain uninstall; --purge removes them too.
 #
-# The window attaches to the systemd daemon (GNOMEOLA_URL, default http://127.0.0.1:8787); with --no-service it
-# starts its own bundled daemon instead. GNOMEOLA_DESKTOP_APP_DIR=<linux-unpacked> installs that build instead
+# The window attaches to the systemd daemon (KACOLA_URL, default http://127.0.0.1:8787); with --no-service it
+# starts its own bundled daemon instead. KACOLA_DESKTOP_APP_DIR=<linux-unpacked> installs that build instead
 # of building one (dist/desktop/linux-unpacked is rebuilt when any package source is newer than it).
 #
-# A meeting being recorded is never interrupted: if the running daemon (asked at GNOMEOLA_URL) is recording,
+# A meeting being recorded is never interrupted: if the running daemon (asked at KACOLA_URL) is recording,
 # install refuses — exit 3, nothing replaced — unless --force. Afterwards the daemon is asked to restart on the
-# new version once nothing is recording (`gnomeola daemon restart`, at once if idle); it is never restarted
+# new version once nothing is recording (`kacola daemon restart`, at once if idle); it is never restarted
 # under a recording.
 set -euo pipefail
 
@@ -56,36 +56,36 @@ while [ $# -gt 0 ]; do
 done
 
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
-APP="${PREFIX}/share/gnomeola/app"
-DESKTOP_APP="${PREFIX}/share/gnomeola/desktop"
+APP="${PREFIX}/share/kacola/app"
+DESKTOP_APP="${PREFIX}/share/kacola/desktop"
 BIN="${PREFIX}/bin"
 ICONS="${PREFIX}/share/icons/hicolor"
-APP_ID="org.gnome.Gnomeola"
+APP_ID="com.kacperlubisz.Kacola"
 UNIT_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/systemd/user"
 DESKTOP_DIR="${PREFIX}/share/applications"
-DATA="${XDG_DATA_HOME:-${HOME}/.local/share}/gnomeola"
+DATA="${XDG_DATA_HOME:-${HOME}/.local/share}/kacola"
 SKILLS="${HOME}/.claude/skills"
-EXT_UUID="gnomeola@gnomeola.org"
+EXT_UUID="kacola@kacperlubisz.com"
 EXT_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/gnome-shell/extensions/${EXT_UUID}"
-DAEMON_URL="${GNOMEOLA_URL:-http://127.0.0.1:8787}"
+DAEMON_URL="${KACOLA_URL:-http://127.0.0.1:8787}"
 
 run() { if [ "$DRY" = 1 ]; then echo "+ $*"; else "$@"; fi; }
-say() { echo "gnomeola: $*"; }
+say() { echo "kacola: $*"; }
 
 systemctl_user() {
-  # Only touch the user's systemd if there is one. GNOMEOLA_INSTALL_NO_SYSTEMCTL=1 (tests) writes the unit
+  # Only touch the user's systemd if there is one. KACOLA_INSTALL_NO_SYSTEMCTL=1 (tests) writes the unit
   # file but never talks to the running user manager.
-  [ "${GNOMEOLA_INSTALL_NO_SYSTEMCTL:-0}" = 1 ] && return 0
+  [ "${KACOLA_INSTALL_NO_SYSTEMCTL:-0}" = 1 ] && return 0
   if [ "$SERVICE" = 1 ] && command -v systemctl >/dev/null && systemctl --user show-environment >/dev/null 2>&1; then
     run systemctl --user "$@" || true
   fi
 }
 
 if [ "$UNINSTALL" = 1 ]; then
-  systemctl_user disable --now gnomeolad.service
-  run rm -f "${UNIT_DIR}/gnomeolad.service" "${BIN}/gnomeola" "${BIN}/gnomeolad" "${BIN}/gnomeola-ui" \
+  systemctl_user disable --now kacolad.service
+  run rm -f "${UNIT_DIR}/kacolad.service" "${BIN}/kacola" "${BIN}/kacolad" "${BIN}/kacola-ui" \
     "${DESKTOP_DIR}/${APP_ID}.desktop"
-  run rm -rf "${PREFIX}/share/gnomeola"
+  run rm -rf "${PREFIX}/share/kacola"
   for icon in "${ICONS}"/*/apps/"${APP_ID}".png "${ICONS}"/*/apps/"${APP_ID}".svg "${ICONS}"/*/apps/"${APP_ID}"-symbolic.svg; do
     [ -e "$icon" ] || continue
     run rm -f "$icon"
@@ -95,10 +95,10 @@ if [ "$UNINSTALL" = 1 ]; then
   # what the installed window wrote itself: its autostart entry (Preferences) and its CLI shim (first run),
   # each only when it is ours (the window's marker) and points into this install
   AUTOSTART="${XDG_CONFIG_HOME:-${HOME}/.config}/autostart/${APP_ID}.desktop"
-  if [ -f "$AUTOSTART" ] && grep -q '^X-Gnomeola-Autostart=1' "$AUTOSTART" && grep -qF "$DESKTOP_APP/" "$AUTOSTART"; then run rm -f "$AUTOSTART"; fi
-  SHIM="${HOME}/.local/bin/gnomeola"
-  if [ -f "$SHIM" ] && grep -q '^# gnomeola-cli-shim' "$SHIM" && grep -qF "$DESKTOP_APP/" "$SHIM"; then run rm -f "$SHIM"; fi
-  if [ -f "${SKILLS}/meeting-context/.gnomeola-installed" ]; then run rm -rf "${SKILLS}/meeting-context"; fi
+  if [ -f "$AUTOSTART" ] && grep -q '^X-Kacola-Autostart=1' "$AUTOSTART" && grep -qF "$DESKTOP_APP/" "$AUTOSTART"; then run rm -f "$AUTOSTART"; fi
+  SHIM="${HOME}/.local/bin/kacola"
+  if [ -f "$SHIM" ] && grep -q '^# kacola-cli-shim' "$SHIM" && grep -qF "$DESKTOP_APP/" "$SHIM"; then run rm -f "$SHIM"; fi
+  if [ -f "${SKILLS}/meeting-context/.kacola-installed" ]; then run rm -rf "${SKILLS}/meeting-context"; fi
   run rm -rf "$EXT_DIR"
   systemctl_user daemon-reload
   if [ "$PURGE" = 1 ]; then run rm -rf "$DATA"; say "removed recordings and models in $DATA"; else say "kept your recordings in $DATA (use --purge to remove)"; fi
@@ -118,7 +118,7 @@ fi
 [ -d "${SRC}/node_modules" ] || { echo "install.sh: run 'pnpm install' in ${SRC} first" >&2; exit 1; }
 for tool in pw-record pw-dump ffmpeg; do command -v "$tool" >/dev/null || say "warning: $tool not found — capture/archive will be unavailable"; done
 
-# Is a meeting being recorded right now? Asked of the running daemon itself (`gnomeola daemon idle`, with this
+# Is a meeting being recorded right now? Asked of the running daemon itself (`kacola daemon idle`, with this
 # checkout's CLI: it understands older daemons too) — never inferred. Exit 0 idle or no daemon, 5 recording.
 daemon_cli() { "$NODE" "${SRC}/packages/cli/src/main.ts" "$@" --url "$DAEMON_URL"; }
 set +e
@@ -127,9 +127,9 @@ IDLE_CODE=$?
 set -e
 if [ "$IDLE_CODE" != 0 ]; then
   if [ "$IDLE_CODE" = 5 ]; then
-    WHY="the gnomeola daemon at ${DAEMON_URL} is ${BUSY#gnomeola: }"
+    WHY="the kacola daemon at ${DAEMON_URL} is ${BUSY#kacola: }"
   else
-    WHY="could not tell whether the gnomeola daemon at ${DAEMON_URL} is recording (${BUSY})"
+    WHY="could not tell whether the kacola daemon at ${DAEMON_URL} is recording (${BUSY})"
   fi
   if [ "$FORCE" != 1 ]; then
     echo "install.sh: refusing to install: ${WHY}." >&2
@@ -143,21 +143,21 @@ fi
 say "installing to ${PREFIX} with node $("$NODE" -v) at ${NODE}"
 
 # ---- build ------------------------------------------------------------------------------------------
-# The window is the packaged Electron app (electron-builder `dir`, executable `gnomeola`, the daemon/CLI runtime
+# The window is the packaged Electron app (electron-builder `dir`, executable `kacola`, the daemon/CLI runtime
 # bundled for when no daemon answers). Built from source unless a current build exists: any package source,
 # brand asset or extension file newer than its app.asar means stale.
-LINUX_APP="${GNOMEOLA_DESKTOP_APP_DIR:-${SRC}/dist/desktop/linux-unpacked}"
+LINUX_APP="${KACOLA_DESKTOP_APP_DIR:-${SRC}/dist/desktop/linux-unpacked}"
 stale_app() {
   [ -f "${LINUX_APP}/resources/app.asar" ] || return 0
   [ -n "$(find "${SRC}/packages" "${SRC}/brand" "${SRC}/extensions" \
     \( -name node_modules -o -name out -o -name dist -o -name test -o -name __artifacts__ \) -prune \
     -o -type f -newer "${LINUX_APP}/resources/app.asar" -print -quit)" ]
 }
-if [ "${GNOMEOLA_INSTALL_NO_BUILD:-0}" != 1 ] && [ -z "${GNOMEOLA_DESKTOP_APP_DIR:-}" ] && stale_app; then
+if [ "${KACOLA_INSTALL_NO_BUILD:-0}" != 1 ] && [ -z "${KACOLA_DESKTOP_APP_DIR:-}" ] && stale_app; then
   say "building the desktop app (node scripts/build-desktop.ts)"
   if [ "$DRY" = 1 ]; then echo "+ node scripts/build-desktop.ts"; else (cd "$SRC" && PATH="$(dirname "$NODE"):$PATH" "$NODE" scripts/build-desktop.ts >/dev/null); fi
 fi
-[ "$DRY" = 1 ] || [ -x "${LINUX_APP}/gnomeola" ] || { echo "install.sh: desktop app missing at ${LINUX_APP} (node scripts/build-desktop.ts)" >&2; exit 1; }
+[ "$DRY" = 1 ] || [ -x "${LINUX_APP}/kacola" ] || { echo "install.sh: desktop app missing at ${LINUX_APP} (node scripts/build-desktop.ts)" >&2; exit 1; }
 
 # ---- runtime ----------------------------------------------------------------------------------------
 # Copy the repo runtime for the daemon and the CLI. TypeScript runs directly on Node 24 (type stripping), which
@@ -178,8 +178,8 @@ if [ "$DRY" = 1 ]; then echo "+ copy desktop app ${LINUX_APP} -> ${DESKTOP_APP}"
   mkdir -p "$DESKTOP_APP"
   cp -a "${LINUX_APP}/." "$DESKTOP_APP/"
 fi
-# the brand icons under the app id (hicolor/<size>/apps/app.png → org.gnome.Gnomeola.png, app-symbolic.svg →
-# org.gnome.Gnomeola-symbolic.svg)
+# the brand icons under the app id (hicolor/<size>/apps/app.png → com.kacperlubisz.Kacola.png, app-symbolic.svg →
+# com.kacperlubisz.Kacola-symbolic.svg)
 for dir in "${SRC}"/brand/icons/hicolor/*/apps; do
   size="$(basename "$(dirname "$dir")")"
   for f in "$dir"/*; do
@@ -196,31 +196,31 @@ write() { # path mode (content on stdin)
   if [ "$DRY" = 1 ]; then echo "+ write $1"; cat >/dev/null; else cat >"$1"; chmod "$2" "$1"; fi
 }
 
-write "${BIN}/gnomeola" 755 <<SH
+write "${BIN}/kacola" 755 <<SH
 #!/bin/sh
 exec "${NODE}" "${APP}/packages/cli/src/main.ts" "\$@"
 SH
-write "${BIN}/gnomeolad" 755 <<SH
+write "${BIN}/kacolad" 755 <<SH
 #!/bin/sh
 exec "${NODE}" "${APP}/packages/daemon/src/main.ts" "\$@"
 SH
-write "${BIN}/gnomeola-ui" 755 <<SH
+write "${BIN}/kacola-ui" 755 <<SH
 #!/bin/sh
-exec "${DESKTOP_APP}/gnomeola" "\$@"
+exec "${DESKTOP_APP}/kacola" "\$@"
 SH
 
-# Name is the brand (kacola); the ids stay org.gnome.Gnomeola until the rename. StartupWMClass is the Wayland
+# Name is the brand (kacola); the ids stay com.kacperlubisz.Kacola until the rename. StartupWMClass is the Wayland
 # app id Electron gives the window (package.json desktopName without .desktop; install.e2e checks it).
 write "${DESKTOP_DIR}/${APP_ID}.desktop" 644 <<DESKTOP
 [Desktop Entry]
 Type=Application
 Name=kacola
 Comment=Record, transcribe and search your meetings
-Exec=${BIN}/gnomeola-ui %U
+Exec=${BIN}/kacola-ui %U
 Icon=${APP_ID}
 Terminal=false
 Categories=Office;AudioVideo;Audio;Recorder;
-Keywords=meeting;transcript;notes;record;granola;gnomeola;
+Keywords=meeting;transcript;notes;record;granola;kacola;
 StartupNotify=true
 StartupWMClass=${APP_ID}
 X-GNOME-UsesNotifications=true
@@ -228,21 +228,21 @@ Actions=background;
 
 [Desktop Action background]
 Name=Start in the Background
-Exec=${BIN}/gnomeola-ui --background
+Exec=${BIN}/kacola-ui --background
 DESKTOP
 
 # ---- service ----------------------------------------------------------------------------------------
 if [ "$SERVICE" = 1 ]; then
   run mkdir -p "$UNIT_DIR"
-  write "${UNIT_DIR}/gnomeolad.service" 644 <<UNIT
+  write "${UNIT_DIR}/kacolad.service" 644 <<UNIT
 [Unit]
-Description=gnomeola meeting recorder daemon
+Description=kacola meeting recorder daemon
 After=pipewire.service wireplumber.service
 Wants=pipewire.service
 
 [Service]
 Type=simple
-ExecStart=${BIN}/gnomeolad
+ExecStart=${BIN}/kacolad
 # reload = restart once nothing is recording (SIGHUP); the daemon then exits 76, which is a restart, not a failure
 ExecReload=/bin/kill -HUP \$MAINPID
 Restart=on-failure
@@ -259,30 +259,30 @@ KillMode=mixed
 WantedBy=default.target
 UNIT
   systemctl_user daemon-reload
-  systemctl_user enable gnomeolad.service
+  systemctl_user enable kacolad.service
 fi
 
 # The running daemon moves to the new version by restarting once nothing is recording — asked of the daemon at
-# the moment of the restart, never decided here (`gnomeola daemon restart`, the newly installed CLI). A daemon
+# the moment of the restart, never decided here (`kacola daemon restart`, the newly installed CLI). A daemon
 # from before deferred restarts is asked whether it is idle right now, and restarted only if so.
 restart_daemon() {
   [ "$SERVICE" = 1 ] || return 0
-  if [ "$DRY" = 1 ]; then echo "+ gnomeola daemon restart --no-wait --only-supervised (once idle)"; return 0; fi
+  if [ "$DRY" = 1 ]; then echo "+ kacola daemon restart --no-wait --only-supervised (once idle)"; return 0; fi
   local code=0
   "$NODE" "${APP}/packages/cli/src/main.ts" daemon restart --no-wait --only-supervised --text --url "$DAEMON_URL" || code=$?
   case "$code" in
     0) ;;
-    3) systemctl_user start gnomeolad.service ;; # nothing answers: start it
+    3) systemctl_user start kacolad.service ;; # nothing answers: start it
     6)
       if "$NODE" "${APP}/packages/cli/src/main.ts" daemon idle --url "$DAEMON_URL" >/dev/null 2>&1; then
         say "restarting the (older) daemon: it is idle"
-        systemctl_user restart gnomeolad.service
+        systemctl_user restart kacolad.service
       else
         say "the running daemon is recording and predates deferred restarts: restart it after the meeting with"
-        say "  systemctl --user restart gnomeolad"
+        say "  systemctl --user restart kacolad"
       fi
       ;;
-    *) say "warning: could not ask the daemon to restart (exit ${code}); once idle: systemctl --user reload gnomeolad" ;;
+    *) say "warning: could not ask the daemon to restart (exit ${code}); once idle: systemctl --user reload kacolad" ;;
   esac
 }
 restart_daemon
@@ -310,8 +310,8 @@ fi
 
 # ---- skill ------------------------------------------------------------------------------------------
 if [ "$SKILL" = 1 ]; then
-  if [ "$DRY" = 1 ]; then echo "+ ${BIN}/gnomeola skill install"; else "${BIN}/gnomeola" skill install --text || true; fi
+  if [ "$DRY" = 1 ]; then echo "+ ${BIN}/kacola skill install"; else "${BIN}/kacola" skill install --text || true; fi
 fi
 
-say "done. Open 'kacola' from Activities, or run: gnomeola status"
+say "done. Open 'kacola' from Activities, or run: kacola status"
 case ":${PATH}:" in *":${BIN}:"*) ;; *) say "note: ${BIN} is not on your PATH" ;; esac

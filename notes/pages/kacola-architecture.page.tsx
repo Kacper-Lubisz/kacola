@@ -5,7 +5,7 @@ import {
 } from '@page'
 
 export const meta = {
-  title: 'gnomeola — architecture & delivery plan',
+  title: 'kacola — architecture & delivery plan',
   owner: 'kacper',
   created: '2026-09-28',
   status: 'all milestones M0–M9 built; the window moved from GTK to Electron (kacola brand; GTK app deleted, installer ships the Electron app, Flatpak + macOS zips) — T5 manual, live LLM eval and a real Vercel deploy pending',
@@ -35,13 +35,13 @@ function ArchDiagram() {
       <text x="34" y="95" fontSize="11" fill="#64748b">top-bar indicator</text>
 
       <rect x="20" y="120" width="200" height="70" {...NEW} />
-      <text x="34" y="141" fontSize="13" fontWeight="700" fill="#0f172a">gnomeola window</text>
+      <text x="34" y="141" fontSize="13" fontWeight="700" fill="#0f172a">kacola window</text>
       <text x="34" y="159" fontSize="11" fill="#64748b">Electron · React 19 · TS</text>
       <text x="34" y="177" fontSize="11" fill="#64748b">kacola brand (was GTKX)</text>
 
       <rect x="20" y="202" width="200" height="82" fill="#eff6ff" stroke="#2563eb" strokeWidth="2.5" rx="7" />
       <text x="34" y="223" fontSize="13" fontWeight="700" fill="#0f172a">CLI + Claude skill</text>
-      <text x="34" y="241" fontSize="11" fill="#64748b">gnomeola(1) · Bash-invoked</text>
+      <text x="34" y="241" fontSize="11" fill="#64748b">kacola(1) · Bash-invoked</text>
       <text x="34" y="259" fontSize="11" fill="#64748b">retrieval, not dumping</text>
       <text x="34" y="277" fontSize="10.5" fontWeight="700" fill="#2563eb">the primary consumer</text>
 
@@ -52,7 +52,7 @@ function ArchDiagram() {
       {/* seam */}
       <line x1="248" y1="30" x2="248" y2="440" stroke="#2563eb" strokeWidth="2" strokeDasharray="7 5" />
       <text x="256" y="404" fontSize="11" fontWeight="700" fill="#2563eb">THE SEAM</text>
-      <text x="256" y="420" fontSize="10.5" fill="#2563eb">@gnomeola/protocol</text>
+      <text x="256" y="420" fontSize="10.5" fill="#2563eb">@kacola/protocol</text>
       <text x="256" y="435" fontSize="10.5" fill="#2563eb">HTTP + SSE (D-Bus shim)</text>
 
       <path d="M220 73 C 234 73, 234 119, 290 119" fill="none" stroke="#64748b" strokeWidth="1.4" markerEnd="url(#a-arrow)" />
@@ -62,7 +62,7 @@ function ArchDiagram() {
 
       {/* daemon */}
       <rect x="290" y="40" width="392" height="360" fill="#f8fafc" stroke="#94a3b8" rx="9" />
-      <text x="306" y="64" fontSize="13" fontWeight="700" fill="#0f172a">gnomeolad — Node 24 · TypeScript</text>
+      <text x="306" y="64" fontSize="13" fontWeight="700" fill="#0f172a">kacolad — Node 24 · TypeScript</text>
       <text x="306" y="81" fontSize="10.5" fill="#64748b">systemd user service · 127.0.0.1:8787</text>
 
       <rect x="306" y="96" width="172" height="46" {...NEW} />
@@ -309,10 +309,10 @@ function RetrievalDiagram() {
     <svg viewBox="0 0 1000 250" className="w-full">
       <text x="20" y="18" fontSize="11" fontWeight="700" fill="#475569" letterSpacing="0.06em">COMMAND</text>
       <text x="352" y="18" fontSize="11" fontWeight="700" fill="#475569" letterSpacing="0.06em">TOKENS IT PUTS IN THE AGENT&apos;S CONTEXT</text>
-      {bar(34, 'gnomeola transcript <id>', '14,200', 620, '#dc2626', '')}
-      {bar(84, 'gnomeola transcript --from --to', '620', 27, '#d97706', 'a window around a hit')}
-      {bar(134, 'gnomeola search "retry budget"', '380', 17, '#16a34a', '18 ranked snippets + segment ids')}
-      {bar(184, 'gnomeola ask "what did we decide"', '180', 8, '#2563eb', 'answer + citations; transcript never leaves the daemon')}
+      {bar(34, 'kacola transcript <id>', '14,200', 620, '#dc2626', '')}
+      {bar(84, 'kacola transcript --from --to', '620', 27, '#d97706', 'a window around a hit')}
+      {bar(134, 'kacola search "retry budget"', '380', 17, '#16a34a', '18 ranked snippets + segment ids')}
+      {bar(184, 'kacola ask "what did we decide"', '180', 8, '#2563eb', 'answer + citations; transcript never leaves the daemon')}
       <line x1="352" y1="224" x2="972" y2="224" stroke="#cbd5e1" strokeWidth="1" />
       <text x="352" y="242" fontSize="10.5" fill="#94a3b8">linear scale — the bars are not a trick, that really is the ratio</text>
     </svg>
@@ -415,17 +415,17 @@ function RigDiagram() {
 
 /* ------------------------------------------------------------------- page */
 
-export default function GnomeolaArchitecture() {
+export default function KacolaArchitecture() {
   return (
     <Page
       approved
-      title="gnomeola — architecture & delivery plan"
+      title="kacola — architecture & delivery plan"
       subtitle="A GNOME-native Granola: dual-track recording, live speaker-attributed transcripts, a top-bar meeting indicator, and Q&A over what was said — reachable from a window, from the shell, and from Claude. React (an Electron window, formerly libadwaita via GTKX) on a local backend that can move to the cloud, verified end to end at every milestone."
       meta={meta}
     >
       <Section title="What we are building">
         <P>
-          <strong>gnomeola</strong> is a clean-room, GNOME-native take on Granola. It records a meeting from
+          <strong>kacola</strong> is a clean-room, GNOME-native take on Granola. It records a meeting from
           your own machine without joining it as a bot, transcribes it live with speaker attribution, lets you
           take sparse notes while it happens, and then answers questions about what was said.
         </P>
@@ -465,12 +465,12 @@ export default function GnomeolaArchitecture() {
           <ArchDiagram />
         </Diagram>
         <Callout tone="warn">
-          <strong>The one rule.</strong> The UI and CLI packages may depend on <code>@gnomeola/protocol</code> and
+          <strong>The one rule.</strong> The UI and CLI packages may depend on <code>@kacola/protocol</code> and
           nothing else. Neither may import the store, the capture engine, or a provider. This is enforced in CI with a
           dependency-boundary lint rule, not by good intentions — it is the entire reason remote hosting stays
           cheap instead of becoming a rewrite.
         </Callout>
-        <Pre>{`gnomeola/
+        <Pre>{`kacola/
   packages/
     protocol/      zod schemas, event envelope, generated types   (zero deps)
     daemon/        fastify + SSE + D-Bus, orchestration            (the local backend)
@@ -483,7 +483,7 @@ export default function GnomeolaArchitecture() {
     desktop/       Electron window — React 19 renderer, main supervises the daemon (protocol + ui-core)
     ui-core/       the window's data layer: folds, view logic, i18n    (protocol only)
     shell-ext/     GNOME Shell 50 extension — GJS, no React
-    cli/           gnomeola(1) — agent-facing, --json everywhere     (protocol only)
+    cli/           kacola(1) — agent-facing, --json everywhere     (protocol only)
   skills/
     meeting-context/  SKILL.md, installed into ~/.claude/skills/
   helpers/
@@ -653,7 +653,7 @@ export default function GnomeolaArchitecture() {
             </Mockup>
           </GalleryItem>
           <GalleryItem label="Main window — AdwNavigationSplitView">
-            <Mockup bar={<span className="text-[11px] text-slate-500">gnomeola</span>}>
+            <Mockup bar={<span className="text-[11px] text-slate-500">kacola</span>}>
               <div className="flex h-[236px] bg-white text-[10px]">
                 <div className="w-1/3 border-r border-slate-200 bg-slate-50 p-2 space-y-1">
                   <div className="rounded bg-blue-600 px-2 py-1.5 text-white">
@@ -731,14 +731,14 @@ stream: true    -> SSE deltas straight through to the client`}</Pre>
           the protocol boundary already did the hard part — the CLI is a few hundred lines of argument parsing
           over endpoints the UI already uses.
         </P>
-        <Pre>{`gnomeola sessions list [--since 7d] [--limit N]
-gnomeola transcript <id> [--from 11:02] [--to 11:06] [--speaker ana] [--format md|json]
-gnomeola search "<query>" [--since 30d] [--speaker ana]   # FTS5 -> snippets + segment ids
-gnomeola ask "<query>" [--session <id> | --since 7d]      # server-side, streams, cites
-gnomeola notes <id> [--raw | --enhanced]
-gnomeola meetings [--next | --today]
-gnomeola record start|stop|status
-gnomeola mcp                                              # stdio MCP server (later)
+        <Pre>{`kacola sessions list [--since 7d] [--limit N]
+kacola transcript <id> [--from 11:02] [--to 11:06] [--speaker ana] [--format md|json]
+kacola search "<query>" [--since 30d] [--speaker ana]   # FTS5 -> snippets + segment ids
+kacola ask "<query>" [--session <id> | --since 7d]      # server-side, streams, cites
+kacola notes <id> [--raw | --enhanced]
+kacola meetings [--next | --today]
+kacola record start|stop|status
+kacola mcp                                              # stdio MCP server (later)
 
 --json is implied whenever stdout is not a TTY.  Exit codes are meaningful.
 No spinners, no colour, no prompts when piped.`}</Pre>
@@ -754,7 +754,7 @@ No spinners, no colour, no prompts when piped.`}</Pre>
         </Diagram>
         <P>
           That last row is why the CLI is worth building on top of M5 rather than before it.
-          <code> gnomeola ask</code> is the <em>same code path</em> as the window&apos;s ask pane — same assembler,
+          <code> kacola ask</code> is the <em>same code path</em> as the window&apos;s ask pane — same assembler,
           same cache breakpoints, same citations. The daemon pays the transcript cost once, against a cached
           prefix, and hands back a short cited answer. Two clients, one expensive thing, built once.
         </P>
@@ -764,15 +764,15 @@ No spinners, no colour, no prompts when piped.`}</Pre>
             follow-up command can address exactly what a previous one found. Talks to loopback like every other
             client — it gets no privileged access, which is what keeps it honest.
           </Card>
-          <Card title="The skill — judgement" pills={<><Pill tone="primary">skills/meeting-context</Pill><Pill>Bash(gnomeola:*)</Pill></>}>
-            Installed with <code>gnomeola skill install</code>. It triggers on the phrasings that actually come up
+          <Card title="The skill — judgement" pills={<><Pill tone="primary">skills/meeting-context</Pill><Pill>Bash(kacola:*)</Pill></>}>
+            Installed with <code>kacola skill install</code>. It triggers on the phrasings that actually come up
             mid-task — &quot;what did we decide about…&quot;, &quot;in standup&quot;, &quot;did I agree to&quot; —
             and it encodes the discipline: <strong>search first, then fetch a narrow window, then cite</strong>.
             Never dump a transcript to answer a question. That rule lives in the skill because it is a judgement
             call, not something a flag can enforce.
           </Card>
           <Card title="An MCP server — later" pills={<><Pill>deferred</Pill><Pill>X-8</Pill></>}>
-            <code>gnomeola mcp</code> exposes the same operations as typed tools over stdio, for clients that are
+            <code>kacola mcp</code> exposes the same operations as typed tools over stdio, for clients that are
             not Claude Code. Roughly a day once the CLI exists, and genuinely optional — the skill plus CLI covers
             the use you described, so this is the first thing to cut.
           </Card>
@@ -816,7 +816,7 @@ No spinners, no colour, no prompts when piped.`}</Pre>
             ['Event stream', 'in-process SSE', 'event table + cursor SSE', 'same wire format'],
             ['LLM', 'Claude API', 'Claude API', 'unchanged'],
             ['Auth', 'loopback, none', 'device-pairing token', 'middleware'],
-            ['CLI + skill', 'gnomeola(1)', 'same binary, --host', 'protocol client'],
+            ['CLI + skill', 'kacola(1)', 'same binary, --host', 'protocol client'],
           ]}
         />
         <P>
@@ -1009,7 +1009,7 @@ for the retrieval surface:
         <Tasks phase="M0" title="Foundations — 6 d" items={[
           { done: true, text: <><strong>G-1</strong> GTKX spike: hello-world <code>AdwApplicationWindow</code> under GNOME 50 / libadwaita 1.9 on Node 24, pinned to GTKX 1.6. <em>Blocks everything visual. Do this first — it is the plan&apos;s biggest unknown.</em></> },
           { done: true, text: <><strong>G-2</strong> Node 24 toolchain: <code>mise</code>/<code>fnm</code> pin, pnpm workspace, shared tsconfig, biome, vitest. <em>blocked by: —</em></> },
-          { done: true, text: <><strong>G-3</strong> <code>@gnomeola/protocol</code> v0 — zod schemas for Session, Track, Segment, Speaker, and the event envelope with monotonic <code>seq</code>. <em>blocked by: G-2</em></> },
+          { done: true, text: <><strong>G-3</strong> <code>@kacola/protocol</code> v0 — zod schemas for Session, Track, Segment, Speaker, and the event envelope with monotonic <code>seq</code>. <em>blocked by: G-2</em></> },
           { done: true, text: <><strong>G-4</strong> Daemon skeleton: fastify, <code>/health</code>, SSE endpoint with <code>Last-Event-ID</code> cursor resume, systemd user unit. <em>blocked by: G-3</em></> },
           { done: true, text: <><strong>G-5</strong> Store: kysely + better-sqlite3, migration runner, <code>session</code> and <code>event</code> tables. <em>blocked by: G-2</em></> },
           { done: true, text: <><strong>G-6</strong> CI: typecheck, lint, test, and the dependency-boundary rule that fails if <code>ui/</code> imports anything but <code>protocol</code>. <em>blocked by: G-2</em></> },
@@ -1029,7 +1029,7 @@ for the retrieval surface:
         ]} />
 
         <Tasks phase="M2" title="Transcribe — 9 d · ships live transcripts" items={[
-          { done: true, text: <><strong>T-1</strong> Model manager: download to <code>~/.local/share/gnomeola/models</code>, checksum verify, progress events, resume. <em>blocked by: G-4</em></> },
+          { done: true, text: <><strong>T-1</strong> Model manager: download to <code>~/.local/share/kacola/models</code>, checksum verify, progress events, resume. <em>blocked by: G-4</em></> },
           { done: true, text: <><strong>T-2</strong> <code>SttProvider</code> interface + <code>segment</code> table and protocol types (<code>quality: live | final</code>). <em>blocked by: G-3, G-5</em></> },
           { done: true, text: <><strong>T-3</strong> sherpa-onnx streaming provider — per-track partials via <code>sherpa-onnx-node</code>. <em>blocked by: T-1, T-2, R-2</em></> },
           { done: true, text: <><strong>T-4</strong> whisper.cpp final-pass provider, segment-scoped. <em>blocked by: T-1, T-2</em></> },
@@ -1056,13 +1056,13 @@ for the retrieval surface:
           { done: true, text: <><strong>C-1</strong> <code>CalendarProvider</code> interface, <code>calendar_event</code> table, join-URL extraction for Meet / Zoom / Teams. <em>blocked by: G-3</em></> },
           { done: true, text: <><strong>C-2</strong> <code>cal-agent</code>: small GJS helper reading ECal-2.0, emitting JSON lines, watching for changes. <em>blocked by: C-1</em></> },
           { done: true, text: <><strong>C-3</strong> Calendar service in the daemon: watch, compute current/next meeting, expose over HTTP. <em>blocked by: C-2</em></> },
-          { done: true, text: <><strong>C-4</strong> D-Bus interface <code>org.gnome.Gnomeola</code> — properties (state, nextMeeting), methods (Start, Stop, Join), signals. <em>blocked by: G-4, C-3</em></> },
+          { done: true, text: <><strong>C-4</strong> D-Bus interface <code>com.kacperlubisz.Kacola</code> — properties (state, nextMeeting), methods (Start, Stop, Join), signals. <em>blocked by: G-4, C-3</em></> },
           { done: true, text: <><strong>C-5</strong> Shell extension skeleton for GNOME 50 (ESM), top-bar indicator + popover menu + prefs. <em>blocked by: C-4</em></> },
           { done: true, text: <><strong>C-6</strong> Upcoming meetings in the popover, Join opens the link and starts recording in one action. <em>blocked by: C-5</em></> },
           { done: true, text: <><strong>C-7</strong> Live state in the panel: recording dot, elapsed time, last partial line, click to open the window. <em>blocked by: C-5</em></> },
           { done: true, text: <><strong>C-8</strong> Auto-record rules: on calendar-meeting start, or when another app opens the mic. <em>blocked by: C-6</em></> },
           { done: true, text: <><strong>C-9</strong> Extension packaging, <code>metadata.json</code> for Shell 50, <code>gnome-extensions pack</code>. <em>blocked by: C-6, C-7</em></> },
-          { done: true, text: <><strong>V-4a</strong> D-Bus contract tests against a real session bus: every property, method and signal of <code>org.gnome.Gnomeola</code>, including the states the extension must render. This is where most extension behaviour is actually verified. <em>blocked by: C-4, V-0</em></> },
+          { done: true, text: <><strong>V-4a</strong> D-Bus contract tests against a real session bus: every property, method and signal of <code>com.kacperlubisz.Kacola</code>, including the states the extension must render. This is where most extension behaviour is actually verified. <em>blocked by: C-4, V-0</em></> },
           { done: true, text: <><strong>V-4b</strong> Nested-Shell e2e: boot <code>gnome-shell --headless --virtual-monitor</code>, install and enable the extension, drive it, and introspect the indicator via <code>Eval</code>; assert next-meeting rendering, the recording state, and that Join both opens the URL and starts a session. <em>blocked by: C-9, V-4a</em></> },
           { done: true, text: <><strong>V-4c</strong> Calendar fixtures: a seeded EDS source with recurring events, all-day events, timezone edges, declined invitations, and Meet/Zoom/Teams join-link shapes to extract. <em>blocked by: C-3. Exit: no meeting is missed or mis-timed across a DST boundary.</em></> },
         ]} />
@@ -1086,9 +1086,9 @@ for the retrieval surface:
           { done: true, text: <><strong>X-3</strong> <code>search</code> over FTS5 returning ranked snippets with session and segment ids. <em>blocked by: X-1, T-7</em></> },
           { done: true, text: <><strong>X-4</strong> <code>ask</code> — streams a cited answer from the daemon, reusing the M5 assembler and its prompt cache; <code>--since</code> for cross-session questions. <em>blocked by: X-1, Q-3, Q-4</em></> },
           { done: true, text: <><strong>X-5</strong> Control verbs: <code>record start|stop|status</code>, <code>meetings --next|--today</code>. <em>blocked by: X-1, C-3, R-4</em></> },
-          { done: true, text: <><strong>X-6</strong> The skill: <code>skills/meeting-context/SKILL.md</code> with trigger phrasings and the search-then-window-then-cite discipline, plus <code>gnomeola skill install</code>. <em>blocked by: X-2, X-3, X-4</em></> },
+          { done: true, text: <><strong>X-6</strong> The skill: <code>skills/meeting-context/SKILL.md</code> with trigger phrasings and the search-then-window-then-cite discipline, plus <code>kacola skill install</code>. <em>blocked by: X-2, X-3, X-4</em></> },
           { done: true, text: <><strong>X-7</strong> Private sessions: a <code>private</code> flag that hides a session from the CLI and skill but not the window; CLI read-only outside the <code>record</code> verbs. <em>blocked by: X-2</em></> },
-          { done: true, text: <><strong>X-8</strong> <code>gnomeola mcp</code> — the same operations as typed MCP tools over stdio. <em>blocked by: X-2, X-3, X-4. Deferrable — first thing to cut.</em></> },
+          { done: true, text: <><strong>X-8</strong> <code>kacola mcp</code> — the same operations as typed MCP tools over stdio. <em>blocked by: X-2, X-3, X-4. Deferrable — first thing to cut.</em></> },
           { done: true, text: <><strong>V-6a</strong> CLI golden-file tests over a seeded database: every command&apos;s <code>--json</code> shape, exit codes, and TTY-vs-pipe behaviour driven under a real pty. <em>blocked by: X-2, X-3, V-0</em></> },
           { done: true, text: <><strong>V-6b</strong> Token-budget guards: tokenizer-counted ceilings on <code>search</code> and <code>ask</code> output, and a test that <code>transcript</code> without <code>--full</code> refuses. These are the regression tests for the retrieval discipline — without them a well-meaning change quietly turns the CLI back into a dumper. <em>blocked by: V-6a</em></> },
           { done: true, text: <><strong>V-6c</strong> Prompt-injection corpus plus a scripted headless agent run asserting behaviour: search before transcript, no full-session dump for a narrow question, and private sessions invisible. <em>blocked by: X-6, X-7. Exit: a hostile transcript changes nothing about what the agent can do.</em></> },
@@ -1216,7 +1216,7 @@ for the retrieval surface:
       <Section title="Attribution & licensing">
         <P>
           This is a clean-room reimplementation from publicly described behaviour: no Granola code, assets,
-          branding or protocol. The name is <code>gnomeola</code>, and the About dialog and README will carry an
+          branding or protocol. The name is <code>kacola</code>, and the About dialog and README will carry an
           explicit <em>&quot;inspired by Granola&quot;</em> credit with a link. That is a courtesy and a
           clarity measure — it also makes plain that this is not affiliated with or endorsed by them.
         </P>
@@ -1226,7 +1226,7 @@ for the retrieval surface:
           { from: 'sherpa-onnx', to: 'Apache-2.0', note: 'attribution + NOTICE file' },
           { from: 'pyannote segmentation', to: 'MIT (model)', note: 'verify the exact ONNX export we ship; some upstream weights are gated' },
           { from: 'whisper / zipformer weights', to: 'per-model', note: 'S-4 audits each model we download, not just the code' },
-          { from: 'gnomeola', to: 'to decide', note: 'GPL-3.0 fits GNOME convention; MIT if you want reuse — your call' },
+          { from: 'kacola', to: 'to decide', note: 'GPL-3.0 fits GNOME convention; MIT if you want reuse — your call' },
         ]} />
       </Section>
 
@@ -1249,7 +1249,7 @@ for the retrieval surface:
             the NodeSource repo.
           </Card>
           <Card title="Claude API key, or fully offline?" pills={<Pill>affects M5, M6</Pill>}>
-            Q&A, <code>gnomeola ask</code> and note enhancement default to <code>claude-opus-5</code>, which needs
+            Q&A, <code>kacola ask</code> and note enhancement default to <code>claude-opus-5</code>, which needs
             a key and sends transcript text (never audio) to the API. Q-8 keeps an Ollama path open if you would
             rather nothing leaves the machine — it is meaningfully worse at this task, so I would not make it the
             default. Note that the CLI and skill route through the daemon, so this one choice covers all of them.

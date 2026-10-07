@@ -1,11 +1,11 @@
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Store } from '@gnomeola/store'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
-import { makeSession, type StubDaemon, startStubDaemon } from '@gnomeola/testkit/stub-daemon'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { Store } from '@kacola/store'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop } from '@kacola/testkit/desktop'
+import { makeSession, type StubDaemon, startStubDaemon } from '@kacola/testkit/stub-daemon'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { baseline, markOnboarded, setTheme, uiStatePath } from '../src/desktop.ts'
 import { SEED, seedMeetings } from '../src/seed.ts'
@@ -13,7 +13,7 @@ import { SEED, seedMeetings } from '../src/seed.ts'
 // Screenshot baselines (light / dark at 360 / 800 / 1280 px) and the axe gate in light, dark and high
 // contrast, for home (your day), a meeting's three phases (prep, live, outcome), the primitives gallery,
 // Preferences and onboarding. Baselines live in test/__screenshots__/desktop/
-// (GNOMEOLA_UPDATE_SCREENSHOTS=1 re-records them after a deliberate design change; a missing one is
+// (KACOLA_UPDATE_SCREENSHOTS=1 re-records them after a deliberate design change; a missing one is
 // recorded). Data and the renderer's clock are fixed so the pictures are: the protocol stub for home,
 // a seeded real daemon for the meeting page, a daemon with no sessions for the dialogs.
 
@@ -22,7 +22,7 @@ const SCHEMES = ['light', 'dark'] as const
 const HEIGHT = 760
 /** The renderer's fixed "now" (the window in UTC), so day headings and countdowns never move. */
 const NOW = '2026-03-12T15:30:00.000Z'
-const ENV = { GNOMEOLA_COLOR_SCHEME: 'light', TZ: 'UTC' }
+const ENV = { KACOLA_COLOR_SCHEME: 'light', TZ: 'UTC' }
 
 /** Freeze the renderer's clock at NOW and reload, so every view renders against it. */
 async function freeze(app: DesktopApp): Promise<void> {
@@ -38,7 +38,7 @@ let markerId = ''
 beforeAll(async () => {
   buildDesktop()
   display = await startHeadlessDisplay({ size: '1280x800' })
-  markerId = display.env.GNOMEOLA_HEADLESS_ID!
+  markerId = display.env.KACOLA_HEADLESS_ID!
   markOnboarded(display)
 }, 240_000)
 
@@ -96,7 +96,7 @@ describe('home and gallery (protocol stub, fixed data)', () => {
       makeSession('Design review: onboarding flow', at('2026-03-11T13:00:00.000Z', 30)),
       makeSession('HR 1:1', { ...at('2026-03-10T10:00:00.000Z', 25), private: true }),
     ])
-    app = await launchDesktop({ display, env: { GNOMEOLA_URL: stub.url, ...ENV } })
+    app = await launchDesktop({ display, env: { KACOLA_URL: stub.url, ...ENV } })
     await freeze(app)
     await app.window.getByRole('button', { name: /^Platform standup, / }).waitFor({ timeout: 20_000 })
   }, 120_000)
@@ -146,11 +146,11 @@ describe('a meeting page in each phase (seeded real daemon, fixed clock)', () =>
   let dir = ''
 
   beforeAll(async () => {
-    dir = mkdtempSync(join(tmpdir(), 'gnomeola-visual-'))
+    dir = mkdtempSync(join(tmpdir(), 'kacola-visual-'))
     const dataDir = join(dir, 'data')
     mkdirSync(dataDir, { recursive: true })
     seedMeetings(dataDir)
-    const store = Store.open(join(dataDir, 'gnomeola.db'))
+    const store = Store.open(join(dataDir, 'kacola.db'))
     const at = (id: string, iso: string, ms: number) =>
       store.updateSession(id, (s) => ({
         ...s,
@@ -169,7 +169,7 @@ describe('a meeting page in each phase (seeded real daemon, fixed clock)', () =>
       display,
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
-    app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl, ...ENV } })
+    app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl, ...ENV } })
     await freeze(app)
     await app.window.getByRole('button', { name: /^Platform standup, / }).waitFor({ timeout: 20_000 })
   }, 120_000)
@@ -245,7 +245,7 @@ describe('Preferences and onboarding (real daemon, no sessions)', () => {
     markOnboarded(display)
     const app = await launchDesktop({
       display,
-      env: { GNOMEOLA_URL: daemon.baseUrl, ...ENV },
+      env: { KACOLA_URL: daemon.baseUrl, ...ENV },
     })
     try {
       await freeze(app)
@@ -272,7 +272,7 @@ describe('Preferences and onboarding (real daemon, no sessions)', () => {
     rmSync(uiStatePath(display), { force: true })
     const app = await launchDesktop({
       display,
-      env: { GNOMEOLA_URL: daemon.baseUrl, ...ENV },
+      env: { KACOLA_URL: daemon.baseUrl, ...ENV },
     })
     try {
       await freeze(app)

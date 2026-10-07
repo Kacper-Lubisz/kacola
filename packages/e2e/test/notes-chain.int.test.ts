@@ -6,16 +6,16 @@ import {
   diffNoteBlocks,
   type EnhanceStreamEvent,
   enhanceEvents,
-  type GnomeolaClient,
-} from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
+  type KacolaClient,
+} from '@kacola/protocol'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { gnomeola } from '../src/cli.ts'
+import { kacola } from '../src/cli.ts'
 import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
 import { SEED, seedMeetings } from '../src/seed.ts'
 
-// N-2 / N-5 — the whole enhancement chain, for real: gnomeolad (child process) → LlmNotesEngine →
-// @gnomeola/llm enhance → @anthropic-ai/sdk → HTTP, then the result read back through gnomeola(1). Only
+// N-2 / N-5 — the whole enhancement chain, for real: kacolad (child process) → LlmNotesEngine →
+// @kacola/llm enhance → @anthropic-ai/sdk → HTTP, then the result read back through kacola(1). Only
 // the far end is a replay of a hand-authored Messages API stream.
 
 const CASSETTES = join(import.meta.dirname, '..', '..', 'llm', 'test', 'fixtures', 'cassettes')
@@ -30,7 +30,7 @@ type Body = {
 
 let api: FakeAnthropic
 let d: DaemonHandle
-let c: GnomeolaClient
+let c: KacolaClient
 let dataDir: string
 let id: string
 
@@ -43,7 +43,7 @@ async function enhanceAll(sessionId: string): Promise<EnhanceStreamEvent[]> {
 
 beforeAll(async () => {
   api = await startFakeAnthropic()
-  dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-notes-chain-'))
+  dataDir = mkdtempSync(join(tmpdir(), 'kacola-notes-chain-'))
   seedMeetings(dataDir)
   d = await startDaemon({ dataDir, env: { ANTHROPIC_API_KEY: KEY, ANTHROPIC_BASE_URL: api.url } })
   c = d.client
@@ -100,7 +100,7 @@ describe('notes enhancement chain: daemon → llm → SDK → API → CLI', () =
     expect(state.note).toMatchObject({ version: 1, markdown: NOTES, pendingEnhancement: 2 })
   })
 
-  it('merges the default review and serves it through `gnomeola notes`, with owners parsed', async () => {
+  it('merges the default review and serves it through `kacola notes`, with owners parsed', async () => {
     const { note, enhanced } = await c.call('getNotes', { params: { id } })
     const choices = defaultChoices(diffNoteBlocks(note.markdown, enhanced!.markdown))
     const merged = await c.call('mergeNotes', {
@@ -109,19 +109,19 @@ describe('notes enhancement chain: daemon → llm → SDK → API → CLI', () =
     })
     expect(merged.version).toBe(3)
 
-    const head = await gnomeola(['notes', id], d.baseUrl)
+    const head = await kacola(['notes', id], d.baseUrl)
     expect(head.stderr).toBe('')
     expect(head.code).toBe(0)
     const j = JSON.parse(head.stdout)
     expect(j).toMatchObject({ version: 3, markdown: merged.markdown, pendingEnhancement: null })
 
-    const actions = JSON.parse((await gnomeola(['notes', id, '--actions'], d.baseUrl)).stdout)
+    const actions = JSON.parse((await kacola(['notes', id, '--actions'], d.baseUrl)).stdout)
     expect(actions.actionItems).toEqual([
       { text: 'Add an alert on the dead-letter queue', owner: 'Bruno', due: 'Friday', done: false },
       { text: 'Share the new dashboard link', owner: 'Ana', due: null, done: false },
     ])
     // the user's original words are still there, as version 1
-    const v1 = JSON.parse((await gnomeola(['notes', id, '--version', '1'], d.baseUrl)).stdout)
+    const v1 = JSON.parse((await kacola(['notes', id, '--version', '1'], d.baseUrl)).stdout)
     expect(v1.markdown).toBe(NOTES)
   })
 

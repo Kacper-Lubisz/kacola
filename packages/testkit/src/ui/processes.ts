@@ -10,7 +10,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 //      anything still holding the marker — which catches grandchildren the Shell spawned itself
 //      (ibus, glycin loaders) that no pid we hold points at.
 
-export const MARKER_VAR = 'GNOMEOLA_HEADLESS_ID'
+export const MARKER_VAR = 'KACOLA_HEADLESS_ID'
 
 export type Spawned = {
   name: string

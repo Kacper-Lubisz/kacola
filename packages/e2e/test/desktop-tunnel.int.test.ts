@@ -1,6 +1,6 @@
 import { join } from 'node:path'
-import { type AnyEvent, createClient, type GnomeolaClient } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import { type AnyEvent, createClient, type KacolaClient } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { TUNNEL_ORIGIN } from '../../desktop/src/shared/bridge.ts'
 import { tunnel } from '../../desktop/test/tunnel-harness.ts'
@@ -8,7 +8,7 @@ import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fak
 
 // The Electron window's fetch tunnel against the REAL daemon (child process, pairing auth on): the
 // renderer's fetch → preload port relay → main's serveTunnel (route check, header allow-list, bearer
-// token) → gnomeolad, and the body streamed back. Everything but Electron's IPC transport is the
+// token) → kacolad, and the body streamed back. Everything but Electron's IPC transport is the
 // shipping code; the transport is Node MessageChannels, which is what MessagePortMain wraps.
 
 const CASSETTES = join(import.meta.dirname, '..', '..', 'llm', 'test', 'fixtures', 'cassettes')
@@ -24,8 +24,8 @@ beforeAll(async () => {
     env: {
       ANTHROPIC_API_KEY: 'sk-ant-e2e-planted-key-0123456789',
       ANTHROPIC_BASE_URL: api.url,
-      GNOMEOLA_AUTH_SECRET: 'desktop-tunnel-secret-0123456789abcdef0123',
-      GNOMEOLA_FAKE_PIPELINE: JSON.stringify({
+      KACOLA_AUTH_SECRET: 'desktop-tunnel-secret-0123456789abcdef0123',
+      KACOLA_FAKE_PIPELINE: JSON.stringify({
         speed: 20,
         segmentEveryMs: 4000,
         finalizeAfterMs: 30,
@@ -33,7 +33,7 @@ beforeAll(async () => {
       }),
     },
   })
-  // pair a device the way `gnomeola pair` does: start, approve from loopback, collect the token
+  // pair a device the way `kacola pair` does: start, approve from loopback, collect the token
   const start = await d.client.call('pairStart', { body: { name: 'desktop test' } })
   await d.client.call('pairApprove', { body: { userCode: start.userCode } })
   const t = await d.client.call('pairToken', { body: { deviceCode: start.deviceCode } })
@@ -58,7 +58,7 @@ afterAll(async () => {
 
 function tunnelled(tok: string | undefined) {
   const t = tunnel({ baseUrl: d.baseUrl, ...(tok ? { token: tok } : {}) })
-  const client: GnomeolaClient = createClient({ baseUrl: TUNNEL_ORIGIN, fetch: t.fetch, timeoutMs: 10_000 })
+  const client: KacolaClient = createClient({ baseUrl: TUNNEL_ORIGIN, fetch: t.fetch, timeoutMs: 10_000 })
   return { ...t, client }
 }
 

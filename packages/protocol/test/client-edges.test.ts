@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createClient, DaemonUnreachableError, GnomeolaApiError } from '../src/client.ts'
+import { createClient, DaemonUnreachableError, KacolaApiError } from '../src/client.ts'
 import type { AnyEvent } from '../src/events.ts'
 import type { AskStreamEvent } from '../src/routes.ts'
 import type { Session } from '../src/schemas.ts'
@@ -117,7 +117,7 @@ describe('client requests', () => {
       fetch: async () => new Response('upstream exploded', { status: 502, statusText: 'Bad Gateway' }),
     })
     const err = await c.call('health').catch((e) => e)
-    expect(err).toBeInstanceOf(GnomeolaApiError)
+    expect(err).toBeInstanceOf(KacolaApiError)
     expect(err).toMatchObject({ status: 502, code: 'internal', message: 'upstream exploded' })
     const empty = createClient({
       fetch: async () => new Response('', { status: 503, statusText: 'Service Unavailable' }),
@@ -139,7 +139,7 @@ describe('client requests', () => {
     expect(err.name).toBe('DaemonUnreachableError')
     expect(err.message).toBe("kacola's background service is not reachable at http://x:1")
     expect(err.cause).toBe(cause)
-    expect(new GnomeolaApiError(400, 'bad_request', 'm').name).toBe('GnomeolaApiError')
+    expect(new KacolaApiError(400, 'bad_request', 'm').name).toBe('KacolaApiError')
   })
 
   it('handles a stream response without a body', async () => {

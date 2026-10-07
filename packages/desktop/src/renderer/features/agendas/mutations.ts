@@ -8,8 +8,8 @@ import type {
   LeaseInfo,
   NewAgendaItem,
   Suggestion,
-} from '@gnomeola/protocol'
-import { reorderItems } from '@gnomeola/ui-core/agendas'
+} from '@kacola/protocol'
+import { reorderItems } from '@kacola/ui-core/agendas'
 import type { QueryClient } from '@tanstack/react-query'
 import { keys } from '../../data/keys.ts'
 import { optimistic } from '../../data/mutations.ts'

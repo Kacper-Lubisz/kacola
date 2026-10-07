@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { request } from 'node:http'
 import { networkInterfaces, tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { buildPath, createClient, PairToken, type RouteDef, type RouteName, routes } from '@gnomeola/protocol'
+import { buildPath, createClient, PairToken, type RouteDef, type RouteName, routes } from '@kacola/protocol'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createDaemon, type Daemon } from '../src/daemon.ts'
 import { MemoryKeyring } from '../src/keyring.ts'
@@ -19,7 +19,7 @@ afterEach(async () => {
   for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true })
 })
 async function daemon(o: Partial<Parameters<typeof createDaemon>[0]> = {}): Promise<Daemon> {
-  const dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-auth-'))
+  const dataDir = mkdtempSync(join(tmpdir(), 'kacola-auth-'))
   dirs.push(dataDir)
   const d = await createDaemon({
     dataDir,
@@ -161,7 +161,7 @@ describe.skipIf(!lanAddress)(`a real remote connection (via ${lanAddress ?? 'no 
 
     await createClient({ baseUrl: `http://127.0.0.1:${d.port}` }) // (loopback still anonymous)
       .call('health')
-    const { SqliteStoreApi } = await import('@gnomeola/store')
+    const { SqliteStoreApi } = await import('@kacola/store')
     expect(await new SqliteStoreApi(d.store).revokeDevice(tok.deviceId, new Date())).toBe(true)
     await expect(phone.call('listSessions')).rejects.toMatchObject({ status: 401 })
   })

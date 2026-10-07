@@ -1,4 +1,4 @@
-import { matchPath, type RouteName, routes } from '@gnomeola/protocol'
+import { matchPath, type RouteName, routes } from '@kacola/protocol'
 import type { TunnelControl, TunnelFrame, TunnelRequest } from '../shared/bridge.ts'
 
 // The main-process half of the fetch tunnel (docs/desktop-app.md, "Fetch tunnel"). The renderer has
@@ -83,7 +83,7 @@ export async function serveTunnel(req: TunnelRequest, port: TunnelPort, deps: Tu
     for (const f of refusal(
       403,
       'forbidden',
-      `not a gnomeola route: ${String(req?.method)} ${String(req?.path)}`,
+      `not a kacola route: ${String(req?.method)} ${String(req?.path)}`,
     ))
       port.post(f)
     finish()

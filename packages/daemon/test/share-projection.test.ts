@@ -1,6 +1,6 @@
-import type { AgendaItem, AgendaView, ContextCard, StatusChange } from '@gnomeola/protocol'
-import { SharePushBody } from '@gnomeola/protocol'
-import { seededRandom } from '@gnomeola/testkit/daemon'
+import type { AgendaItem, AgendaView, ContextCard, StatusChange } from '@kacola/protocol'
+import { SharePushBody } from '@kacola/protocol'
+import { seededRandom } from '@kacola/testkit/daemon'
 import { describe, expect, it } from 'vitest'
 import { changeKey, memberOps, ownerOps } from '../src/agendas/share-projection.ts'
 

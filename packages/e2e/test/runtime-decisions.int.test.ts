@@ -1,6 +1,6 @@
 import { join } from 'node:path'
-import { startDaemon } from '@gnomeola/testkit/daemon'
-import { findTextEmbedder, NO_EMBEDDER_REASON, testModelsDir } from '@gnomeola/testkit/evals'
+import { startDaemon } from '@kacola/testkit/daemon'
+import { findTextEmbedder, NO_EMBEDDER_REASON, testModelsDir } from '@kacola/testkit/evals'
 import { describe, expect, it } from 'vitest'
 import { AS_NODE, electronBinary, testRuntime } from '../src/runtime.ts'
 
@@ -17,7 +17,7 @@ describe.skipIf(!findTextEmbedder())(
         execPath: electronBinary(),
         entry: join(runtime, 'daemon.mjs'),
         fake: false,
-        env: { ...AS_NODE, GNOMEOLA_MODELS_DIR: testModelsDir() },
+        env: { ...AS_NODE, KACOLA_MODELS_DIR: testModelsDir() },
       })
       try {
         const h = await d.client.call('health')

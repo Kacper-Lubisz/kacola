@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import type { TrackKind } from '@gnomeola/protocol'
+import type { TrackKind } from '@kacola/protocol'
 import { GroundTruth, type Utterance } from './schema.ts'
 
 // Fixture meetings with exact ground truth. Audio is committed compressed (Opus) to keep the repo
@@ -19,9 +19,9 @@ export const FIXTURES_DIR = join(import.meta.dirname, '..', '..', 'fixtures')
 export const SAMPLE_RATE = 16_000
 
 export function fixtureCacheDir(env: NodeJS.ProcessEnv = process.env): string {
-  if (env.GNOMEOLA_FIXTURE_CACHE) return env.GNOMEOLA_FIXTURE_CACHE
+  if (env.KACOLA_FIXTURE_CACHE) return env.KACOLA_FIXTURE_CACHE
   const base = env.XDG_CACHE_HOME || join(homedir(), '.cache')
-  return join(base, 'gnomeola', 'fixtures')
+  return join(base, 'kacola', 'fixtures')
 }
 
 /** Ids of every committed fixture (directories containing a truth.json). */

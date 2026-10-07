@@ -9,7 +9,7 @@ import type { Plugin } from 'vite'
 //             sources, and the packaged app ships no node_modules (scripts/build-desktop.ts), so zod is in too.
 //   preload   CommonJS, one self-contained file: a sandboxed preload can only require('electron').
 //   renderer  the React SPA, served from app:// in production and from the Vite dev server (HMR) in dev.
-const workspace = ['@gnomeola/protocol', '@gnomeola/ui-core']
+const workspace = ['@kacola/protocol', '@kacola/ui-core']
 
 /**
  * Every non-ASCII UTF-16 unit in the output as a \\uXXXX escape (valid in strings, templates, regex
@@ -19,7 +19,7 @@ const workspace = ['@gnomeola/protocol', '@gnomeola/ui-core']
  */
 export function asciiOnly(): Plugin {
   return {
-    name: 'gnomeola:ascii-only',
+    name: 'kacola:ascii-only',
     // after every other plugin's renderChunk (the minifier turns escapes back into characters)
     generateBundle: {
       order: 'post',

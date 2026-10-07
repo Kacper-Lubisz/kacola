@@ -10,10 +10,10 @@ import {
   type Session,
   type Track,
   type TrackKind,
-} from '@gnomeola/protocol'
-import type { BlobStore } from '@gnomeola/store/blob'
-import type { StoreApi } from '@gnomeola/store/core'
-import { type BatchTranscriber, encodeWav } from '@gnomeola/stt/cloud'
+} from '@kacola/protocol'
+import type { BlobStore } from '@kacola/store/blob'
+import type { StoreApi } from '@kacola/store/core'
+import { type BatchTranscriber, encodeWav } from '@kacola/stt/cloud'
 import { HttpError } from './errors.ts'
 
 // H-3 — chunked, idempotent, resumable audio upload for full-offload mode, and the finalize step that

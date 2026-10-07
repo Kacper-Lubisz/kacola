@@ -1,6 +1,6 @@
 import type { IncomingMessage } from 'node:http'
-import { Auth, type AuthConfig, isLoopbackRequest, OPEN_ROUTES, type Principal } from '@gnomeola/server/auth'
-import { SqliteStoreApi, type Store } from '@gnomeola/store'
+import { Auth, type AuthConfig, isLoopbackRequest, OPEN_ROUTES, type Principal } from '@kacola/server/auth'
+import { SqliteStoreApi, type Store } from '@kacola/store'
 import { DaemonError } from './errors.ts'
 
 // M8 on the LOCAL daemon.
@@ -51,7 +51,7 @@ export function remoteAccess(store: Store, config: AuthConfig | null, trustLoopb
       }
       if (loopback && trustLoopback) return { kind: 'loopback' }
       if (OPEN_ROUTES.has(route)) return { kind: 'anonymous' }
-      throw unauthorized('a bearer token is required (pair this device: gnomeola pair)')
+      throw unauthorized('a bearer token is required (pair this device: kacola pair)')
     },
   }
 }
@@ -61,7 +61,7 @@ export function hostedHandlers(access: RemoteAccess) {
     if (!access.auth)
       throw new DaemonError(
         'unavailable',
-        'pairing is off: start gnomeolad with --remote (or GNOMEOLA_AUTH_SECRET) to accept remote devices',
+        'pairing is off: start kacolad with --remote (or KACOLA_AUTH_SECRET) to accept remote devices',
         501,
       )
     return access.auth

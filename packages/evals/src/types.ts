@@ -1,4 +1,4 @@
-import type { TrackStatus } from '@gnomeola/decisions'
+import type { TrackStatus } from '@kacola/decisions'
 import type {
   AgendaDraftingCase,
   AgendaItemInput,
@@ -8,7 +8,7 @@ import type {
   NextPointCase,
   RecapCase,
   RelevanceCase,
-} from '@gnomeola/testkit/evals'
+} from '@kacola/testkit/evals'
 
 // The runner hooks: what a pipeline under evaluation implements. The reference pipelines in runners.ts
 // implement them over a DecisionProvider (or an LLM); the tracker wave plugs its real pipeline in by

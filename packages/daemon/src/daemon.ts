@@ -2,8 +2,8 @@ import { mkdirSync } from 'node:fs'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
-import type { ExternalCaptureHub } from '@gnomeola/capture'
-import type { LlmProvider } from '@gnomeola/llm'
+import type { ExternalCaptureHub } from '@kacola/capture'
+import type { LlmProvider } from '@kacola/llm'
 import {
   type BodyOut,
   DEFAULT_PORT,
@@ -17,9 +17,9 @@ import {
   type RouteName,
   type Routes,
   routes,
-} from '@gnomeola/protocol'
-import type { AuthConfig } from '@gnomeola/server/auth'
-import { Store } from '@gnomeola/store'
+} from '@kacola/protocol'
+import type { AuthConfig } from '@kacola/server/auth'
+import { Store } from '@kacola/store'
 import type { z } from 'zod'
 import pkg from '../package.json' with { type: 'json' }
 import { agendaDraftHandlers } from './agendas/draft.ts'
@@ -99,7 +99,7 @@ export type DaemonOptions = {
   // ---- M4
   /** Where meetings come from. Default: none (calendar off). */
   calendar?: CalendarProvider
-  /** Export org.gnome.Gnomeola on the session bus (via the GJS bridge). Default off. */
+  /** Export com.kacperlubisz.Kacola on the session bus (via the GJS bridge). Default off. */
   dbus?: { gjs?: string; env?: NodeJS.ProcessEnv; minBackoffMs?: number } | null
   /** Microphone-activity source for the auto-record rule. Default: none (the rule then never fires). */
   micActivity?: MicActivitySource
@@ -116,7 +116,7 @@ export type DaemonOptions = {
   externalCapture?: ExternalCaptureHub | null
   // ---- agendas
   /** Base URL of the hosted agenda page (`<base>/a/<token>`) a SHARED agenda's invitation block carries.
-   *  Default GNOMEOLA_AGENDA_WEB_BASE, else the sharing host. An unshared agenda has no web link. */
+   *  Default KACOLA_AGENDA_WEB_BASE, else the sharing host. An unshared agenda has no web link. */
   agendaWebBase?: string | null
   // ---- agent channel (leases, live attach)
   /** Applied to live speech before it reaches agents. Default: pass-through (see agents/guard.ts). */
@@ -135,12 +135,12 @@ export type DaemonOptions = {
   agendaLlm?: () => Promise<LlmProvider | null>
   // ---- kacola phase 5: team sharing
   /** The hosted server agendas are shared on, and sync timing. Default from the environment
-   *  (GNOMEOLA_SHARE_URL / _TOKEN, else GNOMEOLA_SYNC_URL / _TOKEN; GNOMEOLA_OWNER_NAME / _EMAIL). */
+   *  (KACOLA_SHARE_URL / _TOKEN, else KACOLA_SYNC_URL / _TOKEN; KACOLA_OWNER_NAME / _EMAIL). */
   share?: Partial<ShareConfig>
   // ---- sticky daemon: restarts that wait for the recording, recordings that survive a restart
   /**
    * Continue a recording the previous daemon left mid-meeting (suspended by SIGTERM, or a crash) if it
-   * stopped at most this long ago. Default GNOMEOLA_RESUME_WINDOW_MS, else 2 minutes; 0 = never resume.
+   * stopped at most this long ago. Default KACOLA_RESUME_WINDOW_MS, else 2 minutes; 0 = never resume.
    */
   resumeWindowMs?: number
   /** How POST /daemon/restart restarts the process (main.ts: close, exit 76). Default: refused. */
@@ -233,8 +233,8 @@ export async function createDaemon(o: DaemonOptions): Promise<Daemon> {
 async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promise<Daemon> {
   mkdirSync(o.dataDir, { recursive: true, mode: 0o700 })
   const env = o.env ?? process.env
-  const logger = o.logger ?? new Logger({ file: join(o.dataDir, 'logs', 'gnomeolad.log'), echo: o.echoLogs })
-  const store = Store.open(join(o.dataDir, 'gnomeola.db'))
+  const logger = o.logger ?? new Logger({ file: join(o.dataDir, 'logs', 'kacolad.log'), echo: o.echoLogs })
+  const store = Store.open(join(o.dataDir, 'kacola.db'))
   const bus = new EventBus()
   store.onCommit((e) => bus.publish(e))
   const access = remoteAccess(store, o.auth ?? null, o.trustLoopback ?? true)
@@ -283,13 +283,13 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
     logger,
     dataDir: o.dataDir,
     config: {
-      url: o.share?.url ?? (env.GNOMEOLA_SHARE_URL || env.GNOMEOLA_SYNC_URL || null),
-      token: o.share?.token ?? (env.GNOMEOLA_SHARE_TOKEN || env.GNOMEOLA_SYNC_TOKEN || null),
-      webBase: o.agendaWebBase !== undefined ? o.agendaWebBase : env.GNOMEOLA_AGENDA_WEB_BASE || null,
-      ownerName: o.share?.ownerName ?? (env.GNOMEOLA_OWNER_NAME || null),
-      ownerLabel: o.share?.ownerLabel ?? (env.GNOMEOLA_OWNER_EMAIL || null),
-      pollMs: o.share?.pollMs ?? Number(env.GNOMEOLA_SHARE_POLL_MS ?? 15_000),
-      debounceMs: o.share?.debounceMs ?? Number(env.GNOMEOLA_SHARE_DEBOUNCE_MS ?? 500),
+      url: o.share?.url ?? (env.KACOLA_SHARE_URL || env.KACOLA_SYNC_URL || null),
+      token: o.share?.token ?? (env.KACOLA_SHARE_TOKEN || env.KACOLA_SYNC_TOKEN || null),
+      webBase: o.agendaWebBase !== undefined ? o.agendaWebBase : env.KACOLA_AGENDA_WEB_BASE || null,
+      ownerName: o.share?.ownerName ?? (env.KACOLA_OWNER_NAME || null),
+      ownerLabel: o.share?.ownerLabel ?? (env.KACOLA_OWNER_EMAIL || null),
+      pollMs: o.share?.pollMs ?? Number(env.KACOLA_SHARE_POLL_MS ?? 15_000),
+      debounceMs: o.share?.debounceMs ?? Number(env.KACOLA_SHARE_DEBOUNCE_MS ?? 500),
       ...(o.share?.fetch ? { fetch: o.share.fetch } : {}),
     },
   })
@@ -329,8 +329,8 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
 
   const resumeWindowMs =
     o.resumeWindowMs ??
-    (env.GNOMEOLA_RESUME_WINDOW_MS !== undefined && env.GNOMEOLA_RESUME_WINDOW_MS !== ''
-      ? Math.max(0, Number(env.GNOMEOLA_RESUME_WINDOW_MS) || 0)
+    (env.KACOLA_RESUME_WINDOW_MS !== undefined && env.KACOLA_RESUME_WINDOW_MS !== ''
+      ? Math.max(0, Number(env.KACOLA_RESUME_WINDOW_MS) || 0)
       : DEFAULT_RESUME_WINDOW_MS)
   const plan = sessions.recover(lock, {
     resumeWindowMs,
@@ -581,7 +581,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
     try {
       await access.authenticate(req, name)
     } catch (err) {
-      res.setHeader('www-authenticate', 'Bearer realm="gnomeola"')
+      res.setHeader('www-authenticate', 'Bearer realm="kacola"')
       throw err
     }
     // Agent channel: a request carrying a lease token is a connected agent, and reaches only the routes

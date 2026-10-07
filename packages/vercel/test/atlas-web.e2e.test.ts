@@ -3,9 +3,9 @@ import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient, type DurableEvent, type ShareOp } from '@gnomeola/protocol'
-import { SqliteStoreApi } from '@gnomeola/store'
-import { Atlas } from '@gnomeola/testkit/atlas'
+import { createClient, type DurableEvent, type ShareOp } from '@kacola/protocol'
+import { SqliteStoreApi } from '@kacola/store'
+import { Atlas } from '@kacola/testkit/atlas'
 import { type Browser, chromium, type Page } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { built, type Harness, startHarness } from './harness.ts'
@@ -32,7 +32,7 @@ describe.skipIf(!CHROME)('atlas: the web viewer in headless Chrome', () => {
   let h: Harness
   let browser: Browser
   let page: Page
-  const tmp = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-web-'))
+  const tmp = mkdtempSync(join(tmpdir(), 'kacola-atlas-web-'))
   const atlas = new Atlas('web', (p, theme) => p.emulateMedia({ colorScheme: theme }), { height: 760 })
   let sink: Server
   const mails: { to: string; text: string }[] = []
@@ -46,12 +46,12 @@ describe.skipIf(!CHROME)('atlas: the web viewer in headless Chrome', () => {
     })
     await new Promise<void>((r) => sink.listen(0, '127.0.0.1', r))
     h = await startHarness(await built({ events: 2 }), {
-      GNOMEOLA_MAIL_WEBHOOK: `http://127.0.0.1:${(sink.address() as AddressInfo).port}/mail`,
+      KACOLA_MAIL_WEBHOOK: `http://127.0.0.1:${(sink.address() as AddressInfo).port}/mail`,
       DATABASE_URL: `sqlite:${join(tmp, 'db.sqlite')}`,
-      GNOMEOLA_AUTH_SECRET: SECRET,
-      GNOMEOLA_ADMIN_TOKEN: ADMIN,
-      GNOMEOLA_POLL_MS: '50',
-      GNOMEOLA_STREAM_MARGIN_MS: '700',
+      KACOLA_AUTH_SECRET: SECRET,
+      KACOLA_ADMIN_TOKEN: ADMIN,
+      KACOLA_POLL_MS: '50',
+      KACOLA_STREAM_MARGIN_MS: '700',
     })
     browser = await chromium.launch({
       executablePath: CHROME,
@@ -307,6 +307,6 @@ describe.skipIf(!CHROME)('atlas: the web viewer in headless Chrome', () => {
     expect(atlas.finish()).toEqual([])
     const unstable = atlas.unstable()
     if (unstable.length) console.warn(`atlas: differs from the previous run:\n  ${unstable.join('\n  ')}`)
-    if (process.env.GNOMEOLA_ATLAS_STRICT === '1') expect(unstable).toEqual([])
+    if (process.env.KACOLA_ATLAS_STRICT === '1') expect(unstable).toEqual([])
   })
 })

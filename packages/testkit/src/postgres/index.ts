@@ -1,4 +1,4 @@
-// @gnomeola/testkit/postgres — a throwaway real Postgres in podman, for the int tier's dialect tests.
+// @kacola/testkit/postgres — a throwaway real Postgres in podman, for the int tier's dialect tests.
 // Everything that needs it skips cleanly (with the reason) when podman or the image is unavailable, so
 // the tier stays green on machines without containers; PGlite covers Postgres there.
 import { execFile } from 'node:child_process'
@@ -8,13 +8,13 @@ const exec = promisify(execFile)
 
 /**
  * podman keeps its image store and config under XDG_DATA_HOME / XDG_CONFIG_HOME. The hermetic tiers
- * point those at a temp dir (scripts/test-env.ts) and keep the real ones in GNOMEOLA_TEST_REAL_XDG_*:
+ * point those at a temp dir (scripts/test-env.ts) and keep the real ones in KACOLA_TEST_REAL_XDG_*:
  * podman gets the real ones back, or every run would pull Postgres into an empty store.
  */
 function podmanEnv(): NodeJS.ProcessEnv {
   const env = { ...process.env }
   for (const k of ['DATA', 'CONFIG', 'STATE']) {
-    const realDir = process.env[`GNOMEOLA_TEST_REAL_XDG_${k}_HOME`]
+    const realDir = process.env[`KACOLA_TEST_REAL_XDG_${k}_HOME`]
     if (realDir) env[`XDG_${k}_HOME`] = realDir
   }
   return env
@@ -23,7 +23,7 @@ function podmanEnv(): NodeJS.ProcessEnv {
 const run = (cmd: string, args: string[], o: { timeout?: number } = {}) =>
   exec(cmd, args, { ...o, env: podmanEnv() })
 
-export const POSTGRES_IMAGE = process.env.GNOMEOLA_TEST_PG_IMAGE ?? 'docker.io/library/postgres:17'
+export const POSTGRES_IMAGE = process.env.KACOLA_TEST_PG_IMAGE ?? 'docker.io/library/postgres:17'
 
 export type PostgresContainer = {
   /** Superuser URL of the `postgres` database. */
@@ -35,7 +35,7 @@ export type PostgresContainer = {
 
 /** null + reason when podman (or the image, without network) is not available. */
 export async function podmanPostgresAvailable(): Promise<string | null> {
-  if (process.env.GNOMEOLA_SKIP_PODMAN === '1') return 'GNOMEOLA_SKIP_PODMAN=1'
+  if (process.env.KACOLA_SKIP_PODMAN === '1') return 'KACOLA_SKIP_PODMAN=1'
   try {
     await run('podman', ['--version'])
   } catch {
@@ -54,7 +54,7 @@ export async function podmanPostgresAvailable(): Promise<string | null> {
 }
 
 export async function startPostgres(): Promise<PostgresContainer> {
-  const password = 'gnomeola-test'
+  const password = 'kacola-test'
   const { stdout } = await run('podman', [
     'run',
     '-d',

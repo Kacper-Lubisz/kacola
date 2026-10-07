@@ -1,4 +1,4 @@
-import type { Session, SessionStatus, TrackKind } from '@gnomeola/protocol'
+import type { Session, SessionStatus, TrackKind } from '@kacola/protocol'
 
 // The meeting page's pure logic (unit-tested in test/day.test.ts): which phase a meeting is in, who
 // started its recording, and whether capture looks broken. No React, no DOM.

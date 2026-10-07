@@ -1,9 +1,9 @@
-// gnomeola top-bar indicator (C-5 … C-7): recording state, elapsed time and the newest transcript line in
+// kacola top-bar indicator (C-5 … C-7): recording state, elapsed time and the newest transcript line in
 // the panel; upcoming meetings with one-click Join (start recording, then open the call) in the menu.
 //
-// It talks to the daemon only through org.gnome.Gnomeola on the session bus (./dbus.js). The proxy is
+// It talks to the daemon only through com.kacperlubisz.Kacola on the session bus (./dbus.js). The proxy is
 // created without auto-start and follows the name's owner, so the indicator shows "not running" while
-// gnomeolad is down and recovers by itself when it comes back — the Shell never waits on the daemon.
+// kacolad is down and recovers by itself when it comes back — the Shell never waits on the daemon.
 //
 // Everything the menu shows is decided in ./model.js (pure, unit-tested); this file renders it.
 
@@ -23,7 +23,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js'
 import { BUS_NAME, INTERFACE_NAME, INTERFACE_XML, OBJECT_PATH } from './dbus.js'
 import { buildView, meetingNotification, structureKey } from './model.js'
 
-const APP_ID = 'org.gnome.Gnomeola.desktop'
+const APP_ID = 'com.kacperlubisz.Kacola.desktop'
 const PROPS = [
   'State',
   'SessionId',
@@ -44,7 +44,7 @@ const PROPS = [
 ]
 
 const Indicator = GObject.registerClass(
-  class GnomeolaIndicator extends PanelMenu.Button {
+  class KacolaIndicator extends PanelMenu.Button {
     _init(ext) {
       super._init(0.0, 'kacola', false)
       this._ext = ext
@@ -58,13 +58,13 @@ const Indicator = GObject.registerClass(
       this._source = null
       this._view = null
 
-      const box = new St.BoxLayout({ style_class: 'panel-status-menu-box gnomeola-panel' })
+      const box = new St.BoxLayout({ style_class: 'panel-status-menu-box kacola-panel' })
       this._icon = new St.Icon({
         icon_name: 'audio-input-microphone-symbolic',
         style_class: 'system-status-icon',
       })
       this._label = new St.Label({ text: '', y_align: Clutter.ActorAlign.CENTER, visible: false })
-      this._label.add_style_class_name('gnomeola-elapsed')
+      this._label.add_style_class_name('kacola-elapsed')
       box.add_child(this._icon)
       box.add_child(this._label)
       this.add_child(box)
@@ -97,7 +97,7 @@ const Indicator = GObject.registerClass(
             proxy = Gio.DBusProxy.new_finish(res)
           } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-              console.warn(`gnomeola: proxy failed: ${e.message}`)
+              console.warn(`kacola: proxy failed: ${e.message}`)
             return
           }
           this._proxy = proxy
@@ -245,7 +245,7 @@ const Indicator = GObject.registerClass(
 
     _renderPanel(panel) {
       this._icon.icon_name = panel.icon
-      for (const c of ['gnomeola-offline', 'gnomeola-recording', 'gnomeola-paused', 'gnomeola-idle'])
+      for (const c of ['kacola-offline', 'kacola-recording', 'kacola-paused', 'kacola-idle'])
         this.remove_style_class_name(c)
       this.add_style_class_name(panel.styleClass)
       this._label.text = panel.label
@@ -264,12 +264,12 @@ const Indicator = GObject.registerClass(
             break
           case 'header':
             row = new PopupMenu.PopupMenuItem(item.text, { reactive: false, can_focus: false })
-            row.add_style_class_name('gnomeola-header')
+            row.add_style_class_name('kacola-header')
             break
           case 'status':
             row = new PopupMenu.PopupMenuItem(item.text, { reactive: false, can_focus: false })
             row.label.clutter_text.line_wrap = true
-            row.add_style_class_name('gnomeola-status')
+            row.add_style_class_name('kacola-status')
             break
           case 'meeting':
             row = this._meetingRow(item)
@@ -279,29 +279,29 @@ const Indicator = GObject.registerClass(
         }
         if (item.action) row.connect('activate', () => this._run(item.action))
         row.accessible_name = item.accessibleName ?? item.text ?? ''
-        row._gnomeolaKey = item.key
+        row._kacolaKey = item.key
         this.menu.addMenuItem(row)
         this._rows.set(item.key, row)
       }
     }
 
     _meetingRow(item) {
-      const row = new PopupMenu.PopupBaseMenuItem({ style_class: 'gnomeola-meeting' })
+      const row = new PopupMenu.PopupBaseMenuItem({ style_class: 'kacola-meeting' })
       const text = new St.BoxLayout({ vertical: true, x_expand: true })
-      row._title = new St.Label({ text: item.text, style_class: 'gnomeola-meeting-title' })
+      row._title = new St.Label({ text: item.text, style_class: 'kacola-meeting-title' })
       text.add_child(row._title)
       if (item.detail)
-        text.add_child(new St.Label({ text: item.detail, style_class: 'gnomeola-meeting-detail' }))
+        text.add_child(new St.Label({ text: item.detail, style_class: 'kacola-meeting-detail' }))
       row.add_child(text)
       if (item.verb) {
         const verb = new St.Label({
           text: item.verb,
-          style_class: 'gnomeola-meeting-verb',
+          style_class: 'kacola-meeting-verb',
           y_align: Clutter.ActorAlign.CENTER,
         })
         row.add_child(verb)
       }
-      if (item.inProgress) row.add_style_class_name('gnomeola-meeting-now')
+      if (item.inProgress) row.add_style_class_name('kacola-meeting-now')
       row.label_actor = row._title
       return row
     }
@@ -362,7 +362,7 @@ function errorText(e) {
   return e?.message ?? String(e)
 }
 
-export default class GnomeolaExtension extends Extension {
+export default class KacolaExtension extends Extension {
   enable() {
     this._indicator = new Indicator(this)
     Main.panel.addToStatusArea(this.uuid, this._indicator)

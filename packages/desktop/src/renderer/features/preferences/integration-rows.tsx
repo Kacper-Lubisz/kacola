@@ -1,4 +1,4 @@
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { _, fmt } from '@kacola/ui-core/i18n'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import type { CliInstallState } from '../../../shared/bridge.ts'
@@ -7,7 +7,7 @@ import { AlertDialog, Button, Row, Spinner, Switch, useToast } from '../../desig
 
 // "Install command-line tool and Claude skill", the top-bar extension and "Start in the background at
 // login" (Preferences → Integration). All run in main: the CLI through the bundled
-// `gnomeola install-cli --json` (src/main/integration.ts), the extension through the Shell's D-Bus API
+// `kacola install-cli --json` (src/main/integration.ts), the extension through the Shell's D-Bus API
 // (src/main/extension.ts; its row is in ./extension-setup.tsx), autostart through the Background portal /
 // an autostart entry
 // / a macOS login item (src/main/autostart.ts). Their state is a query keyed ['integration', …] — it
@@ -22,7 +22,7 @@ export function cliSubtitle(s: CliInstallState | undefined): string {
     case 'installed': {
       const where = fmt(_('Installed at {path}'), { path: s.path })
       if (s.shadowedBy)
-        return `${where}. ${fmt(_('Another gnomeola command at {path} comes first on your PATH.'), { path: s.shadowedBy })}`
+        return `${where}. ${fmt(_('Another kacola command at {path} comes first on your PATH.'), { path: s.shadowedBy })}`
       if (s.needsAdmin)
         return `${where}. ${fmt(_('{dir} needed administrator rights.'), { dir: s.needsAdmin })}`
       if (!s.onPath) return `${where}. ${_('That folder is not on your PATH yet.')}`
@@ -31,10 +31,10 @@ export function cliSubtitle(s: CliInstallState | undefined): string {
     case 'outdated':
       return fmt(_('An older version is installed at {path}'), { path: s.path })
     case 'not-installed':
-      return _('Lets agents like Claude Code read your meetings through the gnomeola command')
+      return _('Lets agents like Claude Code read your meetings through the kacola command')
     case 'foreign':
       return s.path
-        ? fmt(_('A different gnomeola command is already installed at {path}'), { path: s.path })
+        ? fmt(_('A different kacola command is already installed at {path}'), { path: s.path })
         : s.detail
     case 'error':
     case 'unavailable':
@@ -113,7 +113,7 @@ export function CliInstallRow() {
         </Button>
       ) : null}
       <AlertDialog
-        title={_('Replace the other gnomeola command?')}
+        title={_('Replace the other kacola command?')}
         isOpen={confirmReplace}
         onOpenChange={setConfirmReplace}
         confirmLabel={_('Replace')}
@@ -123,7 +123,7 @@ export function CliInstallRow() {
         {s?.state === 'foreign' && s.path
           ? fmt(
               _(
-                '{path} was not installed by this app. Replacing it points the gnomeola command at this app instead.',
+                '{path} was not installed by this app. Replacing it points the kacola command at this app instead.',
               ),
               {
                 path: s.path,

@@ -1,4 +1,4 @@
-import type { Track, TrackKind } from '@gnomeola/protocol'
+import type { Track, TrackKind } from '@kacola/protocol'
 
 // The capture contract every source implements — PipeWire in production, files in hermetic tests.
 //

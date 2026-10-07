@@ -1,7 +1,7 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { formatOffset, type Segment } from '@gnomeola/protocol'
-import { type DesktopApp, matchBaseline } from '@gnomeola/testkit/desktop'
+import { formatOffset, type Segment } from '@kacola/protocol'
+import { type DesktopApp, matchBaseline } from '@kacola/testkit/desktop'
 
 type Page = DesktopApp['window']
 type Locator = ReturnType<Page['getByRole']>
@@ -92,7 +92,7 @@ const ARTIFACTS = join(import.meta.dirname, '..', 'test', '__artifacts__', 'desk
  * Screenshot baseline check: the page (or one element, `region` — a pane, a dialog — so a baseline does
  * not move with the rest of the window) is captured to __artifacts__ and compared with
  * test/__screenshots__/desktop/<name>.png by the testkit's comparator (matchBaseline: a missing baseline
- * is written; GNOMEOLA_UPDATE_SCREENSHOTS=1 rewrites them). `maxDiff` is the tolerated share of
+ * is written; KACOLA_UPDATE_SCREENSHOTS=1 rewrites them). `maxDiff` is the tolerated share of
  * differing pixels — live screens (streaming text, a growing transcript) need more than static ones.
  */
 export async function expectScreenshot(

@@ -1,6 +1,6 @@
-import { type AgendaView, type Evidence, extractActionItems } from '@gnomeola/protocol'
-import { carriesOver, parseRecapOutcome } from '@gnomeola/ui-core/agendas'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { type AgendaView, type Evidence, extractActionItems } from '@kacola/protocol'
+import { carriesOver, parseRecapOutcome } from '@kacola/ui-core/agendas'
+import { _, fmt } from '@kacola/ui-core/i18n'
 
 // The outcome of a meeting (unit-tested in test/day.test.ts): ONE place for what was decided, what
 // people will do (owner, due date; yours first) and what carries over — gathered from the agenda's recap

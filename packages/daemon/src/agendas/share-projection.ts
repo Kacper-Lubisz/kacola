@@ -6,7 +6,7 @@ import type {
   SharedItem,
   ShareOp,
   StatusChange,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 
 // Team sharing — what a device sends to the hosted server, as pure functions of the local agenda and
 // the server's last known state. This is THE privacy boundary on the device side: everything that

@@ -1,8 +1,8 @@
-import type { GnomeolaClient } from '@gnomeola/protocol'
-import { fromHistory } from '@gnomeola/ui-core/qa'
-import { fromSnapshot } from '@gnomeola/ui-core/sessions'
-import { fromSummaries } from '@gnomeola/ui-core/speakers'
-import { fromSegments } from '@gnomeola/ui-core/transcript'
+import type { KacolaClient } from '@kacola/protocol'
+import { fromHistory } from '@kacola/ui-core/qa'
+import { fromSnapshot } from '@kacola/ui-core/sessions'
+import { fromSummaries } from '@kacola/ui-core/speakers'
+import { fromSegments } from '@kacola/ui-core/transcript'
 import { QueryClient, queryOptions } from '@tanstack/react-query'
 import { keys } from './keys.ts'
 
@@ -11,7 +11,7 @@ import { keys } from './keys.ts'
 // inline queryKey. Event-driven resources (anything the EventBridge folds) are `staleTime: Infinity`:
 // the bridge keeps them fresh, so a refetch would only race it.
 
-export type Api = Pick<GnomeolaClient, 'call' | 'stream' | 'ask' | 'subscribe'>
+export type Api = Pick<KacolaClient, 'call' | 'stream' | 'ask' | 'subscribe'>
 
 const live = {
   staleTime: Number.POSITIVE_INFINITY,

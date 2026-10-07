@@ -1,8 +1,8 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop } from '@kacola/testkit/desktop'
 import {
   type AccessibleNode,
   flatten,
@@ -10,7 +10,7 @@ import {
   type HeadlessDisplay,
   markedPids,
   startHeadlessDisplay,
-} from '@gnomeola/testkit/ui'
+} from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { DESKTOP_ARTIFACTS, markOnboarded } from '../src/desktop.ts'
 import { seedMeetings } from '../src/seed.ts'
@@ -66,16 +66,16 @@ describe('desktop window on the accessibility bus (AT-SPI)', () => {
 
   beforeAll(async () => {
     buildDesktop()
-    dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-atspi-'))
+    dataDir = mkdtempSync(join(tmpdir(), 'kacola-desktop-atspi-'))
     seedMeetings(dataDir)
     daemon = await startDaemon({ dataDir })
     display = await startHeadlessDisplay({ size: '1280x800' })
-    markerId = display.env.GNOMEOLA_HEADLESS_ID!
+    markerId = display.env.KACOLA_HEADLESS_ID!
     markOnboarded(
       display,
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
-    app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
+    app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl } })
     await app.window.getByRole('list', { name: 'Today’s meetings' }).waitFor({ timeout: 20_000 })
   }, 240_000)
 
@@ -92,7 +92,7 @@ describe('desktop window on the accessibility bus (AT-SPI)', () => {
     // assistive technology is present; Electron exposes the same switch
     await app.evaluateMain(({ app: a }) => a.setAccessibilitySupportEnabled(true))
     appName = await display.waitFor(
-      async () => (await display.applications()).find((n) => /electron|gnomeola|kacola/i.test(n)),
+      async () => (await display.applications()).find((n) => /electron|kacola/i.test(n)),
       20_000,
       'the window on the accessibility bus',
     )

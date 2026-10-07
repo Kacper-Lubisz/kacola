@@ -2,7 +2,7 @@
 
 import wordmarkLight from '@brand/logo/wordmark.svg?url'
 import wordmarkDark from '@brand/logo/wordmark-dark.svg?url'
-import { _, ngettext } from '@gnomeola/ui-core/i18n'
+import { _, ngettext } from '@kacola/ui-core/i18n'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useStore } from 'zustand'

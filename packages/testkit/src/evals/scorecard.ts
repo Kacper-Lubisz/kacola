@@ -102,7 +102,7 @@ export function writeScorecard(sc: Scorecard, dir = ARTIFACTS_DIR): string {
 }
 
 /**
- * Compare a deterministic scorecard with its committed baseline (GNOMEOLA_UPDATE_BASELINES=1 records a
+ * Compare a deterministic scorecard with its committed baseline (KACOLA_UPDATE_BASELINES=1 records a
  * new one). Returns null when there is no baseline yet and none is being recorded.
  */
 export function checkBaseline(
@@ -117,7 +117,7 @@ export function checkBaseline(
       (e): e is [string, number] => typeof e[1] === 'number' && e[0] in bands,
     ),
   )
-  const update = opts.update ?? process.env.GNOMEOLA_UPDATE_BASELINES === '1'
+  const update = opts.update ?? process.env.KACOLA_UPDATE_BASELINES === '1'
   if (update) {
     const b: Baseline = {
       fixture: sc.suite,

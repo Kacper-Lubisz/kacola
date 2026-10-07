@@ -1,7 +1,7 @@
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { renderInviteBlock, upsertInviteBlock } from '@gnomeola/protocol'
+import { renderInviteBlock, upsertInviteBlock } from '@kacola/protocol'
 import { afterAll, afterEach, describe, expect, it } from 'vitest'
 import { EdsCalendarProvider } from '../src/calendar/providers.ts'
 import { Logger } from '../src/logger.ts'
@@ -10,7 +10,7 @@ import { Logger } from '../src/logger.ts'
 // scripted stand-in for cal-agent (the real one is exercised in cal-agent-write.e2e.test.ts): the
 // compare-and-swap retry, refusals, a helper that never answers, and one that dies mid-request.
 
-const dir = mkdtempSync(join(tmpdir(), 'gnomeola-fake-cal-agent-'))
+const dir = mkdtempSync(join(tmpdir(), 'kacola-fake-cal-agent-'))
 const FAKE = join(dir, 'fake-gjs')
 writeFileSync(
   FAKE,

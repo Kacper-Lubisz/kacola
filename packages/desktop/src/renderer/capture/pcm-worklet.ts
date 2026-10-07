@@ -20,4 +20,4 @@ class PcmProcessor extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('gnomeola-pcm', PcmProcessor)
+registerProcessor('kacola-pcm', PcmProcessor)

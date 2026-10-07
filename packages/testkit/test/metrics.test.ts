@@ -136,6 +136,6 @@ describe('baselines', () => {
 
   it('update mode is explicit', () => {
     expect(updatingBaselines({})).toBe(false)
-    expect(updatingBaselines({ GNOMEOLA_UPDATE_BASELINES: '1' })).toBe(true)
+    expect(updatingBaselines({ KACOLA_UPDATE_BASELINES: '1' })).toBe(true)
   })
 })

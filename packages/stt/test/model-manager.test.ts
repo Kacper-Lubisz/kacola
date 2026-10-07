@@ -5,7 +5,7 @@ import { createServer, type IncomingMessage, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ModelInfo } from '@gnomeola/protocol'
+import { ModelInfo } from '@kacola/protocol'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { CatalogEntry } from '../src/model-manager/catalog.ts'
 import { ModelError, ModelManager, type ModelProgress } from '../src/model-manager/manager.ts'
@@ -54,7 +54,7 @@ function entry(id: string, body: Buffer, over: Partial<CatalogEntry> = {}): Cata
 }
 
 beforeAll(async () => {
-  work = mkdtempSync(join(tmpdir(), 'gnomeola-mm-'))
+  work = mkdtempSync(join(tmpdir(), 'kacola-mm-'))
   server = createServer((req: IncomingMessage, res) => {
     const key = (req.url ?? '').slice(1)
     requests.push({ url: key, range: req.headers.range })
@@ -300,9 +300,9 @@ describe('ModelManager', () => {
   })
 
   it('resolves the models dir from the environment', () => {
-    expect(defaultModelsDir({ GNOMEOLA_MODELS_DIR: '/m' })).toBe('/m')
-    expect(defaultModelsDir({ XDG_DATA_HOME: '/x' })).toBe('/x/gnomeola/models')
-    expect(defaultModelsDir({})).toMatch(/\.local\/share\/gnomeola\/models$/)
+    expect(defaultModelsDir({ KACOLA_MODELS_DIR: '/m' })).toBe('/m')
+    expect(defaultModelsDir({ XDG_DATA_HOME: '/x' })).toBe('/x/kacola/models')
+    expect(defaultModelsDir({})).toMatch(/\.local\/share\/kacola\/models$/)
   })
 })
 

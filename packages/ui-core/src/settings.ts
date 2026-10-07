@@ -1,4 +1,4 @@
-import type { AudioDevice, ModelInfo, Settings, StoredSettings } from '@gnomeola/protocol'
+import type { AudioDevice, ModelInfo, Settings, StoredSettings } from '@kacola/protocol'
 import { _, fmt } from './i18n.ts'
 
 // The Preferences dialog's model: option lists for the combo rows, and index ↔ value mapping. Pure.

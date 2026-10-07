@@ -1,5 +1,5 @@
 {
-  "name": "@gnomeola/protocol",
+  "name": "@kacola/protocol",
   "version": "0.1.0",
   "private": true,
   "description": "Wire protocol: zod schemas, event envelope, route table, typed client. The only package clients may import.",

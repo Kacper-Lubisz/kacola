@@ -1,4 +1,4 @@
-# Speech-to-text (`@gnomeola/stt`)
+# Speech-to-text (`@kacola/stt`)
 
 Two recognizer tiers, a VAD and a reconciler turn two PCM tracks (mic = the user, system = everyone
 else) into speaker-attributed, revisable transcript segments.
@@ -124,7 +124,7 @@ stream of every fixture.
 
 ## Model manager (T-1)
 
-`ModelManager` downloads to `$GNOMEOLA_MODELS_DIR` or `${XDG_DATA_HOME:-~/.local/share}/gnomeola/models`:
+`ModelManager` downloads to `$KACOLA_MODELS_DIR` or `${XDG_DATA_HOME:-~/.local/share}/kacola/models`:
 resumable (HTTP Range on `.downloads/<id>.part`), sha256-verified before extraction, extracted to a
 staging dir and moved into place with a manifest (per-file size + sha256) written last. State matches
 protocol `ModelInfo`: `missing`, `downloading` (this process, or a live pid holding the lock),
@@ -149,8 +149,8 @@ once, record the sha256 and size) and, if it is a new engine family, a case in
 
 ## Fixtures and baselines
 
-`@gnomeola/testkit/fixtures` — seven meetings with exact ground truth, audio committed as Opus (2.2 MB
-total), decoded by ffmpeg to 16 kHz WAV in `${XDG_CACHE_HOME:-~/.cache}/gnomeola/fixtures`:
+`@kacola/testkit/fixtures` — seven meetings with exact ground truth, audio committed as Opus (2.2 MB
+total), decoded by ffmpeg to 16 kHz WAV in `${XDG_CACHE_HOME:-~/.cache}/kacola/fixtures`:
 
 | id | what | length |
 | --- | --- | --- |
@@ -169,7 +169,7 @@ scored 9.6% and made fixtures measure the TTS. Regenerate with
 `node packages/testkit/scripts/generate-fixtures.ts` — Piper's internal noise is seeded per process,
 so regenerated audio differs at the sample level: re-record baselines in the same commit.
 
-Baselines: `GNOMEOLA_UPDATE_BASELINES=1 pnpm test:e2e` rewrites them (a reviewed diff); otherwise
+Baselines: `KACOLA_UPDATE_BASELINES=1 pnpm test:e2e` rewrites them (a reviewed diff); otherwise
 `compareToBaseline` fails on WER +3 pts (±5 pts per track) or RTF beyond 4× the recorded value. RTF bands
 are wide because CI hardware differs; WER is deterministic run to run on the same build. A trend report
 is written to `packages/stt/test/__artifacts__/stt-pipeline-report.json`.

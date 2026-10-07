@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { QaMessage, Segment, SpeakerSummary } from '@gnomeola/protocol'
+import type { QaMessage, Segment, SpeakerSummary } from '@kacola/protocol'
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ownAsks } from '../src/renderer/features/ask/own-asks.ts'

@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { type DesktopApp, matchBaseline } from '@gnomeola/testkit/desktop'
-import type { HeadlessDisplay } from '@gnomeola/testkit/ui'
+import { type DesktopApp, matchBaseline } from '@kacola/testkit/desktop'
+import type { HeadlessDisplay } from '@kacola/testkit/ui'
 
 // Helpers for the Electron window e2e (packages/e2e/test/desktop-*.e2e.test.ts).
 
@@ -10,7 +10,7 @@ export const BASELINES = join(import.meta.dirname, '..', 'test', '__screenshots_
 
 /** Mark onboarding done in the display's private XDG_STATE_HOME (the file both window apps read). */
 export function markOnboarded(d: HeadlessDisplay, skipped: string[] = ['whisper-small.en']): void {
-  const dir = join(d.env.XDG_STATE_HOME!, 'gnomeola')
+  const dir = join(d.env.XDG_STATE_HOME!, 'kacola')
   mkdirSync(dir, { recursive: true })
   writeFileSync(
     join(dir, 'ui-state.json'),
@@ -25,7 +25,7 @@ export function markOnboarded(d: HeadlessDisplay, skipped: string[] = ['whisper-
   )
 }
 
-export const uiStatePath = (d: HeadlessDisplay) => join(d.env.XDG_STATE_HOME!, 'gnomeola', 'ui-state.json')
+export const uiStatePath = (d: HeadlessDisplay) => join(d.env.XDG_STATE_HOME!, 'kacola', 'ui-state.json')
 
 /** Every text the page shows or holds (text content + input values), for "this secret never appears". */
 export async function pageText(app: DesktopApp): Promise<string> {

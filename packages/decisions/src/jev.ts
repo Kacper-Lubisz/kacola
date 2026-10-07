@@ -19,8 +19,8 @@
 // multiple questions together"; patterns/fan-out.md). Price: $0.042 per million input tokens, output
 // free (docs.typesafe.ai/models.md, jev-1.13).
 
-import { LlmError } from '@gnomeola/llm'
-import type { Usage } from '@gnomeola/protocol'
+import { LlmError } from '@kacola/llm'
+import type { Usage } from '@kacola/protocol'
 import {
   APIConnectionError,
   APIError,

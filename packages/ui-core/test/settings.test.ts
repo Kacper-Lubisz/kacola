@@ -1,4 +1,4 @@
-import type { AudioDevice, ModelInfo, Settings } from '@gnomeola/protocol'
+import type { AudioDevice, ModelInfo, Settings } from '@kacola/protocol'
 import { afterEach, describe, expect, it } from 'vitest'
 import { _, fmt, ngettext, setTranslator } from '../src/i18n.ts'
 import {

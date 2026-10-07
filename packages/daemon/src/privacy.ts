@@ -5,7 +5,7 @@ import {
   isOnDeviceLlm,
   type Session,
   type Settings,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import { DaemonError } from './errors.ts'
 
 // Private means "never sent to the cloud". The one place the daemon decides whether a meeting's words

@@ -5,7 +5,7 @@
 //      into the same typed events/errors it would produce from the live API;
 //   2. the request we send — the part we control — has the contract docs/llm.md describes.
 import { readFileSync } from 'node:fs'
-import { type CassetteRequest, parseSse, useCassette } from '@gnomeola/testkit/cassettes'
+import { type CassetteRequest, parseSse, useCassette } from '@kacola/testkit/cassettes'
 import { describe, expect, it } from 'vitest'
 import { AnthropicProvider, SERVER_SIDE_FALLBACK_BETA } from '../src/anthropic.ts'
 import { estimateCostUsd } from '../src/cost.ts'

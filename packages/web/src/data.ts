@@ -1,12 +1,12 @@
 import {
   formatOffset,
-  type GnomeolaClient,
+  type KacolaClient,
   type Note,
   type SearchResult,
   type Segment,
   type Session,
   type Transcript,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 
 // H-9 — the read-only web viewer's data layer and views, kept free of the DOM so they are unit-tested in
 // Node: routing, the calls it makes through the SAME typed protocol client every other front-end uses,
@@ -61,7 +61,7 @@ const when = (iso: string) => new Date(iso).toISOString().slice(0, 16).replace('
 
 export type SessionView = { transcript: Transcript; notes: Note | null }
 
-export function viewerData(client: GnomeolaClient) {
+export function viewerData(client: KacolaClient) {
   return {
     async sessions(signal?: AbortSignal): Promise<Session[]> {
       return (await client.call('listSessions', { query: { limit: 200 }, signal })).sessions
@@ -200,8 +200,8 @@ export function renderPairing(
 ): string {
   if (state === null) return '<p class="meta">Getting a code…</p>'
   if ('error' in state) return `<p class="error">${esc(state.error)}</p>`
-  return `<div class="pairing"><h1>Sign in to your meetings</h1><p>Approve this code from kacola on a computer that is already signed in:</p><p class="code" aria-label="Pairing code">${esc(state.userCode)}</p><p class="hint">Or run this in a terminal there:</p><pre>gnomeola pair approve ${esc(state.userCode)}</pre><p class="meta">Waiting for approval. The code works until ${when(state.expiresAt)} UTC.</p></div>`
+  return `<div class="pairing"><h1>Sign in to your meetings</h1><p>Approve this code from kacola on a computer that is already signed in:</p><p class="code" aria-label="Pairing code">${esc(state.userCode)}</p><p class="hint">Or run this in a terminal there:</p><pre>kacola pair approve ${esc(state.userCode)}</pre><p class="meta">Waiting for approval. The code works until ${when(state.expiresAt)} UTC.</p></div>`
 }
 
 /** Token storage in the browser: localStorage, under one key. */
-export const TOKEN_KEY = 'gnomeola.token'
+export const TOKEN_KEY = 'kacola.token'

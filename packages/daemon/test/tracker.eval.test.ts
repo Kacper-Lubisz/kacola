@@ -3,7 +3,7 @@
 // is set, and the recap exactly as the daemon writes it (recapItem) on each text LLM with a key.
 //
 //   TYPESAFE_API_KEY=… OPENAI_API_KEY=… ANTHROPIC_API_KEY=… pnpm test:eval packages/daemon
-//   GNOMEOLA_EVAL_OLLAMA_URL=http://127.0.0.1:11434 …
+//   KACOLA_EVAL_OLLAMA_URL=http://127.0.0.1:11434 …
 //
 // No key → skipped with the reason; quota / auth on the first call → the rest of that provider is skipped
 // with the error as the reason. Numbers are never faked. The brief's budgets (auto check-off precision
@@ -25,9 +25,9 @@ import {
   runRecapSuite,
   runRelevanceSuite,
   runStatusSuite,
-} from '@gnomeola/evals'
-import { AnthropicProvider, type LlmProvider, OpenAIProvider } from '@gnomeola/llm'
-import { formatScorecard, loadDataset, type Scorecard, writeScorecard } from '@gnomeola/testkit/evals'
+} from '@kacola/evals'
+import { AnthropicProvider, type LlmProvider, OpenAIProvider } from '@kacola/llm'
+import { formatScorecard, loadDataset, type Scorecard, writeScorecard } from '@kacola/testkit/evals'
 import { afterAll, describe, expect, it } from 'vitest'
 import {
   trackerInjectionRunner,

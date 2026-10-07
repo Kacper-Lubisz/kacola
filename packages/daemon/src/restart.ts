@@ -5,14 +5,14 @@ import type {
   RestartMode,
   RestartResponse,
   Session,
-} from '@gnomeola/protocol'
-import type { Store } from '@gnomeola/store'
+} from '@kacola/protocol'
+import type { Store } from '@kacola/store'
 import type { EventBus } from './bus.ts'
 import { DaemonError } from './errors.ts'
 import type { Logger } from './logger.ts'
 import type { SessionManager } from './sessions.ts'
 
-// Restarts that wait for the recording (GET /daemon, POST/DELETE /daemon/restart; `gnomeola daemon …`;
+// Restarts that wait for the recording (GET /daemon, POST/DELETE /daemon/restart; `kacola daemon …`;
 // SIGHUP, which the systemd unit's ExecReload sends).
 //
 //   when-idle  the daemon exits (DAEMON_EXIT.RESTART) as soon as nothing is recording or paused — at

@@ -6,8 +6,8 @@ import {
   type ItemField,
   type ItemVersion,
   type ShareStatus,
-} from '@gnomeola/protocol'
-import type { AgendaStore } from '@gnomeola/store'
+} from '@kacola/protocol'
+import type { AgendaStore } from '@kacola/store'
 
 // Agenda item history (UX trust fixes): the versions of an agenda's items from the event log — adds,
 // edits, status changes, removals, imports, restores — with who made each in the five-actor words.

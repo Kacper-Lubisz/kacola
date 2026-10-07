@@ -12,8 +12,8 @@ import type {
   StatusChange,
   Suggestion,
   TrackerStatus,
-} from '@gnomeola/protocol'
-import { actorOf } from '@gnomeola/protocol'
+} from '@kacola/protocol'
+import { actorOf } from '@kacola/protocol'
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { resetDeepLinksForTests } from '../src/renderer/features/agendas/deep-links.tsx'

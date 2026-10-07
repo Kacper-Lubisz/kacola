@@ -1,4 +1,4 @@
-import type { AgendaView } from '@gnomeola/protocol'
+import type { AgendaView } from '@kacola/protocol'
 import type { AgentChannel } from '../agents/channel.ts'
 import type { Handlers } from '../daemon.ts'
 import { DaemonError } from '../errors.ts'

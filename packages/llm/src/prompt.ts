@@ -13,7 +13,7 @@
 //
 // Everything is rendered from the inputs alone (no clock, no randomness, sorted with total orders), so
 // the same transcript renders to the same bytes on every call and the stable prefix only ever grows.
-import { type Citation, formatOffset, type Segment, type Session } from '@gnomeola/protocol'
+import { type Citation, formatOffset, type Segment, type Session } from '@kacola/protocol'
 import type { AssembledPrompt, PromptBlock, TranscriptInput } from './types.ts'
 
 export const CHUNK_MS = 5 * 60_000

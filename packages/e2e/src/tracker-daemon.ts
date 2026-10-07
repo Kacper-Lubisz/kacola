@@ -4,9 +4,9 @@
 // (a fixed bridge line, a recap per item in the recap prompt's form) — so the live tracker runs for real
 // (on-device decisions) on a meeting it can follow, with no network. Started through
 // startDaemon({ entry }) by desktop-tracker.e2e; speaks main.ts's --port 0 "listening" protocol.
-//   GNOMEOLA_E2E_FIXTURE   agenda fixture id (default manager-1on1)
-//   GNOMEOLA_E2E_SPEED     replay speed (default 10)
-//   GNOMEOLA_CALENDAR      file:… (the test's calendar)
+//   KACOLA_E2E_FIXTURE   agenda fixture id (default manager-1on1)
+//   KACOLA_E2E_SPEED     replay speed (default 10)
+//   KACOLA_CALENDAR      file:… (the test's calendar)
 import {
   createDaemon,
   FakeDevices,
@@ -15,14 +15,14 @@ import {
   MemoryKeyring,
   parseConfig,
   ScriptedPipeline,
-} from '@gnomeola/daemon'
-import { loadAgendaFixture } from '@gnomeola/testkit/fixtures'
+} from '@kacola/daemon'
+import { loadAgendaFixture } from '@kacola/testkit/fixtures'
 
 type AgendaLlm = NonNullable<Parameters<typeof createDaemon>[0]['agendaLlm']>
 type Provider = Awaited<ReturnType<AgendaLlm>>
 
 const cfg = parseConfig(process.argv.slice(2))
-const fx = loadAgendaFixture(process.env.GNOMEOLA_E2E_FIXTURE ?? 'manager-1on1')
+const fx = loadAgendaFixture(process.env.KACOLA_E2E_FIXTURE ?? 'manager-1on1')
 const usage = { inputTokens: 100, outputTokens: 20, cacheReadTokens: 0, cacheWriteTokens: 0 }
 
 /** Bridge lines and recaps from a script (the recap prompt names the item as <item kind="…">text</item>). */
@@ -52,7 +52,7 @@ const daemon = await createDaemon({
   keyring: new MemoryKeyring(),
   echoLogs: false,
   pipeline: new ScriptedPipeline(fx.truth.utterances, {
-    speed: Number(process.env.GNOMEOLA_E2E_SPEED ?? 10),
+    speed: Number(process.env.KACOLA_E2E_SPEED ?? 10),
   }),
   devices: new FakeDevices(),
   models: new FakeModels(),

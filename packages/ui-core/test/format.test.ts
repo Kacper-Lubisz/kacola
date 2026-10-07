@@ -1,4 +1,4 @@
-import type { Session } from '@gnomeola/protocol'
+import type { Session } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import {
   displayTitle,

@@ -5,7 +5,7 @@ import type {
   DurableEvent,
   StatusChange,
   Suggestion,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 
 // Agendas in the window (kacola wave 2): the pure folds that keep a cached AgendaView and its history in
 // step with the daemon's `agenda.*` events, and the view logic of the live panel (the next talking point,

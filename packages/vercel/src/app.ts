@@ -5,11 +5,11 @@ import {
   mailerFromEnv,
   type NodeHandler,
   nodeHandler,
-} from '@gnomeola/server'
-import { blobStoreFromEnv } from '@gnomeola/store/blob'
-import type { StoreApi } from '@gnomeola/store/core'
-import { openPostgres } from '@gnomeola/store/pg'
-import { cloudSttFromEnv } from '@gnomeola/stt/cloud'
+} from '@kacola/server'
+import { blobStoreFromEnv } from '@kacola/store/blob'
+import type { StoreApi } from '@kacola/store/core'
+import { openPostgres } from '@kacola/store/pg'
+import { cloudSttFromEnv } from '@kacola/stt/cloud'
 
 // H-5 — the hosted server as Vercel Node functions. One app per warm instance (built lazily on the first
 // request and reused), three functions that differ only in their duration budget:
@@ -21,10 +21,10 @@ import { cloudSttFromEnv } from '@gnomeola/stt/cloud'
 //
 // Configuration is the environment (Vercel project settings):
 //   DATABASE_URL (or POSTGRES_URL, as the Neon integration names it)   required
-//   GNOMEOLA_AUTH_SECRET (>= 32 chars), GNOMEOLA_ADMIN_TOKEN            required: remote ALWAYS needs a token
+//   KACOLA_AUTH_SECRET (>= 32 chars), KACOLA_ADMIN_TOKEN            required: remote ALWAYS needs a token
 //   BLOB_READ_WRITE_TOKEN                                              Vercel Blob (audio, full offload)
 //   DEEPGRAM_API_KEY                                                   cloud STT (full offload), optional
-//   GNOMEOLA_MAIL_WEBHOOK (+ _SECRET), GNOMEOLA_PUBLIC_URL             team sharing: magic-link email, link base
+//   KACOLA_MAIL_WEBHOOK (+ _SECRET), KACOLA_PUBLIC_URL             team sharing: magic-link email, link base
 //
 // There is no anonymous mode here: without an auth secret every request is refused (503), and loopback
 // is never trusted (a function has no loopback callers).
@@ -41,7 +41,7 @@ type Env = Record<string, string | undefined>
 async function openStore(url: string): Promise<StoreApi> {
   // `sqlite:` exists for the local harness (tests, a laptop without Postgres); a deployment uses Neon.
   if (url.startsWith('sqlite:')) {
-    const { SqliteStoreApi } = await import('@gnomeola/store')
+    const { SqliteStoreApi } = await import('@kacola/store')
     return SqliteStoreApi.open(url.slice('sqlite:'.length))
   }
   // Serverless: few connections per instance; Neon pools on its side.
@@ -56,24 +56,24 @@ export async function appFromEnv(
   const url = env.DATABASE_URL || env.POSTGRES_URL
   const auth = authConfigFromEnv(env)
   if (!url) throw new Error('DATABASE_URL (or POSTGRES_URL) is not set')
-  if (!auth) throw new Error('GNOMEOLA_AUTH_SECRET is not set: a hosted gnomeola never runs without auth')
+  if (!auth) throw new Error('KACOLA_AUTH_SECRET is not set: a hosted kacola never runs without auth')
   const store = await openStore(url)
   return createHostedApp({
     store,
-    blobs: blobStoreFromEnv(env, '/tmp/gnomeola-blobs'),
+    blobs: blobStoreFromEnv(env, '/tmp/kacola-blobs'),
     auth,
     trustLoopback: false,
     stt: cloudSttFromEnv(env),
     maxStreamMs: Math.max(
       1000,
-      maxDurationS * 1000 - Number(env.GNOMEOLA_STREAM_MARGIN_MS ?? STREAM_MARGIN_MS),
+      maxDurationS * 1000 - Number(env.KACOLA_STREAM_MARGIN_MS ?? STREAM_MARGIN_MS),
     ),
-    pollMs: Number(env.GNOMEOLA_POLL_MS ?? 1000),
+    pollMs: Number(env.KACOLA_POLL_MS ?? 1000),
     heartbeatMs: 15_000,
     log: (level, msg, fields) => console[level](JSON.stringify({ msg, ...fields })),
-    // team sharing: magic-link codes (GNOMEOLA_MAIL_WEBHOOK); without one, shared pages are read-only
+    // team sharing: magic-link codes (KACOLA_MAIL_WEBHOOK); without one, shared pages are read-only
     mailer: mailerFromEnv(env),
-    publicUrl: env.GNOMEOLA_PUBLIC_URL || null,
+    publicUrl: env.KACOLA_PUBLIC_URL || null,
   })
 }
 

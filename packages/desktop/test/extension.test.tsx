@@ -13,7 +13,7 @@ import { until } from './helpers.ts'
 
 afterEach(() => cleanup())
 
-const CMD = 'gnome-extensions enable gnomeola@gnomeola.org'
+const CMD = 'gnome-extensions enable kacola@kacperlubisz.com'
 const login = (o: Partial<Extract<ExtensionState, { state: 'needs-login' }>> = {}): ExtensionState => ({
   state: 'needs-login',
   reason: 'new',

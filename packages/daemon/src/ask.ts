@@ -8,8 +8,8 @@ import {
   type QaMessage,
   type Session,
   type Settings,
-} from '@gnomeola/protocol'
-import type { Store } from '@gnomeola/store'
+} from '@kacola/protocol'
+import type { Store } from '@kacola/store'
 import type { EventBus } from './bus.ts'
 import { DaemonError, streamError, toDaemonError } from './errors.ts'
 import type { SseWriter } from './http.ts'

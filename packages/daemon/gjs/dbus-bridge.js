@@ -1,6 +1,6 @@
-// gnomeolad's D-Bus bridge (C-4). Run as `gjs -m dbus-bridge.js [path/to/org.gnome.Gnomeola.xml]` by the
-// daemon, which supervises it. Owns `org.gnome.Gnomeola` on the session bus, exports the interface from
-// the XML contract at /org/gnome/Gnomeola, and relays: property values and signals come in on stdin as
+// kacolad's D-Bus bridge (C-4). Run as `gjs -m dbus-bridge.js [path/to/com.kacperlubisz.Kacola.xml]` by the
+// daemon, which supervises it. Owns `com.kacperlubisz.Kacola` on the session bus, exports the interface from
+// the XML contract at /com/kacperlubisz/Kacola, and relays: property values and signals come in on stdin as
 // JSON lines, method calls go out on stdout and wait for the daemon's reply. The line protocol is
 // documented in packages/daemon/src/dbus/bridge-protocol.ts. Exits when stdin closes (the daemon died
 // or is stopping).
@@ -9,12 +9,12 @@ import GioUnix from 'gi://GioUnix'
 import GLib from 'gi://GLib'
 import System from 'system'
 
-const BUS_NAME = 'org.gnome.Gnomeola'
-const OBJECT_PATH = '/org/gnome/Gnomeola'
-const INTERFACE = 'org.gnome.Gnomeola'
+const BUS_NAME = 'com.kacperlubisz.Kacola'
+const OBJECT_PATH = '/com/kacperlubisz/Kacola'
+const INTERFACE = 'com.kacperlubisz.Kacola'
 
 const here = GLib.path_get_dirname(GLib.filename_from_uri(import.meta.url)[0])
-const xmlPath = ARGV[0] ?? GLib.build_filenamev([here, '..', 'dbus', 'org.gnome.Gnomeola.xml'])
+const xmlPath = ARGV[0] ?? GLib.build_filenamev([here, '..', 'dbus', 'com.kacperlubisz.Kacola.xml'])
 const XML = new TextDecoder().decode(GLib.file_get_contents(xmlPath)[1])
 const iface = Gio.DBusNodeInfo.new_for_xml(XML).lookup_interface(INTERFACE)
 
@@ -167,6 +167,6 @@ readNext()
 
 loop.run()
 for (const { invocation } of pending.values())
-  invocation.return_dbus_error('org.gnome.Gnomeola.Error.Unavailable', 'the daemon is shutting down')
+  invocation.return_dbus_error('com.kacperlubisz.Kacola.Error.Unavailable', 'the daemon is shutting down')
 if (exportedOn) exported.unexport()
 Gio.bus_unown_name(ownerId)

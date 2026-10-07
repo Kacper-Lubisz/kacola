@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// P-5: build the org.gnome.Gnomeola Flatpak (packaging/flatpak/org.gnome.Gnomeola.yml).
+// P-5: build the com.kacperlubisz.Kacola Flatpak (packaging/flatpak/com.kacperlubisz.Kacola.yml).
 //
 //   node scripts/build-flatpak.ts [--app-dir DIR] [--out DIR] [--no-bundle]
 //
 //   --app-dir DIR   the unpacked Electron app (electron-builder `linux-unpacked` of packages/desktop, its
-//                   executable named `gnomeola`: scripts/build-desktop.ts). Default: build it now
+//                   executable named `kacola`: scripts/build-desktop.ts). Default: build it now
 //                   (dist/desktop/linux-unpacked).
-//   --out DIR       default dist/flatpak: repo/ (an OSTree repo), build/, and gnomeola.flatpak (a single-file
+//   --out DIR       default dist/flatpak: repo/ (an OSTree repo), build/, and kacola.flatpak (a single-file
 //                   bundle that pulls the runtime and BaseApp from Flathub when installed)
 //
 // Needs flatpak-builder as the org.flatpak.Builder Flatpak, org.freedesktop.Sdk//25.08 and
@@ -20,29 +20,27 @@ import { parseArgs } from 'node:util'
 import { BRAND_ICONS, buildLinuxApp } from './build-desktop.ts'
 import { buildRuntime, REPO } from './build-runtime.ts'
 
-export const APP_ID = 'org.gnome.Gnomeola'
+export const APP_ID = 'com.kacperlubisz.Kacola'
 const PKG = join(REPO, 'packaging')
 const FLATPAK = join(PKG, 'flatpak')
 
 /**
- * Lay out the unpacked Electron app with the runtime inside: `app/gnomeola` (the Electron binary),
+ * Lay out the unpacked Electron app with the runtime inside: `app/kacola` (the Electron binary),
  * `app/resources/app.asar` (packages/desktop) and `app/resources/runtime` (replaced by `runtimeDir`, so
  * the Flatpak always carries the linux-x64 runtime it was built with).
  */
 export function assembleLinuxApp(dest: string, runtimeDir: string, appDir: string): void {
   rmSync(dest, { recursive: true, force: true })
   cpSync(appDir, dest, { recursive: true, dereference: true })
-  if (!existsSync(join(dest, 'gnomeola')))
-    throw new Error(
-      `${appDir} has no 'gnomeola' executable (set executableName: gnomeola in electron-builder)`,
-    )
+  if (!existsSync(join(dest, 'kacola')))
+    throw new Error(`${appDir} has no 'kacola' executable (set executableName: kacola in electron-builder)`)
   if (!existsSync(join(dest, 'resources', 'app.asar')))
     throw new Error(`${appDir} has no resources/app.asar: not an electron-builder build of packages/desktop`)
   const runtime = join(dest, 'resources', 'runtime')
   rmSync(runtime, { recursive: true, force: true })
   cpSync(runtimeDir, runtime, { recursive: true })
   cpSync(join(REPO, 'THIRD_PARTY_NOTICES.md'), join(dest, 'resources', 'THIRD_PARTY_NOTICES.md'))
-  chmodSync(join(dest, 'gnomeola'), 0o755)
+  chmodSync(join(dest, 'kacola'), 0o755)
 }
 
 export type FlatpakBuild = {
@@ -75,7 +73,7 @@ export async function buildFlatpak(o: {
   cpSync(join(FLATPAK, 'bin'), join(input, 'bin'), { recursive: true })
   for (const f of [`${APP_ID}.desktop`, `${APP_ID}.metainfo.xml`, 'selftest.mjs'])
     cpSync(join(FLATPAK, f), join(input, 'share', f))
-  // the kacola brand icons, renamed to the app id: share/icons/hicolor/<size>/apps/org.gnome.Gnomeola.*
+  // the kacola brand icons, renamed to the app id: share/icons/hicolor/<size>/apps/com.kacperlubisz.Kacola.*
   for (const size of readdirSync(join(BRAND_ICONS, 'hicolor')))
     for (const f of readdirSync(join(BRAND_ICONS, 'hicolor', size, 'apps'))) {
       const dest = join(input, 'share', 'icons', 'hicolor', size, 'apps', f.replace(/^app/, APP_ID))
@@ -102,7 +100,7 @@ export async function buildFlatpak(o: {
   )
   let bundle: string | null = null
   if (o.bundle !== false) {
-    bundle = join(out, 'gnomeola.flatpak')
+    bundle = join(out, 'kacola.flatpak')
     execFileSync(
       'flatpak',
       [

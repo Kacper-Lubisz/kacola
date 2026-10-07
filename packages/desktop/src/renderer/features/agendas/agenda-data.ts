@@ -1,4 +1,4 @@
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { _, fmt } from '@kacola/ui-core/i18n'
 import type { QueryClient } from '@tanstack/react-query'
 import { type UseMutationOptions, useMutation, useQuery } from '@tanstack/react-query'
 import type { Api } from '../../data/queries.ts'
@@ -19,7 +19,7 @@ export function useAgendaHistory(agendaId: string, enabled = true) {
 
 /** The daemon's refusal as a sentence ("The agenda changed…" for a version conflict). */
 export function refusal(err: unknown): string {
-  // GnomeolaApiError: { status, code, message } (the daemon's own sentence)
+  // KacolaApiError: { status, code, message } (the daemon's own sentence)
   const e = err as { status?: number; message?: string }
   if (e.status === 409 && !e.message) return _('The agenda changed meanwhile.')
   return e.message ?? String(err)

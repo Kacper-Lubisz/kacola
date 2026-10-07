@@ -1,13 +1,13 @@
-// The four hosted decision providers against local fakes of their APIs (@gnomeola/testkit/fake-decisions).
+// The four hosted decision providers against local fakes of their APIs (@kacola/testkit/fake-decisions).
 // Shapes reproduced from the providers' documentation:
 //   TypeSafe  docs.typesafe.ai/api.md (endpoint, request body, Choice/Score/Noul answers, usage, errors 401/422/429/529),
 //             docs.typesafe.ai/primitives/{choice,score,noul}.md, docs.typesafe.ai/confidence.md,
 //             docs.typesafe.ai/cookbooks/pre_parsed_value_extraction_cookbook.md (extraction as a Choice + "none"),
 //             docs.typesafe.ai/models.md (jev-1.13.0, $0.042/Mtok input), docs.typesafe.ai/sdk/javascript (client).
 //   OpenAI    Responses API non-streaming (`text.format` json_schema strict, `include: message.output_text.logprobs`,
-//             `top_logprobs`), error bodies as @gnomeola/llm's openai.int.test.ts recorded them.
+//             `top_logprobs`), error bodies as @kacola/llm's openai.int.test.ts recorded them.
 //   Anthropic Messages API tool_use blocks; Ollama /api/chat with `format`.
-import { LlmError } from '@gnomeola/llm'
+import { LlmError } from '@kacola/llm'
 import {
   type Brain,
   type FakeServer,
@@ -15,7 +15,7 @@ import {
   startFakeOllama,
   startFakeOpenAI,
   startFakeTypeSafe,
-} from '@gnomeola/testkit/fake-decisions'
+} from '@kacola/testkit/fake-decisions'
 import { afterEach, describe, expect, it } from 'vitest'
 import { AnthropicDecisionProvider } from '../src/anthropic.ts'
 import { JEV_PRICE_PER_MTOK, JevDecisionProvider } from '../src/jev.ts'

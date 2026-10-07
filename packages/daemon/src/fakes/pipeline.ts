@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { newId, type Track, type TrackKind } from '@gnomeola/protocol'
+import { newId, type Track, type TrackKind } from '@kacola/protocol'
 import type {
   KnownVoice,
   PipelineSink,

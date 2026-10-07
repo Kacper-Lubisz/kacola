@@ -8,9 +8,9 @@
 // as they can decode, and are scored on the concatenation of their endpoints.
 
 import { writeFileSync } from 'node:fs'
-import type { TrackKind } from '@gnomeola/protocol'
-import { listFixtures, loadFixture } from '@gnomeola/testkit/fixtures'
-import { wer } from '@gnomeola/testkit/metrics'
+import type { TrackKind } from '@kacola/protocol'
+import { listFixtures, loadFixture } from '@kacola/testkit/fixtures'
+import { wer } from '@kacola/testkit/metrics'
 import { CATALOG } from '../src/model-manager/catalog.ts'
 import { ModelManager } from '../src/model-manager/manager.ts'
 import { createFinalTranscriber, createLiveRecognizer } from '../src/sherpa/index.ts'

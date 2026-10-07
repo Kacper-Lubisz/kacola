@@ -1,8 +1,8 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient, type Session } from '@gnomeola/protocol'
-import { waitFor } from '@gnomeola/testkit/daemon'
+import { createClient, type Session } from '@kacola/protocol'
+import { waitFor } from '@kacola/testkit/daemon'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ManualCalendarProvider } from '../src/calendar/providers.ts'
 import { createDaemon, type Daemon } from '../src/daemon.ts'
@@ -21,7 +21,7 @@ let cal: ManualCalendarProvider
 let mic: ManualMicActivity
 
 beforeEach(async () => {
-  dir = mkdtempSync(join(tmpdir(), 'gnomeola-autorec-'))
+  dir = mkdtempSync(join(tmpdir(), 'kacola-autorec-'))
   cal = new ManualCalendarProvider()
   mic = new ManualMicActivity()
   d = await createDaemon({

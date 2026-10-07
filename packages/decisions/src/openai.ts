@@ -1,5 +1,5 @@
 // Typed decisions on OpenAI: the Responses API (`POST /v1/responses`, non-streaming) with structured
-// outputs, plain fetch — the same transport and error mapping as @gnomeola/llm's OpenAIProvider.
+// outputs, plain fetch — the same transport and error mapping as @kacola/llm's OpenAIProvider.
 //
 // Request:
 //   { model, instructions: DECISION_SYSTEM_PROMPT, input: [{ role: 'user', content: [{ type: 'input_text', text }] }],
@@ -14,8 +14,8 @@
 // off the distribution of the token that starts the answer value (`source: 'logprobs'`); when that is
 // ambiguous (options sharing a first token, or too little probability mass mapping onto options) the
 // answer falls back to the model's self-reported numbers, marked `self-reported`.
-import { LlmError, openAIHttpError, supportsReasoning } from '@gnomeola/llm'
-import type { Usage } from '@gnomeola/protocol'
+import { LlmError, openAIHttpError, supportsReasoning } from '@kacola/llm'
+import type { Usage } from '@kacola/protocol'
 import { choiceAnswer, invalidResponse, scoreAnswer, yesNoAnswer } from './answers.ts'
 import { BaseDecisionProvider, type BaseOptions, type CallResult } from './base.ts'
 import { batchSchema, DECISION_SYSTEM_PROMPT, parseBatch, userPrompt } from './llm-json.ts'

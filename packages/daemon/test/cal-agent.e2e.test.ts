@@ -10,7 +10,7 @@ import {
   LINKS,
   startEds,
   WINDOW,
-} from '@gnomeola/testkit/eds'
+} from '@kacola/testkit/eds'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AgentMessage, CAL_AGENT_PROTOCOL, type RawOccurrence } from '../src/calendar/agent-protocol.ts'
 
@@ -135,14 +135,14 @@ describe('cal-agent against seeded EDS', () => {
 
   it('lists the enabled calendars and never the disabled one', () => {
     const ids = first.calendars.map((c) => c.id)
-    expect(ids).toEqual(expect.arrayContaining(['gnomeola-work', 'gnomeola-personal']))
-    expect(ids).not.toContain('gnomeola-disabled')
-    expect(first.calendars.find((c) => c.id === 'gnomeola-personal')?.name).toBe('Personal things')
+    expect(ids).toEqual(expect.arrayContaining(['kacola-work', 'kacola-personal']))
+    expect(ids).not.toContain('kacola-disabled')
+    expect(first.calendars.find((c) => c.id === 'kacola-personal')?.name).toBe('Personal things')
     expect(first.occurrences.some((o) => o.uid === 'hidden@test')).toBe(false)
   })
 
   it('reports every occurrence in the window exactly: none missed, none extra, none mis-timed', () => {
-    const got = first.occurrences.filter((o) => o.sourceUid.startsWith('gnomeola-'))
+    const got = first.occurrences.filter((o) => o.sourceUid.startsWith('kacola-'))
     const byKey = new Map(got.map((o) => [key(o), o]))
     // same set of occurrences…
     expect([...byKey.keys()].sort()).toEqual(EXPECTED.map(key).sort())
@@ -181,7 +181,7 @@ describe('change detection', () => {
   it('re-snapshots after an event is added, modified and removed', async () => {
     let n = agent.snapshots().length
     await eds.createEvent(
-      'gnomeola-work',
+      'kacola-work',
       [
         'BEGIN:VEVENT',
         'UID:added-live@test',
@@ -201,7 +201,7 @@ describe('change detection', () => {
 
     n = agent.snapshots().length
     await eds.modifyEvent(
-      'gnomeola-work',
+      'kacola-work',
       [
         'BEGIN:VEVENT',
         'UID:added-live@test',
@@ -220,25 +220,23 @@ describe('change detection', () => {
     ])
 
     n = agent.snapshots().length
-    await eds.removeEvent('gnomeola-work', 'added-live@test')
+    await eds.removeEvent('kacola-work', 'added-live@test')
     const removed = await agent.nextSnapshot(
       n,
       (s) => !s.occurrences.some((o) => o.uid === 'added-live@test'),
     )
-    expect(removed.occurrences.filter((o) => o.sourceUid.startsWith('gnomeola-'))).toHaveLength(
-      EXPECTED.length,
-    )
+    expect(removed.occurrences.filter((o) => o.sourceUid.startsWith('kacola-'))).toHaveLength(EXPECTED.length)
   })
 
   it('drops a calendar that gets disabled and picks it up again when re-enabled', async () => {
     let n = agent.snapshots().length
-    await eds.setEnabled('gnomeola-personal', false)
-    const off = await agent.nextSnapshot(n, (s) => !s.calendars.some((c) => c.id === 'gnomeola-personal'))
+    await eds.setEnabled('kacola-personal', false)
+    const off = await agent.nextSnapshot(n, (s) => !s.calendars.some((c) => c.id === 'kacola-personal'))
     expect(off.occurrences.some((o) => o.uid === 'dentist@test')).toBe(false)
     n = agent.snapshots().length
-    await eds.setEnabled('gnomeola-personal', true)
+    await eds.setEnabled('kacola-personal', true)
     const on = await agent.nextSnapshot(n, (s) => s.occurrences.some((o) => o.uid === 'dentist@test'))
-    expect(on.calendars.map((c) => c.id)).toContain('gnomeola-personal')
+    expect(on.calendars.map((c) => c.id)).toContain('kacola-personal')
   })
 
   it('answers a new window with a fresh snapshot of just that range, and refresh with another', async () => {
@@ -266,7 +264,7 @@ describe('change detection', () => {
 describe('failure modes', () => {
   it('is fatal (error line, exit 1) when there is no source registry to reach', async () => {
     // a session bus address with nothing listening: EDS is unreachable
-    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-noeds-'))
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-noeds-'))
     try {
       const env = { ...eds.env, DBUS_SESSION_BUS_ADDRESS: `unix:path=${join(dir, 'nobody')}` }
       const a = new Agent(env)

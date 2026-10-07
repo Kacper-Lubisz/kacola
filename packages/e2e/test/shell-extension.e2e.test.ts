@@ -2,20 +2,20 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   extensionState,
-  type FakeGnomeola,
+  type FakeKacola,
   fakeUrlHandler,
-  GNOMEOLA_EXTENSION,
-  GNOMEOLA_UUID,
+  KACOLA_EXTENSION,
+  KACOLA_UUID,
   shellEval,
-  startFakeGnomeola,
+  startFakeKacola,
   UNSAFE_MODE_EXTENSION,
-} from '@gnomeola/testkit/shell'
-import { type HeadlessDisplay, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+} from '@kacola/testkit/shell'
+import { type HeadlessDisplay, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // V-4b (states): the REAL extension, installed and enabled in a throwaway nested GNOME Shell 50
 // (`gnome-shell --headless --virtual-monitor`, private buses, private HOME), driven against a scriptable
-// org.gnome.Gnomeola service. Every state the indicator must render is set over D-Bus and read back from
+// com.kacperlubisz.Kacola service. Every state the indicator must render is set over D-Bus and read back from
 // the Shell's actual actors (Eval, unlocked in the nested instance only by a test companion extension),
 // and from the accessibility tree the way a screen reader sees it. Menu items are activated through
 // their `activate` signal — the same path a click or Enter takes.
@@ -26,7 +26,7 @@ type Item = { key: string; text: string; name: string; reactive: boolean }
 type Indicator = { accessibleName: string; icon: string; label: string; styles: string; items: Item[] }
 
 const DESCRIBE = `(() => {
-  const b = Main.panel.statusArea['${GNOMEOLA_UUID}']
+  const b = Main.panel.statusArea['${KACOLA_UUID}']
   if (!b) return null
   return {
     accessibleName: b.accessible_name,
@@ -34,7 +34,7 @@ const DESCRIBE = `(() => {
     label: b._label.visible ? b._label.text : '',
     styles: b.get_style_class_name() ?? '',
     items: b.menu._getMenuItems().map((i) => ({
-      key: i._gnomeolaKey ?? '',
+      key: i._kacolaKey ?? '',
       text: i.label?.text ?? i._title?.text ?? '',
       name: i.accessible_name ?? '',
       reactive: i.reactive,
@@ -43,8 +43,8 @@ const DESCRIBE = `(() => {
 })()`
 
 const activate = (key: string) => `(() => {
-  const b = Main.panel.statusArea['${GNOMEOLA_UUID}']
-  const item = b.menu._getMenuItems().find((i) => i._gnomeolaKey === ${JSON.stringify(key)})
+  const b = Main.panel.statusArea['${KACOLA_UUID}']
+  const item = b.menu._getMenuItems().find((i) => i._kacolaKey === ${JSON.stringify(key)})
   if (!item) throw new Error('no menu item ' + ${JSON.stringify(key)})
   item.activate(null)
   return true
@@ -58,7 +58,7 @@ const at = (h: number, m = 0) => {
 }
 
 let d: HeadlessDisplay
-let fake: FakeGnomeola | null = null
+let fake: FakeKacola | null = null
 let urlLog = ''
 
 const indicator = () => shellEval<Indicator | null>(d.env, DESCRIBE)
@@ -68,7 +68,7 @@ const until = <T>(probe: () => Promise<T | null | undefined | false>, what: stri
 beforeAll(async () => {
   d = await startHeadlessDisplay({
     size: '1280x800',
-    extensions: [UNSAFE_MODE_EXTENSION, GNOMEOLA_EXTENSION],
+    extensions: [UNSAFE_MODE_EXTENSION, KACOLA_EXTENSION],
     prepare: (dirs) => {
       urlLog = join(dirs.home, 'opened-urls.log')
       fakeUrlHandler(dirs.data, dirs.config, urlLog)
@@ -85,29 +85,29 @@ afterAll(async () => {
   await d?.close()
 })
 
-const UNSAFE_MODE_EXTENSION_UUID = 'unsafe-mode@gnomeola.test'
+const UNSAFE_MODE_EXTENSION_UUID = 'unsafe-mode@kacola.test'
 
 describe('the extension in a nested GNOME Shell 50', () => {
   it('loads without errors and adds its indicator to the panel', async () => {
-    const st = await until(() => extensionState(d.env, GNOMEOLA_UUID), 'extension info')
+    const st = await until(() => extensionState(d.env, KACOLA_UUID), 'extension info')
     expect(st, JSON.stringify(st)).toMatchObject({ stateName: 'active', error: null })
     const ind = await until(indicator, 'indicator')
     expect(ind.icon).toBeTruthy()
   })
 
-  it('shows "not running" while nothing owns org.gnome.Gnomeola', async () => {
+  it('shows "not running" while nothing owns com.kacperlubisz.Kacola', async () => {
     const ind = await until(async () => {
       const i = await indicator()
       return i?.icon === 'microphone-disabled-symbolic' && i
     }, 'offline indicator')
     expect(ind.accessibleName).toBe('kacola: not running')
-    expect(ind.styles).toContain('gnomeola-offline')
+    expect(ind.styles).toContain('kacola-offline')
     expect(ind.items.map((i) => i.key)).toEqual(['offline', 'separator-app', 'open', 'prefs'])
     expect(ind.items[0]!.text).toBe('kacola is not running')
   })
 
   it('recovers when the daemon appears, and renders idle with upcoming meetings', async () => {
-    fake = await startFakeGnomeola(d.env)
+    fake = await startFakeKacola(d.env)
     const now = Date.now()
     fake.setProps({
       State: 'idle',
@@ -181,7 +181,7 @@ describe('the extension in a nested GNOME Shell 50', () => {
   it('still opens the link when recording cannot start (already recording)', async () => {
     fake!.onCall = (c) =>
       c.method === 'Join'
-        ? { error: { name: 'org.gnome.Gnomeola.Error.Conflict', message: 'already recording "X"' } }
+        ? { error: { name: 'com.kacperlubisz.Kacola.Error.Conflict', message: 'already recording "X"' } }
         : { result: [] }
     const before = fake!.calls.length
     await shellEval(d.env, activate('meeting:mtg_standup'))
@@ -210,7 +210,7 @@ describe('the extension in a nested GNOME Shell 50', () => {
       const i = await indicator()
       return i?.icon === 'media-record-symbolic' && i
     }, 'recording indicator')
-    expect(ind.styles).toContain('gnomeola-recording')
+    expect(ind.styles).toContain('kacola-recording')
     expect(ind.label).toMatch(/^1:0\d$/)
     expect(ind.accessibleName).toMatch(/^kacola: recording Platform standup, 1:0\d$/)
     const keys = ind.items.map((i) => i.key)
@@ -230,9 +230,9 @@ describe('the extension in a nested GNOME Shell 50', () => {
       4000,
     )
     expect(later).toMatch(/^1:\d\d$/)
-    await shellEval(d.env, `Main.panel.statusArea['${GNOMEOLA_UUID}'].menu.open(); true`)
+    await shellEval(d.env, `Main.panel.statusArea['${KACOLA_UUID}'].menu.open(); true`)
     await d.screenshot(join(ARTIFACTS, 'shell-extension-recording.png'))
-    await shellEval(d.env, `Main.panel.statusArea['${GNOMEOLA_UUID}'].menu.close(); true`)
+    await shellEval(d.env, `Main.panel.statusArea['${KACOLA_UUID}'].menu.close(); true`)
 
     await shellEval(d.env, activate('pause'))
     await fake!.waitForCall('Pause')
@@ -298,7 +298,7 @@ describe('the extension in a nested GNOME Shell 50', () => {
         },
       ],
     })
-    await shellEval(d.env, `Main.panel.statusArea['${GNOMEOLA_UUID}'].menu.open(); true`)
+    await shellEval(d.env, `Main.panel.statusArea['${KACOLA_UUID}'].menu.open(); true`)
     const button = await d.findOne({ app: 'gnome-shell', name: 'kacola: not recording' }, 10_000)
     expect(button.role).toBe('menu')
     const item = await d.findOne({ app: 'gnome-shell', nameContains: 'Accessibility sync' }, 10_000)
@@ -306,7 +306,7 @@ describe('the extension in a nested GNOME Shell 50', () => {
     expect(item.name).toMatch(/Zoom, Join$/)
     await d.findOne({ app: 'gnome-shell', role: 'menu item', name: 'Record now' })
     await d.screenshot(join(ARTIFACTS, 'shell-extension-menu.png'))
-    await shellEval(d.env, `Main.panel.statusArea['${GNOMEOLA_UUID}'].menu.close(); true`)
+    await shellEval(d.env, `Main.panel.statusArea['${KACOLA_UUID}'].menu.close(); true`)
   })
 
   it('shows a Join notification when a meeting is about to start', async () => {
@@ -349,19 +349,19 @@ describe('the extension in a nested GNOME Shell 50', () => {
   })
 
   it('disables cleanly: indicator gone, no errors', async () => {
-    await shellEval(d.env, `Main.extensionManager.disableExtension('${GNOMEOLA_UUID}')`)
+    await shellEval(d.env, `Main.extensionManager.disableExtension('${KACOLA_UUID}')`)
     await until(async () => (await indicator()) === null, 'indicator removed')
-    const st = await extensionState(d.env, GNOMEOLA_UUID)
+    const st = await extensionState(d.env, KACOLA_UUID)
     expect(st?.error ?? null).toBeNull()
-    await shellEval(d.env, `Main.extensionManager.enableExtension('${GNOMEOLA_UUID}')`)
+    await shellEval(d.env, `Main.extensionManager.enableExtension('${KACOLA_UUID}')`)
     await until(indicator, 'indicator back after re-enable')
   })
 
   it('logged no JavaScript errors or warnings from the extension in the whole run', () => {
     const log = d.logs()['gnome-shell'] ?? ''
     expect(log.length, 'the Shell log was captured').toBeGreaterThan(0)
-    const ours = log.split('\n').filter((l) => /gnomeola@gnomeola\.org|gnomeola:/.test(l))
+    const ours = log.split('\n').filter((l) => /kacola@kacola\.org|kacola:/.test(l))
     expect(ours.filter((l) => /error|warn|critical|exception/i.test(l))).toEqual([])
-    expect(log).not.toMatch(/JS ERROR[^\n]*gnomeola/)
+    expect(log).not.toMatch(/JS ERROR[^\n]*kacola/)
   })
 })

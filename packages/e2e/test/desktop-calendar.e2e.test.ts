@@ -1,15 +1,15 @@
 import { mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop } from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { poll } from '../src/desktop-ui.ts'
 import { markOnboarded } from '../src/ui.ts'
 
 // The calendar in the Electron window, against the real daemon and its calendar service fed by a
-// calendar file (GNOMEOLA_CALENDAR=file:…, the RawOccurrence shape cal-agent emits from EDS; the same
+// calendar file (KACOLA_CALENDAR=file:…, the RawOccurrence shape cal-agent emits from EDS; the same
 // fixture style as cli-meetings.int.test.ts): the auto-record rule switched on in Preferences records a
 // meeting when it begins, linked to its calendar event; the recorded meeting's notes (its outcome page) suggest a template
 // from the calendar event's title — even after the session was renamed to something that matches
@@ -40,22 +40,22 @@ describe('desktop: calendar meetings and the calendar-based template suggestion'
 
   beforeAll(async () => {
     buildDesktop()
-    dir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-calendar-'))
+    dir = mkdtempSync(join(tmpdir(), 'kacola-desktop-calendar-'))
     calFile = join(dir, 'calendar.json')
     writeCalendar([])
     daemon = await startDaemon({
       dataDir: join(dir, 'data'),
-      env: { GNOMEOLA_CALENDAR: `file:${calFile}`, GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE) },
+      env: { KACOLA_CALENDAR: `file:${calFile}`, KACOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE) },
     })
     display = await startHeadlessDisplay({ size: '1280x800' })
-    markerId = display.env.GNOMEOLA_HEADLESS_ID!
+    markerId = display.env.KACOLA_HEADLESS_ID!
     markOnboarded(
       display,
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
     app = await launchDesktop({
       display,
-      env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
+      env: { KACOLA_URL: daemon.baseUrl, KACOLA_COLOR_SCHEME: 'light' },
     })
     await w().getByRole('button', { name: 'New recording', exact: true }).waitFor({ timeout: 20_000 })
   }, 240_000)

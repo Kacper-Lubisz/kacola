@@ -1,5 +1,5 @@
-import type { TrackerStatus } from '@gnomeola/protocol'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import type { TrackerStatus } from '@kacola/protocol'
+import { _, fmt } from '@kacola/ui-core/i18n'
 
 // The recap's state after a meeting, as one quiet line on the outcome page: writing it, why there is
 // none, or that it failed. From GET /agendas/:id/tracker, kept current by `agenda.tracker` events

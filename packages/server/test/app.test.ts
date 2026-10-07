@@ -1,12 +1,12 @@
 import {
   AnyEvent,
   createClient,
-  GnomeolaApiError,
+  KacolaApiError,
   PARTICIPANT_HEADER,
   type RouteName,
   routes,
   type Session,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import { afterEach, describe, expect, it } from 'vitest'
 import { MemoryMailer } from '../src/mailer.ts'
 import { ADMIN, type Hosted, SECRET, startHosted } from './helpers.ts'
@@ -31,8 +31,8 @@ const notHere = (p: Promise<unknown>) =>
     () => {
       throw new Error('expected 501')
     },
-    (e: GnomeolaApiError) => {
-      expect(e).toBeInstanceOf(GnomeolaApiError)
+    (e: KacolaApiError) => {
+      expect(e).toBeInstanceOf(KacolaApiError)
       expect([e.status, e.code]).toEqual([501, 'unavailable'])
       return e
     },

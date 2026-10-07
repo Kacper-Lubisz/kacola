@@ -3,12 +3,12 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-// `gnomeola mcp`'s live channel against the REAL daemon replaying a fixture meeting, over real stdio
+// `kacola mcp`'s live channel against the REAL daemon replaying a fixture meeting, over real stdio
 // JSON-RPC: live_sessions / live_attach / live_events / live_detach, the agenda tools acting under the
-// lease while attached (attribution, mode), and the gnomeola://live resource with a subscription that
+// lease while attached (attribution, mode), and the kacola://live resource with a subscription that
 // sends notifications/resources/updated as events arrive.
 
 const MAIN = join(import.meta.dirname, '..', '..', 'cli', 'src', 'main.ts')
@@ -44,7 +44,7 @@ async function tool(name: string, args: Record<string, unknown>) {
 
 let sessionId = ''
 let agendaId = ''
-const box = mkdtempSync(join(tmpdir(), 'gnomeola-e2e-mcp-live-'))
+const box = mkdtempSync(join(tmpdir(), 'kacola-e2e-mcp-live-'))
 const calFile = join(box, 'calendar.json')
 const now = Date.now()
 const t = (min: number) => new Date(now + min * 60_000).toISOString()
@@ -83,9 +83,9 @@ beforeAll(async () => {
   d = await startDaemon({
     env: {
       // the channel on its own: the live tracker would check items off under the agents' feet
-      GNOMEOLA_TRACKER: 'off',
-      GNOMEOLA_CALENDAR: `file:${calFile}`,
-      GNOMEOLA_FAKE_PIPELINE: JSON.stringify({
+      KACOLA_TRACKER: 'off',
+      KACOLA_CALENDAR: `file:${calFile}`,
+      KACOLA_FAKE_PIPELINE: JSON.stringify({
         scriptFile: FIXTURE,
         speed: 30,
         partialEveryMs: 3000,
@@ -94,7 +94,7 @@ beforeAll(async () => {
     },
   })
   child = spawn(process.execPath, [MAIN, 'mcp'], {
-    env: { ...process.env, GNOMEOLA_URL: d.baseUrl },
+    env: { ...process.env, KACOLA_URL: d.baseUrl },
     stdio: ['pipe', 'pipe', 'inherit'],
   })
   createInterface({ input: child.stdout! }).on('line', (line) => {
@@ -117,7 +117,7 @@ afterAll(async () => {
   rmSync(box, { recursive: true, force: true })
 })
 
-describe('gnomeola mcp: the live channel', () => {
+describe('kacola mcp: the live channel', () => {
   it('lists nothing to attach to before a recording, and refuses attach', async () => {
     expect((await tool('live_sessions', {})).json()).toEqual({ sessions: [] })
     const a = await tool('live_attach', {})
@@ -142,8 +142,8 @@ describe('gnomeola mcp: the live channel', () => {
     expect((await waiting).json().sessions[0]).toMatchObject({ sessionId, agendaId })
 
     const res = (await rpc('resources/list', {})) as { result: { resources: { uri: string }[] } }
-    expect(res.result.resources.map((r) => r.uri)).toContain('gnomeola://live')
-    expect((await rpc('resources/subscribe', { uri: 'gnomeola://live' })).error).toBeUndefined()
+    expect(res.result.resources.map((r) => r.uri)).toContain('kacola://live')
+    expect((await rpc('resources/subscribe', { uri: 'kacola://live' })).error).toBeUndefined()
 
     const a = await tool('live_attach', { mode: 'suggest', name: 'mcp-claude' })
     expect(a.isError, a.text).toBe(false)
@@ -168,7 +168,7 @@ describe('gnomeola mcp: the live channel', () => {
     expect(new Set(events.filter((e) => e.type === 'segment.final').map((e) => e.speaker))).toEqual(
       new Set(['Dana', 'me']),
     )
-    const read = (await rpc('resources/read', { uri: 'gnomeola://live' })) as {
+    const read = (await rpc('resources/read', { uri: 'kacola://live' })) as {
       result: { contents: { text: string }[] }
     }
     const state = JSON.parse(read.result.contents[0]!.text)

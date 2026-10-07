@@ -2,8 +2,8 @@
 // the environment, and the text behaviours (agenda drafting, recap) on each text LLM with a key.
 //
 //   TYPESAFE_API_KEY=… OPENAI_API_KEY=… ANTHROPIC_API_KEY=… pnpm test:eval packages/evals
-//   GNOMEOLA_EVAL_OLLAMA_URL=http://127.0.0.1:11434 GNOMEOLA_EVAL_OLLAMA_MODEL=qwen3:8b …   (local Ollama)
-//   GNOMEOLA_EVAL_JUDGE=1 adds an LLM-judge score to the recap scorecard (costs one extra call per case)
+//   KACOLA_EVAL_OLLAMA_URL=http://127.0.0.1:11434 KACOLA_EVAL_OLLAMA_MODEL=qwen3:8b …   (local Ollama)
+//   KACOLA_EVAL_JUDGE=1 adds an LLM-judge score to the recap scorecard (costs one extra call per case)
 //
 // No key → the provider's tests are skipped with the reason. A quota / auth error on the first call →
 // the rest of that provider's suites are skipped with the error as the reason. Numbers are never faked.
@@ -11,15 +11,15 @@
 // can be committed as an offline replay. The brief's budgets (auto check-off precision ≥ 0.9, p90 check-off
 // ≤ 30 s after settling) are asserted here, for live providers only.
 import { join } from 'node:path'
-import { RecordingDecisionProvider, saveCassette } from '@gnomeola/decisions'
-import { AnthropicProvider, type LlmProvider, OpenAIProvider } from '@gnomeola/llm'
+import { RecordingDecisionProvider, saveCassette } from '@kacola/decisions'
+import { AnthropicProvider, type LlmProvider, OpenAIProvider } from '@kacola/llm'
 import {
   ARTIFACTS_DIR,
   formatScorecard,
   loadDataset,
   type Scorecard,
   writeScorecard,
-} from '@gnomeola/testkit/evals'
+} from '@kacola/testkit/evals'
 import { afterAll, describe, expect, it } from 'vitest'
 import { llmDraftRunner, llmJudge, llmRecapRunner } from '../src/llm-runners.ts'
 import { liveProviders, liveSkipReason } from '../src/providers.ts'
@@ -96,7 +96,7 @@ describe.each(TEXT.map((t) => [t.label, t] as const))('live text behaviours — 
       ctx.skip()
       return
     }
-    if (process.env.GNOMEOLA_EVAL_JUDGE === '1') {
+    if (process.env.KACOLA_EVAL_JUDGE === '1') {
       const judge = llmJudge(llm)
       const cases = loadDataset('recap')
       const runner = llmRecapRunner(llm)

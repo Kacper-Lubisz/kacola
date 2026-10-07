@@ -5,8 +5,8 @@ import {
   type PairStart,
   type PairToken,
   USER_CODE_ALPHABET,
-} from '@gnomeola/protocol'
-import type { StoreApi } from '@gnomeola/store/core'
+} from '@kacola/protocol'
+import type { StoreApi } from '@kacola/store/core'
 import { HttpError, needsToken } from './errors.ts'
 
 // H-6 — pairing auth, shared by the hosted server and the local daemon (when it listens beyond
@@ -35,7 +35,7 @@ export type Principal =
 export type AuthConfig = {
   /** HMAC key for device tokens. At least 32 characters. */
   secret: string
-  /** The owner's bootstrap credential (GNOMEOLA_ADMIN_TOKEN): approves pairings, reads everything. */
+  /** The owner's bootstrap credential (KACOLA_ADMIN_TOKEN): approves pairings, reads everything. */
   adminToken?: string
   pairingTtlMs?: number
   pollIntervalMs?: number
@@ -177,11 +177,11 @@ export class Auth {
   }
 }
 
-/** Read the auth config from the environment (GNOMEOLA_AUTH_SECRET, GNOMEOLA_ADMIN_TOKEN). */
+/** Read the auth config from the environment (KACOLA_AUTH_SECRET, KACOLA_ADMIN_TOKEN). */
 export function authConfigFromEnv(env: Record<string, string | undefined>): AuthConfig | null {
-  if (!env.GNOMEOLA_AUTH_SECRET) return null
+  if (!env.KACOLA_AUTH_SECRET) return null
   return {
-    secret: env.GNOMEOLA_AUTH_SECRET,
-    ...(env.GNOMEOLA_ADMIN_TOKEN ? { adminToken: env.GNOMEOLA_ADMIN_TOKEN } : {}),
+    secret: env.KACOLA_AUTH_SECRET,
+    ...(env.KACOLA_ADMIN_TOKEN ? { adminToken: env.KACOLA_ADMIN_TOKEN } : {}),
   }
 }

@@ -1,4 +1,4 @@
-import type { NoteTemplate, TemplateSuggestion } from '@gnomeola/protocol'
+import type { NoteTemplate, TemplateSuggestion } from '@kacola/protocol'
 
 // N-3 — note templates. Built-ins ship with the daemon; the user's custom templates live in the store.
 // A meeting gets a default template from its title — or its calendar event's title, when a client that

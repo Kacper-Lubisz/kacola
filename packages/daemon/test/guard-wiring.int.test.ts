@@ -18,7 +18,7 @@ afterEach(async () => {
 })
 
 const open = async (o: Partial<Parameters<typeof createDaemon>[0]> = {}) => {
-  dir = mkdtempSync(join(tmpdir(), 'gnomeola-guard-'))
+  dir = mkdtempSync(join(tmpdir(), 'kacola-guard-'))
   d = await createDaemon({ dataDir: dir, port: 0, keyring: new MemoryKeyring(), env: {}, ...o })
   return d
 }

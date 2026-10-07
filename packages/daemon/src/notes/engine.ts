@@ -1,7 +1,7 @@
-import type { Citation, NoteTemplate, Segment, Session, StoredSettings, Usage } from '@gnomeola/protocol'
+import type { Citation, NoteTemplate, Segment, Session, StoredSettings, Usage } from '@kacola/protocol'
 
 // The seam where notes enhancement plugs into the daemon, like QaEngine for Q&A. The real engine is
-// @gnomeola/llm (engines/enhance.ts); a deterministic fake (fakes/notes.ts) drives tests.
+// @kacola/llm (engines/enhance.ts); a deterministic fake (fakes/notes.ts) drives tests.
 
 export type EnhanceRequest = {
   session: Session

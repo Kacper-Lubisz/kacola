@@ -2,9 +2,9 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop, waitForDaemon } from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, markedPids, pngInfo, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop, waitForDaemon } from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, markedPids, pngInfo, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { markOnboarded } from '../src/desktop.ts'
 
@@ -28,7 +28,7 @@ let markerId = ''
 beforeAll(async () => {
   buildDesktop()
   display = await startHeadlessDisplay({ size: '1280x800' })
-  markerId = display.env.GNOMEOLA_HEADLESS_ID!
+  markerId = display.env.KACOLA_HEADLESS_ID!
   // first-run onboarding (the fake daemon lacks a model) is desktop-dialogs' subject, not this file's
   markOnboarded(display)
 }, 240_000)
@@ -47,7 +47,7 @@ describe('desktop window against a running daemon', () => {
     daemon = await startDaemon()
     await daemon.client.call('createSession', { body: { title: 'Weekly product sync' } })
     await daemon.client.call('createSession', { body: { title: 'Design review: onboarding flow' } })
-    app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
+    app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl } })
   }, 120_000)
 
   afterAll(async () => {
@@ -109,7 +109,7 @@ describe('desktop window against a running daemon', () => {
       return {
         require: typeof window.require,
         process: typeof window.process,
-        bridge: Object.keys(window.gnomeola).sort(),
+        bridge: Object.keys(window.kacola).sort(),
         fetched,
         origin: location.origin,
       }
@@ -117,7 +117,7 @@ describe('desktop window against a running daemon', () => {
     expect(r).toMatchObject({ require: 'undefined', process: 'undefined', fetched: 'blocked' })
     expect(r.bridge).toContain('fetchStream')
     expect(r.bridge).not.toContain('ipcRenderer')
-    expect(r.origin).toBe('app://gnomeola')
+    expect(r.origin).toBe('app://kacola')
   })
 
   it('logged no console errors, page errors or CSP violations (except the probe above)', () => {
@@ -132,18 +132,18 @@ describe('desktop window against a running daemon', () => {
 describe('desktop window with no daemon running', () => {
   it('spawns one on Electron’s runtime, keeps it when the window closes, and stops it on quit', async () => {
     const port = await freePort()
-    const dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-spawn-'))
+    const dataDir = mkdtempSync(join(tmpdir(), 'kacola-desktop-spawn-'))
     const url = `http://127.0.0.1:${port}`
     const app = await launchDesktop({
       display,
       env: {
-        GNOMEOLA_URL: url,
-        GNOMEOLA_DAEMON_ARGS: JSON.stringify(['--data-dir', dataDir]),
-        GNOMEOLA_FAKES: '1',
-        GNOMEOLA_KEYRING: 'memory',
-        GNOMEOLA_CALENDAR: 'off',
-        GNOMEOLA_DBUS: 'off',
-        GNOMEOLA_MIC_ACTIVITY: 'off',
+        KACOLA_URL: url,
+        KACOLA_DAEMON_ARGS: JSON.stringify(['--data-dir', dataDir]),
+        KACOLA_FAKES: '1',
+        KACOLA_KEYRING: 'memory',
+        KACOLA_CALENDAR: 'off',
+        KACOLA_DBUS: 'off',
+        KACOLA_MIC_ACTIVITY: 'off',
       },
     })
     try {
@@ -159,7 +159,7 @@ describe('desktop window with no daemon running', () => {
       expect((await fetch(`${url}/health`)).ok).toBe(true)
 
       // a second launch (the desktop icon, the top-bar extension) re-opens the window in this instance
-      const second = await launchDesktop({ display, env: { GNOMEOLA_URL: url }, window: false }).catch(
+      const second = await launchDesktop({ display, env: { KACOLA_URL: url }, window: false }).catch(
         (e: Error) => e,
       )
       if (!(second instanceof Error)) await second.close().catch(() => {})
@@ -195,7 +195,7 @@ describe('dark style', () => {
     await daemon.client.call('createSession', { body: { title: 'Night shift' } })
     const app = await launchDesktop({
       display,
-      env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'dark' },
+      env: { KACOLA_URL: daemon.baseUrl, KACOLA_COLOR_SCHEME: 'dark' },
     })
     try {
       await app.window.getByRole('list', { name: 'Today’s meetings' }).waitFor({ timeout: 20_000 })

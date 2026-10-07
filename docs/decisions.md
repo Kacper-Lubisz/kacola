@@ -1,19 +1,19 @@
-# Typed decisions and the AI evals (`@gnomeola/decisions`, `@gnomeola/evals`)
+# Typed decisions and the AI evals (`@kacola/decisions`, `@kacola/evals`)
 
 Agendas wave 1B. Live intelligence (the agenda tracker, the relevance pre-check, the injection guardrail,
 the next talking point, interview answers) asks **typed decisions**, not text: an option, a level, yes/no or
 a short value copied from the input, each with a probability code can threshold. Text generation (agenda
-drafting, bridge lines, recaps) stays on `@gnomeola/llm`. Every AI behaviour has an eval: a labelled dataset,
+drafting, bridge lines, recaps) stays on `@kacola/llm`. Every AI behaviour has an eval: a labelled dataset,
 graders, a scorecard, an offline mode that runs in `pnpm check` and a key-gated live mode.
 
 ## Packages
 
 | package | owns |
 | --- | --- |
-| `@gnomeola/decisions` | the `DecisionProvider` contract, the five providers, the agenda **tasks** (question builders + readers + the tracker policy + on-device rules), decision cassettes |
-| `@gnomeola/testkit/evals` | datasets (schemas, loaders), graders, scorecards, baselines |
-| `@gnomeola/testkit/fake-decisions` | local fakes of the TypeSafe, OpenAI Responses, Anthropic Messages and Ollama chat APIs |
-| `@gnomeola/evals` | the suites, the runner hooks, reference runners, the offline / fake / live provider matrix |
+| `@kacola/decisions` | the `DecisionProvider` contract, the five providers, the agenda **tasks** (question builders + readers + the tracker policy + on-device rules), decision cassettes |
+| `@kacola/testkit/evals` | datasets (schemas, loaders), graders, scorecards, baselines |
+| `@kacola/testkit/fake-decisions` | local fakes of the TypeSafe, OpenAI Responses, Anthropic Messages and Ollama chat APIs |
+| `@kacola/evals` | the suites, the runner hooks, reference runners, the offline / fake / live provider matrix |
 
 `decisions` is its own package rather than part of `llm`: the contract is different (batched typed questions
 with probability outputs, not a streamed prompt), and it carries a native dependency (onnxruntime-node) that
@@ -23,7 +23,7 @@ prices, so callers handle both layers' errors the same way.
 ## The interface
 
 ```ts
-import { decisionProviderFromSettings } from '@gnomeola/decisions'
+import { decisionProviderFromSettings } from '@kacola/decisions'
 
 const p = decisionProviderFromSettings({ provider: 'jev', model: '' }, { apiKey })   // null without a key
 const r = await p.decide(
@@ -59,7 +59,7 @@ r.usage; r.costUsd; r.latencyMs; r.calls; r.retries; r.model
 | `jev` | `@typesafe-ai/sdk` 0.6.0 (MIT) → `POST /v1/systemone` | choice→Choice, score→Score, yesno→Noul, extract→Choice over candidate spans + `none` (the pre-parsed extraction pattern) | calibrated | fake server reproducing api.md shapes and errors; live test gated on `TYPESAFE_API_KEY` (no key here: skipped) |
 | `openai` | fetch → Responses API, `text.format` json_schema strict | one JSON object, a property per question; `include: message.output_text.logprobs`, `top_logprobs: 10` on non-reasoning models (default `gpt-4.1-mini`) | logprobs of the token that starts each value; self-reported (marked) when ambiguous or on reasoning models | fake server; **live API reached**: the account has no credits → `quota` → skipped |
 | `anthropic` | `@anthropic-ai/sdk`, strict tool `record_decisions`, `tool_choice: auto`, effort low, server-side fallbacks | same JSON schema as the tool's input | self-reported | fake server; live gated on `ANTHROPIC_API_KEY` (none here) |
-| `ollama` | fetch → `/api/chat`, `format: <schema>` | same | self-reported | fake server; live with `GNOMEOLA_EVAL_OLLAMA_URL` |
+| `ollama` | fetch → `/api/chat`, `format: <schema>` | same | self-reported | fake server; live with `KACOLA_EVAL_OLLAMA_URL` |
 | `local` | all-MiniLM-L6-v2 int8 ONNX via onnxruntime-node, + rules by question `tag`; hashing embedder when the model is absent | rules first (injection patterns; agenda cues), else cosine similarity to option / level / yes-no anchors and candidates | heuristic | real model, offline evals in `pnpm check` |
 
 OpenAI logprobs: the response's tokens must reassemble the output text exactly; the token covering the first
@@ -67,7 +67,7 @@ character of each `choice`/`level`/`answer` value must identify a single option,
 must map unambiguously onto options — otherwise the self-reported numbers are kept and marked so.
 
 Prices: Jev $0.042 / M input tokens, output free (docs.typesafe.ai/models.md); gpt-4.1-mini $0.40 / $1.60;
-Claude from `@gnomeola/llm`'s table; Ollama and unknown models `null` (unknown, not zero); local `0`.
+Claude from `@kacola/llm`'s table; Ollama and unknown models `null` (unknown, not zero); local `0`.
 
 ### The on-device model
 
@@ -80,7 +80,7 @@ L2 norm. **One text per inference**: the int8 graph quantises activations over t
 padding included, so batching made a text's vector depend on its neighbours (cosine 0.991). sherpa-onnx
 does not do text embeddings; onnxruntime-node co-loads with sherpa's bundled onnxruntime in one process (both
 load orders checked). The model is optional: it is excluded from onboarding's required models, and the local
-provider falls back to the hashing embedder (health says so). Tests use `~/.cache/gnomeola/test-models`
+provider falls back to the hashing embedder (health says so). Tests use `~/.cache/kacola/test-models`
 (`node packages/decisions/scripts/fetch-embedder.ts`), never the user's data dir.
 
 ## Settings, keys, health
@@ -98,7 +98,7 @@ provider falls back to the hashing embedder (health says so). Tests use `~/.cach
 
 ## Tasks (what the tracker asks)
 
-`@gnomeola/decisions` tasks are the questions the tracker, the agent bridge and the evals all share:
+`@kacola/decisions` tasks are the questions the tracker, the agent bridge and the evals all share:
 
 - `decideStatus(provider, { items, window })` — per open item: status choice (not started / in progress /
   covered, wording per kind), the evidence line (extraction over the window's lines), and for info-to-get the
@@ -134,13 +134,13 @@ The agenda fixtures are generated like the others (`node packages/testkit/script
 --agenda`, Piper voices): per item, when it was settled (end of the settling utterance, ms), which utterances
 are evidence, the outcome/answer, and whether settlement was implicit.
 
-Graders (`@gnomeola/testkit/evals`, each unit-tested against hand-computed values): precision/recall/F1,
+Graders (`@kacola/testkit/evals`, each unit-tested against hand-computed values): precision/recall/F1,
 macro-F1, ECE and multi-class Brier, settle latency in fixture time (early guesses counted apart, never
 allowed into the percentiles), exact/fuzzy extraction (normalised token F1, containment, edit distance,
 aliases), top-1/MRR, rubric checks (any-of keyword groups, forbidden phrases on word boundaries, length), and
 an optional LLM judge (live only).
 
-Suites (`@gnomeola/evals`): `item-status` replays each agenda fixture segment by segment in the order segments
+Suites (`@kacola/evals`): `item-status` replays each agenda fixture segment by segment in the order segments
 close — decision time = the segment's end + the runner's wall time — and grades auto check-off
 precision/recall, latency, final status, evidence, calibration of P(covered) at every probe, interview answers,
 and cost per meeting-hour; plus `relevance-precheck`, `injection-guardrail`, `next-point`,
@@ -151,7 +151,7 @@ Modes:
 
 - **offline** (`pnpm check`, int tier): local provider (hashing always, MiniLM when installed) on every suite,
   compared to committed baselines (`packages/testkit/fixtures/baselines/evals`, re-record with
-  `GNOMEOLA_UPDATE_BASELINES=1`); extractive drafting/recap runners as the text floor.
+  `KACOLA_UPDATE_BASELINES=1`); extractive drafting/recap runners as the text floor.
 - **fake** (`pnpm check`): every decision suite through jev/OpenAI/Anthropic/Ollama clients against the fakes
   with a lexical stand-in brain — plumbing only; plus a committed decision cassette replayed with no server.
 - **live** (`pnpm test:eval packages/evals packages/decisions`): every keyed provider; live decisions are
@@ -168,7 +168,7 @@ question for `info-to-get` items → `statusPolicy` with the real thresholds, fo
 of meeting time). Code: `packages/evals/src/real.ts`.
 
 Real meetings are private, so **the fixtures are never committed**. They live in
-`packages/testkit/fixtures/evals/private/<name>/` (gitignored; or point `GNOMEOLA_EVAL_PRIVATE_DIR` at another
+`packages/testkit/fixtures/evals/private/<name>/` (gitignored; or point `KACOLA_EVAL_PRIVATE_DIR` at another
 directory), and the suite is skipped with the reason wherever there is none (CI, other machines). Scorecards
 carry item ids and numbers only. The committed `fixtures/evals/real-sample/` is a made-up eight-line
 transcript for the suite's own tests.

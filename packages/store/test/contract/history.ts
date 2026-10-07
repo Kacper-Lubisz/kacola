@@ -5,8 +5,8 @@ import {
   type QaMessage,
   type StoredSettings,
   type TrackKind,
-} from '@gnomeola/protocol'
-import { pick, randInt } from '@gnomeola/testkit/daemon'
+} from '@kacola/protocol'
+import { pick, randInt } from '@kacola/testkit/daemon'
 import type { StoreApi } from '../../src/api.ts'
 import { NoteStore } from '../../src/notes.ts'
 import { Store } from '../../src/store.ts'

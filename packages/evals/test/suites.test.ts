@@ -1,5 +1,5 @@
-import { LlmError } from '@gnomeola/llm'
-import type { GroundTruth } from '@gnomeola/testkit/fixtures'
+import { LlmError } from '@kacola/llm'
+import type { GroundTruth } from '@kacola/testkit/fixtures'
 import { describe, expect, it } from 'vitest'
 import { parseAgenda, parseRecapStatus } from '../src/llm-runners.ts'
 import { runDecisionSuites } from '../src/run.ts'

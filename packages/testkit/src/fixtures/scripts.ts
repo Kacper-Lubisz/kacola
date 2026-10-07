@@ -1,4 +1,4 @@
-import type { TrackKind } from '@gnomeola/protocol'
+import type { TrackKind } from '@kacola/protocol'
 
 // The scripted dialogue behind the synthetic fixture meetings (the generator turns these into audio +
 // ground truth). Exported so other suites can see exactly what was said — e.g. the decisions Q&A tests
@@ -59,7 +59,7 @@ const LIBRI_LICENSE =
   'LibriSpeech test-clean (Panayotov et al., 2015), CC BY 4.0, https://www.openslr.org/12 — utterances as listed in `source`.'
 
 export const TTS_LICENSE =
-  'Synthesized with Piper voices (MIT code; voices trained on public-domain, CC0 or Apache-2.0 data — see docs/stt.md). Script and audio: GPL-3.0-or-later as part of gnomeola.'
+  'Synthesized with Piper voices (MIT code; voices trained on public-domain, CC0 or Apache-2.0 data — see docs/stt.md). Script and audio: GPL-3.0-or-later as part of kacola.'
 
 export const FIXTURE_SCRIPTS: FixtureDef[] = [
   {

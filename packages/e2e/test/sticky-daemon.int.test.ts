@@ -1,22 +1,22 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { join } from 'node:path'
-import { createDaemon, DataDirLockedError, MemoryKeyring } from '@gnomeola/daemon'
-import { DAEMON_EXIT, type Session } from '@gnomeola/protocol'
-import { Store } from '@gnomeola/store'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { assertNoViolations, checkEventLog, checkSegments } from '@gnomeola/testkit/invariants'
+import { createDaemon, DataDirLockedError, MemoryKeyring } from '@kacola/daemon'
+import { DAEMON_EXIT, type Session } from '@kacola/protocol'
+import { Store } from '@kacola/store'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { assertNoViolations, checkEventLog, checkSegments } from '@kacola/testkit/invariants'
 import { afterEach, describe, expect, it } from 'vitest'
-import { gnomeola } from '../src/cli.ts'
+import { kacola } from '../src/cli.ts'
 
 // The 2026-10-01 incident, replayed against real daemon processes and the real CLI. The user was
 // recording a meeting when (1) a second daemon started on the same data dir, ran crash recovery and
-// marked the live meeting `recovered`, and then (2) `systemctl --user restart gnomeolad`, believing
+// marked the live meeting `recovered`, and then (2) `systemctl --user restart kacolad`, believing
 // nothing was recording, stopped the rest of it. Now:
 //
 //   - a second daemon on a live data dir refuses (exit 75) before touching anything, and the meeting
 //     stays `recording`;
-//   - `gnomeola daemon restart` waits for the recording to finish, then the daemon exits 76 for its
+//   - `kacola daemon restart` waits for the recording to finish, then the daemon exits 76 for its
 //     supervisor (here: the test) to start it again; --now is refused while recording;
 //   - a SIGTERM (or a crash) mid-recording and a new daemon within the resume window continue the SAME
 //     session — a `restart` gap of the real length, the transcript growing again; after the window the
@@ -48,7 +48,7 @@ async function daemon(
   o: { fixedPort?: boolean } = {},
 ): Promise<DaemonHandle> {
   const d = await startDaemon({
-    env: { GNOMEOLA_FAKE_PIPELINE: PIPE, ...env },
+    env: { KACOLA_FAKE_PIPELINE: PIPE, ...env },
     ...(o.fixedPort ? { args: ['--port', String(await freePort())] } : {}),
   })
   daemons.push(d)
@@ -69,7 +69,7 @@ async function recordUntil(d: DaemonHandle, segments: number, title = 'Weekly sy
 const transcript = (d: DaemonHandle, id: string) => d.client.call('getTranscript', { params: { id } })
 
 function assertReplayEqualsState(dataDir: string): void {
-  const disk = Store.open(join(dataDir, 'gnomeola.db'), { readonly: true })
+  const disk = Store.open(join(dataDir, 'kacola.db'), { readonly: true })
   try {
     const log = disk.eventsAfter(0)
     assertNoViolations(checkEventLog(log), 'on-disk log')
@@ -88,10 +88,10 @@ describe('one owner per data dir', () => {
     const port = Number(new URL(a.baseUrl).port)
 
     // the second daemon (as the desktop window's fallback did): exits 75, says who owns the dir
-    const b = startDaemon({ dataDir: a.dataDir, env: { GNOMEOLA_FAKE_PIPELINE: PIPE } })
+    const b = startDaemon({ dataDir: a.dataDir, env: { KACOLA_FAKE_PIPELINE: PIPE } })
     await expect(b).rejects.toThrow(new RegExp(`code ${DAEMON_EXIT.LOCKED}`))
     await expect(b).rejects.toThrow(
-      `another gnomeola daemon (pid ${a.pid}, port ${port}) owns ${a.dataDir}; not starting`,
+      `another kacola daemon (pid ${a.pid}, port ${port}) owns ${a.dataDir}; not starting`,
     )
     // …and an in-process daemon (createDaemon) is refused the same way, before recover()
     await expect(
@@ -102,18 +102,18 @@ describe('one owner per data dir', () => {
     const before = (await transcript(a, s.id)).total
     expect((await a.client.call('getSession', { params: { id: s.id } })).status).toBe('recording')
     await waitFor(async () => (await transcript(a, s.id)).total > before, 10_000, 'more segments')
-    const log = readFileSync(join(a.dataDir, 'logs', 'gnomeolad.log'), 'utf8')
+    const log = readFileSync(join(a.dataDir, 'logs', 'kacolad.log'), 'utf8')
     expect(log.match(/"daemon starting"/g)).toHaveLength(1)
     expect(log).not.toMatch(/recovered interrupted session/)
     // and `daemon status` asks the daemon itself what it is recording
-    const st = await gnomeola(['daemon', 'status'], a.baseUrl)
+    const st = await kacola(['daemon', 'status'], a.baseUrl)
     expect(st.code, st.stderr).toBe(0)
     expect(JSON.parse(st.stdout)).toMatchObject({
       pid: a.pid,
       dataDir: a.dataDir,
       recording: [{ id: s.id, status: 'recording', title: 'Weekly sync' }],
     })
-    const idle = await gnomeola(['daemon', 'idle'], a.baseUrl)
+    const idle = await kacola(['daemon', 'idle'], a.baseUrl)
     expect(idle.code).toBe(5)
     expect(idle.stderr).toMatch(/recording "Weekly sync"/)
   }, 60_000)
@@ -122,7 +122,7 @@ describe('one owner per data dir', () => {
     const a = await daemon()
     const s = await a.client.call('createSession', { body: { title: 'Secret 1:1', private: true } })
     await a.client.call('startSession', { params: { id: s.id } })
-    const r = await gnomeola(['daemon', 'idle'], a.baseUrl)
+    const r = await kacola(['daemon', 'idle'], a.baseUrl)
     expect(r.code).toBe(5)
     expect(r.stderr).toMatch(/a private recording/)
     expect(r.stderr).not.toMatch(/Secret/)
@@ -133,11 +133,11 @@ describe('restarts wait for the recording', () => {
   it('daemon restart (when idle) waits for the meeting to end, then exits 76; --now is refused', async () => {
     const a = await daemon()
     const s = await recordUntil(a, 2)
-    const now = await gnomeola(['daemon', 'restart', '--now'], a.baseUrl)
+    const now = await kacola(['daemon', 'restart', '--now'], a.baseUrl)
     expect(now.code).toBe(5)
     expect(now.stderr).toMatch(/restarting now would interrupt it/)
 
-    const r = await gnomeola(['daemon', 'restart', '--no-wait'], a.baseUrl)
+    const r = await kacola(['daemon', 'restart', '--no-wait'], a.baseUrl)
     expect(r.code, r.stderr).toBe(0)
     expect(r.stderr).toMatch(new RegExp(`waiting for "Weekly sync" \\(${s.id}, recording\\) to finish`))
     const info = await a.client.call('daemonInfo')
@@ -164,16 +164,16 @@ describe('restarts wait for the recording', () => {
   it('with nothing recording it restarts at once; a waiting restart can be cancelled; SIGHUP waits too', async () => {
     const a = await daemon({}, { fixedPort: true })
     const s = await recordUntil(a, 1)
-    process.kill(a.pid, 'SIGHUP') // systemctl --user reload gnomeolad
+    process.kill(a.pid, 'SIGHUP') // systemctl --user reload kacolad
     await waitFor(async () => (await a.client.call('daemonInfo')).restart?.by === 'SIGHUP', 5_000, 'SIGHUP')
-    const cancel = await gnomeola(['daemon', 'restart', '--cancel'], a.baseUrl)
+    const cancel = await kacola(['daemon', 'restart', '--cancel'], a.baseUrl)
     expect(cancel.stdout).toBe('{"cancelled":true}\n')
     await a.client.call('stopSession', { params: { id: s.id } })
     await new Promise((res) => setTimeout(res, 500))
     expect((await a.client.call('health')).ok).toBe(true) // cancelled: no restart
 
     const pid = a.pid
-    const restart = gnomeola(['daemon', 'restart', '--timeout', '30s'], a.baseUrl)
+    const restart = kacola(['daemon', 'restart', '--timeout', '30s'], a.baseUrl)
     expect(await a.exited(10_000)).toEqual({ code: DAEMON_EXIT.RESTART, signal: null })
     await a.restart() // the supervisor
     const r = await restart
@@ -184,7 +184,7 @@ describe('restarts wait for the recording', () => {
 
 describe('a recording survives a restart', () => {
   it('SIGTERM mid-meeting + a new daemon within the window: the same session resumes after a real gap', async () => {
-    const a = await daemon({ GNOMEOLA_RESUME_WINDOW_MS: '60000' })
+    const a = await daemon({ KACOLA_RESUME_WINDOW_MS: '60000' })
     const s = await recordUntil(a, 6)
     const lease = await a.client.call('createAgentLease', {
       params: { id: s.id },
@@ -193,7 +193,7 @@ describe('a recording survives a restart', () => {
     expect(lease.token).toBeTruthy()
 
     expect(await a.kill('SIGTERM')).toEqual({ code: 0, signal: null })
-    const suspended = Store.open(join(a.dataDir, 'gnomeola.db'), { readonly: true })
+    const suspended = Store.open(join(a.dataDir, 'kacola.db'), { readonly: true })
     const atStop = suspended.getSession(s.id)!
     const segsAtStop = suspended.segments(s.id)
     suspended.close()
@@ -260,7 +260,7 @@ describe('a recording survives a restart', () => {
   }, 90_000)
 
   it('a crash (SIGKILL) mid-meeting resumes too, measured from the last sign of life', async () => {
-    const a = await daemon({ GNOMEOLA_RESUME_WINDOW_MS: '60000' })
+    const a = await daemon({ KACOLA_RESUME_WINDOW_MS: '60000' })
     const s = await recordUntil(a, 4)
     await a.kill('SIGKILL')
     await new Promise((res) => setTimeout(res, 1000))
@@ -278,7 +278,7 @@ describe('a recording survives a restart', () => {
   }, 60_000)
 
   it('a paused meeting comes back paused, and can be resumed', async () => {
-    const a = await daemon({ GNOMEOLA_RESUME_WINDOW_MS: '60000' })
+    const a = await daemon({ KACOLA_RESUME_WINDOW_MS: '60000' })
     const s = await recordUntil(a, 2)
     await a.client.call('pauseSession', { params: { id: s.id } })
     await a.kill('SIGTERM')
@@ -294,9 +294,9 @@ describe('a recording survives a restart', () => {
   }, 60_000)
 
   it('restart --now --force suspends the meeting; the next daemon resumes it', async () => {
-    const a = await daemon({ GNOMEOLA_RESUME_WINDOW_MS: '60000' })
+    const a = await daemon({ KACOLA_RESUME_WINDOW_MS: '60000' })
     const s = await recordUntil(a, 2)
-    const r = await gnomeola(['daemon', 'restart', '--now', '--force', '--no-wait'], a.baseUrl)
+    const r = await kacola(['daemon', 'restart', '--now', '--force', '--no-wait'], a.baseUrl)
     expect(r.code, r.stderr).toBe(0)
     expect(await a.exited(15_000)).toEqual({ code: DAEMON_EXIT.RESTART, signal: null })
     await a.restart()
@@ -308,7 +308,7 @@ describe('a recording survives a restart', () => {
   }, 60_000)
 
   it('after the window, the meeting is closed out as stopped, saying it was a restart (not a crash)', async () => {
-    const a = await daemon({ GNOMEOLA_RESUME_WINDOW_MS: '1000' })
+    const a = await daemon({ KACOLA_RESUME_WINDOW_MS: '1000' })
     const s = await recordUntil(a, 3)
     await a.kill('SIGTERM')
     const stoppedAt = Date.now()

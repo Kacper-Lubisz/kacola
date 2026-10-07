@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net'
 import type { HostedApp } from './app.ts'
 
 // Node's (req, res) ⇄ the app's (Request) => Response. This one adapter serves three hosts: a
-// self-hosted `gnomeola-server`, every test, and Vercel's Node runtime (whose function signature IS
+// self-hosted `kacola-server`, every test, and Vercel's Node runtime (whose function signature IS
 // `(req: IncomingMessage, res: ServerResponse)`), so the code that runs in production is the code the
 // tests drive.
 //

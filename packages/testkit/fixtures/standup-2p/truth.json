@@ -162,7 +162,7 @@
     }
   ],
   "injections": [],
-  "license": "Synthesized with Piper voices (MIT code; voices trained on public-domain, CC0 or Apache-2.0 data — see docs/stt.md). Script and audio: GPL-3.0-or-later as part of gnomeola.",
+  "license": "Synthesized with Piper voices (MIT code; voices trained on public-domain, CC0 or Apache-2.0 data — see docs/stt.md). Script and audio: GPL-3.0-or-later as part of kacola.",
   "generator": {
     "script": "packages/testkit/scripts/generate-fixtures.ts",
     "sherpaOnnx": "1.13.8",

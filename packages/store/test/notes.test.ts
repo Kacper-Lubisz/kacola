@@ -5,9 +5,9 @@ import {
   type MergeChoice,
   mergeNoteBlocks,
   type NoteVersion,
-} from '@gnomeola/protocol'
-import { pick, randInt, seededRandom } from '@gnomeola/testkit/daemon'
-import { assertNoViolations, checkEventLog } from '@gnomeola/testkit/invariants'
+} from '@kacola/protocol'
+import { pick, randInt, seededRandom } from '@kacola/testkit/daemon'
+import { assertNoViolations, checkEventLog } from '@kacola/testkit/invariants'
 import { describe, expect, it } from 'vitest'
 import { NoteStore, Store, StoreError } from '../src/index.ts'
 

@@ -1,5 +1,5 @@
 {
-  "name": "@gnomeola/capture",
+  "name": "@kacola/capture",
   "version": "0.1.0",
   "private": true,
   "description": "Audio capture: PipeWire dual-track recorder and a file-backed source for tests. Local only.",
@@ -12,9 +12,9 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@gnomeola/protocol": "workspace:*"
+    "@kacola/protocol": "workspace:*"
   },
   "devDependencies": {
-    "@gnomeola/testkit": "workspace:*"
+    "@kacola/testkit": "workspace:*"
   }
 }

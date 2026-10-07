@@ -7,17 +7,20 @@ import { defaultDataDir, parseConfig, UsageError } from '../src/config.ts'
 
 describe('platform config', () => {
   it('data dir per platform', () => {
-    expect(defaultDataDir({}, 'linux')).toBe(`${homedir()}/.local/share/gnomeola`)
-    expect(defaultDataDir({}, 'darwin')).toBe(`${homedir()}/Library/Application Support/gnomeola`)
+    expect(defaultDataDir({}, 'linux')).toBe(`${homedir()}/.local/share/kacola`)
+    expect(defaultDataDir({}, 'darwin')).toBe(`${homedir()}/Library/Application Support/kacola`)
     // inside the Flatpak sandbox
     expect(
       defaultDataDir(
-        { FLATPAK_ID: 'org.gnome.Gnomeola', XDG_DATA_HOME: '/home/ana/.var/app/org.gnome.Gnomeola/data' },
+        {
+          FLATPAK_ID: 'com.kacperlubisz.Kacola',
+          XDG_DATA_HOME: '/home/ana/.var/app/com.kacperlubisz.Kacola/data',
+        },
         'linux',
       ),
-    ).toBe('/home/ana/.var/app/org.gnome.Gnomeola/data/gnomeola')
-    expect(defaultDataDir({ GNOMEOLA_DATA_DIR: '/x' }, 'darwin')).toBe('/x')
-    expect(parseConfig([], {}, 'darwin').dataDir).toBe(`${homedir()}/Library/Application Support/gnomeola`)
+    ).toBe('/home/ana/.var/app/com.kacperlubisz.Kacola/data/kacola')
+    expect(defaultDataDir({ KACOLA_DATA_DIR: '/x' }, 'darwin')).toBe('/x')
+    expect(parseConfig([], {}, 'darwin').dataDir).toBe(`${homedir()}/Library/Application Support/kacola`)
   })
 
   it('Linux keeps PipeWire, EDS, D-Bus, the mic rule and libsecret', () => {
@@ -41,27 +44,27 @@ describe('platform config', () => {
       keyring: 'keychain',
     })
     for (const env of [
-      { GNOMEOLA_CAPTURE: 'pipewire' },
-      { GNOMEOLA_CALENDAR: 'eds' },
-      { GNOMEOLA_DBUS: 'session' },
-      { GNOMEOLA_MIC_ACTIVITY: 'pipewire' },
+      { KACOLA_CAPTURE: 'pipewire' },
+      { KACOLA_CALENDAR: 'eds' },
+      { KACOLA_DBUS: 'session' },
+      { KACOLA_MIC_ACTIVITY: 'pipewire' },
     ])
       expect(() => parseConfig([], env, 'darwin'), JSON.stringify(env)).toThrow(/not available on macOS/)
     // what does work there: an ICS calendar and the explicit keyrings
-    expect(parseConfig([], { GNOMEOLA_CALENDAR: 'ics:/Users/ana/work.ics' }, 'darwin').calendar).toEqual({
+    expect(parseConfig([], { KACOLA_CALENDAR: 'ics:/Users/ana/work.ics' }, 'darwin').calendar).toEqual({
       kind: 'ics',
       source: '/Users/ana/work.ics',
       me: [],
     })
-    expect(parseConfig([], { GNOMEOLA_KEYRING: 'memory' }, 'darwin').keyring).toBe('memory')
+    expect(parseConfig([], { KACOLA_KEYRING: 'memory' }, 'darwin').keyring).toBe('memory')
   })
 
   it('external capture on Linux (how the macOS path is tested here) turns the mic rule off', () => {
-    expect(parseConfig([], { GNOMEOLA_CAPTURE: 'external' }, 'linux')).toMatchObject({
+    expect(parseConfig([], { KACOLA_CAPTURE: 'external' }, 'linux')).toMatchObject({
       capture: 'external',
       micActivity: { kind: 'off' },
     })
-    expect(() => parseConfig([], { GNOMEOLA_CAPTURE: 'coreaudio' }, 'linux')).toThrow(UsageError)
+    expect(() => parseConfig([], { KACOLA_CAPTURE: 'coreaudio' }, 'linux')).toThrow(UsageError)
   })
 
   it('ICS calendars from a path or URL, with your addresses', () => {
@@ -69,16 +72,16 @@ describe('platform config', () => {
       parseConfig(
         [],
         {
-          GNOMEOLA_CALENDAR: 'ics:https://calendar.example/u/basic.ics',
-          GNOMEOLA_CALENDAR_ME: 'ana@x.org, a@y.org',
+          KACOLA_CALENDAR: 'ics:https://calendar.example/u/basic.ics',
+          KACOLA_CALENDAR_ME: 'ana@x.org, a@y.org',
         },
         'linux',
       ).calendar,
     ).toEqual({ kind: 'ics', source: 'https://calendar.example/u/basic.ics', me: ['ana@x.org', 'a@y.org'] })
-    expect(() => parseConfig([], { GNOMEOLA_CALENDAR: 'ics:' }, 'linux')).toThrow(UsageError)
+    expect(() => parseConfig([], { KACOLA_CALENDAR: 'ics:' }, 'linux')).toThrow(UsageError)
   })
 
   it('keychain is a known keyring on Linux too (for tests with a fake security binary)', () => {
-    expect(parseConfig([], { GNOMEOLA_KEYRING: 'keychain' }, 'linux').keyring).toBe('keychain')
+    expect(parseConfig([], { KACOLA_KEYRING: 'keychain' }, 'linux').keyring).toBe('keychain')
   })
 })

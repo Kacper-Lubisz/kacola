@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { type Cassette, normaliseRequest, replayResponse } from '@gnomeola/testkit/cassettes'
+import { type Cassette, normaliseRequest, replayResponse } from '@kacola/testkit/cassettes'
 import { AnthropicProvider } from '../../src/anthropic.ts'
 import type { TranscriptInput } from '../../src/types.ts'
 import { fixtureTranscripts, type Scenario } from './scenarios.ts'

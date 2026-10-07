@@ -197,7 +197,7 @@ describe('scorecards and baselines', () => {
   })
 
   it('records a baseline and flags a regression beyond the band', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-evalbase-'))
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-evalbase-'))
     try {
       const bands = { f1: { abs: 0.05, direction: 'higher-is-better' as const }, ece: { abs: 0.05 } }
       expect(checkBaseline(sc, bands, { dir, update: false })).toBeNull()

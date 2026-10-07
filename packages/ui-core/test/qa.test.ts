@@ -1,4 +1,4 @@
-import type { AnyEvent, AskStreamEvent, Citation, QaMessage } from '@gnomeola/protocol'
+import type { AnyEvent, AskStreamEvent, Citation, QaMessage } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import {
   applyAskStream,

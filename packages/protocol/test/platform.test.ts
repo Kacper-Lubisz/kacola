@@ -7,10 +7,10 @@ describe('platformPaths', () => {
   it('Linux dev / install.sh: XDG base directories with the usual fallbacks', () => {
     expect(platformPaths({ platform: 'linux', env: {}, home: HOME })).toEqual({
       kind: 'linux',
-      dataDir: '/home/ana/.local/share/gnomeola',
-      modelsDir: '/home/ana/.local/share/gnomeola/models',
-      configDir: '/home/ana/.config/gnomeola',
-      stateDir: '/home/ana/.local/state/gnomeola',
+      dataDir: '/home/ana/.local/share/kacola',
+      modelsDir: '/home/ana/.local/share/kacola/models',
+      configDir: '/home/ana/.config/kacola',
+      stateDir: '/home/ana/.local/state/kacola',
     })
     expect(
       platformPaths({
@@ -19,10 +19,10 @@ describe('platformPaths', () => {
         home: HOME,
       }),
     ).toMatchObject({
-      dataDir: '/d/gnomeola',
-      modelsDir: '/d/gnomeola/models',
-      configDir: '/c/gnomeola',
-      stateDir: '/s/gnomeola',
+      dataDir: '/d/kacola',
+      modelsDir: '/d/kacola/models',
+      configDir: '/c/kacola',
+      stateDir: '/s/kacola',
     })
   })
 
@@ -36,34 +36,34 @@ describe('platformPaths', () => {
     }
     expect(platformPaths({ platform: 'linux', env, home: HOME })).toEqual({
       kind: 'flatpak',
-      dataDir: '/home/ana/.var/app/org.gnome.Gnomeola/data/gnomeola',
-      modelsDir: '/home/ana/.var/app/org.gnome.Gnomeola/data/gnomeola/models',
-      configDir: '/home/ana/.var/app/org.gnome.Gnomeola/config/gnomeola',
-      stateDir: '/home/ana/.var/app/org.gnome.Gnomeola/.local/state/gnomeola',
+      dataDir: '/home/ana/.var/app/com.kacperlubisz.Kacola/data/kacola',
+      modelsDir: '/home/ana/.var/app/com.kacperlubisz.Kacola/data/kacola/models',
+      configDir: '/home/ana/.var/app/com.kacperlubisz.Kacola/config/kacola',
+      stateDir: '/home/ana/.var/app/com.kacperlubisz.Kacola/.local/state/kacola',
     })
   })
 
-  it('macOS: ~/Library/Application Support/gnomeola, unless XDG variables are set explicitly', () => {
+  it('macOS: ~/Library/Application Support/kacola, unless XDG variables are set explicitly', () => {
     const home = '/Users/ana'
     expect(platformPaths({ platform: 'darwin', env: {}, home })).toEqual({
       kind: 'macos',
-      dataDir: '/Users/ana/Library/Application Support/gnomeola',
-      modelsDir: '/Users/ana/Library/Application Support/gnomeola/models',
-      configDir: '/Users/ana/Library/Application Support/gnomeola',
-      stateDir: '/Users/ana/Library/Application Support/gnomeola/state',
+      dataDir: '/Users/ana/Library/Application Support/kacola',
+      modelsDir: '/Users/ana/Library/Application Support/kacola/models',
+      configDir: '/Users/ana/Library/Application Support/kacola',
+      stateDir: '/Users/ana/Library/Application Support/kacola/state',
     })
     expect(
       platformPaths({ platform: 'darwin', env: { XDG_CONFIG_HOME: '/Users/ana/.config' }, home }).configDir,
-    ).toBe('/Users/ana/.config/gnomeola')
+    ).toBe('/Users/ana/.config/kacola')
   })
 
-  it('GNOMEOLA_DATA_DIR / GNOMEOLA_MODELS_DIR win everywhere; models do not follow the data dir', () => {
+  it('KACOLA_DATA_DIR / KACOLA_MODELS_DIR win everywhere; models do not follow the data dir', () => {
     for (const platform of ['linux', 'darwin']) {
-      const p = platformPaths({ platform, env: { GNOMEOLA_DATA_DIR: '/tmp/d' }, home: HOME })
+      const p = platformPaths({ platform, env: { KACOLA_DATA_DIR: '/tmp/d' }, home: HOME })
       expect(p.dataDir).toBe('/tmp/d')
       // test daemons on a temp data dir still find the user's downloaded models
       expect(p.modelsDir).not.toContain('/tmp/d')
-      expect(platformPaths({ platform, env: { GNOMEOLA_MODELS_DIR: '/m' }, home: HOME }).modelsDir).toBe('/m')
+      expect(platformPaths({ platform, env: { KACOLA_MODELS_DIR: '/m' }, home: HOME }).modelsDir).toBe('/m')
     }
   })
 

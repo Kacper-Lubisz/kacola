@@ -1,4 +1,4 @@
-import { GnomeolaApiError, PairToken } from '@gnomeola/protocol'
+import { KacolaApiError, PairToken } from '@kacola/protocol'
 import type { Ctx } from '../context.ts'
 import { CliError, EXIT } from '../errors.ts'
 import { hostKey, readHosts, saveHost } from '../hosts.ts'
@@ -6,17 +6,17 @@ import { renderJson } from '../output.ts'
 
 // H-6 on the command line — the device-code flow:
 //
-//   gnomeola pair --url https://you.vercel.app          on the NEW device: prints a code, waits
-//   gnomeola pair approve BDFG-HJKL [--url …]           on a TRUSTED one (or the machine running the
+//   kacola pair --url https://you.vercel.app          on the NEW device: prints a code, waits
+//   kacola pair approve BDFG-HJKL [--url …]           on a TRUSTED one (or the machine running the
 //                                                       daemon, where loopback needs no token)
-//   gnomeola pair token --url …                         print the saved token (for GNOMEOLA_SYNC_TOKEN)
-//   gnomeola pair revoke dev_… [--url …]                a device's token stops working at once
+//   kacola pair token --url …                         print the saved token (for KACOLA_SYNC_TOKEN)
+//   kacola pair revoke dev_… [--url …]                a device's token stops working at once
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 export async function pair(ctx: Ctx, opts: { name?: string; timeoutMs?: number }): Promise<void> {
   const { client, io } = ctx
-  const name = opts.name ?? io.env.HOSTNAME ?? 'gnomeola CLI'
+  const name = opts.name ?? io.env.HOSTNAME ?? 'kacola CLI'
   const start = await client.call('pairStart', { body: { name } })
   const url = `${hostKey(client.baseUrl)}${start.verificationPath}`
   if (ctx.format === 'json') {
@@ -30,7 +30,7 @@ export async function pair(ctx: Ctx, opts: { name?: string; timeoutMs?: number }
     io.stdout(
       `To pair this device with ${client.baseUrl}, approve code  ${start.userCode}  on a trusted device:\n`,
     )
-    io.stdout(`    gnomeola pair approve ${start.userCode}      (on the machine running gnomeolad)\n`)
+    io.stdout(`    kacola pair approve ${start.userCode}      (on the machine running kacolad)\n`)
     io.stdout(`    ${url}      (the web viewer, signed in)\n`)
     io.stdout(`Waiting for approval (expires ${start.expiresAt})…\n`)
   }
@@ -43,8 +43,8 @@ export async function pair(ctx: Ctx, opts: { name?: string; timeoutMs?: number }
     try {
       r = PairToken.parse(await client.call('pairToken', { body: { deviceCode: start.deviceCode } }))
     } catch (err) {
-      if (err instanceof GnomeolaApiError && err.code === 'not_found')
-        throw new CliError(EXIT.ERROR, 'the pairing request expired or was used; run `gnomeola pair` again')
+      if (err instanceof KacolaApiError && err.code === 'not_found')
+        throw new CliError(EXIT.ERROR, 'the pairing request expired or was used; run `kacola pair` again')
       throw err
     }
     if (r.status === 'approved') {
@@ -62,16 +62,16 @@ export async function pair(ctx: Ctx, opts: { name?: string; timeoutMs?: number }
     if (Date.now() + start.intervalMs > deadline)
       throw new CliError(
         EXIT.ERROR,
-        `code ${start.userCode} was not approved in time; run \`gnomeola pair\` again`,
+        `code ${start.userCode} was not approved in time; run \`kacola pair\` again`,
       )
     await sleep(start.intervalMs)
   }
 }
 
 export async function pairApprove(ctx: Ctx, code: string | undefined): Promise<void> {
-  if (!code) throw new CliError(EXIT.USAGE, 'usage: gnomeola pair approve <CODE>')
+  if (!code) throw new CliError(EXIT.USAGE, 'usage: kacola pair approve <CODE>')
   const r = await ctx.client.call('pairApprove', { body: { userCode: code } }).catch((err: unknown) => {
-    if (err instanceof GnomeolaApiError && err.code === 'not_found')
+    if (err instanceof KacolaApiError && err.code === 'not_found')
       throw new CliError(EXIT.NOT_FOUND, `no pending pairing request with code ${code} (it may have expired)`)
     throw err
   })
@@ -80,7 +80,7 @@ export async function pairApprove(ctx: Ctx, code: string | undefined): Promise<v
 }
 
 export async function pairRevoke(ctx: Ctx, deviceId: string | undefined): Promise<void> {
-  if (!deviceId) throw new CliError(EXIT.USAGE, 'usage: gnomeola pair revoke <DEVICE-ID>')
+  if (!deviceId) throw new CliError(EXIT.USAGE, 'usage: kacola pair revoke <DEVICE-ID>')
   const r = await ctx.client.call('pairRevoke', { body: { deviceId } })
   if (!r.revoked)
     throw new CliError(EXIT.NOT_FOUND, `no paired device ${deviceId} (or it was already revoked)`)
@@ -93,7 +93,7 @@ export function pairToken(ctx: Ctx): void {
   if (!entry)
     throw new CliError(
       EXIT.NOT_FOUND,
-      `this device is not paired with ${ctx.client.baseUrl}; run \`gnomeola pair\``,
+      `this device is not paired with ${ctx.client.baseUrl}; run \`kacola pair\``,
     )
   ctx.io.stdout(`${entry.token}\n`)
 }

@@ -1,9 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { GnomeolaApiError } from '@gnomeola/protocol'
-import { Store } from '@gnomeola/store'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { assertNoViolations, checkAttribution, checkEventLog } from '@gnomeola/testkit/invariants'
+import { KacolaApiError } from '@kacola/protocol'
+import { Store } from '@kacola/store'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { assertNoViolations, checkAttribution, checkEventLog } from '@kacola/testkit/invariants'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // A-5/A-6 through the real daemon process with the diarizing fake pipeline: speakers appear as the far
@@ -20,7 +20,7 @@ const FAST = JSON.stringify({
 
 let d: DaemonHandle
 beforeAll(async () => {
-  d = await startDaemon({ env: { GNOMEOLA_FAKE_PIPELINE: FAST } })
+  d = await startDaemon({ env: { KACOLA_FAKE_PIPELINE: FAST } })
 })
 afterAll(async () => {
   await d?.stop()
@@ -47,7 +47,7 @@ const code = async (p: Promise<unknown>) => {
     await p
     return 200
   } catch (err) {
-    return err instanceof GnomeolaApiError ? err.status : -1
+    return err instanceof KacolaApiError ? err.status : -1
   }
 }
 
@@ -102,7 +102,7 @@ describe('speakers through the daemon', () => {
     ).toBe(ana.segments.length)
     // the whole history replays to the same tables
     await d.kill('SIGTERM')
-    const src = Store.open(join(d.dataDir, 'gnomeola.db'))
+    const src = Store.open(join(d.dataDir, 'kacola.db'))
     const events = src.eventsAfter(0)
     assertNoViolations(checkEventLog(events))
     const dst = Store.open(':memory:')

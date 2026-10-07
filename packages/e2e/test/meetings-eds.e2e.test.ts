@@ -1,5 +1,5 @@
-import type { Meeting } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import type { Meeting } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import {
   CALENDARS,
   type EdsHandle,
@@ -9,7 +9,7 @@ import {
   liveFixture,
   startEds,
   WINDOW,
-} from '@gnomeola/testkit/eds'
+} from '@kacola/testkit/eds'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // V-4c through the whole stack: the REAL daemon, spawning the REAL cal-agent, reading a REAL (isolated,
@@ -45,7 +45,7 @@ describe('meetings from EDS through the real daemon', () => {
     live = liveFixture(new Date())
     eds = await startEds({ calendars: [...CALENDARS, live.calendar] })
     daemon = await startDaemon({
-      env: { ...eds.env, GNOMEOLA_CALENDAR: 'eds', GNOMEOLA_DBUS: 'off' },
+      env: { ...eds.env, KACOLA_CALENDAR: 'eds', KACOLA_DBUS: 'off' },
     })
     await waitFor(
       async () => (await daemon.client.call('calendarStatus')).state === 'ok',
@@ -63,8 +63,8 @@ describe('meetings from EDS through the real daemon', () => {
     const s = await daemon.client.call('calendarStatus')
     expect(s).toMatchObject({ state: 'ok', provider: 'eds', detail: null })
     const ids = s.calendars.map((c) => c.id)
-    expect(ids).toEqual(expect.arrayContaining(['gnomeola-work', 'gnomeola-personal', 'gnomeola-live']))
-    expect(ids).not.toContain('gnomeola-disabled')
+    expect(ids).toEqual(expect.arrayContaining(['kacola-work', 'kacola-personal', 'kacola-live']))
+    expect(ids).not.toContain('kacola-disabled')
   })
 
   it('knows what is on now and what is next (declined and all-day meetings are neither)', async () => {
@@ -103,7 +103,7 @@ describe('meetings from EDS through the real daemon', () => {
     const r = await daemon.client.call('listMeetings', {
       query: { from: WINDOW.from, to: WINDOW.to, includeDeclined: true },
     })
-    const got = r.meetings.filter((m) => m.calendar.id !== 'gnomeola-live')
+    const got = r.meetings.filter((m) => m.calendar.id !== 'kacola-live')
     const key = (uid: string, start: number) => `${uid} @ ${new Date(start).toISOString()}`
     const gotKeys = new Set(got.map((m) => key(m.uid, ms(m.start))))
     const want = EXPECTED.filter((e) => e.status !== 'CANCELLED').map((e) =>
@@ -122,7 +122,7 @@ describe('meetings from EDS through the real daemon', () => {
     expect(one('webex@test').join).toEqual({ url: LINKS.webex, provider: 'webex' })
     expect(one('declined@test')).toMatchObject({ response: 'declined', organizer: 'boss@example.com' })
     expect(one('tentative@test').response).toBe('tentative')
-    expect(one('dentist@test').calendar).toEqual({ id: 'gnomeola-personal', name: 'Personal things' })
+    expect(one('dentist@test').calendar).toEqual({ id: 'kacola-personal', name: 'Personal things' })
     // the DST boundary survives the daemon too
     const standups = got.filter((m) => m.uid === 'standup-warsaw@test').map((m) => m.start.slice(11, 16))
     expect(standups).toEqual(['07:00', '08:00', '08:00', '08:00'])
@@ -132,7 +132,7 @@ describe('meetings from EDS through the real daemon', () => {
     const start = new Date(Math.ceil(Date.now() / 60_000) * 60_000 + 90 * 60_000)
     const ics = (d: Date) => `${d.toISOString().slice(0, 19).replace(/[-:]/g, '')}Z`
     await eds.createEvent(
-      'gnomeola-live',
+      'kacola-live',
       [
         'BEGIN:VEVENT',
         'UID:live-added@test',

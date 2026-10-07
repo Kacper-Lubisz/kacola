@@ -1,6 +1,6 @@
 // The eval harness in its deterministic offline mode (part of `pnpm check`):
 //   - every suite on the on-device provider (hashing embedder always; MiniLM when installed), compared to
-//     committed baselines (record with GNOMEOLA_UPDATE_BASELINES=1) — these are the honest offline numbers;
+//     committed baselines (record with KACOLA_UPDATE_BASELINES=1) — these are the honest offline numbers;
 //   - every decision suite end to end through each hosted provider's real HTTP client against local fakes
 //     (plumbing: request building, parsing, retries, accounting — the numbers mean nothing about quality);
 //   - record → replay of decisions through cassettes, including a committed cassette replayed with no server.
@@ -12,7 +12,7 @@ import {
   RecordingDecisionProvider,
   ReplayDecisionProvider,
   saveCassette,
-} from '@gnomeola/decisions'
+} from '@kacola/decisions'
 import {
   checkBaseline,
   findTextEmbedder,
@@ -21,7 +21,7 @@ import {
   NO_EMBEDDER_REASON,
   type Scorecard,
   writeScorecard,
-} from '@gnomeola/testkit/evals'
+} from '@kacola/testkit/evals'
 import { afterAll, describe, expect, it } from 'vitest'
 import { bandsFor } from '../src/baselines.ts'
 import { fakeProviders, offlineProviders, type ProviderSetup } from '../src/providers.ts'
@@ -40,7 +40,7 @@ function expectBaseline(c: Scorecard) {
   const cmp = checkBaseline(c, bandsFor(c))
   expect(
     cmp,
-    `no committed baseline for ${c.suite} (${c.provider}/${c.model}); record with GNOMEOLA_UPDATE_BASELINES=1`,
+    `no committed baseline for ${c.suite} (${c.provider}/${c.model}); record with KACOLA_UPDATE_BASELINES=1`,
   ).not.toBeNull()
   expect(cmp!.failures, `${c.suite} ${c.model}`).toEqual([])
 }
@@ -130,9 +130,9 @@ describe('cassettes: record once, replay without a server', () => {
         cases,
       )
       expect(replayed.metrics).toEqual(live.metrics)
-      if (process.env.GNOMEOLA_UPDATE_CASSETTES === '1') saveCassette(COMMITTED, rec.cassette)
+      if (process.env.KACOLA_UPDATE_CASSETTES === '1') saveCassette(COMMITTED, rec.cassette)
       const committed = loadCassette(COMMITTED)
-      expect(committed, 'record with GNOMEOLA_UPDATE_CASSETTES=1').not.toBeNull()
+      expect(committed, 'record with KACOLA_UPDATE_CASSETTES=1').not.toBeNull()
       const fromDisk = await runInjectionSuite(
         decisionInjectionRunner(new ReplayDecisionProvider(committed!), 'offline'),
         cases,

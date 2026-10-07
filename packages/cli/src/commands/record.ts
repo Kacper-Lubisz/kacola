@@ -1,4 +1,4 @@
-import { formatOffset, type Session } from '@gnomeola/protocol'
+import { formatOffset, type Session } from '@kacola/protocol'
 import type { Ctx } from '../context.ts'
 import { CliError, EXIT, usage } from '../errors.ts'
 import { renderJson } from '../output.ts'
@@ -21,7 +21,7 @@ export async function recordStart(ctx: Ctx, o: { title?: string }) {
     throw new CliError(
       EXIT.ERROR,
       `already recording "${running.title}" (${running.id})`,
-      'stop it first: gnomeola record stop',
+      'stop it first: kacola record stop',
     )
   }
   const created = await ctx.client.call('createSession', { body: { title: o.title } }).catch(mapApiError)
@@ -45,5 +45,5 @@ export async function recordStatus(ctx: Ctx) {
 }
 
 export function recordUsage(): never {
-  throw usage('usage: gnomeola record start [--title T] | stop [id] | status')
+  throw usage('usage: kacola record start [--title T] | stop [id] | status')
 }

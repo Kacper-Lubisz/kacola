@@ -1,4 +1,4 @@
-// The model catalog: every model gnomeola can download, pinned by sha256.
+// The model catalog: every model kacola can download, pinned by sha256.
 //
 // Checksums were recorded by downloading each artefact once and hashing it (see docs/stt.md). A model is
 // only ever `ready` when the archive that produced it matched this hash and every `requiredFiles` entry
@@ -17,7 +17,7 @@ export type EngineSpec =
   | { kind: 'vits'; model: string; tokens: string; dataDir: string }
   | { kind: 'pyannote-segmentation'; model: string }
   | { kind: 'speaker-embedding'; model: string }
-  /** A sentence embedder run by @gnomeola/decisions (onnxruntime-node), not by sherpa-onnx. */
+  /** A sentence embedder run by @kacola/decisions (onnxruntime-node), not by sherpa-onnx. */
   | { kind: 'text-embedding'; model: string }
 
 export type CatalogEntry = {

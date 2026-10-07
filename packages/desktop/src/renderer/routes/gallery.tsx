@@ -44,7 +44,7 @@ import {
 } from '../design/primitives/index.ts'
 
 // #/gallery — every primitive in every state, on the real tokens. Design in code: run
-// `pnpm --filter @gnomeola/desktop dev`, open the gallery, edit brand/tokens or a primitive, HMR shows
+// `pnpm --filter @kacola/desktop dev`, open the gallery, edit brand/tokens or a primitive, HMR shows
 // it. A new primitive is not done until it is here: the e2e screenshots this page (light / dark, three
 // widths) and runs axe over it in light, dark and high contrast.
 //

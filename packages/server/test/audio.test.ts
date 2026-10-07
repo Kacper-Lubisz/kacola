@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
-import { AUDIO_CHUNK_BYTES, chunkSeqFor, type GnomeolaClient, type TrackKind } from '@gnomeola/protocol'
-import { DeepgramProvider, decodeWav } from '@gnomeola/stt/cloud'
-import { type FakeDeepgram, startFakeDeepgram } from '@gnomeola/testkit/cloud-stt'
+import { AUDIO_CHUNK_BYTES, chunkSeqFor, type KacolaClient, type TrackKind } from '@kacola/protocol'
+import { DeepgramProvider, decodeWav } from '@kacola/stt/cloud'
+import { type FakeDeepgram, startFakeDeepgram } from '@kacola/testkit/cloud-stt'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { type Hosted, startHosted } from './helpers.ts'
 
@@ -40,7 +40,7 @@ function pcm(bytes: number, seed: number): Uint8Array {
   }
   return out
 }
-const put = (c: GnomeolaClient, id: string, track: TrackKind, index: number, data: Uint8Array, over = {}) =>
+const put = (c: KacolaClient, id: string, track: TrackKind, index: number, data: Uint8Array, over = {}) =>
   c.call('putAudioChunk', {
     params: { id, chunkSeq: String(chunkSeqFor(track, index)) },
     body: {

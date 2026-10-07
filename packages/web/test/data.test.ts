@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient, type Segment, type Session } from '@gnomeola/protocol'
+import { createClient, type Segment, type Session } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import { buildViewer } from '../scripts/build.ts'
 import {
@@ -194,7 +194,7 @@ describe('data layer, through the typed protocol client', () => {
 
 describe('the static build', () => {
   it('bundles one browser module with no Node built-ins, plus the HTML shell', async () => {
-    const out = mkdtempSync(join(tmpdir(), 'gnomeola-viewer-'))
+    const out = mkdtempSync(join(tmpdir(), 'kacola-viewer-'))
     try {
       const { bytes } = await buildViewer(out)
       const js = readFileSync(join(out, 'app.js'), 'utf8')

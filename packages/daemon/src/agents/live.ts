@@ -1,5 +1,5 @@
-import type { AnyEvent, DurableEvent, LeaseEndReason, LiveEvent, Segment } from '@gnomeola/protocol'
-import type { Store } from '@gnomeola/store'
+import type { AnyEvent, DurableEvent, LeaseEndReason, LiveEvent, Segment } from '@kacola/protocol'
+import type { Store } from '@kacola/store'
 import type { EventBus } from '../bus.ts'
 import type { SseWriter } from '../http.ts'
 import type { AgentChannel, AgentLeaseRecord } from './channel.ts'

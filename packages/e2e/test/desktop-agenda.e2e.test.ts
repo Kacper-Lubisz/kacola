@@ -1,10 +1,10 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { type AgendaView, createClient, LEASE_HEADER, type LeaseGrant } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop, matchBaseline } from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { type AgendaView, createClient, LEASE_HEADER, type LeaseGrant } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop, matchBaseline } from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 
 type Locator = ReturnType<DesktopApp['window']['getByRole']>
 
@@ -15,9 +15,9 @@ import { type FakeAnthropic, startFakeAnthropic } from '../src/fake-anthropic.ts
 import { markOnboarded } from '../src/ui.ts'
 
 // The agenda UI (kacola wave 2) in the Electron window, against the REAL daemon — its agenda service,
-// calendar service (a calendar file), the draft route through @gnomeola/llm to a fake Anthropic server —
+// calendar service (a calendar file), the draft route through @kacola/llm to a fake Anthropic server —
 // and the agent channel: a real lease for "Claude" (act mode), whose writes carry its token, and
-// presence from its heartbeats. The live tracker is off here (GNOMEOLA_TRACKER=off: its marks depend on
+// presence from its heartbeats. The live tracker is off here (KACOLA_TRACKER=off: its marks depend on
 // timing; desktop-tracker.e2e follows the real one) and so is the speech guard.
 //
 // The flows, on the meeting page as it moves through its phases: Prep — the editor (keyboard add, edit
@@ -129,7 +129,7 @@ describe('desktop: agendas', () => {
 
   beforeAll(async () => {
     buildDesktop()
-    dir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-agenda-'))
+    dir = mkdtempSync(join(tmpdir(), 'kacola-desktop-agenda-'))
     const calFile = join(dir, 'calendar.json')
     const now = Date.now()
     const t = (min: number) => new Date(now + min * 60_000).toISOString()
@@ -163,23 +163,23 @@ describe('desktop: agendas', () => {
     daemon = await startDaemon({
       dataDir: join(dir, 'data'),
       env: {
-        GNOMEOLA_CALENDAR: `file:${calFile}`,
-        GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
+        KACOLA_CALENDAR: `file:${calFile}`,
+        KACOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
         ANTHROPIC_API_KEY: KEY,
         ANTHROPIC_BASE_URL: api.url,
-        GNOMEOLA_TRACKER: 'off',
-        GNOMEOLA_SPEECH_GUARD: 'none',
+        KACOLA_TRACKER: 'off',
+        KACOLA_SPEECH_GUARD: 'none',
       },
     })
     display = await startHeadlessDisplay({ size: '1280x800' })
-    markerId = display.env.GNOMEOLA_HEADLESS_ID!
+    markerId = display.env.KACOLA_HEADLESS_ID!
     markOnboarded(
       display,
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
     app = await launchDesktop({
       display,
-      env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: 'light' },
+      env: { KACOLA_URL: daemon.baseUrl, KACOLA_COLOR_SCHEME: 'light' },
     })
     await w().getByRole('button', { name: 'New recording', exact: true }).waitFor({ timeout: 20_000 })
     await w().emulateMedia({ reducedMotion: 'reduce' })

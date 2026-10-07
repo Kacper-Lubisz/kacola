@@ -1,4 +1,4 @@
-# @gnomeola/testkit
+# @kacola/testkit
 
 Shared verification machinery. Every tier's tests import from here, so the same assertions run through
 every path (fake capture and real PipeWire, cassette LLM and live LLM).

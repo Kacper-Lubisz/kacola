@@ -1,6 +1,6 @@
-// C-4: the line protocol between gnomeolad and its D-Bus bridge (packages/daemon/gjs/dbus-bridge.js), a
-// GJS helper that owns `org.gnome.Gnomeola` on the session bus and exports the interface in
-// packages/daemon/dbus/org.gnome.Gnomeola.xml. One JSON object per line, both directions.
+// C-4: the line protocol between kacolad and its D-Bus bridge (packages/daemon/gjs/dbus-bridge.js), a
+// GJS helper that owns `com.kacperlubisz.Kacola` on the session bus and exports the interface in
+// packages/daemon/dbus/com.kacperlubisz.Kacola.xml. One JSON object per line, both directions.
 //
 // Why a GJS helper rather than a Node D-Bus library: Gio's GDBus is the implementation GNOME Shell itself
 // speaks, its bus-name ownership and PropertiesChanged semantics are exactly the reference ones, it needs
@@ -17,7 +17,7 @@
 //
 // bridge → daemon (stdout)
 //   {"type":"acquired","name":…}      the bus name is ours; the interface is exported
-//   {"type":"lost","name":…}          could not own the name (another gnomeolad has it) or lost it
+//   {"type":"lost","name":…}          could not own the name (another kacolad has it) or lost it
 //   {"type":"call","id":N,"method":"Join","args":[…]}  a method call to answer with a reply
 //   {"type":"log","level":…,"message":…}
 //
@@ -25,18 +25,18 @@
 // t/x → number, b → boolean, as → string[], a{sv} → an object whose values are strings, numbers
 // (integers become int64 'x', others double 'd') or booleans; aa{sv} → an array of those objects.
 
-export const BUS_NAME = 'org.gnome.Gnomeola'
-export const OBJECT_PATH = '/org/gnome/Gnomeola'
-export const INTERFACE = 'org.gnome.Gnomeola'
+export const BUS_NAME = 'com.kacperlubisz.Kacola'
+export const OBJECT_PATH = '/com/kacperlubisz/Kacola'
+export const INTERFACE = 'com.kacperlubisz.Kacola'
 
 /** D-Bus error names the daemon replies with. */
 export const DBUS_ERRORS = {
-  not_found: 'org.gnome.Gnomeola.Error.NotFound',
-  conflict: 'org.gnome.Gnomeola.Error.Conflict',
-  bad_request: 'org.gnome.Gnomeola.Error.InvalidArgs',
-  unavailable: 'org.gnome.Gnomeola.Error.Unavailable',
-  internal: 'org.gnome.Gnomeola.Error.Failed',
-  unauthorized: 'org.gnome.Gnomeola.Error.Failed',
+  not_found: 'com.kacperlubisz.Kacola.Error.NotFound',
+  conflict: 'com.kacperlubisz.Kacola.Error.Conflict',
+  bad_request: 'com.kacperlubisz.Kacola.Error.InvalidArgs',
+  unavailable: 'com.kacperlubisz.Kacola.Error.Unavailable',
+  internal: 'com.kacperlubisz.Kacola.Error.Failed',
+  unauthorized: 'com.kacperlubisz.Kacola.Error.Failed',
 } as const
 
 export type DbusMeeting = {

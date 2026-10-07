@@ -1,5 +1,5 @@
-import type { AskStreamEvent } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import type { AskStreamEvent } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterEach, describe, expect, it } from 'vitest'
 import { durable, readEvents } from './helpers.ts'
 
@@ -38,8 +38,8 @@ describe('/ask', () => {
   it('streams question, deltas, answer; persists both as qa.message events; fans out qa.delta', async () => {
     d = await startDaemon({
       env: {
-        GNOMEOLA_FAKE_QA: '1',
-        GNOMEOLA_FAKE_PIPELINE: JSON.stringify({ segmentEveryMs: 60, finalizeAfterMs: 30 }),
+        KACOLA_FAKE_QA: '1',
+        KACOLA_FAKE_PIPELINE: JSON.stringify({ segmentEveryMs: 60, finalizeAfterMs: 30 }),
       },
     })
     const c = d.client
@@ -95,7 +95,7 @@ describe('/ask', () => {
   })
 
   it('an engine failure mid-stream ends with an error event and no answer persisted', async () => {
-    d = await startDaemon({ env: { GNOMEOLA_FAKE_QA: '1' } })
+    d = await startDaemon({ env: { KACOLA_FAKE_QA: '1' } })
     const s = await d.client.call('createSession', {})
     const events = await collect(d.client.ask({ question: 'please FAIL', sessionId: s.id }))
     expect(events[0]?.type).toBe('question')
@@ -109,7 +109,7 @@ describe('/ask', () => {
   })
 
   it('validates before streaming: unknown session → 404, bad body → 400', async () => {
-    d = await startDaemon({ env: { GNOMEOLA_FAKE_QA: '1' } })
+    d = await startDaemon({ env: { KACOLA_FAKE_QA: '1' } })
     await expect(collect(d.client.ask({ question: 'x', sessionId: 'ses_missing' }))).rejects.toMatchObject({
       status: 404,
     })

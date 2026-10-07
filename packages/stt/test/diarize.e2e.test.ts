@@ -1,9 +1,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { cpus } from 'node:os'
 import { join } from 'node:path'
-import { ME, type Segment } from '@gnomeola/protocol'
-import { type Fixture, listFixtures, loadFixture } from '@gnomeola/testkit/fixtures'
-import { assertNoViolations, checkAttribution, checkSegments } from '@gnomeola/testkit/invariants'
+import { ME, type Segment } from '@kacola/protocol'
+import { type Fixture, listFixtures, loadFixture } from '@kacola/testkit/fixtures'
+import { assertNoViolations, checkAttribution, checkSegments } from '@kacola/testkit/invariants'
 import {
   type Baseline,
   compareToBaseline,
@@ -12,7 +12,7 @@ import {
   type Turn,
   updatingBaselines,
   writeBaseline,
-} from '@gnomeola/testkit/metrics'
+} from '@kacola/testkit/metrics'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { SpeakerOut } from '../src/pipeline.ts'
 import { sherpaVersion } from '../src/sherpa/index.ts'
@@ -30,7 +30,7 @@ import {
 
 // A-7 + V-3 — diarization error rate on every multi-speaker fixture, through the real pipeline (VAD, both
 // tiers, pyannote turn splitting, TitaNet embeddings, online clustering, end-of-session re-clustering),
-// against committed baselines with tolerance bands like the WER ones. GNOMEOLA_UPDATE_BASELINES=1 records.
+// against committed baselines with tolerance bands like the WER ones. KACOLA_UPDATE_BASELINES=1 records.
 //
 // Metrics (DER with a 250 ms collar, overlapped speech scored — the system cannot put two people on one
 // track at once, so far-end cross-talk shows up as missed speech, honestly):
@@ -131,7 +131,7 @@ function gate(id: string, metrics: Record<string, number>) {
   }
   const base = readBaseline(id, CONFIG)
   if (!base)
-    throw new Error(`no committed DER baseline for ${id} × ${CONFIG} — run with GNOMEOLA_UPDATE_BASELINES=1`)
+    throw new Error(`no committed DER baseline for ${id} × ${CONFIG} — run with KACOLA_UPDATE_BASELINES=1`)
   const c = compareToBaseline(base, metrics)
   if (!c.ok) throw new Error(`${id}: DER regression beyond the baseline band:\n  ${c.failures.join('\n  ')}`)
 }

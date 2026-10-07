@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { type ParseArgsConfig, parseArgs } from 'node:util'
-import { DaemonUnreachableError, GnomeolaApiError, PROTOCOL_VERSION, parseDuration } from '@gnomeola/protocol'
+import { DaemonUnreachableError, KacolaApiError, PROTOCOL_VERSION, parseDuration } from '@kacola/protocol'
 import {
   agendaAdd,
   agendaCreate,
@@ -48,9 +48,9 @@ import { type Io, resolveFormat } from './output.ts'
 
 export const VERSION = '0.1.0'
 
-export const HELP = `gnomeola — kacola's command-line tool: read and search your recorded meetings, and plan the next ones
+export const HELP = `kacola — kacola's command-line tool: read and search your recorded meetings, and plan the next ones
 
-usage: gnomeola <command> [options]
+usage: kacola <command> [options]
 
   sessions list [--since 7d] [--limit N]      recent meetings
   sessions show <id>                          one meeting: status, segments, gaps
@@ -119,8 +119,8 @@ usage: gnomeola <command> [options]
   live wait [--meeting next|<meeting id|event uid>] [--timeout 30m]
                                               block until a recording starts; print it
  While \`live attach\` runs, the agent verbs (agenda status|add|edit, suggest, context add) act under
- its lease (as agent:NAME, within its mode); <agenda> may be \`live\`. GNOMEOLA_LEASE=<token> picks a
- lease explicitly, GNOMEOLA_LEASE=none acts as the user.
+ its lease (as agent:NAME, within its mode); <agenda> may be \`live\`. KACOLA_LEASE=<token> picks a
+ lease explicitly, KACOLA_LEASE=none acts as the user.
   skill install [--dir DIR] [--force]         install the Claude Code skill
   install-cli [--mode auto|flatpak|macos|dev] [--bin-dir DIR] [--launch CMD] [--no-skill] [--force]
                                               put this command on PATH (+ the Claude skill)
@@ -132,8 +132,8 @@ usage: gnomeola <command> [options]
                                               pair with a remote kacola server (device code → token)
 
 ids: a full id, an unambiguous prefix, or latest / current.
-global: --url URL (or GNOMEOLA_URL), --token T (or GNOMEOLA_TOKEN; else the one saved by
-        \`gnomeola pair\` for that URL), --json, --text, -h/--help, --version
+global: --url URL (or KACOLA_URL), --token T (or KACOLA_TOKEN; else the one saved by
+        \`kacola pair\` for that URL), --json, --text, -h/--help, --version
 output: compact JSON when stdout is not a terminal, text otherwise.
 
 exit codes: 0 ok · 1 error · 2 usage · 3 daemon unreachable · 4 not found
@@ -153,7 +153,7 @@ function parse<O extends NonNullable<ParseArgsConfig['options']>>(args: string[]
   try {
     return parseArgs({ args, options: { ...GLOBAL, ...options }, allowPositionals: true, strict: true })
   } catch (err) {
-    throw usage((err as Error).message.split('\n')[0]!, 'see gnomeola --help')
+    throw usage((err as Error).message.split('\n')[0]!, 'see kacola --help')
   }
 }
 
@@ -170,7 +170,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
     return cmd ? EXIT.OK : EXIT.USAGE
   }
   if (cmd === '--version' || cmd === 'version') {
-    io.stdout(`gnomeola ${VERSION} (protocol ${PROTOCOL_VERSION})\n`)
+    io.stdout(`kacola ${VERSION} (protocol ${PROTOCOL_VERSION})\n`)
     return EXIT.OK
   }
 
@@ -286,8 +286,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
           today: { type: 'boolean' },
         })
         if (helpOr(v)) return EXIT.OK
-        if (p.length)
-          throw usage(`unexpected argument: ${p[0]}`, 'usage: gnomeola meetings [--next | --today]')
+        if (p.length) throw usage(`unexpected argument: ${p[0]}`, 'usage: kacola meetings [--next | --today]')
         if (v.next && v.today) throw usage('pass one of --next or --today')
         if (v.today) await meetingsToday(ctxFor(v))
         else await meetingsNext(ctxFor(v))
@@ -402,7 +401,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
             if (v.write || v.remove)
               throw usage(
                 'the invitation block moved to `agenda invite`',
-                'gnomeola agenda invite <agenda> --write   (`agenda share` now shares the agenda on your server)',
+                'kacola agenda invite <agenda> --write   (`agenda share` now shares the agenda on your server)',
               )
             await agendaShareOn(ctx, args[0], {
               name: v.name,
@@ -441,7 +440,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
           default:
             throw usage(
               sub ? `unknown subcommand: agenda ${sub}` : 'agenda what?',
-              'agenda create|list|show|add|edit|remove|status|export|import|link|invite|send|share|unshare|share-status|share-recap|share-history|follow|follow-confirm — see gnomeola --help',
+              'agenda create|list|show|add|edit|remove|status|export|import|link|invite|send|share|unshare|share-status|share-recap|share-history|follow|follow-confirm — see kacola --help',
             )
         }
         break
@@ -460,7 +459,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
         if (helpOr(v)) return EXIT.OK
         if (p[0] !== 'add')
           throw usage(
-            'usage: gnomeola context add [--agenda A] --title T (--file F | --stdin | --body TEXT) [--shared]',
+            'usage: kacola context add [--agenda A] --title T (--file F | --stdin | --body TEXT) [--shared]',
           )
         await contextAdd(agentCtx(ctxFor(v), v.as), {
           agenda: v.agenda,
@@ -523,7 +522,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
         else
           throw usage(
             p[0] ? `unknown subcommand: live ${p[0]}` : 'live what?',
-            'gnomeola live attach [--session current|<id>] [--as NAME] [--mode …] | live wait [--meeting …]',
+            'kacola live attach [--session current|<id>] [--as NAME] [--mode …] | live wait [--meeting …]',
           )
         break
       }
@@ -577,7 +576,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
           }
         } else
           throw usage(
-            'usage: gnomeola daemon status | idle | restart [--when-idle | --now [--force]] [--no-wait] [--timeout D] | restart --cancel',
+            'usage: kacola daemon status | idle | restart [--when-idle | --now [--force]] [--no-wait] [--timeout D] | restart --cancel',
           )
         break
       }
@@ -587,7 +586,7 @@ export async function run(argv: string[], io: Io): Promise<number> {
           force: { type: 'boolean' },
         })
         if (helpOr(v)) return EXIT.OK
-        if (p[0] !== 'install') throw usage('usage: gnomeola skill install [--dir DIR] [--force]')
+        if (p[0] !== 'install') throw usage('usage: kacola skill install [--dir DIR] [--force]')
         skillInstall(ctxFor(v), { dir: v.dir, force: v.force })
         break
       }
@@ -643,12 +642,12 @@ export async function run(argv: string[], io: Io): Promise<number> {
         else
           throw usage(
             `unknown subcommand: pair ${p[0]}`,
-            'gnomeola pair [--name N] | pair approve <CODE> | pair token',
+            'kacola pair [--name N] | pair approve <CODE> | pair token',
           )
         break
       }
       default:
-        throw usage(`unknown command: ${cmd}`, 'see gnomeola --help')
+        throw usage(`unknown command: ${cmd}`, 'see kacola --help')
     }
     return EXIT.OK
   } catch (err) {
@@ -657,30 +656,30 @@ export async function run(argv: string[], io: Io): Promise<number> {
 }
 
 function report(err: unknown, io: Io): number {
-  if (err instanceof GnomeolaApiError && err.status === 401 && /lease/i.test(err.message)) {
-    io.stderr(`gnomeola: ${err.message}\n  attach again: gnomeola live attach\n`)
+  if (err instanceof KacolaApiError && err.status === 401 && /lease/i.test(err.message)) {
+    io.stderr(`kacola: ${err.message}\n  attach again: kacola live attach\n`)
     return EXIT.LEASE
   }
-  if (err instanceof GnomeolaApiError && err.status === 401) {
-    io.stderr(`gnomeola: ${err.message}\n`)
+  if (err instanceof KacolaApiError && err.status === 401) {
+    io.stderr(`kacola: ${err.message}\n`)
     io.stderr(
-      '  this host needs a device token: run `gnomeola pair --url <URL>`, or pass --token / GNOMEOLA_TOKEN\n',
+      '  this host needs a device token: run `kacola pair --url <URL>`, or pass --token / KACOLA_TOKEN\n',
     )
     return EXIT.ERROR
   }
   if (err instanceof CliError) {
-    io.stderr(`gnomeola: ${err.message}\n`)
+    io.stderr(`kacola: ${err.message}\n`)
     if (err.hint) io.stderr(`  ${err.hint}\n`)
     return err.exitCode
   }
   if (err instanceof DaemonUnreachableError) {
-    io.stderr(`gnomeola: the kacola daemon is not running at ${err.baseUrl}\n`)
+    io.stderr(`kacola: the kacola daemon is not running at ${err.baseUrl}\n`)
     // under the install-cli shim, the shim starts the app next and says so
-    if (!io.env.GNOMEOLA_SHIM)
-      io.stderr('  start it with `systemctl --user start gnomeolad`, or pass --url / set GNOMEOLA_URL\n')
+    if (!io.env.KACOLA_SHIM)
+      io.stderr('  start it with `systemctl --user start kacolad`, or pass --url / set KACOLA_URL\n')
     return EXIT.UNREACHABLE
   }
-  io.stderr(`gnomeola: ${(err as Error)?.stack ?? String(err)}\n`)
+  io.stderr(`kacola: ${(err as Error)?.stack ?? String(err)}\n`)
   return EXIT.ERROR
 }
 

@@ -15,7 +15,7 @@ mission below takes 2–5 minutes. For each one: the steps, what you should see,
 | a sharing server | `http://127.0.0.1:8791` | the real hosted app plus the shared agenda page, so links open in any browser |
 | a window | "kacola · sandbox" | a separate Electron profile with a **Sandbox** badge in the bottom-left corner |
 
-It never reads or writes your everyday data dir (`~/.local/share/gnomeola`), daemon (port 8787),
+It never reads or writes your everyday data dir (`~/.local/share/kacola`), daemon (port 8787),
 keyring, calendar or window. The two daemons hold different data-dir locks, so both run at once. Your
 everyday window keeps its title "kacola" and shows no badge. With `--audio mic`, the sandbox reads your
 installed speech models through links and never changes them; a model you download from the sandbox
@@ -43,7 +43,7 @@ pnpm sandbox meeting add "Coffee with Ben" --in 5m --for 15m --with "Ben Okafor"
 pnpm sandbox meeting list | meeting clear [--all]
 pnpm sandbox mail                  # sign-in codes the sharing server would have emailed
 pnpm sandbox providers --llm none --decisions jev     # switch providers live
-pnpm sandbox cli -- sessions list  # the gnomeola CLI against the sandbox
+pnpm sandbox cli -- sessions list  # the kacola CLI against the sandbox
 pnpm sandbox card one-on-one       # the script as a card to read aloud (--audio mic)
 pnpm sandbox stop                  # stop everything the sandbox started
 pnpm sandbox reset                 # delete the sandbox directory (asks first)
@@ -118,15 +118,15 @@ the window disagree.
 
 ## Mission 3: Have Claude plan it from the terminal (4 min)
 
-1. In a new terminal, run `export GNOMEOLA_URL=http://127.0.0.1:8790` (`pnpm sandbox env` prints this
-   line). Then start `claude` in that shell, so the meeting-context skill and the `gnomeola` CLI talk
+1. In a new terminal, run `export KACOLA_URL=http://127.0.0.1:8790` (`pnpm sandbox env` prints this
+   line). Then start `claude` in that shell, so the meeting-context skill and the `kacola` CLI talk
    to the sandbox.
 2. Ask: "Plan the 1:1 with Ana."
 3. Watch the meeting's page in the sandbox window while Claude works.
 
 **You should see:**
 
-- Claude finds the mock "1:1 with Ana" in about 2 minutes, from `gnomeola meetings`.
+- Claude finds the mock "1:1 with Ana" in about 2 minutes, from `kacola meetings`.
 - Claude reads last week's 1:1. In it, Ana asked to put the promotion first, and the nightly billing
   export handover and the Berlin conference budget were left for this week.
 - Claude writes an agenda that reflects all of that. The items appear in the window without a reload.
@@ -134,7 +134,7 @@ the window disagree.
 **It's a bug if:**
 
 - Claude cannot find the meeting.
-- Claude reads your everyday kacola instead. Check `echo $GNOMEOLA_URL`.
+- Claude reads your everyday kacola instead. Check `echo $KACOLA_URL`.
 - The agenda is written to a different meeting.
 - The window needs a reload to show the agenda.
 

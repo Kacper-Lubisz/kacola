@@ -10,10 +10,10 @@ import {
   type RouteName,
   type Routes,
   routes,
-} from '@gnomeola/protocol'
-import type { BlobStore } from '@gnomeola/store/blob'
-import type { StoreApi } from '@gnomeola/store/core'
-import type { BatchTranscriber } from '@gnomeola/stt/cloud'
+} from '@kacola/protocol'
+import type { BlobStore } from '@kacola/store/blob'
+import type { StoreApi } from '@kacola/store/core'
+import type { BatchTranscriber } from '@kacola/stt/cloud'
 import type { z } from 'zod'
 import pkg from '../package.json' with { type: 'json' }
 import { audioStatus, deleteAudio, finalize, putChunk } from './audio.ts'
@@ -23,7 +23,7 @@ import type { Mailer } from './mailer.ts'
 import { shareOpen, sharingHandlers } from './sharing.ts'
 import { eventStream } from './sse.ts'
 
-// The hosted gnomeola server: the same route table the local daemon serves, answered from the async
+// The hosted kacola server: the same route table the local daemon serves, answered from the async
 // StoreApi, as a fetch handler — `(Request) => Response` — so it runs unchanged under Node (./node.ts,
 // tests, a self-hosted box) and as Vercel functions (packages/vercel).
 //
@@ -53,7 +53,7 @@ export type HostedAppOptions = {
   log?: (level: 'info' | 'warn' | 'error', msg: string, fields?: Record<string, unknown>) => void
   /** Team sharing: sends magic-link codes. null/absent: shared agendas are read-only on the page. */
   mailer?: Mailer | null
-  /** Team sharing: the base URL links in emails use (GNOMEOLA_PUBLIC_URL); default the request's origin. */
+  /** Team sharing: the base URL links in emails use (KACOLA_PUBLIC_URL); default the request's origin. */
   publicUrl?: string | null
 }
 
@@ -103,7 +103,7 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     return s
   }
   const pairing = () => {
-    if (!auth) throw new HttpError('unavailable', 'pairing needs GNOMEOLA_AUTH_SECRET on the server', 501)
+    if (!auth) throw new HttpError('unavailable', 'pairing needs KACOLA_AUTH_SECRET on the server', 501)
     return auth
   }
   const deviceIdFor = (p: Principal, fromBody: string | undefined) =>

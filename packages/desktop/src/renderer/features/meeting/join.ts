@@ -1,5 +1,5 @@
-import type { MeetingProvider } from '@gnomeola/protocol'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import type { MeetingProvider } from '@kacola/protocol'
+import { _, fmt } from '@kacola/ui-core/i18n'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { keys } from '../../data/keys.ts'

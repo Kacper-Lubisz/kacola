@@ -1,6 +1,6 @@
-import type { DecisionProvider } from '@gnomeola/decisions'
-import { type EvalMode, listAgendaFixtures, loadDataset, type Scorecard } from '@gnomeola/testkit/evals'
-import { loadAgendaFixture } from '@gnomeola/testkit/fixtures'
+import type { DecisionProvider } from '@kacola/decisions'
+import { type EvalMode, listAgendaFixtures, loadDataset, type Scorecard } from '@kacola/testkit/evals'
+import { loadAgendaFixture } from '@kacola/testkit/fixtures'
 import { liveSkipReason, type ProviderSetup } from './providers.ts'
 import {
   decisionInjectionRunner,

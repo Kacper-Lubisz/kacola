@@ -12,16 +12,19 @@ import { type Spawned, spawnGuarded, stopProcess } from '../ui/processes.ts'
 //     Looking Glass sets it), and the alternative — a test hook inside the production extension — would
 //     ship test code to users. Eval is then used to read the real indicator's actors and to activate
 //     menu items exactly as a click does (the item's `activate` signal).
-//   * startFakeGnomeola — a scriptable org.gnome.Gnomeola service speaking the real bridge's line
+//   * startFakeKacola — a scriptable com.kacperlubisz.Kacola service speaking the real bridge's line
 //     protocol, for rendering every state the extension must handle without a daemon.
 //
 // Everything here runs against the display's PRIVATE session bus (display.env); never the user's.
 
 const run = promisify(execFile)
 
-export const UNSAFE_MODE_EXTENSION = resolve(import.meta.dirname, 'unsafe-mode@gnomeola.test')
-const FAKE_SCRIPT = resolve(import.meta.dirname, 'fake-gnomeola.js')
-export const INTERFACE_XML_PATH = resolve(import.meta.dirname, '../../../daemon/dbus/org.gnome.Gnomeola.xml')
+export const UNSAFE_MODE_EXTENSION = resolve(import.meta.dirname, 'unsafe-mode@kacola.test')
+const FAKE_SCRIPT = resolve(import.meta.dirname, 'fake-kacola.js')
+export const INTERFACE_XML_PATH = resolve(
+  import.meta.dirname,
+  '../../../daemon/dbus/com.kacperlubisz.Kacola.xml',
+)
 
 function busAddress(env: Record<string, string>): string {
   const a = env.DBUS_SESSION_BUS_ADDRESS
@@ -102,7 +105,7 @@ export async function extensionState(
 export type FakeCall = { id: number; method: string; args: unknown[] }
 export type FakeReply = { result: unknown[] } | { error: { name: string; message: string } }
 
-export type FakeGnomeola = {
+export type FakeKacola = {
   /** Set properties (bridge-protocol values); PropertiesChanged is emitted for real changes. */
   setProps(props: Record<string, unknown>): void
   signal(name: string, args: unknown[]): void
@@ -115,9 +118,9 @@ export type FakeGnomeola = {
   stop(): Promise<void>
 }
 
-export async function startFakeGnomeola(env: Record<string, string>): Promise<FakeGnomeola> {
+export async function startFakeKacola(env: Record<string, string>): Promise<FakeKacola> {
   busAddress(env)
-  const proc: Spawned = spawnGuarded('fake-gnomeola', 'gjs', ['-m', FAKE_SCRIPT, INTERFACE_XML_PATH], {
+  const proc: Spawned = spawnGuarded('fake-kacola', 'gjs', ['-m', FAKE_SCRIPT, INTERFACE_XML_PATH], {
     env,
     stdin: 'pipe',
   })
@@ -125,7 +128,7 @@ export async function startFakeGnomeola(env: Record<string, string>): Promise<Fa
   const waiters: { method: string; resolve: (c: FakeCall) => void }[] = []
   const write = (msg: unknown) => proc.child.stdin!.write(`${JSON.stringify(msg)}\n`)
   let out = ''
-  const fake: FakeGnomeola = {
+  const fake: FakeKacola = {
     setProps: (props) => write({ type: 'props', props }),
     signal: (name, args) => write({ type: 'signal', name, args }),
     calls,
@@ -165,7 +168,7 @@ export async function startFakeGnomeola(env: Record<string, string>): Promise<Fa
         return
       }
       if (msg.type === 'acquired') resolveAcquired()
-      if (msg.type === 'lost') reject(new Error('fake gnomeola could not own org.gnome.Gnomeola'))
+      if (msg.type === 'lost') reject(new Error('fake kacola could not own com.kacperlubisz.Kacola'))
       if (msg.type === 'call') {
         const call = { id: msg.id!, method: msg.method!, args: msg.args ?? [] }
         calls.push(call)
@@ -178,28 +181,28 @@ export async function startFakeGnomeola(env: Record<string, string>): Promise<Fa
         )
       }
     })
-    void proc.exited.then(() => reject(new Error(`fake gnomeola exited\n${proc.log()}`)))
+    void proc.exited.then(() => reject(new Error(`fake kacola exited\n${proc.log()}`)))
   })
   await Promise.race([
     acquired,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('fake gnomeola did not start')), 10_000)),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('fake kacola did not start')), 10_000)),
   ])
   return fake
 }
 
-/** Path of the gnomeola extension source in this repo. */
-export const GNOMEOLA_EXTENSION = resolve(import.meta.dirname, '../../../../extensions/gnomeola@gnomeola.org')
-export const GNOMEOLA_UUID = 'gnomeola@gnomeola.org'
+/** Path of the kacola extension source in this repo. */
+export const KACOLA_EXTENSION = resolve(import.meta.dirname, '../../../../extensions/kacola@kacperlubisz.com')
+export const KACOLA_UUID = 'kacola@kacperlubisz.com'
 
 /** A .desktop handler for https/http links that appends each URL it is asked to open to `logFile`. */
 export function fakeUrlHandler(dataHome: string, configHome: string, logFile: string): void {
   // (call it from the display's prepare() hook, before the Shell starts)
   const apps = join(dataHome, 'applications')
   mkdirSync(apps, { recursive: true })
-  const script = join(apps, 'gnomeola-test-url-handler.sh')
+  const script = join(apps, 'kacola-test-url-handler.sh')
   writeFileSync(script, `#!/bin/sh\nprintf '%s\\n' "$1" >> '${logFile}'\n`, { mode: 0o755 })
   writeFileSync(
-    join(apps, 'gnomeola-test-url-handler.desktop'),
+    join(apps, 'kacola-test-url-handler.desktop'),
     [
       '[Desktop Entry]',
       'Type=Application',
@@ -215,8 +218,8 @@ export function fakeUrlHandler(dataHome: string, configHome: string, logFile: st
     join(configHome, 'mimeapps.list'),
     [
       '[Default Applications]',
-      'x-scheme-handler/http=gnomeola-test-url-handler.desktop',
-      'x-scheme-handler/https=gnomeola-test-url-handler.desktop',
+      'x-scheme-handler/http=kacola-test-url-handler.desktop',
+      'x-scheme-handler/https=kacola-test-url-handler.desktop',
       '',
     ].join('\n'),
   )

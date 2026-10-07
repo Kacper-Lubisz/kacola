@@ -4,10 +4,10 @@ import { Iso, SessionStatus } from './schemas.ts'
 // The daemon's own lifecycle, as clients see it: who owns the data dir, what is recording right now (the
 // daemon's live view, not the database's), and restarts that wait for the recording to finish.
 //
-//   gnomeola daemon status                      → GET  /daemon
-//   gnomeola daemon restart [--when-idle]       → POST /daemon/restart {mode:'when-idle'}
-//   gnomeola daemon restart --now [--force]     → POST /daemon/restart {mode:'now', force}
-//   gnomeola daemon restart --cancel            → DELETE /daemon/restart
+//   kacola daemon status                      → GET  /daemon
+//   kacola daemon restart [--when-idle]       → POST /daemon/restart {mode:'when-idle'}
+//   kacola daemon restart --now [--force]     → POST /daemon/restart {mode:'now', force}
+//   kacola daemon restart --cancel            → DELETE /daemon/restart
 //
 // A restart is the daemon exiting with DAEMON_EXIT.RESTART for its supervisor (systemd's unit carries
 // RestartForceExitStatus=76; the desktop window's supervisor restarts it at once) to start it again.

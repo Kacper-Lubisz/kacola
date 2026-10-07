@@ -1,5 +1,5 @@
-import { fromSummaries } from '@gnomeola/ui-core/speakers'
-import { fromSegments } from '@gnomeola/ui-core/transcript'
+import { fromSummaries } from '@kacola/ui-core/speakers'
+import { fromSegments } from '@kacola/ui-core/transcript'
 import { describe, expect, it } from 'vitest'
 import { slotOf } from '../src/renderer/features/speakers/speaker-chip.tsx'
 import {

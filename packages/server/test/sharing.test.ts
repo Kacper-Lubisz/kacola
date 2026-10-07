@@ -1,4 +1,4 @@
-import { createClient, type GnomeolaApiError, PARTICIPANT_HEADER } from '@gnomeola/protocol'
+import { createClient, type KacolaApiError, PARTICIPANT_HEADER } from '@kacola/protocol'
 import { afterEach, describe, expect, it } from 'vitest'
 import { MemoryMailer } from '../src/mailer.ts'
 import { ADMIN, type Hosted, SECRET, startHosted } from './helpers.ts'
@@ -16,7 +16,7 @@ const occurrence = { agendaId: 'agd_1', title: '1:1 with Ana', meeting: null, go
 const status = (p: Promise<unknown>) =>
   p.then(
     () => 200,
-    (e: GnomeolaApiError) => e.status,
+    (e: KacolaApiError) => e.status,
   )
 
 async function setup(o: { allowInvitees?: boolean; members?: string[]; mailer?: boolean } = {}) {

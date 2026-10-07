@@ -1,4 +1,4 @@
-import { newId, SearchHit } from '@gnomeola/protocol'
+import { newId, SearchHit } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import { capSnippet, SNIPPET_MAX_CHARS, Store, toFtsQuery } from '../src/index.ts'
 

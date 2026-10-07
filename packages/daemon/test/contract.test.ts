@@ -10,18 +10,18 @@ import {
   draftEvents,
   type EnhanceStreamEvent,
   enhanceEvents,
-  GnomeolaApiError,
-  type GnomeolaClient,
+  KacolaApiError,
+  type KacolaClient,
   LEASE_HEADER,
   type LeaseGrant,
   LiveEvent,
   type RouteName,
   routes,
-} from '@gnomeola/protocol'
-import { createHostedApp, MemoryMailer, type Served, serve } from '@gnomeola/server'
-import { SqliteStoreApi } from '@gnomeola/store'
-import { MemoryBlobStore } from '@gnomeola/store/blob'
-import { waitFor } from '@gnomeola/testkit/daemon'
+} from '@kacola/protocol'
+import { createHostedApp, MemoryMailer, type Served, serve } from '@kacola/server'
+import { SqliteStoreApi } from '@kacola/store'
+import { MemoryBlobStore } from '@kacola/store/blob'
+import { waitFor } from '@kacola/testkit/daemon'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ManualCalendarProvider } from '../src/calendar/providers.ts'
 import { createDaemon, type Daemon, type Handlers } from '../src/daemon.ts'
@@ -47,8 +47,8 @@ const notHere = (p: Promise<unknown>) =>
     () => {
       throw new Error('expected 501')
     },
-    (e: GnomeolaApiError) => {
-      expect(e).toBeInstanceOf(GnomeolaApiError)
+    (e: KacolaApiError) => {
+      expect(e).toBeInstanceOf(KacolaApiError)
       expect([e.status, e.code]).toEqual([501, 'unavailable'])
       return e
     },
@@ -57,7 +57,7 @@ const notHere = (p: Promise<unknown>) =>
 describe('contract: every route, real server, typed client', () => {
   let dir: string
   let daemon: Daemon
-  let c: GnomeolaClient
+  let c: KacolaClient
   const cal = new ManualCalendarProvider()
   // team sharing: a hosted server to share on (and a second share, made directly, to follow)
   const ADMIN = 'contract-admin-token-0123456789'
@@ -65,7 +65,7 @@ describe('contract: every route, real server, typed client', () => {
   let hosted: Served
 
   beforeAll(async () => {
-    dir = mkdtempSync(join(tmpdir(), 'gnomeola-contract-'))
+    dir = mkdtempSync(join(tmpdir(), 'kacola-contract-'))
     hosted = await serve(
       createHostedApp({
         store: SqliteStoreApi.open(':memory:'),
@@ -619,7 +619,7 @@ describe('contract: every route, real server, typed client', () => {
   })
 
   it('serves settings with the documented defaults and never the key', async () => {
-    const dir2 = mkdtempSync(join(tmpdir(), 'gnomeola-contract-'))
+    const dir2 = mkdtempSync(join(tmpdir(), 'kacola-contract-'))
     const d2 = await createDaemon({ dataDir: dir2, port: 0, keyring: new MemoryKeyring(), env: {} })
     try {
       const c2 = createClient({ baseUrl: d2.url })

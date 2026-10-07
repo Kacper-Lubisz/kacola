@@ -1,4 +1,4 @@
-// @gnomeola/server — the hosted gnomeola server (M8). See ./app.ts.
+// @kacola/server — the hosted kacola server (M8). See ./app.ts.
 export {
   createHostedApp,
   type HostedApp,

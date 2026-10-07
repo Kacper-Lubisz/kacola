@@ -1,4 +1,4 @@
-import type { Store } from '@gnomeola/store'
+import type { Store } from '@kacola/store'
 import type { EventBus } from '../bus.ts'
 import type { Handlers } from '../daemon.ts'
 import { DaemonError } from '../errors.ts'
@@ -62,7 +62,7 @@ export function liveHandlers(o: LiveHandlerOptions): Pick<Handlers, Names> {
     liveAttach: async ({ params, query, req }, open) => {
       const rec = channel.fromRequest(req)
       if (!rec)
-        throw new DaemonError('unauthorized', 'live attach needs a lease token (gnomeola live attach)', 401)
+        throw new DaemonError('unauthorized', 'live attach needs a lease token (kacola live attach)', 401)
       if (rec.lease.sessionId !== params.id)
         throw new DaemonError('unauthorized', `this lease is for session ${rec.lease.sessionId}`)
       let since = query.since

@@ -88,7 +88,7 @@ export function startsIn(m, now, _ = (s) => s) {
  *
  * @param {object} props  D-Bus property values, recursively unpacked (see the interface XML).
  * @param {object} o
- * @param {boolean} o.daemon  whether org.gnome.Gnomeola has an owner
+ * @param {boolean} o.daemon  whether com.kacperlubisz.Kacola has an owner
  * @param {number} o.now  epoch ms
  * @param {{showElapsed: boolean, showLastLine: boolean}} o.prefs
  * @param {boolean} [o.clock24]
@@ -103,7 +103,7 @@ export function buildView(props, o) {
     return {
       panel: {
         icon: 'microphone-disabled-symbolic',
-        styleClass: 'gnomeola-offline',
+        styleClass: 'kacola-offline',
         label: '',
         accessibleName: _('kacola: not running'),
       },
@@ -129,7 +129,7 @@ export function buildView(props, o) {
           ? 'media-playback-pause-symbolic'
           : 'audio-input-microphone-symbolic',
     styleClass:
-      state === 'recording' ? 'gnomeola-recording' : state === 'paused' ? 'gnomeola-paused' : 'gnomeola-idle',
+      state === 'recording' ? 'kacola-recording' : state === 'paused' ? 'kacola-paused' : 'kacola-idle',
     label: active && o.prefs.showElapsed ? elapsed : '',
     accessibleName:
       state === 'recording'

@@ -1,4 +1,4 @@
-import { createClient } from '@gnomeola/protocol'
+import { createClient } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import { resolveRoute } from '../src/main/tunnel.ts'
 import { TUNNEL_ORIGIN } from '../src/shared/bridge.ts'

@@ -2,20 +2,20 @@ import {
   AgentMode,
   createClient,
   DaemonUnreachableError,
-  GnomeolaApiError,
+  KacolaApiError,
   LEASE_HEADER,
   type LeaseGrant,
   LiveEvent,
   type LiveSession,
   type SseMessage,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import type { Ctx } from '../context.ts'
 import { CliError, EXIT, usage } from '../errors.ts'
 import { type LeaseFile, leasePath, readLeaseFile, removeLeaseFile, writeLeaseFile } from '../lease.ts'
 import { renderJson } from '../output.ts'
 import { mapApiError } from '../sessions.ts'
 
-// `gnomeola live attach` / `live wait`: a connected agent's side of the live channel.
+// `kacola live attach` / `live wait`: a connected agent's side of the live channel.
 //
 // attach prints ONE JSON line per LiveEvent on stdout until the meeting ends: made to run as a
 // background command whose every output line wakes the agent (Claude Code's Monitor tool). Meanwhile it:
@@ -42,7 +42,7 @@ export type AttachOpts = {
 }
 
 const line = (ctx: Ctx, ev: LiveEvent) => ctx.io.stdout(`${JSON.stringify(ev)}\n`)
-const note = (ctx: Ctx, s: string) => ctx.io.stderr(`gnomeola live: ${s}\n`)
+const note = (ctx: Ctx, s: string) => ctx.io.stderr(`kacola live: ${s}\n`)
 const sleep = (ms: number, signal?: AbortSignal) =>
   new Promise<void>((resolve) => {
     const t = setTimeout(resolve, ms)
@@ -62,7 +62,7 @@ async function resolveSession(ctx: Ctx, ref: string): Promise<string> {
   if (ref === 'current' || ref === 'latest') {
     const s = list[0]
     if (!s)
-      throw new CliError(EXIT.NOT_FOUND, 'no recording is in progress', 'wait for one: gnomeola live wait')
+      throw new CliError(EXIT.NOT_FOUND, 'no recording is in progress', 'wait for one: kacola live wait')
     return s.sessionId
   }
   const hits = list.filter(
@@ -194,7 +194,7 @@ export async function liveAttach(ctx: Ctx, o: AttachOpts): Promise<void> {
         }
       } catch (err) {
         if (stop.signal.aborted) break
-        if (err instanceof GnomeolaApiError && err.status === 401) {
+        if (err instanceof KacolaApiError && err.status === 401) {
           // the daemon no longer knows the lease (it restarted): a new one, same cursor
           try {
             lease = { ...(await grant()), cursor }
@@ -209,7 +209,7 @@ export async function liveAttach(ctx: Ctx, o: AttachOpts): Promise<void> {
             throw e
           }
         }
-        if (err instanceof GnomeolaApiError) mapApiError(err)
+        if (err instanceof KacolaApiError) mapApiError(err)
         if (!(err instanceof DaemonUnreachableError) && !(err instanceof TypeError) && !isStreamCut(err))
           throw err
       }
@@ -242,7 +242,7 @@ function clientFor(baseUrl: string, token: string) {
   return createClient({
     baseUrl,
     timeoutMs: 15_000,
-    headers: { 'x-gnomeola-client': 'cli', [LEASE_HEADER]: token },
+    headers: { 'x-kacola-client': 'cli', [LEASE_HEADER]: token },
   })
 }
 

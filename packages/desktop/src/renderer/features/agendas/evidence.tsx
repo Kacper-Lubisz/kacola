@@ -1,5 +1,5 @@
-import type { Evidence } from '@gnomeola/protocol'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import type { Evidence } from '@kacola/protocol'
+import { _, fmt } from '@kacola/ui-core/i18n'
 import { useNavigate } from '@tanstack/react-router'
 import { Chip, ChipButton } from '../../design/primitives/index.ts'
 import { atLine } from '../meeting/search-params.ts'

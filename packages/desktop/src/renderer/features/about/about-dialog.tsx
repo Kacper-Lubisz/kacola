@@ -2,7 +2,7 @@
 
 import iconLight from '@brand/logo/icon.svg?url'
 import iconDark from '@brand/logo/icon-dark.svg?url'
-import { _ } from '@gnomeola/ui-core/i18n'
+import { _ } from '@kacola/ui-core/i18n'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useServices } from '../../data/services.tsx'
@@ -10,7 +10,7 @@ import { Button, Dialog, SegmentedControl, Spinner } from '../../design/primitiv
 import { noticeLine, parseNotices } from './notices.ts'
 
 // About (S-4). The licence is GPL-3.0-or-later. The Granola credit is on the main page, not buried in
-// a sub-page: gnomeola is a clean-room project and must say so plainly. "Legal" lists every
+// a sub-page: kacola is a clean-room project and must say so plainly. "Legal" lists every
 // third-party component this build ships, from the THIRD_PARTY_NOTICES.md main serves.
 
 export const granolaCredit = (): string =>

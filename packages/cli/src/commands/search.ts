@@ -1,4 +1,4 @@
-import { formatOffset, type SearchHit } from '@gnomeola/protocol'
+import { formatOffset, type SearchHit } from '@kacola/protocol'
 import type { Ctx } from '../context.ts'
 import { usage } from '../errors.ts'
 import { renderJson, truncate } from '../output.ts'
@@ -24,7 +24,7 @@ function hitJson(h: SearchHit) {
  * lowest-ranked hits, and says so when it does.
  */
 export async function search(ctx: Ctx, query: string | undefined, o: SearchOpts) {
-  if (!query?.trim()) throw usage('a search query is required', 'e.g. gnomeola search "retry budget"')
+  if (!query?.trim()) throw usage('a search query is required', 'e.g. kacola search "retry budget"')
   const res = await ctx.client
     .call('search', {
       query: { q: query, since: o.since, speaker: o.speaker, sessionId: o.session, limit: o.limit ?? 20 },
@@ -43,7 +43,7 @@ export async function search(ctx: Ctx, query: string | undefined, o: SearchOpts)
           returned: shown.length,
           truncated: shown.length < res.hits.length,
           hits: shown,
-          ...(first ? { next: `gnomeola transcript ${first.sessionId} --around ${first.segmentId}` } : {}),
+          ...(first ? { next: `kacola transcript ${first.sessionId} --around ${first.segmentId}` } : {}),
         },
         ctx.io,
       )

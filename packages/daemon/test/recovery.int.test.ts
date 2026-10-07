@@ -1,16 +1,16 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Segment } from '@gnomeola/protocol'
-import { migrations, Store } from '@gnomeola/store'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { assertNoViolations, checkEventLog, checkSegments, foldSegments } from '@gnomeola/testkit/invariants'
+import type { Segment } from '@kacola/protocol'
+import { migrations, Store } from '@kacola/store'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { assertNoViolations, checkEventLog, checkSegments, foldSegments } from '@kacola/testkit/invariants'
 import { afterEach, describe, expect, it } from 'vitest'
 import { durable, readEvents } from './helpers.ts'
 
 // Chaos: the recorder must never silently lose a meeting. SIGKILL the daemon mid-session and restart it
 // on the same data dir: interrupted sessions are closed out as `recovered`, everything that was
 // committed is still there, the log continues gap-free, and the tables still equal a replay of the log.
-// These run with the resume window off (GNOMEOLA_RESUME_WINDOW_MS=0): resuming a recording across a
+// These run with the resume window off (KACOLA_RESUME_WINDOW_MS=0): resuming a recording across a
 // restart is restart-resume.int.test.ts.
 
 const PIPE = JSON.stringify({
@@ -27,7 +27,7 @@ afterEach(async () => {
 })
 
 function openDisk(dataDir: string): Store {
-  return Store.open(join(dataDir, 'gnomeola.db'))
+  return Store.open(join(dataDir, 'kacola.db'))
 }
 
 /** Replay the on-disk log into an empty store and compare every table. */
@@ -47,7 +47,7 @@ function assertReplayEqualsState(dataDir: string): void {
 
 describe('crash recovery', () => {
   it('SIGKILL mid-recording: sessions recovered, segments intact, log gap-free, replay == state', async () => {
-    d = await startDaemon({ env: { GNOMEOLA_FAKE_PIPELINE: PIPE, GNOMEOLA_RESUME_WINDOW_MS: '0' } })
+    d = await startDaemon({ env: { KACOLA_FAKE_PIPELINE: PIPE, KACOLA_RESUME_WINDOW_MS: '0' } })
     const c = d.client
     const recording = await c.call('createSession', { body: { title: 'recording when killed' } })
     const paused = await c.call('createSession', { body: { title: 'paused when killed' } })
@@ -135,7 +135,7 @@ describe('crash recovery', () => {
   })
 
   it('SIGTERM is a clean shutdown: running sessions are flushed and suspended, never recovered', async () => {
-    d = await startDaemon({ env: { GNOMEOLA_FAKE_PIPELINE: PIPE, GNOMEOLA_RESUME_WINDOW_MS: '0' } })
+    d = await startDaemon({ env: { KACOLA_FAKE_PIPELINE: PIPE, KACOLA_RESUME_WINDOW_MS: '0' } })
     const c = d.client
     const s = await c.call('createSession', {})
     await c.call('startSession', { params: { id: s.id } })
@@ -148,7 +148,7 @@ describe('crash recovery', () => {
     expect(exit).toEqual({ code: 0, signal: null })
     ac.abort()
 
-    const log = readFileSync(join(d.dataDir, 'logs', 'gnomeolad.log'), 'utf8')
+    const log = readFileSync(join(d.dataDir, 'logs', 'kacolad.log'), 'utf8')
     expect(log).toMatch(/"signal received".*"SIGTERM"/)
     expect(log).toMatch(/"msg":"stopped"/)
 

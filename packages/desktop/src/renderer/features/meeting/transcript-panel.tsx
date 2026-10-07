@@ -1,5 +1,5 @@
-import type { Session } from '@gnomeola/protocol'
-import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
+import type { Session } from '@kacola/protocol'
+import { _, fmt, ngettext } from '@kacola/ui-core/i18n'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useServices } from '../../data/services.tsx'

@@ -10,9 +10,9 @@ import {
   type RouteName,
   routes,
   type Session,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 
-// A protocol-conformant stand-in for gnomeolad, just big enough to drive the UI's *real* client path
+// A protocol-conformant stand-in for kacolad, just big enough to drive the UI's *real* client path
 // (health → listSessions → resumable /events SSE → create/start/stop) in e2e tests before the real
 // daemon exists. Every response body is validated against the route table's zod schema before it
 // is sent, so the stub cannot drift from the contract without failing loudly.

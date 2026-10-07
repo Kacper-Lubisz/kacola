@@ -1,6 +1,6 @@
-import { formatOffset, type MomentKind, type Moment as SearchMoment, type Session } from '@gnomeola/protocol'
-import { displayTitle } from '@gnomeola/ui-core/format'
-import { _ } from '@gnomeola/ui-core/i18n'
+import { formatOffset, type MomentKind, type Moment as SearchMoment, type Session } from '@kacola/protocol'
+import { displayTitle } from '@kacola/ui-core/format'
+import { _ } from '@kacola/ui-core/i18n'
 import { speakerName } from '../transcript/rows.ts'
 import { dayLabel } from './day.ts'
 

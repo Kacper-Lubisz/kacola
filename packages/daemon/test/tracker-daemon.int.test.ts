@@ -7,12 +7,12 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { AGENDA_RECAP_SYSTEM_PROMPT, BRIDGE_SYSTEM_PROMPT, LlmError, type LlmProvider } from '@gnomeola/llm'
-import { type AnyEvent, createClient, type TrackerStatus } from '@gnomeola/protocol'
-import { AgendaStore, Store } from '@gnomeola/store'
-import { waitFor } from '@gnomeola/testkit/daemon'
-import { loadAgendaFixture } from '@gnomeola/testkit/fixtures'
-import { assertNoViolations, checkAgendaLog, checkEventLog } from '@gnomeola/testkit/invariants'
+import { AGENDA_RECAP_SYSTEM_PROMPT, BRIDGE_SYSTEM_PROMPT, LlmError, type LlmProvider } from '@kacola/llm'
+import { type AnyEvent, createClient, type TrackerStatus } from '@kacola/protocol'
+import { AgendaStore, Store } from '@kacola/store'
+import { waitFor } from '@kacola/testkit/daemon'
+import { loadAgendaFixture } from '@kacola/testkit/fixtures'
+import { assertNoViolations, checkAgendaLog, checkEventLog } from '@kacola/testkit/invariants'
 import { describe, expect, it } from 'vitest'
 import { agendaRecapHook } from '../src/agendas/recap.ts'
 import { ManualCalendarProvider } from '../src/calendar/providers.ts'
@@ -81,7 +81,7 @@ function scriptedLlm(
 
 describe('the tracker in the real daemon, replaying an agenda fixture', () => {
   it('checks items off with evidence, suggests, adds context, and writes the recap when the recording stops', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-tracker-'))
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-tracker-'))
     const fx = loadAgendaFixture('manager-1on1')
     const truth = fx.truth
     const cal = new ManualCalendarProvider()

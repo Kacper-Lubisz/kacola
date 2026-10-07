@@ -11,7 +11,7 @@
 // short, and renderable as chips without knowing about aliases. The rewrite is streaming-safe: text that
 // might still turn into a marker is held back until it resolves, and nothing emitted is ever retracted,
 // so the concatenated deltas equal the final text exactly.
-import type { Citation } from '@gnomeola/protocol'
+import type { Citation } from '@kacola/protocol'
 
 const MARKER = /^\[\s*s\d+(?:\s*,\s*s\d+)*\s*\]/i
 const PARTIAL = /^\[\s*(?:s\d*(?:\s*,\s*(?:s\d*)?)*)?$/i

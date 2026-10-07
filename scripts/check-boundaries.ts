@@ -1,6 +1,6 @@
 // G-6 — the one architectural rule, enforced rather than hoped for.
 //
-// Client packages (the window, the CLI and the web client) may depend on @gnomeola/protocol and nothing else from this
+// Client packages (the window, the CLI and the web client) may depend on @kacola/protocol and nothing else from this
 // workspace. They must never reach the store, capture, STT, LLM or daemon internals: that discipline
 // is what lets the backend move to a remote host without the clients noticing.
 //
@@ -11,13 +11,13 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
 export const CLIENT_PACKAGES = ['cli', 'web', 'ui-core', 'desktop'] as const
-export const ALLOWED_INTERNAL = new Set(['@gnomeola/protocol'])
+export const ALLOWED_INTERNAL = new Set(['@kacola/protocol'])
 /**
- * The window's shared data layer (@gnomeola/ui-core) is itself a client: it may import only protocol,
+ * The window's shared data layer (@kacola/ui-core) is itself a client: it may import only protocol,
  * and the window (`desktop`, Electron) may import it on top. Nothing else changes.
  */
 export const CLIENT_ALLOWED: Record<(typeof CLIENT_PACKAGES)[number], ReadonlySet<string>> = {
-  desktop: new Set(['@gnomeola/protocol', '@gnomeola/ui-core']),
+  desktop: new Set(['@kacola/protocol', '@kacola/ui-core']),
   cli: ALLOWED_INTERNAL,
   web: ALLOWED_INTERNAL,
   'ui-core': ALLOWED_INTERNAL,
@@ -35,7 +35,7 @@ export function importsIn(source: string): string[] {
 }
 
 export function isForbidden(specifier: string, allowed: ReadonlySet<string> = ALLOWED_INTERNAL): boolean {
-  if (specifier.startsWith('@gnomeola/')) {
+  if (specifier.startsWith('@kacola/')) {
     const name = specifier.split('/').slice(0, 2).join('/')
     return !allowed.has(name)
   }
@@ -90,27 +90,27 @@ export function checkBoundaries(root: string): Violation[] {
 //   vercel         the deployment: the server, the store's pg/blob/core entries, cloud STT, protocol (and
 //                  the SQLite entry, reached only for a `sqlite:` DATABASE_URL in the local harness).
 export const LAYER_RULES: Record<string, readonly string[]> = {
-  'capture-agent': ['@gnomeola/protocol', '@gnomeola/capture'],
+  'capture-agent': ['@kacola/protocol', '@kacola/capture'],
   server: [
-    '@gnomeola/protocol',
-    '@gnomeola/store',
-    '@gnomeola/store/core',
-    '@gnomeola/store/pg',
-    '@gnomeola/store/blob',
-    '@gnomeola/stt/cloud',
+    '@kacola/protocol',
+    '@kacola/store',
+    '@kacola/store/core',
+    '@kacola/store/pg',
+    '@kacola/store/blob',
+    '@kacola/stt/cloud',
   ],
   vercel: [
-    '@gnomeola/protocol',
-    '@gnomeola/server',
-    '@gnomeola/store',
-    '@gnomeola/store/core',
-    '@gnomeola/store/pg',
-    '@gnomeola/store/blob',
-    '@gnomeola/stt/cloud',
+    '@kacola/protocol',
+    '@kacola/server',
+    '@kacola/store',
+    '@kacola/store/core',
+    '@kacola/store/pg',
+    '@kacola/store/blob',
+    '@kacola/stt/cloud',
   ],
 }
 
-/** A manifest may name a package whose sub-entry is allowed (`@gnomeola/stt` for `@gnomeola/stt/cloud`). */
+/** A manifest may name a package whose sub-entry is allowed (`@kacola/stt` for `@kacola/stt/cloud`). */
 const packageOf = (spec: string) => spec.split('/').slice(0, 2).join('/')
 
 export function checkLayers(root: string, rules = LAYER_RULES): Violation[] {
@@ -122,11 +122,11 @@ export function checkLayers(root: string, rules = LAYER_RULES): Violation[] {
     const json = JSON.parse(readFileSync(manifest, 'utf8')) as { dependencies?: Record<string, string> }
     const allowedPkgs = new Set(allowed.map(packageOf))
     for (const dep of Object.keys(json.dependencies ?? {}))
-      if (dep.startsWith('@gnomeola/') && !allowedPkgs.has(dep))
+      if (dep.startsWith('@kacola/') && !allowedPkgs.has(dep))
         out.push({ pkg, where: 'package.json#dependencies', specifier: dep })
     for (const file of walk(join(dir, 'src'))) {
       for (const spec of importsIn(readFileSync(file, 'utf8'))) {
-        const internal = spec.startsWith('@gnomeola/')
+        const internal = spec.startsWith('@kacola/')
         const escapes = /(^|\/)\.\.\/(\.\.\/)+[a-z-]+\/src\//.test(spec)
         if ((internal && !allowed.includes(spec)) || escapes)
           out.push({ pkg, where: relative(root, file), specifier: spec })
@@ -172,7 +172,7 @@ if (import.meta.main) {
   }
   if (v.length) {
     console.error(
-      '✗ boundary violations — clients may only import @gnomeola/protocol (+ ui-core for the windows):',
+      '✗ boundary violations — clients may only import @kacola/protocol (+ ui-core for the windows):',
     )
     for (const x of v) console.error(`  ${x.pkg}: ${x.where} imports ${x.specifier}`)
   }
@@ -182,7 +182,7 @@ if (import.meta.main) {
   }
   if (v.length || l.length || rt.length) process.exit(1)
   console.log(
-    `✓ boundaries clean (${CLIENT_PACKAGES.join(', ')} depend only on @gnomeola/protocol; desktop also on ui-core)`,
+    `✓ boundaries clean (${CLIENT_PACKAGES.join(', ')} depend only on @kacola/protocol; desktop also on ui-core)`,
   )
   console.log(`✓ runtime clean (${RUNTIME_RULES.map((r) => r.dir).join(', ')})`)
   console.log(`✓ layers clean (${Object.keys(LAYER_RULES).join(', ')})`)

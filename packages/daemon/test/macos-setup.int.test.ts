@@ -2,16 +2,16 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-// P-3: the daemon exactly as it is configured on macOS (GNOMEOLA_PLATFORM=darwin), on a PATH that holds
+// P-3: the daemon exactly as it is configured on macOS (KACOLA_PLATFORM=darwin), on a PATH that holds
 // nothing but node — no pw-record, pw-dump, gjs or secret-tool to fall back on. It must come up with
 // external capture, the Keychain keyring (a fake `security` here), an ICS calendar, no D-Bus and no
 // helper processes at all.
 
 const FIXTURES = join(import.meta.dirname, 'fixtures')
-const dir = mkdtempSync(join(tmpdir(), 'gnomeola-macos-setup-'))
+const dir = mkdtempSync(join(tmpdir(), 'kacola-macos-setup-'))
 const bin = join(dir, 'bin')
 const db = join(dir, 'keychain.json')
 const argvLog = join(dir, 'security-argv.log')
@@ -23,18 +23,18 @@ beforeAll(async () => {
   d = await startDaemon({
     fake: false,
     env: {
-      GNOMEOLA_PLATFORM: 'darwin',
+      KACOLA_PLATFORM: 'darwin',
       PATH: bin,
       // the macOS defaults, not the harness's Linux-safe ones
-      GNOMEOLA_KEYRING: undefined,
-      GNOMEOLA_DBUS: undefined,
-      GNOMEOLA_MIC_ACTIVITY: undefined,
-      GNOMEOLA_CALENDAR: `ics:${join(FIXTURES, 'ics', 'google-warsaw.ics')}`,
-      GNOMEOLA_CALENDAR_ME: 'kacper@example.com',
-      GNOMEOLA_SECURITY_BIN: join(FIXTURES, 'fake-security.mjs'),
+      KACOLA_KEYRING: undefined,
+      KACOLA_DBUS: undefined,
+      KACOLA_MIC_ACTIVITY: undefined,
+      KACOLA_CALENDAR: `ics:${join(FIXTURES, 'ics', 'google-warsaw.ics')}`,
+      KACOLA_CALENDAR_ME: 'kacper@example.com',
+      KACOLA_SECURITY_BIN: join(FIXTURES, 'fake-security.mjs'),
       FAKE_SECURITY_DB: db,
       FAKE_SECURITY_ARGV_LOG: argvLog,
-      GNOMEOLA_MODELS_DIR: join(dir, 'models'),
+      KACOLA_MODELS_DIR: join(dir, 'models'),
     },
   })
 }, 60_000)
@@ -62,7 +62,7 @@ describe('a daemon configured for macOS', () => {
     expect(await d.client.call('externalCaptureStatus')).toEqual({ captures: [] })
   })
 
-  it('reads meetings from the ICS calendar, with the RSVP read from GNOMEOLA_CALENDAR_ME', async () => {
+  it('reads meetings from the ICS calendar, with the RSVP read from KACOLA_CALENDAR_ME', async () => {
     await waitFor(
       async () => (await d.client.call('calendarStatus')).state === 'ok',
       10_000,
@@ -109,6 +109,6 @@ describe('a daemon configured for macOS', () => {
 
   it('left the macOS data locations alone on this Linux box (explicit dirs only)', () => {
     expect(existsSync(join(dir, 'models'))).toBe(false) // status reads never create the models dir
-    expect(readdirSync(d.dataDir)).toContain('gnomeola.db')
+    expect(readdirSync(d.dataDir)).toContain('kacola.db')
   })
 })

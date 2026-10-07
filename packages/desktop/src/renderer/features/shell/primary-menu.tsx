@@ -1,4 +1,4 @@
-import { _ } from '@gnomeola/ui-core/i18n'
+import { _ } from '@kacola/ui-core/i18n'
 import { IconButton, Menu, MenuItem, MenuSeparator } from '../../design/primitives/index.ts'
 import { useFollow } from '../agendas/follow.tsx'
 import { useDialogs } from './dialogs.tsx'

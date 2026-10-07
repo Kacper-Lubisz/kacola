@@ -1,5 +1,5 @@
-import type { NoteTemplate, Session, TemplateSuggestion } from '@gnomeola/protocol'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import type { NoteTemplate, Session, TemplateSuggestion } from '@kacola/protocol'
+import { _, fmt } from '@kacola/ui-core/i18n'
 import {
   enhanceProblem,
   exportFileName,
@@ -7,7 +7,7 @@ import {
   type NotesFeed,
   type NotesFeedState,
   startReview,
-} from '@gnomeola/ui-core/notes'
+} from '@kacola/ui-core/notes'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useServices } from '../../data/services.tsx'

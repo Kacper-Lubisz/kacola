@@ -1,4 +1,4 @@
-// The markdown form of an agenda — what `gnomeola agenda export|import` and `agenda create --from` speak,
+// The markdown form of an agenda — what `kacola agenda export|import` and `agenda create --from` speak,
 // and what a person (or Claude) writes by hand:
 //
 //   # 1:1 with Ana

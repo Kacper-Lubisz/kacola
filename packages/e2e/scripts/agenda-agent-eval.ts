@@ -1,5 +1,5 @@
 // Agenda agent eval (kacola phases 1–2): does a real headless Claude Code session, with only the
-// meeting-context skill installed and only `gnomeola` allowed, turn a user's request into a correct
+// meeting-context skill installed and only `kacola` allowed, turn a user's request into a correct
 // agenda through the CLI? Opt-in; spends real model calls on the current Claude Code account.
 //
 //   node packages/e2e/scripts/agenda-agent-eval.ts        (pnpm test:agenda-eval)
@@ -11,7 +11,7 @@
 //   - items cover the promo date (must-cover | decision), Ana's hiring plan (info-to-get | question) and
 //     the offsite (timeboxed 5 minutes)
 //   - the private salary notes are nowhere in a SHARED context card (a private card is fine)
-//   - every shell command Claude ran was a `gnomeola` command
+//   - every shell command Claude ran was a `kacola` command
 // Isolation as in packages/cli/test/agent.eval.test.ts: --setting-sources project, --strict-mcp-config,
 // the skill installed into a throwaway project dir, a daemon on a throwaway data dir.
 
@@ -19,9 +19,9 @@ import { spawn, spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { run } from '@gnomeola/cli'
-import { Store } from '@gnomeola/store'
-import { startDaemon } from '@gnomeola/testkit/daemon'
+import { run } from '@kacola/cli'
+import { Store } from '@kacola/store'
+import { startDaemon } from '@kacola/testkit/daemon'
 import { seedMeetings } from '../src/seed.ts'
 
 const BIN_DIR = join(import.meta.dirname, '..', '..', 'cli', 'bin')
@@ -53,7 +53,7 @@ if (!probeOk)
 
 // ------------------------------------------------------------------------------------- the world
 
-const box = mkdtempSync(join(tmpdir(), 'gnomeola-agenda-eval-'))
+const box = mkdtempSync(join(tmpdir(), 'kacola-agenda-eval-'))
 const dataDir = join(box, 'data')
 const project = join(box, 'project')
 mkdirSync(dataDir, { recursive: true })
@@ -61,7 +61,7 @@ mkdirSync(project, { recursive: true })
 seedMeetings(dataDir)
 {
   // last week's 1:1, where Ana raised the promo timeline
-  const store = Store.open(join(dataDir, 'gnomeola.db'))
+  const store = Store.open(join(dataDir, 'kacola.db'))
   const id = 'ses_000000009ana1on1aaaa9'
   store.createSession({ id, title: '1:1 with Ana' })
   store.updateSession(id, (s) => ({
@@ -124,25 +124,25 @@ writeFileSync(
     ],
   }),
 )
-const d = await startDaemon({ dataDir, env: { GNOMEOLA_CALENDAR: `file:${calFile}` } })
+const d = await startDaemon({ dataDir, env: { KACOLA_CALENDAR: `file:${calFile}` } })
 const io = {
   stdout: () => {},
   stderr: (s: string) => process.stderr.write(s),
   isTTY: false,
-  env: { GNOMEOLA_URL: d.baseUrl },
+  env: { KACOLA_URL: d.baseUrl },
 }
 if ((await run(['skill', 'install', '--dir', join(project, '.claude', 'skills')], io)) !== 0) {
   await d.stop()
   throw new Error('skill install failed')
 }
-writeFileSync(join(project, 'README.md'), '# scratch project for the gnomeola agenda eval\n')
+writeFileSync(join(project, 'README.md'), '# scratch project for the kacola agenda eval\n')
 
 // ----------------------------------------------------------------------------------- run Claude
 
 const PROMPT =
   'Prepare my 1:1 with Ana tomorrow. Goals: agree the promo launch date, and I need to know her hiring ' +
   'plan for Q1. Also raise the offsite, 5 minutes. Keep my salary notes private: ' +
-  `"${SALARY}". I have told you everything I want — go ahead and save the agenda in gnomeola without ` +
+  `"${SALARY}". I have told you everything I want — go ahead and save the agenda in kacola without ` +
   'asking me further questions, and do not put anything in the calendar invitation.'
 
 type Trace = { commands: string[]; skillsLoaded: string[]; answer: string; isError: boolean }
@@ -160,14 +160,14 @@ const trace = await new Promise<Trace>((resolve, reject) => {
       '--strict-mcp-config',
       '--no-session-persistence',
       '--allowedTools',
-      'Bash(gnomeola:*)',
+      'Bash(kacola:*)',
       'Skill(meeting-context)',
     ],
     {
       cwd: project,
       env: {
         ...process.env,
-        GNOMEOLA_URL: d.baseUrl,
+        KACOLA_URL: d.baseUrl,
         PATH: `${BIN_DIR}:${process.execPath.replace(/\/node$/, '')}:${process.env.PATH}`,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -262,8 +262,8 @@ const checks: [string, boolean][] = [
       !(view?.agenda.goals ?? []).some((g) => /91k|105k/i.test(g)),
   ],
   [
-    'only gnomeola commands were run',
-    segments.every((p) => /^gnomeola(\s|$)/.test(p) || /^(EOF|cat\s*<<)/.test(p)),
+    'only kacola commands were run',
+    segments.every((p) => /^kacola(\s|$)/.test(p) || /^(EOF|cat\s*<<)/.test(p)),
   ],
   ['no invitation write', !segments.some((p) => /agenda\s+(invite|share)\b.*--write/.test(p))],
   // sharing on the hosted server is the user's decision, and the scripted user never asked for it

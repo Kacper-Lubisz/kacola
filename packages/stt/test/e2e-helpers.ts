@@ -1,6 +1,6 @@
 import { setImmediate as yieldToLoop } from 'node:timers/promises'
-import { EphemeralEventData, Segment, type TrackKind } from '@gnomeola/protocol'
-import type { Fixture } from '@gnomeola/testkit/fixtures'
+import { EphemeralEventData, Segment, type TrackKind } from '@kacola/protocol'
+import type { Fixture } from '@kacola/testkit/fixtures'
 import type { DiarizationSession } from '../src/diarize/types.ts'
 import { DEFAULT_MODELS } from '../src/model-manager/catalog.ts'
 import { ModelManager } from '../src/model-manager/manager.ts'
@@ -15,8 +15,8 @@ import type { FinalTranscriber, LiveRecognizer, VoiceActivityDetector } from '..
 
 export type Engines = { live: LiveRecognizer; final: FinalTranscriber; vad: VoiceActivityDetector }
 
-export const LIVE_MODEL = process.env.GNOMEOLA_LIVE_MODEL ?? DEFAULT_MODELS.live
-export const FINAL_MODEL = process.env.GNOMEOLA_FINAL_MODEL ?? DEFAULT_MODELS.final
+export const LIVE_MODEL = process.env.KACOLA_LIVE_MODEL ?? DEFAULT_MODELS.live
+export const FINAL_MODEL = process.env.KACOLA_FINAL_MODEL ?? DEFAULT_MODELS.final
 
 let engines: Promise<Engines> | null = null
 export function loadEngines(): Promise<Engines> {
@@ -52,8 +52,8 @@ export type RunOptions = {
   echoGate?: boolean
 }
 
-export const EMBEDDING_MODEL = process.env.GNOMEOLA_EMBEDDING_MODEL ?? DEFAULT_MODELS.embedding
-export const SEGMENTATION_MODEL = process.env.GNOMEOLA_SEGMENTATION_MODEL ?? DEFAULT_MODELS.segmentation
+export const EMBEDDING_MODEL = process.env.KACOLA_EMBEDDING_MODEL ?? DEFAULT_MODELS.embedding
+export const SEGMENTATION_MODEL = process.env.KACOLA_SEGMENTATION_MODEL ?? DEFAULT_MODELS.segmentation
 
 let diarizer: ReturnType<typeof createDiarizer> | null = null
 /** The daemon's diarizer (real models, downloaded and verified on first use); one per test file. */

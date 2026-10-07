@@ -1,4 +1,4 @@
-import { AnyEvent, type DurableEvent, type GnomeolaClient, isDurable } from '@gnomeola/protocol'
+import { AnyEvent, type DurableEvent, isDurable, type KacolaClient } from '@kacola/protocol'
 
 /**
  * Read the raw /events stream (no client-side dedupe, unlike subscribe()) until a durable event with
@@ -6,7 +6,7 @@ import { AnyEvent, type DurableEvent, type GnomeolaClient, isDurable } from '@gn
  * that sends a duplicate or skips one at the replay→live seam.
  */
 export async function readEvents(
-  client: GnomeolaClient,
+  client: KacolaClient,
   opts: { since?: number; untilSeq: number; sessionId?: string; ephemeral?: boolean; timeoutMs?: number },
 ): Promise<AnyEvent[]> {
   const ac = new AbortController()

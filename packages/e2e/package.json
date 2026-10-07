@@ -1,5 +1,5 @@
 {
-  "name": "@gnomeola/e2e",
+  "name": "@kacola/e2e",
   "version": "0.1.0",
   "private": true,
   "description": "System-level tests across package boundaries: CLI → daemon → llm/capture/stt, the UI, install.",
@@ -13,11 +13,11 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
-    "@gnomeola/cli": "workspace:*",
-    "@gnomeola/daemon": "workspace:*",
-    "@gnomeola/protocol": "workspace:*",
-    "@gnomeola/server": "workspace:*",
-    "@gnomeola/store": "workspace:*",
-    "@gnomeola/testkit": "workspace:*"
+    "@kacola/cli": "workspace:*",
+    "@kacola/daemon": "workspace:*",
+    "@kacola/protocol": "workspace:*",
+    "@kacola/server": "workspace:*",
+    "@kacola/store": "workspace:*",
+    "@kacola/testkit": "workspace:*"
   }
 }

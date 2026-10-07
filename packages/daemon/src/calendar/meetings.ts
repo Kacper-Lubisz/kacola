@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import type { Meeting, MeetingResponse, SessionMeeting } from '@gnomeola/protocol'
+import type { Meeting, MeetingResponse, SessionMeeting } from '@kacola/protocol'
 import type { RawOccurrence } from './agent-protocol.ts'
 import { extractJoinLink } from './join-links.ts'
 

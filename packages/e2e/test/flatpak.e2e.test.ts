@@ -3,11 +3,11 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient, type GnomeolaClient } from '@gnomeola/protocol'
-import { waitFor } from '@gnomeola/testkit/daemon'
-import { DbusProbe, startPrivateBus } from '@gnomeola/testkit/dbus'
-import { type CdpWindow, connectCdp } from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { createClient, type KacolaClient } from '@kacola/protocol'
+import { waitFor } from '@kacola/testkit/daemon'
+import { DbusProbe, startPrivateBus } from '@kacola/testkit/dbus'
+import { type CdpWindow, connectCdp } from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildFlatpak } from '../../../scripts/build-flatpak.ts'
 import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
@@ -20,9 +20,9 @@ import { REPO } from '../src/runtime.ts'
 // app starts the daemon in the background; the CLI — inside the sandbox, and through the host shim that
 // `install-cli` writes — lists, searches and asks; and the shim starts the app when the daemon is down.
 //
-// GNOMEOLA_FLATPAK_BUNDLE=path skips the build and tests that bundle.
+// KACOLA_FLATPAK_BUNDLE=path skips the build and tests that bundle.
 
-const APP = 'org.gnome.Gnomeola'
+const APP = 'com.kacperlubisz.Kacola'
 const CASSETTES = join(REPO, 'packages', 'llm', 'test', 'fixtures', 'cassettes')
 
 let bundle = ''
@@ -50,13 +50,13 @@ function env(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
     FLATPAK_USER_DIR: userDir,
     HOME: home,
     // the daemon inside the sandbox: our port, no session-bus name, no keyring, fake capture for content
-    GNOMEOLA_URL: url,
-    GNOMEOLA_DBUS: 'off',
-    GNOMEOLA_CALENDAR: 'off',
-    GNOMEOLA_MIC_ACTIVITY: 'off',
-    GNOMEOLA_KEYRING: 'memory',
-    GNOMEOLA_FAKES: '1',
-    GNOMEOLA_FAKE_PIPELINE: JSON.stringify({
+    KACOLA_URL: url,
+    KACOLA_DBUS: 'off',
+    KACOLA_CALENDAR: 'off',
+    KACOLA_MIC_ACTIVITY: 'off',
+    KACOLA_KEYRING: 'memory',
+    KACOLA_FAKES: '1',
+    KACOLA_FAKE_PIPELINE: JSON.stringify({
       speed: 20,
       segmentEveryMs: 4000,
       finalizeAfterMs: 30,
@@ -98,7 +98,7 @@ function run(
 }
 
 const flatpakCli = (args: string[], extra: Record<string, string> = {}) =>
-  run('flatpak', ['run', '--user', `--command=gnomeola`, APP, ...args], extra)
+  run('flatpak', ['run', '--user', `--command=kacola`, APP, ...args], extra)
 
 /** The app in the background, headless (no display needed for --background). */
 const LAUNCH = `flatpak run --user ${APP} --background --ozone-platform=headless --disable-gpu`
@@ -124,14 +124,14 @@ async function healthy(): Promise<boolean> {
   }
 }
 
-let client: GnomeolaClient
+let client: KacolaClient
 
 beforeAll(async () => {
   api = await startFakeAnthropic()
   port = await freePort()
   url = `http://127.0.0.1:${port}`
   client = createClient({ baseUrl: url, timeoutMs: 10_000 })
-  bundle = process.env.GNOMEOLA_FLATPAK_BUNDLE ?? ''
+  bundle = process.env.KACOLA_FLATPAK_BUNDLE ?? ''
   if (!bundle) {
     const r = await buildFlatpak({ outDir: join(REPO, 'dist', 'flatpak') })
     bundle = r.bundle!
@@ -139,8 +139,8 @@ beforeAll(async () => {
       `[flatpak] bundle ${(r.bundleBytes! / 1024 / 1024).toFixed(1)} MiB, /app ${(r.appBytes / 1024 / 1024).toFixed(1)} MiB`,
     )
   }
-  userDir = mkdtempSync(join(tmpdir(), 'gnomeola-flatpak-user-'))
-  home = mkdtempSync(join(tmpdir(), 'gnomeola-flatpak-home-'))
+  userDir = mkdtempSync(join(tmpdir(), 'kacola-flatpak-user-'))
+  home = mkdtempSync(join(tmpdir(), 'kacola-flatpak-home-'))
   const inst = await run(
     'flatpak',
     ['install', '--user', '-y', '--noninteractive', '--bundle', bundle],
@@ -157,7 +157,7 @@ afterAll(async () => {
   for (const d of [userDir, home]) if (d) rmSync(d, { recursive: true, force: true })
 }, 60_000)
 
-describe('the org.gnome.Gnomeola Flatpak', () => {
+describe('the com.kacperlubisz.Kacola Flatpak', () => {
   it('is installed in the throwaway installation only, with the declared permissions', async () => {
     const info = await run('flatpak', ['info', '--user', '--show-permissions', APP])
     expect(info.code, info.stderr).toBe(0)
@@ -168,7 +168,7 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
       'xdg-data/gnome-shell/extensions:create',
       'org.gnome.evolution.dataserver.*=talk',
       'org.freedesktop.secrets=talk',
-      'org.gnome.Gnomeola=own',
+      'com.kacperlubisz.Kacola=own',
       'network',
     ])
       expect(info.stdout, p).toContain(p)
@@ -176,11 +176,11 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
     // the exported desktop file makes the app the kacola:// handler and passes the link on (%U)
     const entry = readFileSync(join(userDir, 'exports', 'share', 'applications', `${APP}.desktop`), 'utf8')
     expect(entry).toContain('MimeType=x-scheme-handler/kacola;')
-    expect(entry).toMatch(/^Exec=.*gnomeola-app.*%U/m)
+    expect(entry).toMatch(/^Exec=.*kacola-app.*%U/m)
   })
 
   it('inside the sandbox: natives load on Electron’s Node, PipeWire answers, the data dirs are writable', async () => {
-    const r = await run('flatpak', ['run', '--user', '--command=gnomeola-selftest', APP])
+    const r = await run('flatpak', ['run', '--user', '--command=kacola-selftest', APP])
     expect(r.code, `${r.stdout}\n${r.stderr}`).toBe(0)
     const t = JSON.parse(r.stdout)
     expect(t.flatpakId).toBe(APP)
@@ -201,8 +201,8 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
     expect(t.gjs.glib).toBe('glib>=2.86 function')
     expect(t.dirs).toEqual({
       ok: true,
-      dataDir: join(home, '.var', 'app', APP, 'data', 'gnomeola'),
-      modelsDir: join(home, '.var', 'app', APP, 'data', 'gnomeola', 'models'),
+      dataDir: join(home, '.var', 'app', APP, 'data', 'kacola'),
+      modelsDir: join(home, '.var', 'app', APP, 'data', 'kacola', 'models'),
       writable: true,
     })
   })
@@ -212,7 +212,7 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
     await waitFor(healthy, 30_000, 'the sandboxed daemon to answer')
     const h = await client.call('health')
     expect(h.ok).toBe(true)
-    expect(existsSync(join(home, '.var', 'app', APP, 'data', 'gnomeola', 'gnomeola.db'))).toBe(true)
+    expect(existsSync(join(home, '.var', 'app', APP, 'data', 'kacola', 'kacola.db'))).toBe(true)
   }, 60_000)
 
   it('the CLI inside the sandbox lists, searches and asks', async () => {
@@ -245,13 +245,13 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
     const r = await flatpakCli(['install-cli'], { PATH: '/usr/bin:/bin' })
     expect(r.code, r.stderr).toBe(0)
     const out = JSON.parse(r.stdout)
-    const shim = join(home, '.local', 'bin', 'gnomeola')
+    const shim = join(home, '.local', 'bin', 'kacola')
     expect(out).toMatchObject({
       mode: 'flatpak',
       shim: { path: shim, action: 'installed' },
       skill: { action: 'installed' },
     })
-    expect(readFileSync(shim, 'utf8')).toContain(`'flatpak' 'run' '--command=gnomeola' '${APP}'`)
+    expect(readFileSync(shim, 'utf8')).toContain(`'flatpak' 'run' '--command=kacola' '${APP}'`)
     expect(existsSync(join(home, '.claude', 'skills', 'meeting-context', 'SKILL.md'))).toBe(true)
     const st = await run('sh', [shim, 'status'])
     expect(st.code, st.stderr).toBe(0)
@@ -260,11 +260,11 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
 
   it('the shim starts the app when the daemon is down, waits for it, and runs the command', async () => {
     await stopApp()
-    const shim = join(home, '.local', 'bin', 'gnomeola')
+    const shim = join(home, '.local', 'bin', 'kacola')
     const r = await run(
       'sh',
       [shim, 'sessions', 'list'],
-      { GNOMEOLA_APP_LAUNCH: LAUNCH, GNOMEOLA_START_TIMEOUT: '40' },
+      { KACOLA_APP_LAUNCH: LAUNCH, KACOLA_START_TIMEOUT: '40' },
       90_000,
     )
     expect(r.code, r.stderr).toBe(0)
@@ -273,17 +273,17 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
     expect(await healthy()).toBe(true)
   }, 120_000)
 
-  it('the D-Bus bridge (bundled gjs) owns org.gnome.Gnomeola from inside the sandbox — on a private bus', async () => {
+  it('the D-Bus bridge (bundled gjs) owns com.kacperlubisz.Kacola from inside the sandbox — on a private bus', async () => {
     await stopApp()
     const bus = await startPrivateBus()
     try {
-      startApp({ DBUS_SESSION_BUS_ADDRESS: bus.address, GNOMEOLA_DBUS: 'session' })
+      startApp({ DBUS_SESSION_BUS_ADDRESS: bus.address, KACOLA_DBUS: 'session' })
       await waitFor(healthy, 30_000, 'the sandboxed daemon to answer')
       const probe = new DbusProbe({
         address: bus.address,
-        name: 'org.gnome.Gnomeola',
-        path: '/org/gnome/Gnomeola',
-        iface: 'org.gnome.Gnomeola',
+        name: 'com.kacperlubisz.Kacola',
+        path: '/com/kacperlubisz/Kacola',
+        iface: 'com.kacperlubisz.Kacola',
       })
       try {
         await probe.until((p) => p.DaemonUrl === url, 30_000, 'the bridge to own the name and publish')
@@ -303,7 +303,7 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
   it('uninstall-cli removes the shim and the skill again', async () => {
     const r = await flatpakCli(['uninstall-cli'])
     expect(r.code, r.stderr).toBe(0)
-    expect(existsSync(join(home, '.local', 'bin', 'gnomeola'))).toBe(false)
+    expect(existsSync(join(home, '.local', 'bin', 'kacola'))).toBe(false)
     expect(existsSync(join(home, '.claude', 'skills', 'meeting-context'))).toBe(false)
   })
 })
@@ -311,7 +311,7 @@ describe('the org.gnome.Gnomeola Flatpak', () => {
 describe('the windowed app inside the sandbox (zypak), in the headless GNOME Shell', () => {
   // The real window: Chromium's sandbox through zypak inside Flatpak's, Wayland from the headless Shell,
   // the daemon it spawns inside the sandbox. Driven over the DevTools protocol (the packaged build
-  // allows it only with GNOMEOLA_ALLOW_REMOTE_DEBUGGING=1); the port is reachable because the sandbox
+  // allows it only with KACOLA_ALLOW_REMOTE_DEBUGGING=1); the port is reachable because the sandbox
   // shares the network namespace (--share=network).
   let display: HeadlessDisplay
   let cdp: CdpWindow
@@ -326,7 +326,7 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
     // of the caller's own session may leak in (an X11 DISPLAY would be a way out of the headless Shell).
     for (const k of ['XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME', 'XDG_STATE_HOME', 'DISPLAY'])
       delete e[k]
-    return { ...e, GNOMEOLA_ALLOW_REMOTE_DEBUGGING: '1' }
+    return { ...e, KACOLA_ALLOW_REMOTE_DEBUGGING: '1' }
   }
   /** flatpak ps / kill see instances by XDG_RUNTIME_DIR: the display's, for this one. */
   const inDisplay = (args: string[]) => run('flatpak', args, {}, 30_000, windowEnv())
@@ -392,22 +392,22 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
   }, 60_000)
 
   it('the window maps in the Shell and runs sandboxed (app:// origin, the sandbox’s daemon)', async () => {
-    expect(await cdp.window.title()).toBe('Gnomeola')
-    expect(await cdp.window.evaluate('location.href')).toBe('app://gnomeola/index.html')
+    expect(await cdp.window.title()).toBe('Kacola')
+    expect(await cdp.window.evaluate('location.href')).toBe('app://kacola/index.html')
     await waitFor(healthy, 30_000, 'the daemon the windowed app spawned inside the sandbox')
     const ps = await inDisplay(['ps', '--columns=application'])
     expect(ps.stdout).toContain(APP)
   })
 
-  it('onboarding installs the CLI through the host shim (flatpak run --command=gnomeola)', async () => {
+  it('onboarding installs the CLI through the host shim (flatpak run --command=kacola)', async () => {
     const welcome = cdp.window.getByRole('dialog', { name: 'Welcome to kacola' })
     expect(
       await welcome.getByRole('switch', { name: 'Install command-line tool and Claude skill' }).isChecked(),
     ).toBe(true)
     await welcome.getByRole('button', { name: 'Skip for now' }).click()
-    const shim = join(home, '.local', 'bin', 'gnomeola')
+    const shim = join(home, '.local', 'bin', 'kacola')
     await waitFor(() => existsSync(shim), 30_000, 'the host shim from onboarding')
-    expect(readFileSync(shim, 'utf8')).toContain(`'flatpak' 'run' '--command=gnomeola' '${APP}'`)
+    expect(readFileSync(shim, 'utf8')).toContain(`'flatpak' 'run' '--command=kacola' '${APP}'`)
     expect(readFileSync(shim, 'utf8')).toContain(`flatpak run ${APP} --background`)
     expect(existsSync(join(home, '.claude', 'skills', 'meeting-context', 'SKILL.md'))).toBe(true)
     const st = await run('sh', [shim, 'sessions', 'list'])
@@ -433,8 +433,8 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
     await row.getByRole('button', { name: 'Install and turn on' }).click()
     // the sandbox cannot reach the Shell (no --talk-name=org.gnome.Shell), so: the command to run
     await row.getByText('Installed. To turn it on, run this in a terminal:').waitFor({ timeout: 20_000 })
-    await row.getByText('gnome-extensions enable gnomeola@gnomeola.org', { exact: true }).waitFor()
-    const dest = join(home, '.local', 'share', 'gnome-shell', 'extensions', 'gnomeola@gnomeola.org')
+    await row.getByText('gnome-extensions enable kacola@kacperlubisz.com', { exact: true }).waitFor()
+    const dest = join(home, '.local', 'share', 'gnome-shell', 'extensions', 'kacola@kacperlubisz.com')
     for (const f of ['metadata.json', 'extension.js', 'schemas/gschemas.compiled'])
       expect(existsSync(join(dest, f)), f).toBe(true)
     await cdp.window.keyboard.press('Escape')
@@ -442,7 +442,7 @@ describe('the windowed app inside the sandbox (zypak), in the headless GNOME She
   })
 
   it('closing the window keeps the app and its daemon running in the sandbox', async () => {
-    await cdp.window.evaluate('window.gnomeola.windowControl("close")')
+    await cdp.window.evaluate('window.kacola.windowControl("close")')
     await new Promise((r) => setTimeout(r, 3000))
     expect(windowed.exitCode).toBeNull()
     expect(await healthy()).toBe(true)

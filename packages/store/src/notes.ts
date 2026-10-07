@@ -7,7 +7,7 @@ import {
   type Note,
   type NoteTemplate,
   type NoteVersion,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import type Database from 'better-sqlite3'
 import { type Store, StoreError } from './store.ts'
 

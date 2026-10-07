@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The sandbox's hosted sharing server: the real hosted app (packages/server, as `gnomeola-server` runs
+// The sandbox's hosted sharing server: the real hosted app (packages/server, as `kacola-server` runs
 // it, on SQLite under the sandbox dir) plus the shared agenda page (packages/web's agenda.html at
 // /a/<token>, as the Vercel deployment rewrites it), so "Send the agenda" in the sandbox window gives a
 // http://127.0.0.1:… link that opens in any browser. Magic-link codes are not mailed: they are appended
@@ -12,9 +12,9 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'n
 import { createServer } from 'node:http'
 import { extname, join, normalize } from 'node:path'
 import { parseArgs } from 'node:util'
-import { consoleMailer, createHostedApp, nodeHandler } from '@gnomeola/server'
-import { SqliteStoreApi } from '@gnomeola/store'
-import { FsBlobStore } from '@gnomeola/store/blob'
+import { consoleMailer, createHostedApp, nodeHandler } from '@kacola/server'
+import { SqliteStoreApi } from '@kacola/store'
+import { FsBlobStore } from '@kacola/store/blob'
 import { buildViewer } from '../../../web/scripts/build.ts'
 
 const { values } = parseArgs({

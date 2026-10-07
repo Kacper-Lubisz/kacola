@@ -1,5 +1,5 @@
-import { Segment, type TrackKind } from '@gnomeola/protocol'
-import { assertNoViolations, checkSegmentHistory, checkSegments } from '@gnomeola/testkit/invariants'
+import { Segment, type TrackKind } from '@kacola/protocol'
+import { assertNoViolations, checkSegmentHistory, checkSegments } from '@kacola/testkit/invariants'
 import { describe, expect, it } from 'vitest'
 import {
   type FinalizeRequest,

@@ -1,5 +1,5 @@
-import type { AgendaSummary, Meeting, Session } from '@gnomeola/protocol'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import type { AgendaSummary, Meeting, Session } from '@kacola/protocol'
+import { _, fmt } from '@kacola/ui-core/i18n'
 
 // Home is your day (unit-tested in test/day.test.ts): today's calendar meetings and recordings latest
 // first — the end of the day at the top, down through now, to this morning — with what is under way

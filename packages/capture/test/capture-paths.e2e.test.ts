@@ -5,7 +5,7 @@ import {
   PipeWireRig,
   readDefaults,
   writeFixture,
-} from '@gnomeola/testkit/rig'
+} from '@kacola/testkit/rig'
 import { describe, expect, it } from 'vitest'
 import { PipeWireCaptureSource } from '../src/index.ts'
 import {

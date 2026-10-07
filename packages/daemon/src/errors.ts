@@ -1,5 +1,5 @@
-import type { ApiError, ErrorDetail } from '@gnomeola/protocol'
-import { StoreError } from '@gnomeola/store'
+import type { ApiError, ErrorDetail } from '@kacola/protocol'
+import { StoreError } from '@kacola/store'
 import { ZodError } from 'zod'
 
 export type ApiErrorCode = ApiError['error']['code']

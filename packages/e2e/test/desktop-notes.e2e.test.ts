@@ -2,10 +2,10 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { diffNoteBlocks, mergeNoteBlocks, type NoteVersion } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop, matchBaseline } from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { diffNoteBlocks, mergeNoteBlocks, type NoteVersion } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop, matchBaseline } from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { markOnboarded } from '../src/desktop.ts'
 import { loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
@@ -13,7 +13,7 @@ import { SEED, seedMeetings } from '../src/seed.ts'
 
 // Phase 2C — the notes pane in the Electron window, the port of ui-notes.e2e.test.ts (the GTK / AT-SPI
 // suite) with every assertion kept: type notes with the real keyboard into the CodeMirror editor, watch
-// them autosave, enhance them through the real daemon + @gnomeola/llm + SDK against a replayed Anthropic
+// them autosave, enhance them through the real daemon + @kacola/llm + SDK against a replayed Anthropic
 // stream, which REPLACES the draft (the Day redesign: no block-by-block review) — then prove from the
 // daemon's stored versions that the replacement is the enhanced text, that "Back to my draft" restores
 // what was typed, and that every word typed is still recoverable. Plus
@@ -35,7 +35,7 @@ beforeAll(async () => {
   buildDesktop()
   display = await startHeadlessDisplay({ size: '1280x800' })
   markOnboarded(display)
-  markerId = display.env.GNOMEOLA_HEADLESS_ID!
+  markerId = display.env.KACOLA_HEADLESS_ID!
 }, 300_000)
 
 afterAll(async () => {
@@ -47,12 +47,12 @@ afterAll(async () => {
 /** One seeded world: fake Anthropic, a daemon on a temp data dir, the window in `scheme`. */
 async function world(scheme: 'light' | 'dark', extraEnv: Record<string, string> = {}) {
   const api = await startFakeAnthropic({ eventDelayMs: 120 })
-  const dataDir = mkdtempSync(join(tmpdir(), `gnomeola-desktop-notes-${scheme}-`))
+  const dataDir = mkdtempSync(join(tmpdir(), `kacola-desktop-notes-${scheme}-`))
   seedMeetings(dataDir)
   const daemon = await startDaemon({ dataDir, env: { ANTHROPIC_API_KEY: KEY, ANTHROPIC_BASE_URL: api.url } })
   const app = await launchDesktop({
     display,
-    env: { GNOMEOLA_URL: daemon.baseUrl, GNOMEOLA_COLOR_SCHEME: scheme, ...extraEnv },
+    env: { KACOLA_URL: daemon.baseUrl, KACOLA_COLOR_SCHEME: scheme, ...extraEnv },
   })
   await app.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
   // still frames for the baselines: the brand's reduced-motion mode stops spinners and progress sweeps
@@ -594,7 +594,7 @@ describe('Notes in dark and high contrast', () => {
   }, 180_000)
 
   it('high contrast (dark): the editor and the enhanced notes stay accessible', async () => {
-    const ctx = await world('dark', { GNOMEOLA_CONTRAST: 'high' })
+    const ctx = await world('dark', { KACOLA_CONTRAST: 'high' })
     const h = helpers(
       () => ctx.app,
       () => ctx.daemon,

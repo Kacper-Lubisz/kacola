@@ -18,8 +18,8 @@ import {
   rubric,
   type Scorecard,
   settleLatency,
-} from '@gnomeola/testkit/evals'
-import type { GroundTruth } from '@gnomeola/testkit/fixtures'
+} from '@kacola/testkit/evals'
+import type { GroundTruth } from '@kacola/testkit/fixtures'
 import type {
   DraftRunner,
   InjectionRunner,

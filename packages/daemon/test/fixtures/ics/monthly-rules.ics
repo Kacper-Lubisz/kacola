@@ -1,6 +1,6 @@
 BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//gnomeola//hand-written//EN
+PRODID:-//kacola//hand-written//EN
 BEGIN:VEVENT
 UID:second-tuesday@example.com
 SUMMARY:Board meeting (2nd Tuesday)

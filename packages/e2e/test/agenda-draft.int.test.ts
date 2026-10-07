@@ -1,23 +1,18 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { DRAFT_SYSTEM_PROMPT } from '@gnomeola/daemon'
-import {
-  type AgendaDraftEvent,
-  type DraftAgendaBody,
-  draftEvents,
-  GnomeolaApiError,
-} from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import { DRAFT_SYSTEM_PROMPT } from '@kacola/daemon'
+import { type AgendaDraftEvent, type DraftAgendaBody, draftEvents, KacolaApiError } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { type CannedResponse, type FakeAnthropic, startFakeAnthropic } from '../src/fake-anthropic.ts'
 
-// "Plan with Claude", for real: gnomeolad (child process) → the draft route → @gnomeola/llm's provider
+// "Plan with Claude", for real: kacolad (child process) → the draft route → @kacola/llm's provider
 // (Anthropic SDK, then OpenAI's Responses API) → HTTP. Only the far ends are local stand-ins. The agenda
 // is for next week's occurrence of a weekly 1:1 whose current occurrence was recorded, has notes, and
 // has an agenda with an outcome — the "past meeting with the same people" the draft must see.
 
-const box = mkdtempSync(join(tmpdir(), 'gnomeola-e2e-draft-'))
+const box = mkdtempSync(join(tmpdir(), 'kacola-e2e-draft-'))
 const calFile = join(box, 'calendar.json')
 const now = Date.now()
 const t = (min: number) => new Date(now + min * 60_000).toISOString()
@@ -133,12 +128,12 @@ beforeAll(async () => {
   ;[anthropic, openai] = await Promise.all([startFakeAnthropic(), startFakeAnthropic()])
   d = await startDaemon({
     env: {
-      GNOMEOLA_CALENDAR: `file:${calFile}`,
+      KACOLA_CALENDAR: `file:${calFile}`,
       ANTHROPIC_API_KEY: 'sk-ant-e2e-draft-planted-key-7777',
       ANTHROPIC_BASE_URL: anthropic.url,
       OPENAI_API_KEY: 'sk-proj-e2e-draft-planted-key-0123456789',
       OPENAI_BASE_URL: `${openai.url}/v1`,
-      GNOMEOLA_FAKE_PIPELINE: JSON.stringify({
+      KACOLA_FAKE_PIPELINE: JSON.stringify({
         speed: 20,
         segmentEveryMs: 4000,
         finalizeAfterMs: 30,
@@ -321,8 +316,8 @@ describe('agenda drafting: daemon → llm → provider', () => {
       () => null,
       (e: unknown) => e,
     )
-    expect(refused).toBeInstanceOf(GnomeolaApiError)
-    expect((refused as GnomeolaApiError).status).toBe(404)
+    expect(refused).toBeInstanceOf(KacolaApiError)
+    expect((refused as KacolaApiError).status).toBe(404)
     // with includePrivate it opens (the provider is still switched off here)
     const events = await draft(priv.agenda.id, { includePrivate: true })
     expect(events[0]).toMatchObject({
@@ -335,14 +330,14 @@ describe('agenda drafting: daemon → llm → provider', () => {
       () => null,
       (e: unknown) => e,
     )
-    expect((cloud as GnomeolaApiError).status).toBe(409)
-    expect((cloud as GnomeolaApiError).detail.reason).toBe('private-meeting')
+    expect((cloud as KacolaApiError).status).toBe(409)
+    expect((cloud as KacolaApiError).detail.reason).toBe('private-meeting')
     expect(anthropic.seen.length + openai.seen.length).toBe(0)
     await d.client.call('updateSettings', { body: { llm: { provider: 'none' } } })
     const missing = await draft('agd_nope').then(
       () => null,
       (e: unknown) => e,
     )
-    expect((missing as GnomeolaApiError).status).toBe(404)
+    expect((missing as KacolaApiError).status).toBe(404)
   })
 })

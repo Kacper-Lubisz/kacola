@@ -1,10 +1,10 @@
-import { ask, LlmError, providerFromSettings } from '@gnomeola/llm'
-import { type AiFeature, aiErrorCopy, type ErrorReason, isKeyedProvider } from '@gnomeola/protocol'
+import { ask, LlmError, providerFromSettings } from '@kacola/llm'
+import { type AiFeature, aiErrorCopy, type ErrorReason, isKeyedProvider } from '@kacola/protocol'
 import { DaemonError } from '../errors.ts'
 import type { QaChunk, QaEngine, QaRequest } from '../interfaces.ts'
 import { notReadyError } from '../privacy.ts'
 
-// The real question-answering engine: @gnomeola/llm behind the daemon's QaEngine seam. The llm package
+// The real question-answering engine: @kacola/llm behind the daemon's QaEngine seam. The llm package
 // owns prompt layout, caching and citations; this adapter only translates between the two contracts and
 // maps provider failures onto wire error codes a client can act on.
 

@@ -1,6 +1,6 @@
-import type { ApiError } from '@gnomeola/protocol'
-import { ShareForbidden, ShareGone, ShareRateLimited, StoreError } from '@gnomeola/store/core'
-import { CloudSttError } from '@gnomeola/stt/cloud'
+import type { ApiError } from '@kacola/protocol'
+import { ShareForbidden, ShareGone, ShareRateLimited, StoreError } from '@kacola/store/core'
+import { CloudSttError } from '@kacola/stt/cloud'
 import { ZodError } from 'zod'
 
 export type ApiErrorCode = ApiError['error']['code']
@@ -29,8 +29,8 @@ export class HttpError extends Error {
 }
 
 /** 401 with the challenge a client needs to know it should pair. */
-export const needsToken = (message = 'a bearer token is required (pair this device: gnomeola pair)') =>
-  new HttpError('unauthorized', message, 401, { 'www-authenticate': 'Bearer realm="gnomeola"' })
+export const needsToken = (message = 'a bearer token is required (pair this device: kacola pair)') =>
+  new HttpError('unauthorized', message, 401, { 'www-authenticate': 'Bearer realm="kacola"' })
 
 export function toHttpError(err: unknown): HttpError {
   if (err instanceof HttpError) return err

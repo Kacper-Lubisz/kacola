@@ -1,11 +1,11 @@
-import type { Segment } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
-import { type Fixture, loadFixture } from '@gnomeola/testkit/fixtures'
-import { assertNoViolations, checkAttribution, checkSegments } from '@gnomeola/testkit/invariants'
-import { der } from '@gnomeola/testkit/metrics'
-import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@gnomeola/testkit/rig'
+import type { Segment } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
+import { type Fixture, loadFixture } from '@kacola/testkit/fixtures'
+import { assertNoViolations, checkAttribution, checkSegments } from '@kacola/testkit/invariants'
+import { der } from '@kacola/testkit/metrics'
+import { assertDefaultsUnchanged, PipeWireRig, readDefaults } from '@kacola/testkit/rig'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { gnomeola } from '../src/cli.ts'
+import { kacola } from '../src/cli.ts'
 
 // M3 on real audio (V-3 + A-6). Multi-speaker fixture meetings are played in real time into the
 // synthetic PipeWire rig; the REAL daemon records them through the production capture path and the real
@@ -113,10 +113,10 @@ describe('attribution on real audio', () => {
       body: { label: 'Ana' },
     })
     expect(r.voiceprintId).toMatch(/^vp_/)
-    const cli = await gnomeola(['speakers', first.id], d.baseUrl)
+    const cli = await kacola(['speakers', first.id], d.baseUrl)
     expect(cli.code, cli.stderr).toBe(0)
     expect(JSON.parse(cli.stdout).speakers.map((s: { label: string }) => s.label)).toContain('Ana')
-    const w = await gnomeola(
+    const w = await kacola(
       ['transcript', first.id, '--from', '0:00', '--to', '1:10', '--speaker', 'ana'],
       d.baseUrl,
     )

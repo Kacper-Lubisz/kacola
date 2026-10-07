@@ -12,7 +12,7 @@ import type {
   StoredSettings,
   SyncItem,
   SyncPushResult,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import { runOps } from './agendas.ts'
 import { agendaSnapshot } from './agendas-apply.ts'
 import type {

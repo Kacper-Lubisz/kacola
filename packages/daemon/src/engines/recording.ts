@@ -1,13 +1,13 @@
 import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
-import { type CaptureSource, listDevices, PipeWireCaptureSource } from '@gnomeola/capture'
+import { type CaptureSource, listDevices, PipeWireCaptureSource } from '@kacola/capture'
 import {
   type AudioDevice,
   DEFAULT_SPEAKER_SETTINGS,
   type ModelInfo,
   type Track,
   type TrackKind,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import {
   CATALOG,
   createDiarizer,
@@ -18,7 +18,7 @@ import {
   type DiarizationSession,
   ModelManager,
   TranscriptionPipeline as SttPipeline,
-} from '@gnomeola/stt'
+} from '@kacola/stt'
 import { DaemonError } from '../errors.ts'
 import type {
   DeviceProvider,
@@ -30,7 +30,7 @@ import type {
   TranscriptionPipeline,
 } from '../interfaces.ts'
 
-// The real recording pipeline: @gnomeola/capture (PipeWire, two tracks) feeding @gnomeola/stt (VAD + live
+// The real recording pipeline: @kacola/capture (PipeWire, two tracks) feeding @kacola/stt (VAD + live
 // tier + final tier + reconciler), behind the daemon's TranscriptionPipeline seam.
 //
 // Gaps: capture pads missing time with synthetic silence in the WAV (so the file stays aligned with the
@@ -130,7 +130,7 @@ export class RecordingPipeline implements TranscriptionPipeline {
       if (s.state !== 'ready')
         throw new DaemonError(
           'unavailable',
-          `speech model ${id} is ${s.state}; download it first (gnomeola onboarding or Preferences)`,
+          `speech model ${id} is ${s.state}; download it first (kacola onboarding or Preferences)`,
         )
     }
 

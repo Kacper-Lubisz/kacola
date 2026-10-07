@@ -1,6 +1,6 @@
-// @gnomeola/store/blob — H-1: where audio bytes live, behind one small interface.
+// @kacola/store/blob — H-1: where audio bytes live, behind one small interface.
 //
-//   FsBlobStore      the local build (~/.local/share/gnomeola/blobs), and the hosted server in tests
+//   FsBlobStore      the local build (~/.local/share/kacola/blobs), and the hosted server in tests
 //   VercelBlobStore  Vercel Blob, private access (never a public URL: this is meeting audio)
 //   MemoryBlobStore  tests
 //
@@ -146,7 +146,7 @@ export type VercelBlobClient = {
 export type VercelBlobOptions = {
   /** BLOB_READ_WRITE_TOKEN of the project's Blob store. */
   token: string
-  /** Everything this deployment writes goes under this prefix (default `gnomeola/`). */
+  /** Everything this deployment writes goes under this prefix (default `kacola/`). */
   prefix?: string
   client?: VercelBlobClient
 }
@@ -159,7 +159,7 @@ export class VercelBlobStore implements BlobStore {
 
   constructor(opts: VercelBlobOptions) {
     this.token = opts.token
-    this.prefix = opts.prefix ?? 'gnomeola/'
+    this.prefix = opts.prefix ?? 'kacola/'
     this.client = opts.client ?? null
   }
 
@@ -215,5 +215,5 @@ export class VercelBlobStore implements BlobStore {
 /** Pick the blob store from the environment: Vercel Blob when a token is present, else the file system. */
 export function blobStoreFromEnv(env: Record<string, string | undefined>, fallbackDir: string): BlobStore {
   if (env.BLOB_READ_WRITE_TOKEN) return new VercelBlobStore({ token: env.BLOB_READ_WRITE_TOKEN })
-  return new FsBlobStore(env.GNOMEOLA_BLOB_DIR || fallbackDir)
+  return new FsBlobStore(env.KACOLA_BLOB_DIR || fallbackDir)
 }

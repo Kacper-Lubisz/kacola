@@ -1,9 +1,9 @@
 // Install the on-device decision embedder (text-embedding-minilm-l6-v2-int8, 23 MB, sha256-verified by the
 // model manager) into the test models dir, so the local provider's evals run with the real model:
 //
-//   node packages/decisions/scripts/fetch-embedder.ts [dir]      (default: ~/.cache/gnomeola/test-models)
-import { ModelManager } from '@gnomeola/stt'
-import { TEXT_EMBEDDER_ID, testModelsDir } from '@gnomeola/testkit/evals'
+//   node packages/decisions/scripts/fetch-embedder.ts [dir]      (default: ~/.cache/kacola/test-models)
+import { ModelManager } from '@kacola/stt'
+import { TEXT_EMBEDDER_ID, testModelsDir } from '@kacola/testkit/evals'
 
 const dir = process.argv[2] ?? testModelsDir()
 const models = new ModelManager({ dir })

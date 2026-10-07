@@ -1,4 +1,4 @@
-import type { SessionStatus } from '@gnomeola/protocol'
+import type { SessionStatus } from '@kacola/protocol'
 
 // The session state machine. Anything not in this table is an illegal transition (HTTP 409).
 //

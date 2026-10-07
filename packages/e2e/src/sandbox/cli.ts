@@ -17,7 +17,7 @@ import { homedir } from 'node:os'
 import { join, relative as relPath, resolve } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import { parseArgs } from 'node:util'
-import { createClient, DEFAULT_PORT, type GnomeolaClient, platformPaths } from '@gnomeola/protocol'
+import { createClient, DEFAULT_PORT, type KacolaClient, platformPaths } from '@kacola/protocol'
 import {
   meetingId,
   parseDuration,
@@ -62,8 +62,8 @@ export const USAGE = `pnpm sandbox <command>  — an isolated kacola with a mock
   card <scenario>      the script card to read aloud yourself (--audio mic)
   mail                 the sign-in codes the sharing server "emailed" (to open a link as Ana)
   providers [--llm …] [--decisions …]   switch the sandbox's providers live
-  cli -- <args>        run the gnomeola CLI against the sandbox
-  env                  print the GNOMEOLA_URL export for Claude Code / your shell
+  cli -- <args>        run the kacola CLI against the sandbox
+  env                  print the KACOLA_URL export for Claude Code / your shell
 
 options for every command:
   --dir DIR            the sandbox directory (default \${XDG_DATA_HOME:-~/.local/share}/kacola-sandbox,
@@ -108,11 +108,11 @@ export type SandboxState = {
 
 type Env = Record<string, string | undefined>
 
-/** The everyday kacola's data dir, as the daemon would resolve it without GNOMEOLA_DATA_DIR. */
+/** The everyday kacola's data dir, as the daemon would resolve it without KACOLA_DATA_DIR. */
 function realDataDir(env: Env): string {
   return platformPaths({
     platform: process.platform,
-    env: { ...env, GNOMEOLA_DATA_DIR: '' },
+    env: { ...env, KACOLA_DATA_DIR: '' },
     home: home(env),
   }).dataDir
 }
@@ -126,7 +126,7 @@ export function sandboxDir(flag: string | undefined, env: Env): string {
   )
   const inside = (a: string, b: string) => a === b || !relPath(b, a).startsWith('..')
   // the default data dir, and the one this shell points a daemon at (if any)
-  for (const real of [realDataDir(env), env.GNOMEOLA_DATA_DIR].filter(Boolean).map((d) => resolve(d!)))
+  for (const real of [realDataDir(env), env.KACOLA_DATA_DIR].filter(Boolean).map((d) => resolve(d!)))
     if (inside(dir, real) || inside(real, dir))
       throw new SandboxError(`refusing to use ${dir}: it overlaps your real kacola data (${real})`)
   if (dir === resolve(home(env)) || dir === '/')
@@ -259,7 +259,7 @@ function describeProviders(p: Providers, env: Env): string[] {
   return [`  Ask / Enhance / recaps: ${llm}`, `  Live check-offs:        ${decisions}`]
 }
 
-/** The settings PATCH that selects them (the fake LLM is chosen at daemon start: GNOMEOLA_FAKE_QA). */
+/** The settings PATCH that selects them (the fake LLM is chosen at daemon start: KACOLA_FAKE_QA). */
 function settingsFor(p: Providers) {
   return {
     llm: { provider: p.llm === 'fake' ? ('anthropic' as const) : p.llm },
@@ -277,24 +277,24 @@ function daemonEnv(
   const out: Env = { ...env }
   // nothing of the everyday daemon's set-up leaks in, and nothing here reaches the desktop session
   for (const k of Object.keys(out))
-    if (k.startsWith('GNOMEOLA_') || k === 'INVOCATION_ID' || k === 'ELECTRON_RUN_AS_NODE') delete out[k]
+    if (k.startsWith('KACOLA_') || k === 'INVOCATION_ID' || k === 'ELECTRON_RUN_AS_NODE') delete out[k]
   if (env.TYPESAFE_AI_API_KEY && !env.TYPESAFE_API_KEY) out.TYPESAFE_API_KEY = env.TYPESAFE_AI_API_KEY
   Object.assign(out, {
-    GNOMEOLA_DATA_DIR: p.data,
-    GNOMEOLA_KEYRING: 'memory',
-    GNOMEOLA_CALENDAR: `file:${p.calendar}`,
-    GNOMEOLA_DBUS: 'off',
-    GNOMEOLA_MIC_ACTIVITY: 'off',
-    GNOMEOLA_SHARE_URL: o.shareUrl,
-    GNOMEOLA_SHARE_TOKEN: o.adminToken,
-    GNOMEOLA_OWNER_NAME: 'You (sandbox)',
-    GNOMEOLA_OWNER_EMAIL: 'you@sandbox.test',
-    GNOMEOLA_SHARE_POLL_MS: '3000',
-    GNOMEOLA_RESUME_WINDOW_MS: '0',
+    KACOLA_DATA_DIR: p.data,
+    KACOLA_KEYRING: 'memory',
+    KACOLA_CALENDAR: `file:${p.calendar}`,
+    KACOLA_DBUS: 'off',
+    KACOLA_MIC_ACTIVITY: 'off',
+    KACOLA_SHARE_URL: o.shareUrl,
+    KACOLA_SHARE_TOKEN: o.adminToken,
+    KACOLA_OWNER_NAME: 'You (sandbox)',
+    KACOLA_OWNER_EMAIL: 'you@sandbox.test',
+    KACOLA_SHARE_POLL_MS: '3000',
+    KACOLA_RESUME_WINDOW_MS: '0',
   })
   if (o.audio === 'scripted') {
-    out.GNOMEOLA_FAKES = '1'
-    out.GNOMEOLA_FAKE_PIPELINE = JSON.stringify({
+    out.KACOLA_FAKES = '1'
+    out.KACOLA_FAKE_PIPELINE = JSON.stringify({
       scriptFile: p.play,
       scriptLive: true,
       speed: 1,
@@ -302,9 +302,9 @@ function daemonEnv(
       finalizeAfterMs: 600,
     })
   } else {
-    out.GNOMEOLA_MODELS_DIR = p.models
+    out.KACOLA_MODELS_DIR = p.models
   }
-  if (o.providers.llm === 'fake') out.GNOMEOLA_FAKE_QA = '1'
+  if (o.providers.llm === 'fake') out.KACOLA_FAKE_QA = '1'
   return out
 }
 
@@ -315,7 +315,7 @@ function daemonEnv(
 function linkModels(p: Paths, env: Env): number {
   const installed = platformPaths({
     platform: process.platform,
-    env: { ...env, GNOMEOLA_DATA_DIR: '' },
+    env: { ...env, KACOLA_DATA_DIR: '' },
     home: home(env),
   }).modelsDir
   mkdirSync(p.models, { recursive: true })
@@ -336,13 +336,13 @@ function linkModels(p: Paths, env: Env): number {
 /** On top of the daemon's environment: the window's separate profile, pointed at the sandbox daemon. */
 export function windowEnv(p: Paths, url: string): Env {
   return {
-    GNOMEOLA_URL: url,
-    GNOMEOLA_PROFILE: 'sandbox',
-    GNOMEOLA_USER_DATA_DIR: p.electron,
-    GNOMEOLA_UI_STATE_FILE: p.uiState,
-    GNOMEOLA_REGISTER_SCHEME: '0',
+    KACOLA_URL: url,
+    KACOLA_PROFILE: 'sandbox',
+    KACOLA_USER_DATA_DIR: p.electron,
+    KACOLA_UI_STATE_FILE: p.uiState,
+    KACOLA_REGISTER_SCHEME: '0',
     // if the window ever has to start a daemon itself, it is this sandbox's
-    GNOMEOLA_DAEMON_ARGS: JSON.stringify(['--data-dir', p.data]),
+    KACOLA_DAEMON_ARGS: JSON.stringify(['--data-dir', p.data]),
     ELECTRON_RUN_AS_NODE: undefined,
   }
 }
@@ -382,7 +382,7 @@ function ensureDesktopBuilt(out: (s: string) => void): string {
 type Out = { log: (s: string) => void; err: (s: string) => void }
 type Ctx = { p: Paths; env: Env; out: Out }
 
-const client = (st: SandboxState): GnomeolaClient => createClient({ baseUrl: st.url, timeoutMs: 15_000 })
+const client = (st: SandboxState): KacolaClient => createClient({ baseUrl: st.url, timeoutMs: 15_000 })
 
 function running(c: Ctx): SandboxState {
   const st = readState(c.p)
@@ -432,7 +432,7 @@ async function start(c: Ctx, o: Record<string, string | boolean | undefined>): P
       ...meetings.filter((m) => m.origin === 'user' && Date.parse(m.end) > now),
     ]
   writeMeetings(p, meetings)
-  const firstRun = !existsSync(join(p.data, 'gnomeola.db'))
+  const firstRun = !existsSync(join(p.data, 'kacola.db'))
   if (firstRun) {
     const { seedPast } = await import('./seed.ts')
     seedPast(p.data, meetings)
@@ -549,7 +549,7 @@ async function start(c: Ctx, o: Record<string, string | boolean | undefined>): P
   printDay(c, readMeetings(p.meetings))
   out.log('')
   out.log('For Claude Code or another shell:')
-  out.log(`  export GNOMEOLA_URL=${url}`)
+  out.log(`  export KACOLA_URL=${url}`)
   out.log('')
   const s = pick ? scenario(pick)! : SCENARIOS[0]!
   if (audio === 'scripted') {
@@ -923,14 +923,14 @@ async function statusCmd(c: Ctx) {
     c.out.log(
       `  (daemon: decisions ${h.decisions.provider}${h.decisions.ready ? ' ready' : ` not ready: ${h.decisions.detail}`})`,
     )
-  c.out.log(`export GNOMEOLA_URL=${st.url}`)
+  c.out.log(`export KACOLA_URL=${st.url}`)
 }
 
 function cliCmd(c: Ctx, args: string[]): number {
   const st = running(c)
   const r = spawnSync(process.execPath, [CLI_MAIN, ...args], {
     stdio: 'inherit',
-    env: { ...(c.env as NodeJS.ProcessEnv), GNOMEOLA_URL: st.url, GNOMEOLA_TOKEN: '' },
+    env: { ...(c.env as NodeJS.ProcessEnv), KACOLA_URL: st.url, KACOLA_TOKEN: '' },
   })
   return r.status ?? 1
 }
@@ -960,7 +960,7 @@ const OPTIONS = {
 } as const
 
 export async function main(argv: string[], env: Env = process.env, out: Out = defaultOut): Promise<number> {
-  // `cli -- <args>`: everything after `--` goes to gnomeola untouched
+  // `cli -- <args>`: everything after `--` goes to kacola untouched
   const dash = argv.indexOf('--')
   const passthrough = dash >= 0 ? argv.slice(dash + 1) : []
   const own = dash >= 0 ? argv.slice(0, dash) : argv
@@ -1022,7 +1022,7 @@ export async function main(argv: string[], env: Env = process.env, out: Out = de
       case 'cli':
         return cliCmd(c, [...rest, ...passthrough])
       case 'env':
-        out.log(`export GNOMEOLA_URL=${running(c).url}`)
+        out.log(`export KACOLA_URL=${running(c).url}`)
         return 0
       default:
         out.err(`unknown command ${cmd}\n\n${USAGE}`)

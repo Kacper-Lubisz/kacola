@@ -5,7 +5,7 @@
 //   - relevance / injection / next point / interview: the tracker's gate, SpeechGuard, ranking and
 //     interview path on their datasets.
 // Local provider (hashing embedder always; MiniLM when installed), compared to committed baselines in
-// test/fixtures/baselines/tracker-evals (record with GNOMEOLA_UPDATE_BASELINES=1). The numbers are honest
+// test/fixtures/baselines/tracker-evals (record with KACOLA_UPDATE_BASELINES=1). The numbers are honest
 // measurements, not targets: nothing is tuned against them. Budgets are printed, enforced only live.
 import { join } from 'node:path'
 import {
@@ -20,14 +20,14 @@ import {
   runRealCoverageSuite,
   runRelevanceSuite,
   runStatusSuite,
-} from '@gnomeola/evals'
+} from '@kacola/evals'
 import {
   checkBaseline,
   formatScorecard,
   loadDataset,
   type Scorecard,
   writeScorecard,
-} from '@gnomeola/testkit/evals'
+} from '@kacola/testkit/evals'
 import { afterAll, describe, expect, it } from 'vitest'
 import {
   trackerInjectionRunner,
@@ -48,7 +48,7 @@ function report(c: Scorecard) {
   const cmp = checkBaseline(c, bandsFor(c), { dir: TRACKER_BASELINES })
   expect(
     cmp,
-    `no tracker baseline for ${c.suite} ${c.model}; record with GNOMEOLA_UPDATE_BASELINES=1`,
+    `no tracker baseline for ${c.suite} ${c.model}; record with KACOLA_UPDATE_BASELINES=1`,
   ).not.toBeNull()
   expect(cmp!.failures, `${c.suite} ${c.model}`).toEqual([])
 }

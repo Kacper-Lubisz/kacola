@@ -8,8 +8,8 @@ import {
   type StoredSettings,
   type Voiceprint,
   type VoiceprintSummary,
-} from '@gnomeola/protocol'
-import type { Store } from '@gnomeola/store'
+} from '@kacola/protocol'
+import type { Store } from '@kacola/store'
 import type { KnownVoice, SpeakerVoices } from './interfaces.ts'
 import type { Logger } from './logger.ts'
 import type { SessionManager } from './sessions.ts'

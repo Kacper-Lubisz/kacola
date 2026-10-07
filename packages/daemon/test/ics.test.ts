@@ -3,7 +3,7 @@ import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import type { CalendarState } from '@gnomeola/protocol'
+import type { CalendarState } from '@kacola/protocol'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RawOccurrence } from '../src/calendar/agent-protocol.ts'
 import { expandIcs, IcsCalendarProvider, ianaZone, icsSourceUid } from '../src/calendar/ics.ts'
@@ -445,7 +445,7 @@ describe('IcsCalendarProvider — file', () => {
   let dir: string
   let p: IcsCalendarProvider | null = null
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'gnomeola-ics-'))
+    dir = mkdtempSync(join(tmpdir(), 'kacola-ics-'))
   })
   afterEach(async () => {
     await p?.stop()

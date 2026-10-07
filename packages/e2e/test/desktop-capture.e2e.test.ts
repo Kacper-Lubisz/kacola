@@ -1,16 +1,16 @@
-import type { AnyEvent, DurableEvent, Segment } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import type { AnyEvent, DurableEvent, Segment } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import {
   buildDesktop,
   type DesktopApp,
   launchDesktop,
   waitForDaemon,
   waitForLog,
-} from '@gnomeola/testkit/desktop'
-import { loadFixture } from '@gnomeola/testkit/fixtures'
-import { assertNoViolations, checkEventLog, checkSegments } from '@gnomeola/testkit/invariants'
-import { compareToBaseline, readBaseline, wer } from '@gnomeola/testkit/metrics'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+} from '@kacola/testkit/desktop'
+import { loadFixture } from '@kacola/testkit/fixtures'
+import { assertNoViolations, checkEventLog, checkSegments } from '@kacola/testkit/invariants'
+import { compareToBaseline, readBaseline, wer } from '@kacola/testkit/metrics'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { markOnboarded } from '../src/desktop.ts'
 
@@ -41,12 +41,12 @@ let levelEvents = 0
 beforeAll(async () => {
   buildDesktop()
   display = await startHeadlessDisplay({ size: '1280x800' })
-  markerId = display.env.GNOMEOLA_HEADLESS_ID!
+  markerId = display.env.KACOLA_HEADLESS_ID!
   markOnboarded(display)
-  daemon = await startDaemon({ fake: false, env: { GNOMEOLA_CAPTURE: 'external' } })
+  daemon = await startDaemon({ fake: false, env: { KACOLA_CAPTURE: 'external' } })
   app = await launchDesktop({
     display,
-    env: { GNOMEOLA_URL: daemon.baseUrl },
+    env: { KACOLA_URL: daemon.baseUrl },
     args: [
       '--use-fake-device-for-media-stream',
       // %noloop: play the meeting once (Chromium's fake device loops the file by default)
@@ -100,11 +100,7 @@ describe('recording through the app’s own capture (daemon backend: external)',
       await app.evaluateMain(({ BrowserWindow }) =>
         BrowserWindow.getAllWindows().map((w) => ({ visible: w.isVisible(), title: w.getTitle() })),
       ),
-    ).toEqual(
-      expect.arrayContaining([
-        { visible: false, title: expect.stringMatching(/^(kacola|gnomeola) capture$/) },
-      ]),
-    )
+    ).toEqual(expect.arrayContaining([{ visible: false, title: expect.stringMatching(/^kacola capture$/) }]))
     // the live page: the recording pill runs, and the quiet "can't hear you" line never shows while
     // the fixture is heard (no level meters any more: levels only feed that warning). The system track
     // is unfed here (no loopback in Linux Chromium), so "can't hear the other side" may rightly appear.

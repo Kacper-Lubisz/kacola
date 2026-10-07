@@ -6,7 +6,7 @@ import { TrackKind } from './schemas.ts'
 // would PipeWire's.
 //
 // Transport: one long-lived streaming POST per track, `POST /capture/external/:sessionId/:track` with
-// `content-type: application/vnd.gnomeola.pcm-frames`, whose body is a sequence of frames:
+// `content-type: application/vnd.kacola.pcm-frames`, whose body is a sequence of frames:
 //
 //   offset  size  field
 //        0     4  magic "GPCM"
@@ -28,7 +28,7 @@ import { TrackKind } from './schemas.ts'
 // IngestResult) is sent when the request body ends, or early when the recording stops or another stream
 // supersedes this one.
 
-export const PCM_FRAME_CONTENT_TYPE = 'application/vnd.gnomeola.pcm-frames'
+export const PCM_FRAME_CONTENT_TYPE = 'application/vnd.kacola.pcm-frames'
 export const PCM_FRAME_MAGIC = 0x4d435047 // "GPCM" read as u32 LE
 export const PCM_FRAME_VERSION = 1
 export const PCM_FRAME_HEADER_BYTES = 24

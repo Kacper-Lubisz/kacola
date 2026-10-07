@@ -6,14 +6,14 @@ import {
   type AgendaSummary,
   type AgendaView,
   type ContextCard,
-  GnomeolaApiError,
+  KacolaApiError,
   type Meeting,
   parseDuration,
   parseItemText,
   type StatusChange,
   type Suggestion,
   SuggestionKind,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import type { Ctx } from '../context.ts'
 import { CliError, EXIT, refused, usage } from '../errors.ts'
 import { leaseAgenda } from '../lease.ts'
@@ -169,7 +169,7 @@ export async function resolveAgendaId(ctx: Ctx, input: string | undefined): Prom
       throw new CliError(
         EXIT.NOT_FOUND,
         `"${m.title}" has no agenda yet`,
-        'create one: gnomeola agenda create --meeting next',
+        'create one: kacola agenda create --meeting next',
       )
     return r.agenda.agenda.id
   }
@@ -253,7 +253,7 @@ function requireCalendar(c: { state: string; detail: string | null }): void {
     throw new CliError(
       EXIT.UNAVAILABLE,
       'calendar reading is off in the daemon',
-      'set GNOMEOLA_CALENDAR=eds for gnomeolad',
+      'set KACOLA_CALENDAR=eds for kacolad',
     )
   if (c.state === 'unavailable')
     throw new CliError(EXIT.UNAVAILABLE, `calendar unavailable: ${c.detail ?? 'unknown reason'}`)
@@ -305,18 +305,18 @@ function requireLease(ctx: Ctx, what: string): NonNullable<Ctx['lease']> {
     throw new CliError(
       EXIT.LEASE,
       `${what} needs a live lease (suggestions come from a connected agent)`,
-      'attach first: gnomeola live attach [--as NAME] — and keep it running while you suggest',
+      'attach first: kacola live attach [--as NAME] — and keep it running while you suggest',
     )
   return ctx.lease
 }
 
 function conflictHint(err: unknown): never {
-  if (err instanceof GnomeolaApiError && err.code === 'conflict')
+  if (err instanceof KacolaApiError && err.code === 'conflict')
     throw new CliError(
       EXIT.ERROR,
       err.message,
       /already has an agenda/.test(err.message)
-        ? 'rerun with --reuse to add to it, or see it with `gnomeola agenda show next`'
+        ? 'rerun with --reuse to add to it, or see it with `kacola agenda show next`'
         : /version|changed/.test(err.message)
           ? 'export it again and reapply your edit'
           : undefined,
@@ -345,7 +345,7 @@ async function printView(ctx: Ctx, v: AgendaView, o: { full?: boolean; history?:
   if (!o.full && tokens > BUDGET.agenda)
     throw refused(
       `the agenda "${v.agenda.title}" is ~${tokens} tokens, over the ${BUDGET.agenda}-token ceiling`,
-      'use `gnomeola agenda export` for the compact markdown form, or --full',
+      'use `kacola agenda export` for the compact markdown form, or --full',
     )
   if (ctx.format === 'json') return ctx.io.stdout(json)
   ctx.io.stdout(viewText(v))
@@ -367,7 +367,7 @@ export type CreateOpts = SourceOpts & {
 
 export async function agendaCreate(ctx: Ctx, o: CreateOpts) {
   if (!o.meeting && !o.title && !o.from && !o.stdin)
-    throw usage('say which meeting (--meeting next|today|<id>) or give a --title', 'see gnomeola --help')
+    throw usage('say which meeting (--meeting next|today|<id>) or give a --title', 'see kacola --help')
   const markdown = await readSource(ctx, o, 'the agenda')
   const meeting = o.meeting ? await resolveMeeting(ctx, o.meeting) : {}
   const v = await ctx.client
@@ -443,7 +443,7 @@ export async function agendaAdd(ctx: Ctx, ref: string | undefined, texts: string
   if (!texts.length)
     throw usage(
       'what should be added?',
-      'gnomeola agenda add <agenda> "Promo timeline (10m, @ana) [must-cover]"',
+      'kacola agenda add <agenda> "Promo timeline (10m, @ana) [must-cover]"',
     )
   const id = await resolveAgendaId(ctx, ref)
   const before = o.before ? resolveItem(await view(ctx, id), o.before).id : undefined
@@ -665,7 +665,7 @@ export type SuggestOpts = { agenda?: string; kind?: string; item?: string }
 
 export async function suggest(ctx: Ctx, text: string, o: SuggestOpts) {
   if (!text.trim())
-    throw usage('what is the suggestion?', 'gnomeola suggest "ask about the Q1 hiring plan" --kind question')
+    throw usage('what is the suggestion?', 'kacola suggest "ask about the Q1 hiring plan" --kind question')
   const k = SuggestionKind.safeParse(o.kind)
   const kinds = SuggestionKind.options.filter((x) => x !== 'set-status' && x !== 'add-item')
   if (!k.success || !(kinds as string[]).includes(k.data))

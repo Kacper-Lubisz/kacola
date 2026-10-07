@@ -9,12 +9,12 @@ import {
   type DecisionRequest,
   HashingEmbedder,
   LocalDecisionProvider,
-} from '@gnomeola/decisions'
-import { agendaFixtures, fakeProviders, runStatusSuite } from '@gnomeola/evals'
-import { LlmError, type LlmProvider } from '@gnomeola/llm'
-import type { AgendaItemKind, AnyEvent, TrackerStatus } from '@gnomeola/protocol'
-import { AgendaStore, Store } from '@gnomeola/store'
-import { assertNoViolations, checkAgendaLog, checkEventLog } from '@gnomeola/testkit/invariants'
+} from '@kacola/decisions'
+import { agendaFixtures, fakeProviders, runStatusSuite } from '@kacola/evals'
+import { LlmError, type LlmProvider } from '@kacola/llm'
+import type { AgendaItemKind, AnyEvent, TrackerStatus } from '@kacola/protocol'
+import { AgendaStore, Store } from '@kacola/store'
+import { assertNoViolations, checkAgendaLog, checkEventLog } from '@kacola/testkit/invariants'
 import { describe, expect, it } from 'vitest'
 import { AgendaTracker, type TrackerOptions } from '../src/agendas/tracker.ts'
 import { trackerStatusRunner } from '../src/agendas/tracker-eval.ts'

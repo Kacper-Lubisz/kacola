@@ -6,8 +6,8 @@ import type {
   Meeting,
   ModelInfo,
   TrackKind,
-} from '@gnomeola/protocol'
-import type { PartialLine } from '@gnomeola/ui-core/transcript'
+} from '@kacola/protocol'
+import type { PartialLine } from '@kacola/ui-core/transcript'
 import { createStore } from 'zustand/vanilla'
 
 // Everything that is NOT server state lives here (React Query holds the server state): the event

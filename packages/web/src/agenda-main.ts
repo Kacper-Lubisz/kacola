@@ -1,4 +1,4 @@
-import { createClient, GnomeolaApiError, PARTICIPANT_HEADER, type SharedAgendaPage } from '@gnomeola/protocol'
+import { createClient, KacolaApiError, PARTICIPANT_HEADER, type SharedAgendaPage } from '@kacola/protocol'
 import {
   agendaData,
   occurrenceOf,
@@ -70,7 +70,7 @@ async function load(): Promise<void> {
     if (page.you && step.step !== 'ready') step = { step: 'ready', email: page.you.email }
     draw()
   } catch (err) {
-    if (err instanceof GnomeolaApiError && (err.status === 404 || err.status === 410)) {
+    if (err instanceof KacolaApiError && (err.status === 404 || err.status === 410)) {
       main.innerHTML = renderGone(err.status)
       side.innerHTML = ''
       foot.innerHTML = PROMO
@@ -84,7 +84,7 @@ const value = (f: HTMLFormElement, name: string) =>
   ((f.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | null)?.value ?? '').trim()
 
 function failure(err: unknown): string {
-  if (err instanceof GnomeolaApiError) {
+  if (err instanceof KacolaApiError) {
     if (err.status === 429) return 'Too many attempts. Please wait a few minutes and try again.'
     return err.message
   }

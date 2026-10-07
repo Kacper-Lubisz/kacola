@@ -1,8 +1,8 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient } from '@gnomeola/protocol'
-import { DbusCallError, DbusProbe, type PrivateBus, startPrivateBus } from '@gnomeola/testkit/dbus'
+import { createClient } from '@kacola/protocol'
+import { DbusCallError, DbusProbe, type PrivateBus, startPrivateBus } from '@kacola/testkit/dbus'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ManualCalendarProvider } from '../src/calendar/providers.ts'
 import { createDaemon, type Daemon } from '../src/daemon.ts'
@@ -12,7 +12,7 @@ import { FakePipeline } from '../src/fakes/pipeline.ts'
 import { MemoryKeyring } from '../src/keyring.ts'
 import { at, occ } from './calendar-helpers.ts'
 
-// V-4a: the org.gnome.Gnomeola contract against a REAL (private) session bus — a real dbus-daemon, the
+// V-4a: the com.kacperlubisz.Kacola contract against a REAL (private) session bus — a real dbus-daemon, the
 // real GJS bridge, the real daemon — observed through a Gio.DBusProxy exactly as the Shell extension
 // sees it. Every property, method and signal, including each state the extension has to render.
 
@@ -23,7 +23,7 @@ let cal: ManualCalendarProvider
 let probe: DbusProbe
 
 async function daemonOn(address: string, calendar = new ManualCalendarProvider()) {
-  const dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-dbus-'))
+  const dataDir = mkdtempSync(join(tmpdir(), 'kacola-dbus-'))
   const daemon = await createDaemon({
     dataDir,
     port: 0,
@@ -204,10 +204,10 @@ describe('methods and signals', () => {
     expect((await d.store.getSession(id))?.status).toBe('recording')
   })
 
-  it('Start while recording → org.gnome.Gnomeola.Error.Conflict', async () => {
+  it('Start while recording → com.kacperlubisz.Kacola.Error.Conflict', async () => {
     const err = await probe.call('Start', '(s)', ['Second']).catch((e: DbusCallError) => e)
     expect(err).toBeInstanceOf(DbusCallError)
-    expect((err as DbusCallError).dbusName).toBe('org.gnome.Gnomeola.Error.Conflict')
+    expect((err as DbusCallError).dbusName).toBe('com.kacperlubisz.Kacola.Error.Conflict')
     expect((err as DbusCallError).message).toMatch(/already recording "Quick chat"/)
   })
 
@@ -228,8 +228,12 @@ describe('methods and signals', () => {
     await probe.until((x) => x.State === 'idle' && x.SessionId === '' && x.LastLine === '')
     await probe.waitFor((m) => m.type === 'signal' && m.name === 'SessionStopped')
     expect(probe.signals('SessionStopped')).toContainEqual([id, 'stopped'])
-    await expect(probe.call('Stop')).rejects.toMatchObject({ dbusName: 'org.gnome.Gnomeola.Error.Conflict' })
-    await expect(probe.call('Pause')).rejects.toMatchObject({ dbusName: 'org.gnome.Gnomeola.Error.Conflict' })
+    await expect(probe.call('Stop')).rejects.toMatchObject({
+      dbusName: 'com.kacperlubisz.Kacola.Error.Conflict',
+    })
+    await expect(probe.call('Pause')).rejects.toMatchObject({
+      dbusName: 'com.kacperlubisz.Kacola.Error.Conflict',
+    })
   })
 
   it('Join → (session, join link): records a session linked to and titled after the meeting', async () => {
@@ -255,7 +259,7 @@ describe('methods and signals', () => {
     await probe.call('Stop')
     await probe.until((x) => x.State === 'idle')
     await expect(probe.call('Join', '(s)', ['mtg_nope'])).rejects.toMatchObject({
-      dbusName: 'org.gnome.Gnomeola.Error.NotFound',
+      dbusName: 'com.kacperlubisz.Kacola.Error.NotFound',
     })
   })
 

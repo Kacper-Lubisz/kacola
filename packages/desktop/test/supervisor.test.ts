@@ -93,7 +93,7 @@ describe('DaemonSupervisor', () => {
     expect(w.spawns[0]).toEqual({
       cmd: '/app/electron',
       args: ['/app/daemon.mjs', '--host', '127.0.0.1', '--port', '8787', '--data-dir', '/tmp/d'],
-      env: { HOME: '/home/u', ELECTRON_RUN_AS_NODE: '1', GNOMEOLA_SUPERVISED: '1' },
+      env: { HOME: '/home/u', ELECTRON_RUN_AS_NODE: '1', KACOLA_SUPERVISED: '1' },
     })
     expect(w.statuses.map((x) => x.kind)).toEqual(['starting', 'spawned'])
   })
@@ -123,7 +123,7 @@ describe('DaemonSupervisor', () => {
     await sup.start()
     w.healthyAfterSpawn = false
     w.children[0]!.exit(1)
-    w.up = true // e.g. the user started gnomeolad from systemd
+    w.up = true // e.g. the user started kacolad from systemd
     await until(() => sup.status.kind === 'attached')
     expect(w.spawns).toHaveLength(1)
   })
@@ -137,7 +137,7 @@ describe('DaemonSupervisor', () => {
   })
 
   it('never spawns for a remote URL: unreachable, then attached when it answers', async () => {
-    const { w, sup } = world({ baseUrl: 'https://gnomeola.example.com', loopback: false })
+    const { w, sup } = world({ baseUrl: 'https://kacola.example.com', loopback: false })
     expect(await sup.start()).toMatchObject({ kind: 'unreachable' })
     w.up = true
     await until(() => sup.status.kind === 'attached')
@@ -181,7 +181,7 @@ describe('DaemonSupervisor', () => {
     w.children[0]!.exit(75)
     await until(() => w.statuses.some((s) => s.kind === 'restarting'))
     expect(w.statuses.find((s) => s.kind === 'restarting')).toMatchObject({
-      lastError: expect.stringContaining('another gnomeola daemon owns the data dir'),
+      lastError: expect.stringContaining('another kacola daemon owns the data dir'),
     })
   })
 

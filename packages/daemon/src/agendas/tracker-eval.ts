@@ -1,13 +1,13 @@
-import type { AgendaItemInput, DecisionProvider, DecisionResult } from '@gnomeola/decisions'
-import { estimateCostUsd, type LlmProvider, recapItem } from '@gnomeola/llm'
-import type { AgendaItemStatus, Segment, Session } from '@gnomeola/protocol'
-import { AgendaStore, Store } from '@gnomeola/store'
+import type { AgendaItemInput, DecisionProvider, DecisionResult } from '@kacola/decisions'
+import { estimateCostUsd, type LlmProvider, recapItem } from '@kacola/llm'
+import type { AgendaItemStatus, Segment, Session } from '@kacola/protocol'
+import { AgendaStore, Store } from '@kacola/store'
 import { Logger } from '../logger.ts'
 import { decisionSpeechGuard } from './speech-guard.ts'
 import { AgendaTracker, type RoundObservation, type TrackerOptions } from './tracker.ts'
 import { gateSegment, type LiveItem, rankNextPoint, statusRound } from './tracker-logic.ts'
 
-// Agendas wave 2 — the eval runners over the REAL tracker code path (the hooks of @gnomeola/evals, typed
+// Agendas wave 2 — the eval runners over the REAL tracker code path (the hooks of @kacola/evals, typed
 // structurally here so the daemon does not depend on the eval package):
 //
 //   trackerStatusRunner   drives an AgendaTracker over an in-memory store: each fixture utterance becomes a
@@ -270,7 +270,7 @@ export function trackerInterviewRunner(provider: DecisionProvider, mode: Mode) {
 }
 
 /**
- * The recap as the daemon writes it (recap.ts → @gnomeola/llm recapItem: the transcript as the cached
+ * The recap as the daemon writes it (recap.ts → @kacola/llm recapItem: the transcript as the cached
  * prefix, the item as the tail), on a RecapCase: its turns become one recording's segments.
  */
 export function trackerRecapRunner(llm: LlmProvider) {

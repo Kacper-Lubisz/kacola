@@ -1,4 +1,4 @@
-import type { AnyEvent, Session } from '@gnomeola/protocol'
+import type { AnyEvent, Session } from '@kacola/protocol'
 import { displayTitle } from './format.ts'
 
 // The session list as the UI sees it, and the pure fold that keeps it current. The store feeds it

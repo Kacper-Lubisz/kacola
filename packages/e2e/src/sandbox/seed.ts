@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { NoteStore, Store } from '@gnomeola/store'
+import { NoteStore, Store } from '@kacola/store'
 import { CALENDAR_NAME, meetingId, type SandboxMeeting } from './calendar.ts'
 
 // Past meetings for a new sandbox, written through the store's own API (so the event log is what the
@@ -46,7 +46,7 @@ const PAST: { uid: string; private?: boolean; notes?: string; lines: Line[] }[] 
 ]
 
 export function seedPast(dataDir: string, meetings: SandboxMeeting[]): string[] {
-  const store = Store.open(join(dataDir, 'gnomeola.db'))
+  const store = Store.open(join(dataDir, 'kacola.db'))
   const notes = new NoteStore(store)
   const made: string[] = []
   let n = 0

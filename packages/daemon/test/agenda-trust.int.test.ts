@@ -1,5 +1,5 @@
-import type { GnomeolaApiError } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
+import type { KacolaApiError } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // UX trust fixes on agendas, through the real daemon process: "send the agenda" never hands out a link an
@@ -9,9 +9,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 describe('agenda trust fixes', () => {
   let d: DaemonHandle
   beforeAll(async () => {
-    // no GNOMEOLA_SHARE_URL / TOKEN: hosted sharing is not configured
+    // no KACOLA_SHARE_URL / TOKEN: hosted sharing is not configured
     d = await startDaemon({
-      env: { GNOMEOLA_SHARE_URL: '', GNOMEOLA_SHARE_TOKEN: '', GNOMEOLA_SYNC_URL: '' },
+      env: { KACOLA_SHARE_URL: '', KACOLA_SHARE_TOKEN: '', KACOLA_SYNC_URL: '' },
     })
   })
   afterAll(async () => {
@@ -42,7 +42,7 @@ describe('agenda trust fixes', () => {
     const missing = await c
       .call('sendAgenda', { params: { id: 'agd_nope' }, body: {} })
       .catch((e: unknown) => e)
-    expect((missing as GnomeolaApiError).status).toBe(404)
+    expect((missing as KacolaApiError).status).toBe(404)
   })
 
   it('item history: edits, adds, removes and imports are recorded; restore puts an item back', async () => {
@@ -94,6 +94,6 @@ describe('agenda trust fixes', () => {
     const bad = await c
       .call('restoreAgendaItem', { params: { id, itemId: budget }, body: { seq: 999_999 } })
       .catch((e: unknown) => e)
-    expect((bad as GnomeolaApiError).status).toBe(404)
+    expect((bad as KacolaApiError).status).toBe(404)
   })
 })

@@ -1,15 +1,15 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { formatAgendaLink } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import { formatAgendaLink } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import {
   buildDesktop,
   type DesktopApp,
   launchDesktop,
   launchSecondInstance,
   waitForLog,
-} from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+} from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { markOnboarded } from '../src/desktop.ts'
 
@@ -24,7 +24,7 @@ let markerId = ''
 beforeAll(async () => {
   buildDesktop()
   display = await startHeadlessDisplay({ size: '1280x800' })
-  markerId = display.env.GNOMEOLA_HEADLESS_ID!
+  markerId = display.env.KACOLA_HEADLESS_ID!
   markOnboarded(display)
 }, 240_000)
 
@@ -51,7 +51,7 @@ describe('kacola:// links against the real daemon', () => {
   let daemon: DaemonHandle
   let app: DesktopApp
   let agendaUrl = ''
-  const env = () => ({ GNOMEOLA_URL: daemon.baseUrl })
+  const env = () => ({ KACOLA_URL: daemon.baseUrl })
 
   beforeAll(async () => {
     daemon = await startDaemon()
@@ -77,15 +77,15 @@ describe('kacola:// links against the real daemon', () => {
     // the taken URL are what this start can prove; the warm cases below see both lines)
     expect(lines(app, delivered(agendaUrl))).toHaveLength(1)
     // taken once: a second take has nothing
-    expect(await app.window.evaluate('window.gnomeola.takeDeepLink()')).toBeNull()
-    // dev on Linux never registers the scheme with xdg-settings (GNOMEOLA_REGISTER_SCHEME unset)
+    expect(await app.window.evaluate('window.kacola.takeDeepLink()')).toBeNull()
+    // dev on Linux never registers the scheme with xdg-settings (KACOLA_REGISTER_SCHEME unset)
     const mimeapps = join(display.env.XDG_CONFIG_HOME!, 'mimeapps.list')
     expect(existsSync(mimeapps) ? readFileSync(mimeapps, 'utf8') : '').not.toContain('kacola')
   })
 
   it('warm: a second launch with a link hands it to the running window and exits', async () => {
     await app.window.evaluate(
-      'window.gnomeola.onDeepLink((u) => { globalThis.__links = [...(globalThis.__links ?? []), u] })',
+      'window.kacola.onDeepLink((u) => { globalThis.__links = [...(globalThis.__links ?? []), u] })',
     )
     const v = await daemon.client.call('createAgenda', { body: { title: 'Warm sync' } })
     const url = formatAgendaLink(v.agenda.id)
@@ -98,7 +98,7 @@ describe('kacola:// links against the real daemon', () => {
     await expect.poll(() => pushed(app)).toEqual([url])
     await app.window.getByRole('heading', { level: 1, name: 'Warm sync' }).waitFor({ timeout: 15_000 })
     // pushed, so nothing is left to take
-    expect(await app.window.evaluate('window.gnomeola.takeDeepLink()')).toBeNull()
+    expect(await app.window.evaluate('window.kacola.takeDeepLink()')).toBeNull()
   })
 
   it('arguments that are not agenda / meeting links are ignored', async () => {
@@ -115,7 +115,7 @@ describe('kacola:// links against the real daemon', () => {
     await new Promise((r) => setTimeout(r, 1000))
     expect(deepLinkLines(app).slice(before)).toEqual([])
     expect(await pushed(app)).toHaveLength(1)
-    expect(await app.window.evaluate('window.gnomeola.takeDeepLink()')).toBeNull()
+    expect(await app.window.evaluate('window.kacola.takeDeepLink()')).toBeNull()
   })
 
   it('a link re-opens a closed window, even with --background; the new page takes it', async () => {

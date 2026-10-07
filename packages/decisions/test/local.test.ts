@@ -1,4 +1,4 @@
-import { findTextEmbedder, NO_EMBEDDER_REASON } from '@gnomeola/testkit/evals'
+import { findTextEmbedder, NO_EMBEDDER_REASON } from '@kacola/testkit/evals'
 import { describe, expect, it } from 'vitest'
 import { cosine, HashingEmbedder, OnnxEmbedder } from '../src/local/embedder.ts'
 import { LocalDecisionProvider } from '../src/local/provider.ts'

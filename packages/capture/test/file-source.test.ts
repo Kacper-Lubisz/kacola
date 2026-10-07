@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { detectBursts, encodeWav16, synthesize } from '@gnomeola/testkit/rig'
+import { detectBursts, encodeWav16, synthesize } from '@kacola/testkit/rig'
 import { describe, expect, it } from 'vitest'
 import {
   encodeWavHeader,

@@ -1,4 +1,4 @@
-import { aiErrorCopy, type SendAgendaBody, type SendAgendaResult } from '@gnomeola/protocol'
+import { aiErrorCopy, type SendAgendaBody, type SendAgendaResult } from '@kacola/protocol'
 import { DaemonError } from '../errors.ts'
 import type { AgendaService } from './service.ts'
 import type { SharingService } from './sharing.ts'

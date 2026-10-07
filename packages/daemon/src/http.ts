@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { encodeSse, encodeSseComment, type SseMessage } from '@gnomeola/protocol'
+import { encodeSse, encodeSseComment, type SseMessage } from '@kacola/protocol'
 import { DaemonError } from './errors.ts'
 
 export const MAX_BODY_BYTES = 1024 * 1024

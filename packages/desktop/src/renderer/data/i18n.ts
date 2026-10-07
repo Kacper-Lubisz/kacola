@@ -1,4 +1,4 @@
-import type { Translator } from '@gnomeola/ui-core/i18n'
+import type { Translator } from '@kacola/ui-core/i18n'
 import type { Catalogue } from '../../shared/bridge.ts'
 
 /**

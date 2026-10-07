@@ -1,43 +1,43 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { Atlas, SHOTS, type Theme, writeCropped } from '@gnomeola/testkit/atlas'
+import { Atlas, SHOTS, type Theme, writeCropped } from '@kacola/testkit/atlas'
 import {
   extensionState,
-  type FakeGnomeola,
-  GNOMEOLA_EXTENSION,
-  GNOMEOLA_UUID,
+  type FakeKacola,
+  KACOLA_EXTENSION,
+  KACOLA_UUID,
   shellEval,
-  startFakeGnomeola,
+  startFakeKacola,
   UNSAFE_MODE_EXTENSION,
-} from '@gnomeola/testkit/shell'
-import { type HeadlessDisplay, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+} from '@kacola/testkit/shell'
+import { type HeadlessDisplay, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // The screen atlas, top-bar part: the REAL extension in a throwaway nested GNOME Shell 50 (the
 // shell-extension e2e's harness: private buses and HOME, a test companion that unlocks Eval in that
-// Shell only), fed by the scriptable org.gnome.Gnomeola service. Each state is asserted from the
+// Shell only), fed by the scriptable com.kacperlubisz.Kacola service. Each state is asserted from the
 // indicator's actual actors (icon, accessible name, menu item keys) before the Shell screenshots the
 // screen; the shot is cropped to the indicator and its open menu (or the notification banner), in the
 // Shell's light and dark styles. Times are pinned so the pictures do not move: meetings are tomorrow
 // (the menu shows "Tomorrow 09:30–09:45"), the recording's elapsed time is a fixed ElapsedMs with no
 // running stretch, and the starting-soon notification is for a meeting already under way ("now").
 
-const UNSAFE_UUID = 'unsafe-mode@gnomeola.test'
+const UNSAFE_UUID = 'unsafe-mode@kacola.test'
 
 type Indicator = { accessibleName: string; icon: string; label: string; keys: string[] }
 const DESCRIBE = `(() => {
-  const b = Main.panel.statusArea['${GNOMEOLA_UUID}']
+  const b = Main.panel.statusArea['${KACOLA_UUID}']
   if (!b) return null
   return {
     accessibleName: b.accessible_name,
     icon: b._icon.icon_name,
     label: b._label.visible ? b._label.text : '',
-    keys: b.menu._getMenuItems().map((i) => i._gnomeolaKey ?? ''),
+    keys: b.menu._getMenuItems().map((i) => i._kacolaKey ?? ''),
   }
 })()`
 /** The union of the indicator button and its menu (when open), in screen pixels. */
 const BOUNDS = `(() => {
-  const b = Main.panel.statusArea['${GNOMEOLA_UUID}']
+  const b = Main.panel.statusArea['${KACOLA_UUID}']
   const box = (a) => { const [x, y] = a.get_transformed_position(); const [w, h] = a.get_transformed_size(); return [x, y, x + w, y + h] }
   const r = [box(b)]
   if (b.menu.isOpen) r.push(box(b.menu.actor))
@@ -103,13 +103,13 @@ const MEETINGS = [
 
 describe('atlas: the top-bar extension in a nested GNOME Shell', () => {
   let d: HeadlessDisplay
-  let fake: FakeGnomeola | null = null
+  let fake: FakeKacola | null = null
   let atlas: Atlas
   const indicator = () => shellEval<Indicator | null>(d.env, DESCRIBE)
   const until = <T>(probe: () => Promise<T | null | undefined | false>, what: string, ms = 10_000) =>
     d.waitFor(probe, ms, what)
   const menu = (open: boolean) =>
-    shellEval(d.env, `Main.panel.statusArea['${GNOMEOLA_UUID}'].menu.${open ? 'open' : 'close'}(false); true`)
+    shellEval(d.env, `Main.panel.statusArea['${KACOLA_UUID}'].menu.${open ? 'open' : 'close'}(false); true`)
 
   /** Screenshot the screen in each Shell style and crop to `bounds` (+ padding). */
   async function shoot(id: string, bounds: string, pad = 16): Promise<void> {
@@ -136,10 +136,10 @@ describe('atlas: the top-bar extension in a nested GNOME Shell', () => {
     mkdirSync(SHOTS, { recursive: true })
     d = await startHeadlessDisplay({
       size: '1280x800',
-      extensions: [UNSAFE_MODE_EXTENSION, GNOMEOLA_EXTENSION],
+      extensions: [UNSAFE_MODE_EXTENSION, KACOLA_EXTENSION],
     })
     await until(async () => (await extensionState(d.env, UNSAFE_UUID))?.state === 1, 'unsafe mode')
-    await until(async () => (await extensionState(d.env, GNOMEOLA_UUID))?.stateName === 'active', 'extension')
+    await until(async () => (await extensionState(d.env, KACOLA_UUID))?.stateName === 'active', 'extension')
     // the throwaway Shell starts with notification banners off ("do not disturb"); the atlas wants to see one
     await shellEval(
       d.env,
@@ -161,7 +161,7 @@ describe('atlas: the top-bar extension in a nested GNOME Shell', () => {
   })
 
   it('idle: Record now and the upcoming meetings with Join; no meetings', async () => {
-    fake = await startFakeGnomeola(d.env)
+    fake = await startFakeKacola(d.env)
     fake.setProps({ State: 'idle', CalendarState: 'ok', UpcomingMeetings: MEETINGS })
     const ind = await until(async () => {
       const i = await indicator()
@@ -282,6 +282,6 @@ describe('atlas: the top-bar extension in a nested GNOME Shell', () => {
     expect(atlas.finish()).toEqual([])
     const unstable = atlas.unstable()
     if (unstable.length) console.warn(`atlas: differs from the previous run:\n  ${unstable.join('\n  ')}`)
-    if (process.env.GNOMEOLA_ATLAS_STRICT === '1') expect(unstable).toEqual([])
+    if (process.env.KACOLA_ATLAS_STRICT === '1') expect(unstable).toEqual([])
   })
 })

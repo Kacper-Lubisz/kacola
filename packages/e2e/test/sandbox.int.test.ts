@@ -3,8 +3,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { createClient, type GnomeolaClient } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
+import { createClient, type KacolaClient } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { SandboxState } from '../src/sandbox/cli.ts'
 
@@ -48,7 +48,7 @@ let port = 0
 let sharePort = 0
 let real: DaemonHandle
 let realBefore: unknown
-let api: GnomeolaClient
+let api: KacolaClient
 
 function sandbox(...args: string[]): Promise<{ code: number; out: string }> {
   return new Promise((res) => {
@@ -110,7 +110,7 @@ describe('pnpm sandbox', () => {
       r = await sandbox('start', '--no-window', '--port', String(port), '--share-port', String(sharePort))
     }
     expect(r.code, r.out).toBe(0)
-    expect(r.out).toContain(`export GNOMEOLA_URL=http://127.0.0.1:${port}`)
+    expect(r.out).toContain(`export KACOLA_URL=http://127.0.0.1:${port}`)
     expect(r.out).toMatch(/Live check-offs:\s+on-device/)
     expect(r.out).toMatch(/Ask \/ Enhance \/ recaps: canned answers/)
     api = createClient({ baseUrl: `http://127.0.0.1:${port}` })
@@ -253,6 +253,6 @@ describe('pnpm sandbox', () => {
     const reset = await sandbox('reset', '--yes')
     expect(reset.code, reset.out).toBe(0)
     expect(existsSync(dir)).toBe(false)
-    expect(existsSync(join(root, 'real-data', 'gnomeola.db'))).toBe(true)
+    expect(existsSync(join(root, 'real-data', 'kacola.db'))).toBe(true)
   }, 60_000)
 })

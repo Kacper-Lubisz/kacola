@@ -45,7 +45,7 @@ export const passThroughGuard: SpeechGuard = {
 /** The flag that makes a segment unusable as evidence. */
 export const INJECTION_FLAG = 'injection'
 
-// A cheap stand-in until the decisions wave's classifier lands (GNOMEOLA_SPEECH_GUARD=heuristic): flags
+// A cheap stand-in until the decisions wave's classifier lands (KACOLA_SPEECH_GUARD=heuristic): flags
 // speech that addresses an AI/assistant/agent and tells it what to do, or talks about its instructions.
 // Deliberately narrow. A miss costs nothing more than the pass-through guard, and a false flag only
 // means the line cannot be cited as evidence (the text still reaches the agent, marked).

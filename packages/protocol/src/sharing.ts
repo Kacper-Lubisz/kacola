@@ -37,7 +37,7 @@ import { Iso } from './schemas.ts'
 //
 // Every status change any device submits is kept in the share's history with what became of it
 // (applied, agreed, refused, superseded) — nothing is silently lost. The merge rules (decideSharedStatus
-// in @gnomeola/store) per item: the owner's manual override wins over everyone, a member's manual
+// in @kacola/store) per item: the owner's manual override wins over everyone, a member's manual
 // override over automated changers, automated changers only move forward; between people of the same
 // standing the latest change wins.
 
@@ -425,7 +425,7 @@ export type SharedAgendaPage = z.infer<typeof SharedAgendaPage>
 // ------------------------------------------------------------------------------- route bodies
 
 /** The header a participant's token travels in (not `authorization`: that is pairing's). */
-export const PARTICIPANT_HEADER = 'x-gnomeola-participant'
+export const PARTICIPANT_HEADER = 'x-kacola-participant'
 
 export const CreateShareBody = z.strictObject({
   ownerName: z.string().trim().min(1).max(100),

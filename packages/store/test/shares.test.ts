@@ -1,5 +1,5 @@
-import type { DurableEvent, SharedChange, SharedItem } from '@gnomeola/protocol'
-import { assertNoViolations, checkEventLog } from '@gnomeola/testkit/invariants'
+import type { DurableEvent, SharedChange, SharedItem } from '@kacola/protocol'
+import { assertNoViolations, checkEventLog } from '@kacola/testkit/invariants'
 import { describe, expect, it } from 'vitest'
 import { decideIngest } from '../src/domain.ts'
 import { SqliteStoreApi } from '../src/index.ts'

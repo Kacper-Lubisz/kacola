@@ -1,5 +1,5 @@
-// gnomeola extension preferences: what the top-bar indicator shows. Recording rules (auto-record) live in
-// the gnomeola app's own Preferences, because the daemon — not the Shell — applies them.
+// kacola extension preferences: what the top-bar indicator shows. Recording rules (auto-record) live in
+// the kacola app's own Preferences, because the daemon — not the Shell — applies them.
 
 import Adw from 'gi://Adw'
 import Gio from 'gi://Gio'
@@ -9,7 +9,7 @@ import {
   ExtensionPreferences,
 } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js'
 
-export default class GnomeolaPreferences extends ExtensionPreferences {
+export default class KacolaPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window) {
     const settings = this.getSettings()
     const page = new Adw.PreferencesPage({
@@ -39,6 +39,6 @@ export default class GnomeolaPreferences extends ExtensionPreferences {
 
     window.add(page)
     // keep the settings object alive as long as the window
-    window._gnomeolaSettings = settings
+    window._kacolaSettings = settings
   }
 }

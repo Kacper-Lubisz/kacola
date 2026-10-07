@@ -6,7 +6,7 @@ import type {
   MeetingList,
   NextMeeting,
   OfflineCalendar,
-} from '@gnomeola/protocol'
+} from '@kacola/protocol'
 import type { EventBus } from '../bus.ts'
 import { DaemonError } from '../errors.ts'
 import type { Logger } from '../logger.ts'

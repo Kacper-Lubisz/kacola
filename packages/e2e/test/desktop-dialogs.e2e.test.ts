@@ -2,9 +2,9 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop } from '@gnomeola/testkit/desktop'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop } from '@kacola/testkit/desktop'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { DESKTOP_ARTIFACTS, markOnboarded, pageText, uiStatePath } from '../src/desktop.ts'
 import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
@@ -36,7 +36,7 @@ let markerId = ''
 beforeAll(async () => {
   buildDesktop()
   display = await startHeadlessDisplay({ size: '1280x800' })
-  markerId = display.env.GNOMEOLA_HEADLESS_ID!
+  markerId = display.env.KACOLA_HEADLESS_ID!
 }, 240_000)
 
 afterAll(async () => {
@@ -53,12 +53,12 @@ describe('Preferences and About against the real daemon', () => {
 
   beforeAll(async () => {
     api = await startFakeAnthropic()
-    dataDir = mkdtempSync(join(tmpdir(), 'gnomeola-desktop-dialogs-'))
+    dataDir = mkdtempSync(join(tmpdir(), 'kacola-desktop-dialogs-'))
     seedMeetings(dataDir)
     daemon = await startDaemon({ dataDir, env: { ANTHROPIC_BASE_URL: api.url } })
     expect((await daemon.client.call('getSettings')).llm.apiKeyConfigured).toBe(false)
     markOnboarded(display)
-    app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
+    app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl } })
     await app.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
   }, 120_000)
 
@@ -297,7 +297,7 @@ describe('Preferences and About against the real daemon', () => {
 
   it('installs the command-line tool and Claude skill from Preferences (the real install-cli)', async () => {
     const home = display.env.HOME!
-    const shim = join(home, '.local', 'bin', 'gnomeola')
+    const shim = join(home, '.local', 'bin', 'kacola')
     expect(existsSync(shim)).toBe(false)
     await app.window.keyboard.press('Control+,')
     await prefs().getByRole('tab', { name: 'Integration' }).click()
@@ -305,15 +305,15 @@ describe('Preferences and About against the real daemon', () => {
     await row.getByText(/Lets agents like Claude Code/).waitFor({ timeout: 20_000 })
     await row.getByRole('button', { name: 'Install' }).click()
     await row.getByText(`Installed at ${shim}`, { exact: false }).waitFor({ timeout: 30_000 })
-    expect(readFileSync(shim, 'utf8')).toContain('# gnomeola-cli-shim v1')
+    expect(readFileSync(shim, 'utf8')).toContain('# kacola-cli-shim v1')
     expect(existsSync(join(home, '.claude', 'skills', 'meeting-context', 'SKILL.md'))).toBe(true)
     // the shim runs the CLI against this daemon
     const out = execFileSync(shim, ['sessions', 'list', '--json'], {
       encoding: 'utf8',
-      env: { ...process.env, HOME: home, GNOMEOLA_URL: daemon.baseUrl },
+      env: { ...process.env, HOME: home, KACOLA_URL: daemon.baseUrl },
     })
     expect(out).toContain('Platform standup')
-    // remove, and a foreign `gnomeola` is reported, never clobbered without asking
+    // remove, and a foreign `kacola` is reported, never clobbered without asking
     await row.getByRole('button', { name: 'Remove' }).click()
     await row.getByRole('button', { name: 'Install' }).waitFor({ timeout: 30_000 })
     expect(existsSync(shim)).toBe(false)
@@ -322,7 +322,7 @@ describe('Preferences and About against the real daemon', () => {
     await app.window.keyboard.press('Control+,')
     await prefs().getByRole('tab', { name: 'Integration' }).click()
     await prefs()
-      .getByText(`A different gnomeola command is already installed at ${shim}`)
+      .getByText(`A different kacola command is already installed at ${shim}`)
       .waitFor({ timeout: 30_000 })
     expect(readFileSync(shim, 'utf8')).toContain('someone else')
     // the top-bar extension row is there (a stub until packaging implements it)
@@ -371,13 +371,13 @@ describe('Preferences and About against the real daemon', () => {
 
 describe('first-run onboarding (slow fake model downloads)', () => {
   let daemon: DaemonHandle
-  const calendarFile = join(mkdtempSync(join(tmpdir(), 'gnomeola-desktop-onboarding-cal-')), 'calendar.json')
+  const calendarFile = join(mkdtempSync(join(tmpdir(), 'kacola-desktop-onboarding-cal-')), 'calendar.json')
   writeFileSync(calendarFile, JSON.stringify({ calendars: [{ id: 'work', name: 'Work' }], occurrences: [] }))
 
   beforeAll(async () => {
     daemon = await startDaemon({
       entry: join(import.meta.dirname, '..', 'src', 'slow-models-daemon.ts'),
-      env: { GNOMEOLA_E2E_MODEL_STEP_MS: '700', GNOMEOLA_CALENDAR: `file:${calendarFile}` },
+      env: { KACOLA_E2E_MODEL_STEP_MS: '700', KACOLA_CALENDAR: `file:${calendarFile}` },
     })
   })
 
@@ -387,9 +387,9 @@ describe('first-run onboarding (slow fake model downloads)', () => {
 
   it('opens on first run, downloads the missing model with live progress, installs the CLI, and is remembered', async () => {
     rmSync(uiStatePath(display), { force: true })
-    const shim = join(display.env.HOME!, '.local', 'bin', 'gnomeola')
+    const shim = join(display.env.HOME!, '.local', 'bin', 'kacola')
     rmSync(shim, { force: true })
-    const app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
+    const app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl } })
     try {
       const welcome = app.window.getByRole('dialog', { name: 'Welcome to kacola' })
       await welcome.waitFor({ timeout: 20_000 })
@@ -453,7 +453,7 @@ describe('first-run onboarding (slow fake model downloads)', () => {
       rmSync(shim, { force: true })
     }
     // remembered: a second launch goes straight to the window
-    const again = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
+    const again = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl } })
     try {
       await again.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
       await new Promise((r) => setTimeout(r, 2000))
@@ -468,7 +468,7 @@ describe('onboarding skipped', () => {
   it('remembers the skip, shows a banner for the missing model, and the banner reopens it', async () => {
     const daemon = await startDaemon()
     rmSync(uiStatePath(display), { force: true })
-    const app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl } })
+    const app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl } })
     try {
       const welcome = app.window.getByRole('dialog', { name: 'Welcome to kacola' })
       await welcome.waitFor({ timeout: 20_000 })
@@ -481,7 +481,7 @@ describe('onboarding skipped', () => {
         onboardingDone: true,
         skippedMissing: ['whisper-small.en'],
       })
-      expect(existsSync(join(display.env.HOME!, '.local', 'bin', 'gnomeola'))).toBe(false)
+      expect(existsSync(join(display.env.HOME!, '.local', 'bin', 'kacola'))).toBe(false)
       const banner = app.window.getByRole('status', {
         name: 'A speech model is not downloaded yet, so recording can’t transcribe',
       })

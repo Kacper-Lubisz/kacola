@@ -1,5 +1,5 @@
 {
-  "name": "@gnomeola/web",
+  "name": "@kacola/web",
   "version": "0.1.0",
   "private": true,
   "description": "The read-only web viewer (H-9): session list, transcript, notes, search, pairing. A protocol client only.",
@@ -14,7 +14,7 @@
     "build": "node scripts/build.ts"
   },
   "dependencies": {
-    "@gnomeola/protocol": "workspace:*"
+    "@kacola/protocol": "workspace:*"
   },
   "devDependencies": {
     "esbuild": "^0.28.2"

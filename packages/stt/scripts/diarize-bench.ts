@@ -7,8 +7,8 @@
 // It runs what the pipeline runs on the far-end track — Silero VAD segments, pyannote turn splitting,
 // embeddings, online clustering, re-clustering — without speech recognition, so a sweep takes seconds.
 
-import { listFixtures, loadFixture } from '@gnomeola/testkit/fixtures'
-import { der } from '@gnomeola/testkit/metrics'
+import { listFixtures, loadFixture } from '@kacola/testkit/fixtures'
+import { der } from '@kacola/testkit/metrics'
 import { DIARIZATION_DEFAULTS } from '../src/diarize/session.ts'
 import { CATALOG, DEFAULT_MODELS } from '../src/model-manager/catalog.ts'
 import { ModelManager } from '../src/model-manager/manager.ts'

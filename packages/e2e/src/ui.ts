@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { HeadlessDisplay } from '@gnomeola/testkit/ui'
+import type { HeadlessDisplay } from '@kacola/testkit/ui'
 
 // Window state shared by the desktop suites (packages/e2e/test/desktop-*.e2e.test.ts, install.e2e).
 
@@ -9,7 +9,7 @@ import type { HeadlessDisplay } from '@gnomeola/testkit/ui'
  * `skipped`: model ids that were missing when it was skipped (the fake daemon's final model is).
  */
 export function markOnboarded(d: HeadlessDisplay, skipped: string[] = ['whisper-small.en']): void {
-  const dir = join(d.env.XDG_STATE_HOME!, 'gnomeola')
+  const dir = join(d.env.XDG_STATE_HOME!, 'kacola')
   mkdirSync(dir, { recursive: true })
   writeFileSync(
     join(dir, 'ui-state.json'),

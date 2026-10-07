@@ -1,4 +1,4 @@
-import type { Citation } from '@gnomeola/protocol'
+import type { Citation } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import { CitationRewriter, resolveCitations } from '../src/citations.ts'
 

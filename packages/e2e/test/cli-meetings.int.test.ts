@@ -1,16 +1,16 @@
 import { mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { gnomeola } from '../src/cli.ts'
+import { kacola } from '../src/cli.ts'
 import { normalise } from '../src/seed.ts'
 
-// X-5 / V-6a — `gnomeola meetings` through the REAL daemon and its calendar service, fed by a calendar
-// file (GNOMEOLA_CALENDAR=file:…, the same RawOccurrence shape cal-agent emits from EDS). Outputs are
+// X-5 / V-6a — `kacola meetings` through the REAL daemon and its calendar service, fed by a calendar
+// file (KACOLA_CALENDAR=file:…, the same RawOccurrence shape cal-agent emits from EDS). Outputs are
 // compared to reviewed golden files, with times normalised.
 
-const box = mkdtempSync(join(tmpdir(), 'gnomeola-e2e-meetings-'))
+const box = mkdtempSync(join(tmpdir(), 'kacola-e2e-meetings-'))
 const calFile = join(box, 'calendar.json')
 let d: DaemonHandle
 
@@ -47,7 +47,7 @@ async function writeCalendar(occurrences: Occ[], probe: () => Promise<boolean>) 
 
 beforeAll(async () => {
   writeFileSync(calFile, '[]')
-  d = await startDaemon({ env: { GNOMEOLA_CALENDAR: `file:${calFile}` } })
+  d = await startDaemon({ env: { KACOLA_CALENDAR: `file:${calFile}` } })
 }, 60_000)
 afterAll(async () => {
   await d?.stop()
@@ -77,7 +77,7 @@ describe('meetings through the real daemon', () => {
       ],
       async () => (await d.client.call('nextMeeting')).next?.title === 'Customer call',
     )
-    const r = await gnomeola(['meetings', '--next'], d.baseUrl)
+    const r = await kacola(['meetings', '--next'], d.baseUrl)
     expect(r.stderr).toBe('')
     expect(r.code).toBe(0)
     await expect(stable(r.stdout)).toMatchFileSnapshot(golden('meetings-next'))
@@ -134,12 +134,12 @@ describe('meetings through the real daemon', () => {
         (await d.client.call('listMeetings', { query: { from: local(0), to: local(24) } })).meetings
           .length === 3,
     )
-    const r = await gnomeola(['meetings', '--today'], d.baseUrl)
+    const r = await kacola(['meetings', '--today'], d.baseUrl)
     expect(r.stderr).toBe('')
     expect(r.code).toBe(0)
     await expect(stable(r.stdout)).toMatchFileSnapshot(golden('meetings-today'))
     // …and what a person at a terminal sees
-    const tty = await gnomeola(['meetings', '--today'], d.baseUrl, { tty: true })
+    const tty = await kacola(['meetings', '--today'], d.baseUrl, { tty: true })
     expect(tty.stdout.split('\n').filter(Boolean)).toEqual([
       'all day      Team offsite',
       '09:00–09:15  Standup  meet: https://meet.google.com/xqc-bnvd-kpt',
@@ -155,13 +155,13 @@ describe('meetings through the real daemon', () => {
       10_000,
       'unavailable',
     )
-    const r = await gnomeola(['meetings'], d.baseUrl)
+    const r = await kacola(['meetings'], d.baseUrl)
     expect(r.code).toBe(6)
     expect(r.stderr).toMatch(/calendar unavailable: calendar file .*calendar\.json/)
     // meetings already known stay joinable
     if (next) {
       const j = await d.client.call('joinMeeting', { params: { id: next.id }, body: {} })
-      const list = JSON.parse((await gnomeola(['sessions', 'list'], d.baseUrl)).stdout)
+      const list = JSON.parse((await kacola(['sessions', 'list'], d.baseUrl)).stdout)
       expect(list.sessions[0]).toMatchObject({
         id: j.session.id,
         meeting: { id: next.id, title: next.title },

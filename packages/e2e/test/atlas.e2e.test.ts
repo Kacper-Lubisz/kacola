@@ -3,17 +3,17 @@ import { mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient, formatMeetingLink, LEASE_HEADER } from '@gnomeola/protocol'
-import { Store } from '@gnomeola/store'
-import { ATLAS_NOW, Atlas, HEIGHT, type Theme } from '@gnomeola/testkit/atlas'
-import { ATLAS } from '@gnomeola/testkit/atlas/manifest'
-import { type DaemonHandle, startDaemon } from '@gnomeola/testkit/daemon'
-import { buildDesktop, type DesktopApp, launchDesktop, launchSecondInstance } from '@gnomeola/testkit/desktop'
-import { loadAgendaFixture } from '@gnomeola/testkit/fixtures'
-import { makeSession, type StubDaemon, startStubDaemon } from '@gnomeola/testkit/stub-daemon'
-import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@gnomeola/testkit/ui'
+import { createClient, formatMeetingLink, LEASE_HEADER } from '@kacola/protocol'
+import { Store } from '@kacola/store'
+import { ATLAS_NOW, Atlas, HEIGHT, type Theme } from '@kacola/testkit/atlas'
+import { ATLAS } from '@kacola/testkit/atlas/manifest'
+import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
+import { buildDesktop, type DesktopApp, launchDesktop, launchSecondInstance } from '@kacola/testkit/desktop'
+import { loadAgendaFixture } from '@kacola/testkit/fixtures'
+import { makeSession, type StubDaemon, startStubDaemon } from '@kacola/testkit/stub-daemon'
+import { type HeadlessDisplay, markedPids, startHeadlessDisplay } from '@kacola/testkit/ui'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { gnomeola } from '../src/cli.ts'
+import { kacola } from '../src/cli.ts'
 import { markOnboarded, setTheme, uiStatePath } from '../src/desktop.ts'
 import { poll, transcriptList } from '../src/desktop-ui.ts'
 import { type FakeAnthropic, loadCassette, startFakeAnthropic } from '../src/fake-anthropic.ts'
@@ -48,8 +48,8 @@ import { linkToken, type ShareHost, startShareHost } from '../src/share-host.ts'
 // is compared with the previous run's (captured-window.json), and the suite reports any that differ.
 
 const CASSETTES = join(import.meta.dirname, '..', '..', 'llm', 'test', 'fixtures', 'cassettes')
-const EXT_UUID = 'gnomeola@gnomeola.org'
-const CLI_BIN = join(import.meta.dirname, '..', '..', 'cli', 'bin', 'gnomeola')
+const EXT_UUID = 'kacola@kacperlubisz.com'
+const CLI_BIN = join(import.meta.dirname, '..', '..', 'cli', 'bin', 'kacola')
 const KEY = 'sk-ant-e2e-atlas-planted-key-0000000'
 const OPENAI_KEY = 'sk-proj-e2e-atlas-planted-openai-key-01'
 const PIPELINE = {
@@ -76,7 +76,7 @@ const NO_CREDITS = {
   }),
 }
 /** The window runs in UTC so calendar words ("Yesterday", "09:30") do not depend on the machine. */
-const WINDOW_ENV = { TZ: 'UTC', GNOMEOLA_COLOR_SCHEME: 'light' }
+const WINDOW_ENV = { TZ: 'UTC', KACOLA_COLOR_SCHEME: 'light' }
 
 let display: HeadlessDisplay
 let markerId = ''
@@ -88,7 +88,7 @@ let cliAtlas: Atlas
 beforeAll(async () => {
   buildDesktop()
   display = await startHeadlessDisplay({ size: '1280x800' })
-  markerId = display.env.GNOMEOLA_HEADLESS_ID!
+  markerId = display.env.KACOLA_HEADLESS_ID!
   atlas = windowAtlas()
   cliAtlas = new Atlas('cli', async () => {})
 }, 240_000)
@@ -126,11 +126,11 @@ const freePort = () =>
     })
   })
 
-/** A terminal frame: `$ gnomeola …`, then what it printed (and its exit code when not 0). */
+/** A terminal frame: `$ kacola …`, then what it printed (and its exit code when not 0). */
 function frame(argv: string[], r: { code: number; stdout: string; stderr: string }): string {
   const q = (a: string) => (/^[\w./:=@-]+$/.test(a) ? a : JSON.stringify(a))
   const out = [r.stdout.trimEnd(), r.stderr.trimEnd()].filter(Boolean).join('\n')
-  return `$ gnomeola ${argv.map(q).join(' ')}\n${out}${r.code ? `\n(exit ${r.code})` : ''}\n`
+  return `$ kacola ${argv.map(q).join(' ')}\n${out}${r.code ? `\n(exit ${r.code})` : ''}\n`
 }
 
 describe('atlas: the seeded world (real daemon, replayed provider, held pipeline)', () => {
@@ -269,7 +269,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
 
   beforeAll(async () => {
     api = await startFakeAnthropic({ eventDelayMs: 60 })
-    dir = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-'))
+    dir = mkdtempSync(join(tmpdir(), 'kacola-atlas-'))
     const dataDir = join(dir, 'data')
     mkdirSync(dataDir, { recursive: true })
     calFile = join(dir, 'calendar.json')
@@ -281,7 +281,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     ])
     seedMeetings(dataDir)
     // fixed dates, so home's "Today" / "Yesterday" never move; plus a recording recovered after a crash
-    const store = Store.open(join(dataDir, 'gnomeola.db'))
+    const store = Store.open(join(dataDir, 'kacola.db'))
     const at = (id: string, iso: string) =>
       store.updateSession(id, (s) => ({ ...s, createdAt: iso, startedAt: iso, endedAt: iso }))
     at(SEED.retro, '2026-03-04T15:00:00.000Z')
@@ -312,8 +312,8 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
           ANTHROPIC_BASE_URL: api.url,
           OPENAI_API_KEY: OPENAI_KEY,
           OPENAI_BASE_URL: `${api.url}/v1`,
-          GNOMEOLA_CALENDAR: `file:${calFile}`,
-          GNOMEOLA_FAKE_PIPELINE: JSON.stringify({
+          KACOLA_CALENDAR: `file:${calFile}`,
+          KACOLA_FAKE_PIPELINE: JSON.stringify({
             ...PIPELINE,
             hold: { atMs: HOLD_AT_MS, releaseFile: join(dir, 'never-released') },
           }),
@@ -327,7 +327,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     await held(rec.id)
     await daemon.client.call('stopSession', { params: { id: rec.id } })
     await daemon.stop()
-    const again = Store.open(join(dataDir, 'gnomeola.db'))
+    const again = Store.open(join(dataDir, 'kacola.db'))
     again.updateSession(rec.id, (s) => ({
       ...s,
       createdAt: '2026-03-12T11:00:00.000Z',
@@ -352,7 +352,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       display,
       models.map((m) => m.id),
     )
-    app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl, ...WINDOW_ENV } })
+    app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl, ...WINDOW_ENV } })
     await freeze(app)
     await searchBox().waitFor({ timeout: 20_000 })
   }, 180_000)
@@ -608,7 +608,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     })
     await dismissToast(app, 'Notes copied as Markdown')
     // a fixed path, so the toast that names it is the same every run
-    const outDir = join(tmpdir(), 'gnomeola-atlas-export')
+    const outDir = join(tmpdir(), 'kacola-atlas-export')
     mkdirSync(outDir, { recursive: true })
     const out = join(outDir, 'Platform standup.md')
     await app.evaluateMain(({ dialog }, path) => {
@@ -771,7 +771,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
   it('an agent records through the CLI; the window follows', async () => {
     await stopAll()
     await goHome()
-    const start = await gnomeola(['record', 'start', '--title', 'Design review'], daemon.baseUrl)
+    const start = await kacola(['record', 'start', '--title', 'Design review'], daemon.baseUrl)
     expect(start.code).toBe(0)
     const live = await recording()
     await held(live.id)
@@ -780,7 +780,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       expect: now.getByText('Design review'),
       masks: [timer()],
     })
-    const status = await gnomeola(['record', 'status'], daemon.baseUrl)
+    const status = await kacola(['record', 'status'], daemon.baseUrl)
     const redact = (s: string) =>
       s
         .replace(/ses_[0-9A-Za-z]+/g, 'ses_…')
@@ -792,7 +792,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
         frame(['record', 'start', '--title', 'Design review'], start) + frame(['record', 'status'], status),
       ),
     )
-    await gnomeola(['record', 'stop'], daemon.baseUrl)
+    await kacola(['record', 'stop'], daemon.baseUrl)
     await daemon.client.call('deleteSession', { params: { id: live.id } })
   })
 
@@ -944,15 +944,15 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     for (const e of ATLAS.filter((x) => x.surface === 'cli' && x.status === 'built' && x.cli && !x.cli.mcp)) {
       if (e.id === 'agent-record__cli__record-status' || e.id === 'daemon-down__cli__exit-3') continue
       if (e.story === 'ask-across') api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
-      const r = await gnomeola(e.cli!.argv, daemon.baseUrl)
+      const r = await kacola(e.cli!.argv, daemon.baseUrl)
       cliAtlas.text(e.id, frame(e.cli!.argv, r))
     }
-    const down = await gnomeola(['search', 'retry budget'], `http://127.0.0.1:${await freePort()}`)
+    const down = await kacola(['search', 'retry budget'], `http://127.0.0.1:${await freePort()}`)
     expect(down.code).toBe(3)
     cliAtlas.text('daemon-down__cli__exit-3', frame(['search', 'retry budget'], down))
 
     // MCP over stdio, as Claude Desktop / any MCP client starts it: initialize, then tools/list
-    const child = spawn(CLI_BIN, ['mcp'], { env: { ...process.env, GNOMEOLA_URL: daemon.baseUrl } })
+    const child = spawn(CLI_BIN, ['mcp'], { env: { ...process.env, KACOLA_URL: daemon.baseUrl } })
     let buf = ''
     child.stdout.on('data', (d: Buffer) => {
       buf += d.toString()
@@ -985,7 +985,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
       (t) => `  ${t.name.padEnd(26)} ${t.title ?? ''}`,
     )
     expect(tools.length).toBeGreaterThan(3)
-    cliAtlas.text('mcp__tools__list', `$ gnomeola mcp   (an MCP client's tools/list)\n${tools.join('\n')}\n`)
+    cliAtlas.text('mcp__tools__list', `$ kacola mcp   (an MCP client's tools/list)\n${tools.join('\n')}\n`)
     expect(app.problems()).toEqual([])
   })
 })
@@ -1021,7 +1021,7 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
   })
 
   it('plan, edit, share, invite; live check-offs, suggestions, next point, presence; recap and carry-over', async () => {
-    box = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-agenda-'))
+    box = mkdtempSync(join(tmpdir(), 'kacola-atlas-agenda-'))
     const calFile = join(box, 'calendar.json')
     const now = Date.now()
     const t = (min: number) => new Date(now + min * 60_000).toISOString()
@@ -1055,20 +1055,20 @@ describe('atlas: agendas (real daemon, a calendar file, the draft route, the age
     daemon = await startDaemon({
       dataDir: join(box, 'data'),
       env: {
-        GNOMEOLA_CALENDAR: `file:${calFile}`,
-        GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
+        KACOLA_CALENDAR: `file:${calFile}`,
+        KACOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
         ANTHROPIC_API_KEY: KEY,
         ANTHROPIC_BASE_URL: api.url,
         // the marks below are Claude's (a real lease); the live tracker's own run is shot further down
-        GNOMEOLA_TRACKER: 'off',
-        GNOMEOLA_SPEECH_GUARD: 'none',
+        KACOLA_TRACKER: 'off',
+        KACOLA_SPEECH_GUARD: 'none',
       },
     })
     markOnboarded(
       display,
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
-    const env = { GNOMEOLA_URL: daemon.baseUrl, ...WINDOW_ENV }
+    const env = { KACOLA_URL: daemon.baseUrl, ...WINDOW_ENV }
     app = await launchDesktop({ display, env })
     await w().getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
     await w().emulateMedia({ reducedMotion: 'reduce' })
@@ -1312,7 +1312,7 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
       expect(app.problems()).toEqual([])
       await app.close()
     }
-    app = await launchDesktop({ display, env: { GNOMEOLA_URL: d.baseUrl, ...WINDOW_ENV } })
+    app = await launchDesktop({ display, env: { KACOLA_URL: d.baseUrl, ...WINDOW_ENV } })
     await w().getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
     await w().emulateMedia({ reducedMotion: 'reduce' })
     await w().setViewportSize({ width: 1280, height: HEIGHT })
@@ -1337,7 +1337,7 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
   })
 
   it('share, an invitee’s item, follow with a code, teammates’ items and agents, the merge history, recap, unshare', async () => {
-    box = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-sharing-'))
+    box = mkdtempSync(join(tmpdir(), 'kacola-atlas-sharing-'))
     const now = Date.now()
     const t = (min: number) => new Date(now + min * 60_000).toISOString()
     const calendar = (file: string) =>
@@ -1376,18 +1376,18 @@ describe('atlas: team sharing (two daemons + a local hosted server)', () => {
       return startDaemon({
         dataDir: join(box, name),
         env: {
-          GNOMEOLA_CALENDAR: `file:${file}`,
-          GNOMEOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
-          GNOMEOLA_TRACKER: 'off',
-          GNOMEOLA_SPEECH_GUARD: 'none',
-          GNOMEOLA_SHARE_POLL_MS: '500',
-          GNOMEOLA_SHARE_DEBOUNCE_MS: '100',
+          KACOLA_CALENDAR: `file:${file}`,
+          KACOLA_FAKE_PIPELINE: JSON.stringify(PIPELINE),
+          KACOLA_TRACKER: 'off',
+          KACOLA_SPEECH_GUARD: 'none',
+          KACOLA_SHARE_POLL_MS: '500',
+          KACOLA_SHARE_DEBOUNCE_MS: '100',
           ...env,
         },
       })
     }
     A = await daemon('owner', host.ownerEnv({ name: 'Kacper', email: 'kacper@example.com' }))
-    B = await daemon('attendee', { GNOMEOLA_OWNER_EMAIL: 'ben@example.com' })
+    B = await daemon('attendee', { KACOLA_OWNER_EMAIL: 'ben@example.com' })
     markOnboarded(
       display,
       (await A.client.call('listModels')).models.map((m) => m.id),
@@ -1641,7 +1641,7 @@ describe('atlas: the live tracker (a replayed meeting, on-device decisions)', ()
   })
 
   it('auto check-offs from what was said, attributed to kacola, with Undo', async () => {
-    box = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-tracker-'))
+    box = mkdtempSync(join(tmpdir(), 'kacola-atlas-tracker-'))
     const calFile = join(box, 'calendar.json')
     const now = Date.now()
     const t = (min: number) => new Date(now + min * 60_000).toISOString()
@@ -1678,13 +1678,13 @@ describe('atlas: the live tracker (a replayed meeting, on-device decisions)', ()
     daemon = await startDaemon({
       dataDir: join(box, 'data'),
       entry: join(import.meta.dirname, '..', 'src', 'tracker-daemon.ts'),
-      env: { GNOMEOLA_CALENDAR: `file:${calFile}` },
+      env: { KACOLA_CALENDAR: `file:${calFile}` },
     })
     markOnboarded(
       display,
       (await daemon.client.call('listModels')).models.map((m) => m.id),
     )
-    app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl, ...WINDOW_ENV } })
+    app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl, ...WINDOW_ENV } })
     const w = () => app.window
     const clock = () => [w().getByRole('timer')]
     await w().getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
@@ -1826,7 +1826,7 @@ describe('atlas: the Day story (a 1:1 with Ana, from home through prep and live 
   })
 
   it('home, search and ask, prep, live with a suggestion, paused, the outcome and its summary', async () => {
-    box = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-day-'))
+    box = mkdtempSync(join(tmpdir(), 'kacola-atlas-day-'))
     const dataDir = join(box, 'data')
     mkdirSync(dataDir, { recursive: true })
     const calFile = join(box, 'calendar.json')
@@ -1850,7 +1850,7 @@ describe('atlas: the Day story (a 1:1 with Ana, from home through prep and live 
       }),
     )
     seedMeetings(dataDir)
-    const store = Store.open(join(dataDir, 'gnomeola.db'))
+    const store = Store.open(join(dataDir, 'kacola.db'))
     const date = (id: string, t: number, ms?: number) =>
       store.updateSession(id, (s) => ({
         ...s,
@@ -1879,16 +1879,16 @@ describe('atlas: the Day story (a 1:1 with Ana, from home through prep and live 
         env: {
           ANTHROPIC_API_KEY: KEY,
           ANTHROPIC_BASE_URL: api.url,
-          GNOMEOLA_CALENDAR: `file:${calFile}`,
-          GNOMEOLA_FAKE_PIPELINE: JSON.stringify({
+          KACOLA_CALENDAR: `file:${calFile}`,
+          KACOLA_FAKE_PIPELINE: JSON.stringify({
             speed: 60,
             tickMs: 20,
             partialEveryMs: 400,
             finalizeAfterMs: 200,
             script: SCRIPT,
           }),
-          GNOMEOLA_TRACKER: 'off',
-          GNOMEOLA_SPEECH_GUARD: 'none',
+          KACOLA_TRACKER: 'off',
+          KACOLA_SPEECH_GUARD: 'none',
         },
       })
     daemon = await start()
@@ -1931,7 +1931,7 @@ describe('atlas: the Day story (a 1:1 with Ana, from home through prep and live 
       models.map((m) => m.id),
     )
     const open = async (t: number) => {
-      app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl, ...WINDOW_ENV } })
+      app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl, ...WINDOW_ENV } })
       await app.window.clock.setFixedTime(new Date(t))
       await app.window.reload()
       await app.window.waitForLoadState('domcontentloaded')
@@ -2120,7 +2120,7 @@ describe('atlas: the Day story (a 1:1 with Ana, from home through prep and live 
     expect(app.problems()).toEqual([])
     await app.close()
     await daemon.stop()
-    const again = Store.open(join(dataDir, 'gnomeola.db'))
+    const again = Store.open(join(dataDir, 'kacola.db'))
     again.updateSession(sessionId, (s) => ({
       ...s,
       createdAt: iso(at(14)),
@@ -2176,13 +2176,13 @@ describe('atlas: home on a messy real day (ten calendars’ worth of shapes, Eur
   })
 
   it('a busy day with a meeting under way, late afternoon, an empty day, calendars not up to date', async () => {
-    box = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-messy-'))
+    box = mkdtempSync(join(tmpdir(), 'kacola-atlas-messy-'))
     const dataDir = join(box, 'data')
     mkdirSync(dataDir, { recursive: true })
     const calFile = join(box, 'calendar.json')
     writeMessyCalendar(calFile)
     seedMessySessions(dataDir)
-    daemon = await startDaemon({ dataDir, env: { GNOMEOLA_CALENDAR: `file:${calFile}` } })
+    daemon = await startDaemon({ dataDir, env: { KACOLA_CALENDAR: `file:${calFile}` } })
     const { models } = await daemon.client.call('listModels')
     for (const m of models)
       if (m.state !== 'ready') await daemon.client.call('downloadModel', { params: { id: m.id } })
@@ -2197,7 +2197,7 @@ describe('atlas: home on a messy real day (ten calendars’ worth of shapes, Eur
     )
     app = await launchDesktop({
       display,
-      env: { GNOMEOLA_URL: daemon.baseUrl, TZ: MESSY_TZ, GNOMEOLA_COLOR_SCHEME: 'light' },
+      env: { KACOLA_URL: daemon.baseUrl, TZ: MESSY_TZ, KACOLA_COLOR_SCHEME: 'light' },
     })
     const at = async (t: number) => {
       await w().clock.setFixedTime(new Date(t))
@@ -2278,7 +2278,7 @@ describe('atlas: first run (real daemon, models not downloaded, calendar off)', 
   it('onboarding, then the empty window and its missing-model banner', async () => {
     daemon = await startDaemon({ entry: join(import.meta.dirname, '..', 'src', 'slow-models-daemon.ts') })
     rmSync(uiStatePath(display), { force: true })
-    app = await launchDesktop({ display, env: { GNOMEOLA_URL: daemon.baseUrl, ...WINDOW_ENV } })
+    app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl, ...WINDOW_ENV } })
     await freeze(app)
     const welcome = app.window.getByRole('dialog', { name: 'Welcome to kacola' })
     await welcome.getByText('Working', { exact: true }).waitFor({ timeout: 20_000 })
@@ -2327,7 +2327,7 @@ describe('atlas: first run (real daemon, models not downloaded, calendar off)', 
 
 describe('atlas: the top-bar extension (fake gdbus / gsettings on PATH)', () => {
   it('the home card, the log-in-again copy, Update, On, and the extensions-off question', async () => {
-    const tools = mkdtempSync(join(tmpdir(), 'gnomeola-atlas-shell-'))
+    const tools = mkdtempSync(join(tmpdir(), 'kacola-atlas-shell-'))
     const statePath = join(tools, 'state.json')
     const extDir = join(display.env.XDG_DATA_HOME!, 'gnome-shell', 'extensions')
     const dest = join(extDir, EXT_UUID)
@@ -2346,7 +2346,7 @@ describe('atlas: the top-bar extension (fake gdbus / gsettings on PATH)', () => 
     )
     const app = await launchDesktop({
       display,
-      env: { GNOMEOLA_URL: daemon.baseUrl, PATH: path, ...WINDOW_ENV },
+      env: { KACOLA_URL: daemon.baseUrl, PATH: path, ...WINDOW_ENV },
     })
     const card = app.window.getByRole('region', { name: 'Top-bar extension' })
     const prefs = app.window.getByRole('dialog', { name: 'Preferences' })
@@ -2429,8 +2429,8 @@ describe('atlas: the daemon unreachable, and the connection lost', () => {
     const app = await launchDesktop({
       display,
       env: {
-        GNOMEOLA_URL: `http://127.0.0.1:${await freePort()}`,
-        GNOMEOLA_DAEMON_ENTRY: '/nonexistent',
+        KACOLA_URL: `http://127.0.0.1:${await freePort()}`,
+        KACOLA_DAEMON_ENTRY: '/nonexistent',
         ...WINDOW_ENV,
       },
     })
@@ -2460,7 +2460,7 @@ describe('atlas: the daemon unreachable, and the connection lost', () => {
       makeSession('Sprint retro', at('2026-03-04T15:00:00.000Z', 20)),
       makeSession('Platform standup', at('2026-03-12T09:30:00.000Z', 12)),
     ])
-    const app = await launchDesktop({ display, env: { GNOMEOLA_URL: stub.url, ...WINDOW_ENV } })
+    const app = await launchDesktop({ display, env: { KACOLA_URL: stub.url, ...WINDOW_ENV } })
     try {
       await freeze(app)
       await app.window.getByRole('button', { name: /^Platform standup, / }).waitFor({ timeout: 20_000 })
@@ -2481,6 +2481,6 @@ describe('atlas: the daemon unreachable, and the connection lost', () => {
     expect(missing).toEqual([])
     const unstable = [...atlas.unstable(), ...cliAtlas.unstable()]
     if (unstable.length) console.warn(`atlas: differs from the previous run:\n  ${unstable.join('\n  ')}`)
-    if (process.env.GNOMEOLA_ATLAS_STRICT === '1') expect(unstable).toEqual([])
+    if (process.env.KACOLA_ATLAS_STRICT === '1') expect(unstable).toEqual([])
   })
 })

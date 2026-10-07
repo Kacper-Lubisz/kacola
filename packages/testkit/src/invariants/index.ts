@@ -1,4 +1,4 @@
-import { type DurableEvent, ME, type Segment } from '@gnomeola/protocol'
+import { type DurableEvent, ME, type Segment } from '@kacola/protocol'
 
 // Invariants that hold even when model output does not. They are the deterministic half of verifying a
 // nondeterministic pipeline: whisper may transcribe a sentence differently on every run, but it may

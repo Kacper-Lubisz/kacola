@@ -1,4 +1,4 @@
-import type { AutoRecordSettings, Meeting } from '@gnomeola/protocol'
+import type { AutoRecordSettings, Meeting } from '@kacola/protocol'
 import type { EventBus } from './bus.ts'
 import { sessionMeeting } from './calendar/meetings.ts'
 import type { CalendarService } from './calendar/service.ts'

@@ -1,8 +1,8 @@
 import { mkdtempSync, readFileSync, readlinkSync, realpathSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { Segment } from '@gnomeola/protocol'
-import { type DaemonHandle, startDaemon, waitFor } from '@gnomeola/testkit/daemon'
+import type { Segment } from '@kacola/protocol'
+import { type DaemonHandle, startDaemon, waitFor } from '@kacola/testkit/daemon'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import {
   type CannedResponse,
@@ -39,7 +39,7 @@ const bundledDaemon = (env: Record<string, string>) =>
   startDaemon({
     execPath: electronBinary(),
     entry: join(runtime, 'daemon.mjs'),
-    env: { ...AS_NODE, GNOMEOLA_FAKE_PIPELINE: FAKE_PIPELINE, ...env },
+    env: { ...AS_NODE, KACOLA_FAKE_PIPELINE: FAKE_PIPELINE, ...env },
   })
 
 beforeAll(async () => {
@@ -70,7 +70,7 @@ describe('bundled daemon + CLI on Electron-as-Node', () => {
   })
 
   it('status, sessions list and search through the bundled CLI', async () => {
-    const env = { GNOMEOLA_URL: d.baseUrl }
+    const env = { KACOLA_URL: d.baseUrl }
     const st = await bundledCli(runtime, ['status'], env)
     expect(st.code, st.stderr).toBe(0)
     expect(JSON.parse(st.stdout)).toMatchObject({ ok: true, url: d.baseUrl })
@@ -96,7 +96,7 @@ describe('bundled daemon + CLI on Electron-as-Node', () => {
   it('ask (Anthropic) through the bundled CLI, citations resolve to real segments', async () => {
     api.enqueue(...loadCassette(join(CASSETTES, 'cited-answer.json')))
     const r = await bundledCli(runtime, ['ask', 'what is the retry budget?', '--session', session.id], {
-      GNOMEOLA_URL: d.baseUrl,
+      KACOLA_URL: d.baseUrl,
     })
     expect(r.code, r.stderr).toBe(0)
     const out = JSON.parse(r.stdout)
@@ -108,10 +108,10 @@ describe('bundled daemon + CLI on Electron-as-Node', () => {
 
   it('token budgets (tiktoken WASM) and the inlined skill work from the bundle', async () => {
     const n = await bundledCli(runtime, ['transcript', session.id, '--full', '--max-tokens', '50'], {
-      GNOMEOLA_URL: d.baseUrl,
+      KACOLA_URL: d.baseUrl,
     })
     expect(n.code, n.stderr).toBe(0)
-    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-skill-'))
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-skill-'))
     const sk = await bundledCli(runtime, ['skill', 'install', '--dir', dir])
     expect(sk.code, sk.stderr).toBe(0)
     expect(readFileSync(join(dir, 'meeting-context', 'SKILL.md'), 'utf8')).toBe(
@@ -148,7 +148,7 @@ describe('bundled daemon with the OpenAI provider', () => {
     }
     api.enqueue(canned)
     const r = await bundledCli(runtime, ['ask', 'retries?', '--session', session.id], {
-      GNOMEOLA_URL: d.baseUrl,
+      KACOLA_URL: d.baseUrl,
     })
     expect(r.code, r.stderr).toBe(0)
     const out = JSON.parse(r.stdout)

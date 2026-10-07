@@ -1,4 +1,4 @@
-import type { Session, SessionStatus } from '@gnomeola/protocol'
+import type { Session, SessionStatus } from '@kacola/protocol'
 import { _, fmt } from './i18n.ts'
 
 // Pure display formatting. No DOM here, so it is unit-tested under plain vitest. Words go through

@@ -17,7 +17,7 @@ import { formatStrv, type GValue, parseGVariant } from './gvariant.ts'
 // The top-bar extension from Preferences › Integration, the sidebar card and onboarding: one button that
 // does the right thing — Install & Enable, Update, or Enable — and only ever when the user presses it.
 //
-// Install: copy the GNOME Shell extension (extensions/gnomeola@gnomeola.org, shipped as
+// Install: copy the GNOME Shell extension (extensions/kacola@kacperlubisz.com, shipped as
 // resources/extension/ in packaged builds) into ${XDG_DATA_HOME:-~/.local/share}/gnome-shell/extensions.
 // Inside the Flatpak, XDG_DATA_HOME is the app's own ~/.var/app/… directory, so the host's is used instead
 // (HOST_XDG_DATA_HOME, else ~/.local/share) — the manifest grants exactly
@@ -35,7 +35,7 @@ import { formatStrv, type GValue, parseGVariant } from './gvariant.ts'
 // the whole Shell interface) and its gsettings would only write the sandbox's own settings, so there it
 // copies the files and shows the exact command to run instead.
 
-export const EXTENSION_UUID = 'gnomeola@gnomeola.org'
+export const EXTENSION_UUID = 'kacola@kacperlubisz.com'
 export const ENABLE_COMMAND = `gnome-extensions enable ${EXTENSION_UUID}`
 
 /** The extension to install: packaged resources/extension/<uuid>, else the repo's extensions/<uuid>. */

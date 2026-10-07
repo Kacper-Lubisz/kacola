@@ -1,4 +1,4 @@
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { _, fmt } from '@kacola/ui-core/i18n'
 import { useQuery } from '@tanstack/react-query'
 import { useRouterState, useSearch } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'

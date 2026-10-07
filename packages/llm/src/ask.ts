@@ -3,7 +3,7 @@
 // Q-7 (ask during a meeting): `ask` snapshots the transcript synchronously when called — the caller can
 // keep appending segments while the answer streams — and then does nothing but await the provider. It
 // holds no locks and never touches capture or STT, so it cannot block them; `signal` cancels it.
-import type { Citation, Usage } from '@gnomeola/protocol'
+import type { Citation, Usage } from '@kacola/protocol'
 import { CitationRewriter } from './citations.ts'
 import { LlmError } from './errors.ts'
 import { assemblePrompt } from './prompt.ts'

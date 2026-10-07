@@ -9,15 +9,15 @@ import {
   type Settings,
   type SettingsPatch,
   StoredSettings,
-} from '@gnomeola/protocol'
-import type { Store } from '@gnomeola/store'
+} from '@kacola/protocol'
+import type { Store } from '@kacola/store'
 import { DaemonError } from './errors.ts'
 import type { Keyring } from './interfaces.ts'
 import type { Logger } from './logger.ts'
 
 export const DEFAULT_SETTINGS: StoredSettings = {
   llm: { provider: 'anthropic', model: 'claude-opus-5', ollamaUrl: 'http://127.0.0.1:11434' },
-  // The measured defaults from @gnomeola/stt's catalogue (see docs/stt.md).
+  // The measured defaults from @kacola/stt's catalogue (see docs/stt.md).
   stt: {
     liveModel: 'live-nemo-fastconformer-en-80ms-int8',
     finalModel: 'final-parakeet-tdt-110m-en-int8',
@@ -30,7 +30,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   decisions: DEFAULT_DECISIONS,
 }
 
-/** Each provider's default model (mirrors @gnomeola/llm's DEFAULT_MODELS; the daemon stays SDK-free here). */
+/** Each provider's default model (mirrors @kacola/llm's DEFAULT_MODELS; the daemon stays SDK-free here). */
 export const DEFAULT_LLM_MODELS: Record<LlmProvider, string> = {
   anthropic: 'claude-opus-5',
   openai: 'gpt-5.5',
@@ -47,7 +47,7 @@ export const KEY_ENV: Record<KeyedProvider, string> = {
 
 /**
  * Defaults for a daemon that has never stored settings: the first hosted provider whose key is in the
- * environment (Anthropic, then OpenAI), else Anthropic — so `OPENAI_API_KEY=… gnomeolad` just works.
+ * environment (Anthropic, then OpenAI), else Anthropic — so `OPENAI_API_KEY=… kacolad` just works.
  */
 export function defaultSettings(env: NodeJS.ProcessEnv = {}): StoredSettings {
   const provider: LlmProvider = env.ANTHROPIC_API_KEY?.trim()

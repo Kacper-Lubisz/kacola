@@ -1,5 +1,5 @@
-import type { AgendaView, SendAgendaResult, ShareStatus } from '@gnomeola/protocol'
-import { _, fmt, ngettext } from '@gnomeola/ui-core/i18n'
+import type { AgendaView, SendAgendaResult, ShareStatus } from '@kacola/protocol'
+import { _, fmt, ngettext } from '@kacola/ui-core/i18n'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { keys } from '../../data/keys.ts'

@@ -25,7 +25,7 @@ const sh = (cmd: string, args: string[]) =>
     ),
   )
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
-const dir = mkdtempSync(join(tmpdir(), 'gnomeola-rig-test-'))
+const dir = mkdtempSync(join(tmpdir(), 'kacola-rig-test-'))
 
 let before: Defaults
 beforeAll(async () => {

@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn as nodeSpawn } from 'node:child_process'
-import { DAEMON_EXIT } from '@gnomeola/protocol'
+import { DAEMON_EXIT } from '@kacola/protocol'
 import type { DaemonStatus } from '../shared/bridge.ts'
 
 // Main supervises the daemon (docs/desktop-app.md, "Process model"):
@@ -183,8 +183,8 @@ export class DaemonSupervisor {
       if (signal.aborted) break
       if (!this.o.loopback || !this.o.entry) {
         const error = !this.o.loopback
-          ? `no gnomeola answers at ${this.o.baseUrl}`
-          : `no gnomeola answers at ${this.o.baseUrl}, and there is no daemon to start`
+          ? `no kacola answers at ${this.o.baseUrl}`
+          : `no kacola answers at ${this.o.baseUrl}, and there is no daemon to start`
         if (this.current.kind !== 'unreachable') announce({ kind: 'unreachable', error })
         await sleep(this.o.watchMs, signal)
         continue
@@ -228,8 +228,8 @@ export class DaemonSupervisor {
     const child = this.o.spawn(
       this.o.execPath,
       [this.o.entry!, '--host', host, '--port', port, ...this.o.args],
-      // GNOMEOLA_SUPERVISED: we start it again after it exits for a restart (it says so on /daemon)
-      { ...this.o.env, ELECTRON_RUN_AS_NODE: '1', GNOMEOLA_SUPERVISED: '1' },
+      // KACOLA_SUPERVISED: we start it again after it exits for a restart (it says so on /daemon)
+      { ...this.o.env, ELECTRON_RUN_AS_NODE: '1', KACOLA_SUPERVISED: '1' },
     )
     this.child = child
     const append = (d: Buffer) => {
@@ -244,7 +244,7 @@ export class DaemonSupervisor {
         exitCode = code
         resolve(
           code === DAEMON_EXIT.LOCKED
-            ? 'another gnomeola daemon owns the data dir (it did not answer here yet)'
+            ? 'another kacola daemon owns the data dir (it did not answer here yet)'
             : `daemon exited (code ${code}, signal ${sig})`,
         )
       })

@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { newId, type Track, type TrackKind } from '@gnomeola/protocol'
+import { newId, type Track, type TrackKind } from '@kacola/protocol'
 import type { PipelineSink, PipelineStartOptions, RecordingHandle, SegmentUpsert } from '../interfaces.ts'
 
 // A replayed meeting: the fake pipeline speaking a SCRIPT (a fixture's ground truth, or lines written for

@@ -1,5 +1,5 @@
 // Exit codes are part of the CLI's contract with agents: a script (or Claude) branches on them, so they
-// are stable and documented in `gnomeola --help`.
+// are stable and documented in `kacola --help`.
 export const EXIT = {
   OK: 0,
   ERROR: 1,

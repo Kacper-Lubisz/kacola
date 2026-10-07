@@ -1,9 +1,9 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient, type GnomeolaClient, INVITE_BLOCK_START } from '@gnomeola/protocol'
-import { waitFor } from '@gnomeola/testkit/daemon'
-import { assertNoViolations, checkAgendaLog, checkEventLog } from '@gnomeola/testkit/invariants'
+import { createClient, INVITE_BLOCK_START, type KacolaClient } from '@kacola/protocol'
+import { waitFor } from '@kacola/testkit/daemon'
+import { assertNoViolations, checkAgendaLog, checkEventLog } from '@kacola/testkit/invariants'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ManualCalendarProvider } from '../src/calendar/providers.ts'
 import { createDaemon, type Daemon } from '../src/daemon.ts'
@@ -18,7 +18,7 @@ import { at, occ } from './calendar-helpers.ts'
 describe('agendas in the daemon', () => {
   let dir: string
   let daemon: Daemon
-  let c: GnomeolaClient
+  let c: KacolaClient
   const cal = new ManualCalendarProvider()
   const now = Date.now()
   // a weekly 1:1 in progress right now, next week's occurrence, and a one-off tomorrow
@@ -41,7 +41,7 @@ describe('agendas in the daemon', () => {
   const recaps: string[] = []
 
   beforeAll(async () => {
-    dir = mkdtempSync(join(tmpdir(), 'gnomeola-agendas-'))
+    dir = mkdtempSync(join(tmpdir(), 'kacola-agendas-'))
     daemon = await createDaemon({
       dataDir: dir,
       port: 0,
@@ -229,7 +229,7 @@ describe('agendas in the daemon', () => {
     const log = daemon.store.eventsAfter(0)
     assertNoViolations(checkEventLog(log))
     assertNoViolations(checkAgendaLog(log))
-    const { Store } = await import('@gnomeola/store')
+    const { Store } = await import('@kacola/store')
     const copy = Store.open(':memory:')
     copy.replay(log)
     expect(copy.dump()).toBe(daemon.store.dump())
@@ -239,7 +239,7 @@ describe('agendas in the daemon', () => {
 
 describe('agendas with a read-only calendar provider', () => {
   it('ICS / file calendars hand back the block with a reason instead of writing', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'gnomeola-agendas-ro-'))
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-agendas-ro-'))
     const cal = new ManualCalendarProvider()
     ;(cal as { editDescription?: unknown }).editDescription = undefined
     const d = await createDaemon({

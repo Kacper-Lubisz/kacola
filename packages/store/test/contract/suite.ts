@@ -1,11 +1,11 @@
-import { type DurableEvent, SearchHit, type Segment, type SyncItem } from '@gnomeola/protocol'
-import { seededRandom } from '@gnomeola/testkit/daemon'
+import { type DurableEvent, SearchHit, type Segment, type SyncItem } from '@kacola/protocol'
+import { seededRandom } from '@kacola/testkit/daemon'
 import {
   assertNoViolations,
   checkEventLog,
   checkSegmentHistory,
   foldSegments,
-} from '@gnomeola/testkit/invariants'
+} from '@kacola/testkit/invariants'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { StoreApi } from '../../src/api.ts'
 import { StoreError } from '../../src/errors.ts'

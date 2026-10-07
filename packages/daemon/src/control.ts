@@ -1,5 +1,5 @@
-import type { Session, SessionMeeting } from '@gnomeola/protocol'
-import type { Store } from '@gnomeola/store'
+import type { Session, SessionMeeting } from '@kacola/protocol'
+import type { Store } from '@kacola/store'
 import { sessionMeeting } from './calendar/meetings.ts'
 import type { CalendarService } from './calendar/service.ts'
 import type { StartReason } from './dbus/bridge-protocol.ts'

@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
-import type { AnyEvent, Session, SessionStatus } from '@gnomeola/protocol'
-import type { Store } from '@gnomeola/store'
+import type { AnyEvent, Session, SessionStatus } from '@kacola/protocol'
+import type { Store } from '@kacola/store'
 import type { EventBus } from '../bus.ts'
 import type { CalendarService } from '../calendar/service.ts'
 import type { RecordingControl } from '../control.ts'
@@ -19,13 +19,13 @@ import {
 } from './bridge-protocol.ts'
 import { changedProps, dbusMeeting, dbusView } from './view.ts'
 
-// C-4: org.gnome.Gnomeola on the session bus. This side decides every value (./view.ts) and answers
+// C-4: com.kacperlubisz.Kacola on the session bus. This side decides every value (./view.ts) and answers
 // every method call through RecordingControl; the GJS bridge only transports. Properties are pushed as
 // diffs whenever anything they depend on changes: a session event, a settings change, the calendar, or
 // a transcript line (throttled — partials arrive many times a second, the panel needs a few).
 
 export const BRIDGE_PATH = resolve(import.meta.dirname, '../../gjs/dbus-bridge.js')
-export const INTERFACE_XML = resolve(import.meta.dirname, '../../dbus/org.gnome.Gnomeola.xml')
+export const INTERFACE_XML = resolve(import.meta.dirname, '../../dbus/com.kacperlubisz.Kacola.xml')
 
 const LINE_THROTTLE_MS = 250
 const LIVE: SessionStatus[] = ['recording', 'paused']
@@ -234,7 +234,7 @@ export class DbusService {
         return
       case 'lost':
         this.owned = false
-        log.warn('D-Bus name not owned (another gnomeolad has it, or there is no session bus)', {
+        log.warn('D-Bus name not owned (another kacolad has it, or there is no session bus)', {
           name: m.name,
         })
         return

@@ -155,7 +155,7 @@ export async function startEds(opts: EdsOptions = {}): Promise<EdsHandle> {
   const timeoutMs = (opts.startupTimeoutS ?? 30) * 1000
   const id = randomBytes(8).toString('hex')
   // Unix socket paths are limited to 108 bytes, so this lives directly under the OS temp dir.
-  const tempDir = mkdtempSync(join(tmpdir(), 'gnomeola-eds-'))
+  const tempDir = mkdtempSync(join(tmpdir(), 'kacola-eds-'))
   chmodSync(tempDir, 0o700)
   const record = { id, tempDir, keep: opts.keepTempDir ?? false }
   live.add(record)
@@ -179,7 +179,7 @@ export async function startEds(opts: EdsOptions = {}): Promise<EdsHandle> {
     writeFileSync(join(dir, 'calendar.ics'), toIcs(c.components))
   }
   identities.forEach((a, i) => {
-    writeFileSync(join(sources, `gnomeola-identity-${i}.source`), identitySource(a))
+    writeFileSync(join(sources, `kacola-identity-${i}.source`), identitySource(a))
   })
   const socket = join(dirs.run, 'bus')
   writeFileSync(join(tempDir, 'session.conf'), busConfig(socket))

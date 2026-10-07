@@ -1,5 +1,5 @@
-import { ME, THEM } from '@gnomeola/protocol'
-import { _, fmt } from '@gnomeola/ui-core/i18n'
+import { ME, THEM } from '@kacola/protocol'
+import { _, fmt } from '@kacola/ui-core/i18n'
 import '../transcript/transcript.css'
 import { speakerName } from '../transcript/rows.ts'
 

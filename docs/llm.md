@@ -1,13 +1,13 @@
-# Transcript Q&A (`@gnomeola/llm`)
+# Transcript Q&A (`@kacola/llm`)
 
-How gnomeola answers questions about recorded meetings: the prompt layout and why, the cache strategy,
+How kacola answers questions about recorded meetings: the prompt layout and why, the cache strategy,
 citations, refusals, cost, and how the tests and cassettes work. Notes enhancement (M7) reuses the same
 layout, caching, citations and refusal handling with its own system prompt: see docs/notes.md.
 
 ## Public API
 
 ```ts
-import { ask, AnthropicProvider, OllamaProvider, providerFromSettings } from '@gnomeola/llm'
+import { ask, AnthropicProvider, OllamaProvider, providerFromSettings } from '@kacola/llm'
 
 const provider = providerFromSettings(settings.llm, { apiKey }) // AnthropicProvider | OllamaProvider | null
 for await (const ev of ask({ provider, transcripts: [{ session, segments }], question, effort: 'low', signal })) {
@@ -113,7 +113,7 @@ streams**:
 | `[see the doc]` | unchanged | — |
 
 So `QaMessage.text` contains footnote markers `[n]` that index `QaMessage.citations`; aliases never leave
-`@gnomeola/llm` (they mean nothing outside one request). Each `Citation` is the protocol shape
+`@kacola/llm` (they mean nothing outside one request). Each `Citation` is the protocol shape
 `{ sessionId, segmentId, startMs, endMs, speaker }`, ready for chips that seek the transcript. Text that
 could still become a marker (`… [s1`) is held back until it resolves, and nothing emitted is ever
 retracted, which is why streamed deltas always add up to the final text (property-tested over every
@@ -225,7 +225,7 @@ own KV prefix cache; the stable layout helps it too), cache fields are 0, `effor
 
 ## Cassettes
 
-`@gnomeola/testkit/cassettes` records and replays at the `fetch` layer (the SDK takes a custom `fetch`),
+`@kacola/testkit/cassettes` records and replays at the `fetch` layer (the SDK takes a custom `fetch`),
 so the SDK builds real requests and parses real responses. A cassette stores the normalised request
 (method, URL, headers minus credentials / `user-agent` / `x-stainless-*`, parsed JSON body), the status,
 the response headers the SDK reads, and the raw body (SSE text for streams). Replay is strictly
@@ -252,11 +252,11 @@ alias), `refusal`, `fallback-served`, `stream-cut`, `rate-limited-then-ok`, `rat
 ```sh
 export ANTHROPIC_API_KEY=sk-ant-…
 pnpm test:eval                                   # live eval only
-GNOMEOLA_CASSETTES=record pnpm test:eval         # live eval + writes
+KACOLA_CASSETTES=record pnpm test:eval         # live eval + writes
                                                  # packages/llm/test/fixtures/cassettes/recorded/live-eval.json
 ```
 
-Recording needs both the key and `GNOMEOLA_CASSETTES=record` (asking to record without a key is an
+Recording needs both the key and `KACOLA_CASSETTES=record` (asking to record without a key is an
 error, not a silent replay). The recorder never writes `x-api-key` / `authorization`. Review a recorded
 cassette before committing it: it contains the fixture transcript and the model's real answers. To turn
 a recorded exchange into a replay test, load it with `useCassette(path, { mode: 'replay' })` and pass
