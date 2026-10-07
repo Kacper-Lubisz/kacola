@@ -147,10 +147,13 @@ describe('the extension against the real daemon', () => {
     }, 'meetings from the daemon')
     expect(ind.accessibleName).toBe('kacola: not recording')
     const standup = ind.items.find((i) => i.key === `meeting:${meetingId}`)!
-    expect(standup.text).toBe(`${clock(start)}–${clock(start + 15 * 60_000)}  Platform standup`)
-    expect(standup.name).toMatch(/Platform standup, Google Meet, Join$/)
+    // the title leads the row; its time and app sit underneath (and in its accessible name)
+    expect(standup.text).toBe('Platform standup')
+    expect(standup.name).toBe(
+      `Platform standup, ${clock(start)}–${clock(start + 15 * 60_000)}, Google Meet, Join`,
+    )
     const review = ind.items.find((i) => i.text.endsWith('Design review'))!
-    expect(review.name).toMatch(/Design review, Zoom, Join$/)
+    expect(review.name).toMatch(/^Design review, \d\d:\d\d–\d\d:\d\d, Zoom, Join$/)
   })
 
   it('Join opens the meeting link AND starts a session on the daemon linked to the meeting', async () => {
