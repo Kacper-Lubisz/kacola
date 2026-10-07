@@ -82,6 +82,8 @@ export type EnsureOptions = {
 }
 
 const MANIFEST = '.kacola-model.json'
+/** The manifest's name before the gnomeola → kacola rename: adopted (renamed) when found, for one release. */
+const LEGACY_MANIFEST = '.gnomeola-model.json'
 
 export class ModelManager {
   readonly dir: string
@@ -437,7 +439,12 @@ async function readText(p: string): Promise<string | null> {
 }
 
 async function readManifest(dir: string): Promise<Manifest | null> {
-  const raw = await readText(join(dir, MANIFEST))
+  let raw = await readText(join(dir, MANIFEST))
+  if (raw === null) {
+    // a model installed before the rename: the same files, verified then; keep it instead of downloading
+    raw = await readText(join(dir, LEGACY_MANIFEST))
+    if (raw !== null) await rename(join(dir, LEGACY_MANIFEST), join(dir, MANIFEST)).catch(() => {})
+  }
   if (raw === null) return null
   try {
     const m = JSON.parse(raw) as Manifest

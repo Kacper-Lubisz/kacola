@@ -1,6 +1,15 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { createServer, type IncomingMessage, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -157,6 +166,20 @@ describe('ModelManager', () => {
     await mm.ensure('b')
     await new ModelManager({ dir, catalog: [entry('b', body)] }).ensure('b') // a fresh process, too
     expect(requests).toEqual([])
+  })
+
+  it('a model installed before the rename (the gnomeola manifest) stays ready: adopted, not downloaded', async () => {
+    const body = makeArchive('pkg-g', payload)
+    files.set('g.tar.bz2', { body })
+    await new ModelManager({ dir, catalog: [entry('g', body)] }).ensure('g')
+    renameSync(join(dir, 'g', '.kacola-model.json'), join(dir, 'g', '.gnomeola-model.json'))
+    requests.length = 0
+    const mm = new ModelManager({ dir, catalog: [entry('g', body)] })
+    expect((await mm.status('g')).state).toBe('ready')
+    await mm.ensure('g')
+    expect(requests).toEqual([])
+    expect(existsSync(join(dir, 'g', '.kacola-model.json'))).toBe(true)
+    expect(existsSync(join(dir, 'g', '.gnomeola-model.json'))).toBe(false)
   })
 
   it('shares one download between concurrent callers and reports downloading meanwhile', async () => {

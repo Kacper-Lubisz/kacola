@@ -11,7 +11,7 @@
 #   $PREFIX/bin/kacolad                the daemon launcher
 #   $PREFIX/bin/kacola-ui              the window launcher
 #   ~/.config/systemd/user/kacolad.service
-#   $PREFIX/share/applications/com.kacperlubisz.Kacola.desktop   (shown as "kacola")
+#   $PREFIX/share/applications/com.kacperlubisz.Kacola.desktop
 #   $PREFIX/share/icons/hicolor/*/apps/com.kacperlubisz.Kacola*  the brand icons
 #   ~/.claude/skills/meeting-context/    the Claude Code skill (unless --no-skill)
 #   ${XDG_DATA_HOME:-~/.local/share}/gnome-shell/extensions/kacola@kacperlubisz.com/
@@ -28,6 +28,16 @@
 # install refuses — exit 3, nothing replaced — unless --force. Afterwards the daemon is asked to restart on the
 # new version once nothing is recording (`kacola daemon restart`, at once if idle); it is never restarted
 # under a recording.
+#
+# Upgrading from gnomeola (the name before 0.2): the old install is found by its unit, launchers or app dir.
+# The new one is installed beside it first; then, only if the old daemon says it is idle (`daemon idle`,
+# asked again right before — a recording refuses with exit 3 even with --force, since the old service has to
+# stop rather than restart), the switch: the old window's files, launchers and desktop entry go, the old
+# gnomeolad.service is stopped, disabled and removed (its gnomeolad.service.d overrides are copied to
+# kacolad.service.d), the old daemon runtime goes, and kacolad starts — and on its first start moves
+# ~/.local/share/gnomeola to ~/.local/share/kacola. `gnomeola` stays as a forwarding alias for kacola that
+# prints a deprecation note. The old top-bar extension keeps working (the daemon still answers its D-Bus name)
+# until the new one is switched on from the window, which retires the old one.
 set -euo pipefail
 
 PREFIX="${HOME}/.local"
@@ -50,10 +60,23 @@ while [ $# -gt 0 ]; do
     --uninstall) UNINSTALL=1; shift ;;
     --purge) PURGE=1; shift ;;
     --force) FORCE=1; shift ;;
-    -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,42p' "$0"; exit 0 ;;
     *) echo "install.sh: unknown option $1" >&2; exit 2 ;;
   esac
 done
+
+# Compatibility (one release): GNOMEOLA_* variables from before the rename are read as KACOLA_*, here and in
+# everything this starts.
+LEGACY_ENV=""
+for var in $(compgen -e); do
+  case "$var" in
+    GNOMEOLA_*)
+      new="KACOLA_${var#GNOMEOLA_}"
+      if [ -z "${!new+x}" ]; then export "$new=${!var}"; LEGACY_ENV="${LEGACY_ENV} ${var}"; fi
+      ;;
+  esac
+done
+[ -z "$LEGACY_ENV" ] || echo "kacola: deprecated:${LEGACY_ENV} — rename to KACOLA_* (the old names are read for one more release)" >&2
 
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
 APP="${PREFIX}/share/kacola/app"
@@ -65,43 +88,94 @@ UNIT_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/systemd/user"
 DESKTOP_DIR="${PREFIX}/share/applications"
 DATA="${XDG_DATA_HOME:-${HOME}/.local/share}/kacola"
 SKILLS="${HOME}/.claude/skills"
+EXT_ROOT="${XDG_DATA_HOME:-${HOME}/.local/share}/gnome-shell/extensions"
 EXT_UUID="kacola@kacperlubisz.com"
-EXT_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/gnome-shell/extensions/${EXT_UUID}"
+EXT_DIR="${EXT_ROOT}/${EXT_UUID}"
+AUTOSTART_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/autostart"
 DAEMON_URL="${KACOLA_URL:-http://127.0.0.1:8787}"
+
+# The gnomeola install this one replaces (compatibility, one release): same layout under the old names.
+LEGACY_SHARE="${PREFIX}/share/gnomeola"
+LEGACY_APP="${LEGACY_SHARE}/app"
+LEGACY_DESKTOP_APP="${LEGACY_SHARE}/desktop"
+LEGACY_APP_ID="org.gnome.Gnomeola"
+LEGACY_UNIT="gnomeolad.service"
+LEGACY_DATA="${XDG_DATA_HOME:-${HOME}/.local/share}/gnomeola"
+LEGACY_EXT_DIR="${EXT_ROOT}/gnomeola@gnomeola.org"
+LEGACY=0
+if [ -e "${UNIT_DIR}/${LEGACY_UNIT}" ] || [ -e "${BIN}/gnomeolad" ] ||
+  { [ ! -L "$LEGACY_SHARE" ] && { [ -d "$LEGACY_APP" ] || [ -d "$LEGACY_DESKTOP_APP" ]; }; }; then
+  LEGACY=1
+fi
 
 run() { if [ "$DRY" = 1 ]; then echo "+ $*"; else "$@"; fi; }
 say() { echo "kacola: $*"; }
 
+# KACOLA_INSTALL_NO_SYSTEMCTL=1 (tests): write the unit files but never talk to the running user session — its
+# systemd manager, or its GNOME settings.
+SESSION=1
+[ "${KACOLA_INSTALL_NO_SYSTEMCTL:-0}" = 1 ] && SESSION=0
 systemctl_user() {
-  # Only touch the user's systemd if there is one. KACOLA_INSTALL_NO_SYSTEMCTL=1 (tests) writes the unit
-  # file but never talks to the running user manager.
-  [ "${KACOLA_INSTALL_NO_SYSTEMCTL:-0}" = 1 ] && return 0
+  # Only touch the user's systemd if there is one.
+  [ "$SESSION" = 1 ] || return 0
   if [ "$SERVICE" = 1 ] && command -v systemctl >/dev/null && systemctl --user show-environment >/dev/null 2>&1; then
     run systemctl --user "$@" || true
   fi
 }
 
-if [ "$UNINSTALL" = 1 ]; then
-  systemctl_user disable --now kacolad.service
-  run rm -f "${UNIT_DIR}/kacolad.service" "${BIN}/kacola" "${BIN}/kacolad" "${BIN}/kacola-ui" \
-    "${DESKTOP_DIR}/${APP_ID}.desktop"
-  run rm -rf "${PREFIX}/share/kacola"
-  for icon in "${ICONS}"/*/apps/"${APP_ID}".png "${ICONS}"/*/apps/"${APP_ID}".svg "${ICONS}"/*/apps/"${APP_ID}"-symbolic.svg; do
+remove_icons() { # app id
+  for icon in "${ICONS}"/*/apps/"$1".png "${ICONS}"/*/apps/"$1".svg "${ICONS}"/*/apps/"$1"-symbolic.svg; do
     [ -e "$icon" ] || continue
     run rm -f "$icon"
     run rmdir "$(dirname "$icon")" "$(dirname "$(dirname "$icon")")" 2>/dev/null || true
   done
+}
+
+# The install dirs only: with the default prefix, ${PREFIX}/share/<name> IS the data dir, which holds the
+# recordings — never removed here (that is --purge's job).
+# A symlink is the migrated data dir's compatibility link (to the kacola dir): left alone.
+remove_install_dirs() { # share dir
+  [ -L "$1" ] && return 0
+  run rm -rf "$1/app" "$1/desktop"
+  [ -d "$1" ] && run rmdir "$1" 2>/dev/null || true
+}
+
+if [ "$UNINSTALL" = 1 ]; then
+  systemctl_user disable --now kacolad.service
+  systemctl_user disable --now "$LEGACY_UNIT"
+  run rm -f "${UNIT_DIR}/kacolad.service" "${UNIT_DIR}/${LEGACY_UNIT}" \
+    "${BIN}/kacola" "${BIN}/kacolad" "${BIN}/kacola-ui" "${BIN}/gnomeolad" "${BIN}/gnomeola-ui" \
+    "${DESKTOP_DIR}/${APP_ID}.desktop" "${DESKTOP_DIR}/${LEGACY_APP_ID}.desktop"
+  # bin/gnomeola: the forwarding alias, or an old install's launcher
+  if [ -f "${BIN}/gnomeola" ] && grep -qE '^# kacola-legacy-alias|share/gnomeola/app/' "${BIN}/gnomeola"; then run rm -f "${BIN}/gnomeola"; fi
+  remove_install_dirs "${PREFIX}/share/kacola"
+  remove_install_dirs "$LEGACY_SHARE"
+  remove_icons "$APP_ID"
+  remove_icons "$LEGACY_APP_ID"
   run rmdir "$ICONS" "$(dirname "$ICONS")" 2>/dev/null || true
   # what the installed window wrote itself: its autostart entry (Preferences) and its CLI shim (first run),
   # each only when it is ours (the window's marker) and points into this install
-  AUTOSTART="${XDG_CONFIG_HOME:-${HOME}/.config}/autostart/${APP_ID}.desktop"
+  AUTOSTART="${AUTOSTART_DIR}/${APP_ID}.desktop"
   if [ -f "$AUTOSTART" ] && grep -q '^X-Kacola-Autostart=1' "$AUTOSTART" && grep -qF "$DESKTOP_APP/" "$AUTOSTART"; then run rm -f "$AUTOSTART"; fi
+  AUTOSTART="${AUTOSTART_DIR}/${LEGACY_APP_ID}.desktop"
+  if [ -f "$AUTOSTART" ] && grep -q '^X-Gnomeola-Autostart=1' "$AUTOSTART" && grep -qF "$LEGACY_DESKTOP_APP/" "$AUTOSTART"; then run rm -f "$AUTOSTART"; fi
   SHIM="${HOME}/.local/bin/kacola"
   if [ -f "$SHIM" ] && grep -q '^# kacola-cli-shim' "$SHIM" && grep -qF "$DESKTOP_APP/" "$SHIM"; then run rm -f "$SHIM"; fi
-  if [ -f "${SKILLS}/meeting-context/.kacola-installed" ]; then run rm -rf "${SKILLS}/meeting-context"; fi
-  run rm -rf "$EXT_DIR"
+  SHIM="${HOME}/.local/bin/gnomeola"
+  if [ -f "$SHIM" ] && grep -qE '^# (gnomeola-cli-shim|kacola-legacy-alias)' "$SHIM"; then run rm -f "$SHIM"; fi
+  if [ -f "${SKILLS}/meeting-context/.kacola-installed" ] || [ -f "${SKILLS}/meeting-context/.gnomeola-installed" ]; then
+    run rm -rf "${SKILLS}/meeting-context"
+  fi
+  run rm -rf "$EXT_DIR" "$LEGACY_EXT_DIR"
   systemctl_user daemon-reload
-  if [ "$PURGE" = 1 ]; then run rm -rf "$DATA"; say "removed recordings and models in $DATA"; else say "kept your recordings in $DATA (use --purge to remove)"; fi
+  if [ "$PURGE" = 1 ]; then
+    run rm -rf "$DATA"
+    # the pre-rename data dir: removed too when it holds data, or just the compatibility link
+    if [ -L "$LEGACY_DATA" ]; then run rm -f "$LEGACY_DATA"; elif [ -d "$LEGACY_DATA" ]; then run rm -rf "$LEGACY_DATA"; fi
+    say "removed recordings and models in $DATA"
+  else
+    say "kept your recordings in $DATA (use --purge to remove)"
+  fi
   say "uninstalled"
   exit 0
 fi
@@ -131,6 +205,13 @@ if [ "$IDLE_CODE" != 0 ]; then
   else
     WHY="could not tell whether the kacola daemon at ${DAEMON_URL} is recording (${BUSY})"
   fi
+  if [ "$LEGACY" = 1 ] && [ "$SERVICE" = 1 ]; then
+    # switching from gnomeola stops the old service (a restart cannot carry it over), so it must be idle
+    echo "install.sh: refusing to install: ${WHY}." >&2
+    echo "install.sh: this install switches over from gnomeola, which stops the old daemon's service; that waits" >&2
+    echo "install.sh: for no meeting (--force does not apply). Run this again when the meeting has ended." >&2
+    exit 3
+  fi
   if [ "$FORCE" != 1 ]; then
     echo "install.sh: refusing to install: ${WHY}." >&2
     echo "install.sh: installing now would replace the files it runs from in the middle of the meeting. Run this" >&2
@@ -141,6 +222,7 @@ if [ "$IDLE_CODE" != 0 ]; then
   say "warning: ${WHY}; installing anyway (--force): the daemon restarts only once the recording has finished"
 fi
 say "installing to ${PREFIX} with node $("$NODE" -v) at ${NODE}"
+[ "$LEGACY" = 1 ] && say "found a gnomeola install: kacola replaces it (your recordings move over on the daemon's first start)"
 
 # ---- build ------------------------------------------------------------------------------------------
 # The window is the packaged Electron app (electron-builder `dir`, executable `kacola`, the daemon/CLI runtime
@@ -209,8 +291,25 @@ write "${BIN}/kacola-ui" 755 <<SH
 exec "${DESKTOP_APP}/kacola" "\$@"
 SH
 
-# Name is the brand (kacola); the ids stay com.kacperlubisz.Kacola until the rename. StartupWMClass is the Wayland
-# app id Electron gives the window (package.json desktopName without .desktop; install.e2e checks it).
+# `gnomeola` keeps working for one release (habits, scripts, a Claude permission rule for Bash(gnomeola:*)),
+# forwarding to kacola with a one-line note on stderr. Written where the old launcher was, and over the old
+# window's own ~/.local/bin/gnomeola shim, whose app is going.
+legacy_alias() { # path
+  write "$1" 755 <<SH
+#!/bin/sh
+# kacola-legacy-alias — gnomeola was renamed kacola; this forwards for one release. install.sh --uninstall removes it.
+echo "gnomeola is now kacola: run 'kacola' instead (this alias goes in a later release)" >&2
+exec "${BIN}/kacola" "\$@"
+SH
+}
+legacy_alias "${BIN}/gnomeola"
+OLD_SHIM="${HOME}/.local/bin/gnomeola"
+if [ "$OLD_SHIM" != "${BIN}/gnomeola" ] && [ -f "$OLD_SHIM" ] && grep -q '^# gnomeola-cli-shim' "$OLD_SHIM"; then
+  legacy_alias "$OLD_SHIM"
+fi
+
+# StartupWMClass is the Wayland app id Electron gives the window (package.json desktopName without .desktop;
+# install.e2e checks it).
 write "${DESKTOP_DIR}/${APP_ID}.desktop" 644 <<DESKTOP
 [Desktop Entry]
 Type=Application
@@ -249,6 +348,8 @@ Restart=on-failure
 RestartSec=2
 RestartForceExitStatus=76
 SuccessExitStatus=76
+# 78: both the gnomeola and the kacola data dir hold data; starting again cannot help until one is moved aside
+RestartPreventExitStatus=78
 # stop/restart suspends a live recording (the next daemon resumes it) within a few seconds; never hold up a logout.
 # SIGTERM goes to the daemon only: it stops its own capture children in order, flushing the audio first.
 TimeoutStopSec=15
@@ -258,9 +359,68 @@ KillMode=mixed
 [Install]
 WantedBy=default.target
 UNIT
+  # the user's overrides for the old unit (Environment=…: GNOMEOLA_* names are still read for one release)
+  if [ -d "${UNIT_DIR}/${LEGACY_UNIT}.d" ] && [ ! -e "${UNIT_DIR}/kacolad.service.d" ]; then
+    run cp -a "${UNIT_DIR}/${LEGACY_UNIT}.d" "${UNIT_DIR}/kacolad.service.d"
+    say "copied your ${LEGACY_UNIT}.d overrides to kacolad.service.d"
+  fi
   systemctl_user daemon-reload
   systemctl_user enable kacolad.service
 fi
+
+# ---- switching over from gnomeola -----------------------------------------------------------------------
+# Only once the old daemon says it is idle, asked again right now (the preflight was a while ago).
+daemon_answers() { "$NODE" "${APP}/packages/cli/src/main.ts" status --url "$DAEMON_URL" >/dev/null 2>&1; }
+OLD_STILL_UP=0
+switch_from_gnomeola() {
+  [ "$LEGACY" = 1 ] || return 0
+  if [ "$DRY" != 1 ]; then
+    local busy code=0
+    busy="$("$NODE" "${APP}/packages/cli/src/main.ts" daemon idle --text --url "$DAEMON_URL" 2>&1)" || code=$?
+    if [ "$code" != 0 ]; then
+      echo "install.sh: kacola is installed, but the gnomeola daemon at ${DAEMON_URL} is ${busy#kacola: } now." >&2
+      echo "install.sh: nothing of the gnomeola install was stopped or removed; run this again once the meeting" >&2
+      echo "install.sh: has ended to switch over." >&2
+      exit 3
+    fi
+  fi
+  # the old window's files first, so it cannot start a daemon of its own once the old service has stopped
+  [ -L "$LEGACY_SHARE" ] || run rm -rf "$LEGACY_DESKTOP_APP"
+  run rm -f "${BIN}/gnomeolad" "${BIN}/gnomeola-ui" "${DESKTOP_DIR}/${LEGACY_APP_ID}.desktop"
+  remove_icons "$LEGACY_APP_ID"
+  if [ "$SERVICE" = 1 ]; then
+    systemctl_user disable --now "$LEGACY_UNIT"
+    run rm -f "${UNIT_DIR}/${LEGACY_UNIT}"
+    systemctl_user daemon-reload
+    if [ "$SESSION" = 1 ] && [ "$DRY" != 1 ]; then
+      # it was idle: SIGTERM ends it within seconds; wait for it to let go of the port and the data dir
+      for _ in $(seq 1 40); do daemon_answers || break; sleep 0.5; done
+      if daemon_answers; then OLD_STILL_UP=1; fi
+    fi
+  fi
+  remove_install_dirs "$LEGACY_SHARE"
+  # the old window's autostart entry starts a binary that is gone: point it at the new one
+  local old_auto="${AUTOSTART_DIR}/${LEGACY_APP_ID}.desktop" new_auto="${AUTOSTART_DIR}/${APP_ID}.desktop"
+  if [ -f "$old_auto" ] && grep -q '^X-Gnomeola-Autostart=1' "$old_auto"; then
+    if [ ! -e "$new_auto" ]; then
+      write "$new_auto" 644 <<AUTOSTART
+[Desktop Entry]
+Type=Application
+Name=kacola
+Comment=Record, transcribe and search your meetings (in the background)
+Exec=${DESKTOP_APP}/kacola --background
+Icon=${APP_ID}
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+X-Kacola-Autostart=1
+AUTOSTART
+    fi
+    run rm -f "$old_auto"
+  fi
+  say "switched over from gnomeola: its service, window and launchers are gone ('gnomeola' still works, as an alias)"
+}
+switch_from_gnomeola
 
 # The running daemon moves to the new version by restarting once nothing is recording — asked of the daemon at
 # the moment of the restart, never decided here (`kacola daemon restart`, the newly installed CLI). A daemon
@@ -268,6 +428,11 @@ fi
 restart_daemon() {
   [ "$SERVICE" = 1 ] || return 0
   if [ "$DRY" = 1 ]; then echo "+ kacola daemon restart --no-wait --only-supervised (once idle)"; return 0; fi
+  if [ "$OLD_STILL_UP" = 1 ]; then
+    say "warning: a gnomeola daemon still answers at ${DAEMON_URL} although its service has stopped — probably"
+    say "  the old window's own. Quit the old kacola window, then: systemctl --user start kacolad"
+    return 0
+  fi
   local code=0
   "$NODE" "${APP}/packages/cli/src/main.ts" daemon restart --no-wait --only-supervised --text --url "$DAEMON_URL" || code=$?
   case "$code" in
@@ -284,6 +449,15 @@ restart_daemon() {
       ;;
     *) say "warning: could not ask the daemon to restart (exit ${code}); once idle: systemctl --user reload kacolad" ;;
   esac
+  # the first kacolad after a switch moves the gnomeola data dir: say how it went
+  if [ "$LEGACY" = 1 ] && [ "$SESSION" = 1 ]; then
+    for _ in $(seq 1 60); do daemon_answers && break; sleep 0.5; done
+    if daemon_answers; then
+      say "kacolad is running; your recordings are in ${DATA}"
+    else
+      say "warning: kacolad did not come up; see: journalctl --user -u kacolad -n 50"
+    fi
+  fi
 }
 restart_daemon
 
@@ -305,6 +479,19 @@ if [ "$EXTENSION" = 1 ]; then
     glib-compile-schemas "${EXT_DIR}/schemas"
     rm -rf "$PACK_DIR"
     say "installed the top-bar extension (not enabled); to use it: gnome-extensions enable ${EXT_UUID}"
+  fi
+  # The gnomeola extension (before the rename) keeps the top bar until the new one is switched on — the
+  # daemon still answers its D-Bus name — and is retired by the window's one-click setup when it is. Once the
+  # new one is on, a leftover copy goes here.
+  if [ -d "$LEGACY_EXT_DIR" ]; then
+    if [ "$SESSION" = 1 ] && command -v gsettings >/dev/null &&
+      gsettings get org.gnome.shell enabled-extensions 2>/dev/null | grep -qF "'${EXT_UUID}'"; then
+      run rm -rf "$LEGACY_EXT_DIR"
+      say "removed the old top-bar extension (gnomeola@gnomeola.org); the new one is on"
+    else
+      say "the old top-bar extension (gnomeola@gnomeola.org) keeps working for now. Switch the new one on in kacola"
+      say "  (the card on the home screen, or Preferences › Integration), then log out and back in: that retires the old one"
+    fi
   fi
 fi
 

@@ -314,9 +314,8 @@ export function uninstallCli(
   if (!o.keepSkill) {
     const dir = join(o.skillRoot ?? join(o.home, '.claude', 'skills'), SKILL_DIR)
     const md = join(dir, 'SKILL.md')
-    const stamp = join(dir, STAMP)
     if (!existsSync(md)) skill = { path: md, action: 'absent' }
-    else if (existsSync(stamp) && readFileSync(stamp, 'utf8').trim() === sha(readFileSync(md, 'utf8'))) {
+    else if (readStamp(dir) === sha(readFileSync(md, 'utf8'))) {
       rmSync(dir, { recursive: true, force: true })
       skill = { path: md, action: 'removed' }
     } else skill = { path: md, action: 'kept-edited' }
@@ -328,6 +327,13 @@ export function uninstallCli(
 
 export const SKILL_DIR = 'meeting-context'
 const STAMP = '.kacola-installed'
+/** The stamp a gnomeola install wrote (before the rename): recognised for one release, then replaced. */
+const LEGACY_STAMP = '.gnomeola-installed'
+const readStamp = (dir: string): string | null => {
+  for (const f of [STAMP, LEGACY_STAMP])
+    if (existsSync(join(dir, f))) return readFileSync(join(dir, f), 'utf8').trim()
+  return null
+}
 
 export const sha = (s: string) => createHash('sha256').update(s).digest('hex').slice(0, 12)
 
@@ -346,15 +352,16 @@ export function writeSkill(
   let action: 'installed' | 'updated' | 'unchanged' | 'kept-edited' = 'installed'
   if (existsSync(target)) {
     const current = readFileSync(target, 'utf8')
-    const recorded = existsSync(stamp) ? readFileSync(stamp, 'utf8').trim() : null
+    const recorded = readStamp(dirname(target))
     if (current === source) action = 'unchanged'
     else if (recorded !== sha(current) && !force) return { path: target, action: 'kept-edited' }
     else action = 'updated'
   }
-  if (action !== 'unchanged' && !dryRun) {
+  if ((action !== 'unchanged' || !existsSync(stamp)) && !dryRun) {
     mkdirSync(dirname(target), { recursive: true })
-    writeFileSync(target, source)
+    if (action !== 'unchanged') writeFileSync(target, source)
     writeFileSync(stamp, `${sha(source)}\n`)
+    rmSync(join(dirname(target), LEGACY_STAMP), { force: true })
   }
   return { path: target, action }
 }

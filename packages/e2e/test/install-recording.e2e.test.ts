@@ -1,10 +1,22 @@
-import { execFile, execFileSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { execFile, execFileSync, spawn, spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import {
+  chmodSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readlinkSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { DAEMON_EXIT } from '@kacola/protocol'
+import { dirname, join } from 'node:path'
+import { createClient, DAEMON_EXIT } from '@kacola/protocol'
 import { type DaemonHandle, startDaemon } from '@kacola/testkit/daemon'
 import { afterAll, describe, expect, it } from 'vitest'
 
@@ -172,5 +184,217 @@ describe('install.sh and a meeting being recorded', () => {
     expect(r.code, r.stderr).toBe(0)
     expect(r.stderr).toMatch(/restarting \(pid \d+\)/)
     expect(await d.exited(15_000)).toEqual({ code: DAEMON_EXIT.RESTART, signal: null })
+  }, 300_000)
+})
+
+// Upgrading a gnomeola install (before the rename) to kacola: the app in ~/.local/share/<name> beside the
+// data, as install.sh lays it out with the default prefix, so the data dir also holds the installed app.
+describe('install.sh upgrading from a gnomeola install', () => {
+  /** A gnomeola install and its data, under a throwaway home, as the old install.sh left them. */
+  async function gnomeolaInstall(name: string) {
+    const home = join(box, name)
+    const prefix = join(home, '.local')
+    const data = join(home, '.local', 'share', 'gnomeola') // = ${prefix}/share/gnomeola
+    const units = join(home, '.config', 'systemd', 'user')
+    const put = (p: string, text: string, mode = 0o644) => {
+      mkdirSync(dirname(p), { recursive: true })
+      writeFileSync(p, text)
+      chmodSync(p, mode)
+    }
+    put(join(data, 'app', 'packages', 'cli', 'src', 'main.ts'), '// the old runtime\n')
+    put(join(data, 'desktop', 'gnomeola'), '#!/bin/sh\nexit 0\n', 0o755)
+    put(
+      join(prefix, 'bin', 'gnomeola'),
+      `#!/bin/sh\nexec node "${data}/app/packages/cli/src/main.ts" "$@"\n`,
+      0o755,
+    )
+    put(
+      join(prefix, 'bin', 'gnomeolad'),
+      `#!/bin/sh\nexec node "${data}/app/packages/daemon/src/main.ts"\n`,
+      0o755,
+    )
+    put(join(prefix, 'bin', 'gnomeola-ui'), `#!/bin/sh\nexec "${data}/desktop/gnomeola" "$@"\n`, 0o755)
+    put(join(prefix, 'share', 'applications', 'org.gnome.Gnomeola.desktop'), '[Desktop Entry]\nName=kacola\n')
+    put(join(prefix, 'share', 'icons', 'hicolor', '48x48', 'apps', 'org.gnome.Gnomeola.png'), 'png')
+    put(join(units, 'gnomeolad.service'), `[Service]\nExecStart=${prefix}/bin/gnomeolad\n`)
+    put(join(units, 'gnomeolad.service.d', 'override.conf'), '[Service]\nEnvironment=GNOMEOLA_TRACKER=off\n')
+    put(
+      join(home, '.config', 'autostart', 'org.gnome.Gnomeola.desktop'),
+      `[Desktop Entry]\nExec=${data}/desktop/gnomeola --background\nX-Gnomeola-Autostart=1\n`,
+    )
+    const oldSkill = '---\nname: meeting-context\nallowed-tools: Bash(gnomeola:*)\n---\n'
+    put(join(home, '.claude', 'skills', 'meeting-context', 'SKILL.md'), oldSkill)
+    put(
+      join(home, '.claude', 'skills', 'meeting-context', '.gnomeola-installed'),
+      `${createHash('sha256').update(oldSkill).digest('hex').slice(0, 12)}\n`,
+    )
+    const oldExt = join(home, '.local', 'share', 'gnome-shell', 'extensions', 'gnomeola@gnomeola.org')
+    put(join(oldExt, 'metadata.json'), '{"uuid":"gnomeola@gnomeola.org"}')
+    // the old daemon, idle, on the old data dir, with a recorded meeting
+    const old = await startDaemon({ dataDir: data, env: { KACOLA_FAKE_PIPELINE: PIPE } })
+    daemons.push(old)
+    const s = await old.client.call('createSession', { body: { title: 'Before the rename' } })
+    await old.client.call('startSession', { params: { id: s.id } })
+    await new Promise((r) => setTimeout(r, 600))
+    await old.client.call('stopSession', { params: { id: s.id } })
+    return { home, prefix, data, units, oldExt, old, session: s }
+  }
+
+  const envFor = (home: string, url: string): NodeJS.ProcessEnv => ({
+    ...process.env,
+    HOME: home,
+    XDG_CONFIG_HOME: join(home, '.config'),
+    XDG_DATA_HOME: join(home, '.local', 'share'),
+    XDG_STATE_HOME: join(home, '.local', 'state'),
+    KACOLA_URL: url,
+    KACOLA_INSTALL_NO_SYSTEMCTL: '1',
+    KACOLA_DESKTOP_APP_DIR: FAKE_APP,
+  })
+  const installAt = (home: string, url: string, ...args: string[]) =>
+    new Promise<Run>((resolve) =>
+      execFile(
+        'bash',
+        [INSTALL, '--node', process.execPath, ...args],
+        { env: envFor(home, url), maxBuffer: 16 * 1024 * 1024, timeout: 280_000 },
+        (err, stdout, stderr) =>
+          resolve({ code: err ? ((err as { code?: number }).code ?? 1) : 0, stdout, stderr }),
+      ),
+    )
+
+  it('refuses while the gnomeola daemon records, even with --force, and touches nothing', async () => {
+    const g = await gnomeolaInstall('home-upgrade-busy')
+    const s = await g.old.client.call('createSession', { body: { title: 'Live call' } })
+    await g.old.client.call('startSession', { params: { id: s.id } })
+    const r = await installAt(g.home, g.old.baseUrl, '--force', '--no-extension', '--no-skill')
+    expect(r.code, r.stderr).toBe(3)
+    expect(r.stderr).toMatch(/switches over from gnomeola/)
+    expect(r.stderr).toMatch(/--force does not apply/)
+    expect(existsSync(join(g.prefix, 'share', 'kacola'))).toBe(false)
+    expect(existsSync(join(g.prefix, 'bin', 'kacola'))).toBe(false)
+    expect(existsSync(join(g.units, 'gnomeolad.service'))).toBe(true)
+    expect(existsSync(join(g.data, 'desktop', 'gnomeola'))).toBe(true)
+    expect((await g.old.client.call('getSession', { params: { id: s.id } })).status).toBe('recording')
+    await g.old.client.call('stopSession', { params: { id: s.id } })
+  }, 120_000)
+
+  it('switches over: new names installed, the old ones gone, then kacolad moves the data on its first start', async () => {
+    const g = await gnomeolaInstall('home-upgrade')
+    const r = await installAt(g.home, g.old.baseUrl)
+    expect(r.code, r.stderr).toBe(0)
+    expect(r.stdout).toMatch(/found a gnomeola install/)
+    expect(r.stdout).toMatch(/switched over from gnomeola/)
+    const bin = (n: string) => join(g.prefix, 'bin', n)
+    // the new names
+    for (const b of ['kacola', 'kacolad', 'kacola-ui']) expect(existsSync(bin(b)), b).toBe(true)
+    expect(readFileSync(join(g.units, 'kacolad.service'), 'utf8')).toMatch(/^RestartPreventExitStatus=78$/m)
+    expect(readFileSync(join(g.units, 'kacolad.service.d', 'override.conf'), 'utf8')).toContain(
+      'GNOMEOLA_TRACKER',
+    )
+    expect(existsSync(join(g.prefix, 'share', 'applications', 'com.kacperlubisz.Kacola.desktop'))).toBe(true)
+    // the old ones gone: unit, launchers, window, runtime, desktop entry, icons
+    expect(existsSync(join(g.units, 'gnomeolad.service'))).toBe(false)
+    for (const b of ['gnomeolad', 'gnomeola-ui']) expect(existsSync(bin(b)), b).toBe(false)
+    expect(existsSync(join(g.data, 'app'))).toBe(false)
+    expect(existsSync(join(g.data, 'desktop'))).toBe(false)
+    expect(existsSync(join(g.prefix, 'share', 'applications', 'org.gnome.Gnomeola.desktop'))).toBe(false)
+    expect(
+      existsSync(join(g.prefix, 'share', 'icons', 'hicolor', '48x48', 'apps', 'org.gnome.Gnomeola.png')),
+    ).toBe(false)
+    // the data is not the installer's to move: the daemon does that
+    expect(existsSync(join(g.data, 'kacola.db'))).toBe(true)
+    // `gnomeola` forwards to kacola with a one-line note
+    const alias = spawnSync(bin('gnomeola'), ['--version'], {
+      env: envFor(g.home, g.old.baseUrl),
+      encoding: 'utf8',
+    })
+    expect(alias.status).toBe(0)
+    expect(alias.stderr.trim()).toBe(
+      "gnomeola is now kacola: run 'kacola' instead (this alias goes in a later release)",
+    )
+    expect(alias.stdout).toBe(spawnSync(bin('kacola'), ['--version'], { encoding: 'utf8' }).stdout)
+    // the autostart entry points at the new window
+    const auto = join(g.home, '.config', 'autostart')
+    expect(existsSync(join(auto, 'org.gnome.Gnomeola.desktop'))).toBe(false)
+    expect(readFileSync(join(auto, 'com.kacperlubisz.Kacola.desktop'), 'utf8')).toContain(
+      `Exec=${join(g.prefix, 'share', 'kacola', 'desktop', 'kacola')} --background`,
+    )
+    // the skill an old install wrote is updated (its old stamp recognised), with the new permission hint
+    const skill = join(g.home, '.claude', 'skills', 'meeting-context')
+    expect(readFileSync(join(skill, 'SKILL.md'), 'utf8')).toContain('Bash(kacola:*)')
+    expect(existsSync(join(skill, '.gnomeola-installed'))).toBe(false)
+    expect(r.stdout).toContain('"Bash(kacola:*)"')
+    // the new top-bar extension is installed; the old one stays until the new one is switched on
+    const extensions = join(g.home, '.local', 'share', 'gnome-shell', 'extensions')
+    expect(existsSync(join(extensions, 'kacola@kacperlubisz.com', 'metadata.json'))).toBe(true)
+    expect(existsSync(g.oldExt)).toBe(true)
+    expect(r.stdout).toMatch(/old top-bar extension \(gnomeola@gnomeola\.org\) keeps working/)
+
+    // systemd stops the old daemon at this point (`systemctl --user disable --now gnomeolad`); here the
+    // test does, and names the database as a gnomeola daemon did
+    await g.old.stop()
+    for (const f of ['', '-wal', '-shm'])
+      if (existsSync(join(g.data, `kacola.db${f}`)))
+        renameSync(join(g.data, `kacola.db${f}`), join(g.data, `gnomeola.db${f}`))
+
+    // the installed kacolad as the unit starts it (no --data-dir), with an old GNOMEOLA_* variable
+    const env: NodeJS.ProcessEnv = {
+      ...envFor(g.home, ''),
+      KACOLA_MODELS_DIR: join(g.home, 'models'),
+      KACOLA_FAKES: '1',
+      KACOLA_KEYRING: 'memory',
+      KACOLA_CALENDAR: 'off',
+      KACOLA_DBUS: 'off',
+      KACOLA_MIC_ACTIVITY: 'off',
+      GNOMEOLA_HEARTBEAT_MS: '15000',
+    }
+    delete env.KACOLA_URL
+    delete env.KACOLA_DATA_DIR
+    delete env.KACOLA_HEARTBEAT_MS
+    // its HOME is the throwaway one, which the test guard would take for the user's real data dir
+    delete env.VITEST
+    const kacolad = spawn(bin('kacolad'), ['--port', '0', '--host', '127.0.0.1'], {
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    let err = ''
+    kacolad.stderr!.on('data', (b: Buffer) => {
+      err += b.toString()
+    })
+    try {
+      const url = await new Promise<string>((resolveUrl, reject) => {
+        let out = ''
+        kacolad.stdout!.on('data', (b: Buffer) => {
+          out += b.toString()
+          const m = /"event":"listening","url":"([^"]+)"/.exec(out)
+          if (m) resolveUrl(m[1]!)
+        })
+        kacolad.once('exit', (code) => reject(new Error(`kacolad exited ${code}: ${err}`)))
+      })
+      const moved = join(g.home, '.local', 'share', 'kacola')
+      const client = createClient({ baseUrl: url })
+      const { sessions } = await client.call('listSessions', { query: {} })
+      expect(sessions.map((x) => x.title)).toContain('Before the rename')
+      expect(existsSync(join(moved, 'kacola.db'))).toBe(true)
+      expect(existsSync(join(moved, 'gnomeola.db'))).toBe(false)
+      expect(existsSync(join(moved, 'app', 'packages', 'daemon', 'src', 'main.ts'))).toBe(true)
+      expect(lstatSync(g.data).isSymbolicLink()).toBe(true)
+      expect(readlinkSync(g.data)).toBe(moved)
+      expect(err).toContain('GNOMEOLA_HEARTBEAT_MS is deprecated: rename to KACOLA_HEARTBEAT_MS')
+      expect(err).toMatch(/moved \d+ entries of .*gnomeola to .*kacola/)
+      // the alias reaches the new daemon
+      const st = spawnSync(bin('gnomeola'), ['status', '--url', url, '--json'], { encoding: 'utf8' })
+      expect(st.status, st.stderr).toBe(0)
+    } finally {
+      kacolad.kill('SIGTERM')
+      if (kacolad.exitCode === null) await new Promise((r) => kacolad.once('exit', r))
+    }
+
+    // --uninstall knows both names, and keeps the recordings
+    const u = await installAt(g.home, 'http://127.0.0.1:9', '--uninstall')
+    expect(u.code, u.stderr).toBe(0)
+    for (const b of ['kacola', 'kacolad', 'kacola-ui', 'gnomeola']) expect(existsSync(bin(b)), b).toBe(false)
+    expect(existsSync(join(g.home, '.local', 'share', 'kacola', 'kacola.db'))).toBe(true)
+    expect(existsSync(join(g.home, '.local', 'share', 'kacola', 'app'))).toBe(false)
+    expect(existsSync(g.oldExt)).toBe(false)
   }, 300_000)
 })
