@@ -1,3 +1,5 @@
+// first: GNOMEOLA_* from before the rename are read as KACOLA_* (one release; @kacola/protocol legacy.ts)
+import '@kacola/protocol/legacy-env'
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'

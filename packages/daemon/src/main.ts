@@ -10,16 +10,21 @@
 // which the test harness (and anything else that started it with --port 0) reads to find it.
 //
 // Exit codes: 0 stopped · 1 failed · 2 usage · 75 another daemon owns the data dir (DAEMON_EXIT.LOCKED;
-// nothing was touched) · 76 a requested restart (DAEMON_EXIT.RESTART: the supervisor starts it again).
+// nothing was touched) · 76 a requested restart (DAEMON_EXIT.RESTART: the supervisor starts it again) ·
+// 78 both the gnomeola and the kacola data dir hold data (DAEMON_EXIT.MIGRATION_REFUSED; nothing moved).
 // SIGTERM/SIGINT suspend a live recording for the next daemon to resume; SIGHUP is a restart that
 // waits for the recording to finish (the systemd unit's ExecReload).
+// first: GNOMEOLA_* from before the rename are read as KACOLA_* (one release; @kacola/protocol legacy.ts)
+import '@kacola/protocol/legacy-env'
 import { spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { ExternalCaptureHub } from '@kacola/capture'
 import { SyncAgent } from '@kacola/capture-agent/sync'
-import { createClient, DAEMON_EXIT } from '@kacola/protocol'
+import { createClient, DAEMON_EXIT, LEGACY_NAME } from '@kacola/protocol'
+import { migrateLegacyUserDirs } from '@kacola/protocol/legacy-dirs'
 import { DEFAULT_MODELS, defaultModelsDir, ModelManager } from '@kacola/stt'
 import { heuristicGuard, passThroughGuard } from './agents/guard.ts'
 import { IcsCalendarProvider } from './calendar/ics.ts'
@@ -35,7 +40,8 @@ import { FakePipeline } from './fakes/pipeline.ts'
 import { FakeDevices, FakeModels, FakeQaEngine } from './fakes/providers.ts'
 import type { Keyring } from './interfaces.ts'
 import { KeychainKeyring, keychainAvailable } from './keychain.ts'
-import { MemoryKeyring, NoKeyring, SecretToolKeyring } from './keyring.ts'
+import { LegacyMigratingKeyring, MemoryKeyring, NoKeyring, SecretToolKeyring } from './keyring.ts'
+import { LegacyMigrationRefused, legacyDataDirFor, migrateLegacyDataDir } from './legacy-data-dir.ts'
 import { Logger } from './logger.ts'
 import { PwDumpMicActivity } from './mic-activity.ts'
 
@@ -52,15 +58,22 @@ function loadOrCreateSecret(dataDir: string): string {
 function keyringFor(kind: string, service: string): Keyring {
   if (kind === 'memory') return new MemoryKeyring()
   if (kind === 'none') return new NoKeyring()
+  // keys stored before the rename live under the gnomeola service: carried over on first use (one release)
+  const withLegacy = (make: (service: string) => Keyring): Keyring =>
+    service === 'kacola'
+      ? new LegacyMigratingKeyring(make(service), make(LEGACY_NAME), (m) =>
+          process.stderr.write(`kacolad: ${m}\n`),
+        )
+      : make(service)
   // macOS: the login keychain through /usr/bin/security (KACOLA_SECURITY_BIN: tests' fake)
   if (kind === 'keychain') {
     const bin = process.env.KACOLA_SECURITY_BIN
     return keychainAvailable(bin)
-      ? new KeychainKeyring({ service, ...(bin ? { bin } : {}) })
+      ? withLegacy((s) => new KeychainKeyring({ service: s, ...(bin ? { bin } : {}) }))
       : new NoKeyring()
   }
   const probe = spawnSync('secret-tool', ['--version'], { stdio: 'ignore' })
-  return probe.error ? new NoKeyring() : new SecretToolKeyring({ service })
+  return probe.error ? new NoKeyring() : withLegacy((s) => new SecretToolKeyring({ service: s }))
 }
 
 async function main(): Promise<void> {
@@ -80,15 +93,29 @@ async function main(): Promise<void> {
   }
 
   // One owner per data dir, before anything touches it — not even the log (opening it can rotate it).
+  // The first start after the gnomeola → kacola rename also moves the old data dir here, under the locks
+  // of both (legacy-data-dir.ts); the config and state dirs follow (best effort, never fatal).
   let lock: DataDirLock
   try {
-    lock = acquireDataDirLock(cfg.dataDir)
+    const platform = process.env.KACOLA_PLATFORM || process.platform
+    const legacy = legacyDataDirFor(cfg.dataDir, { env: process.env, platform })
+    const notes: string[] = []
+    if (legacy) {
+      const r = migrateLegacyDataDir({ from: legacy, to: cfg.dataDir, log: (m) => notes.push(m) })
+      lock = r.lock
+      migrateLegacyUserDirs({ platform, env: process.env, home: homedir(), log: (m) => notes.push(m) })
+    } else lock = acquireDataDirLock(cfg.dataDir)
+    for (const n of notes) process.stderr.write(`kacolad: ${n}\n`)
   } catch (err) {
     if (err instanceof DataDirLockedError) {
       process.stderr.write(
         `kacolad: ${err.message}; not starting (stop that one first, or use another --data-dir)\n`,
       )
       process.exit(DAEMON_EXIT.LOCKED)
+    }
+    if (err instanceof LegacyMigrationRefused) {
+      process.stderr.write(`kacolad: not starting: ${err.message}\n`)
+      process.exit(err.reason === 'in-use' ? DAEMON_EXIT.LOCKED : DAEMON_EXIT.MIGRATION_REFUSED)
     }
     throw err
   }

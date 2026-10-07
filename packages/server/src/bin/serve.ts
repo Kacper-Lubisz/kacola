@@ -5,6 +5,8 @@
 //   kacola-server [--host 127.0.0.1] [--port 8788] [--db sqlite:PATH | postgres://…] [--blobs DIR]
 //
 // Prints one JSON line when listening: {"event":"listening","url":…,"port":…,"pid":…}.
+// first: GNOMEOLA_* from before the rename are read as KACOLA_* (one release; @kacola/protocol legacy.ts)
+import '@kacola/protocol/legacy-env'
 import { mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'

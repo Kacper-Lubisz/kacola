@@ -1,3 +1,5 @@
+// first: GNOMEOLA_* deployment variables from before the rename are read as KACOLA_* (one release)
+import '@kacola/protocol/legacy-env'
 import {
   authConfigFromEnv,
   createHostedApp,

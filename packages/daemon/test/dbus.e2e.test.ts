@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createClient } from '@kacola/protocol'
+import { createClient, LEGACY_APP_ID, LEGACY_OBJECT_PATH } from '@kacola/protocol'
 import { DbusCallError, DbusProbe, type PrivateBus, startPrivateBus } from '@kacola/testkit/dbus'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ManualCalendarProvider } from '../src/calendar/providers.ts'
@@ -185,6 +185,35 @@ describe('properties: idle, and the calendar states the extension renders', () =
     await probe.until((p) => JSON.stringify(p.AutoRecord) === '["micActivity"]')
     await d.settings.patch({ autoRecord: { micActivity: false } })
     await probe.until((p) => JSON.stringify(p.AutoRecord) === '[]')
+  })
+})
+
+describe('the gnomeola name (one release after the rename)', () => {
+  it('an old top-bar extension still finds the daemon at org.gnome.Gnomeola: properties, methods, signals', async () => {
+    const old = new DbusProbe({
+      address: bus.address,
+      name: LEGACY_APP_ID,
+      path: LEGACY_OBJECT_PATH,
+      iface: LEGACY_APP_ID,
+    })
+    try {
+      await old.until(
+        (p) => p.DaemonUrl === d.url && p.State === 'idle',
+        15_000,
+        'the legacy name to publish',
+      )
+      const [id] = (await old.call('Start', '(s)', ['Old extension'])) as [string]
+      await old.until((x) => x.State === 'recording' && x.SessionId === id)
+      await old.waitFor((m) => m.type === 'signal' && m.name === 'SessionStarted')
+      expect(old.signals('SessionStarted')).toContainEqual([id, 'Old extension', 'manual'])
+      // the same object: the new name saw it too
+      await probe.until((x) => x.State === 'recording' && x.SessionId === id)
+      expect(await old.call('Stop')).toEqual([id])
+      await old.until((x) => x.State === 'idle')
+      await probe.until((x) => x.State === 'idle' && x.LastLine === '')
+    } finally {
+      await old.close()
+    }
   })
 })
 

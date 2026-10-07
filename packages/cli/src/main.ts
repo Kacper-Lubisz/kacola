@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// first: GNOMEOLA_* from before the rename are read as KACOLA_* (one release; @kacola/protocol legacy.ts)
+import '@kacola/protocol/legacy-env'
 import { type ParseArgsConfig, parseArgs } from 'node:util'
 import { DaemonUnreachableError, KacolaApiError, PROTOCOL_VERSION, parseDuration } from '@kacola/protocol'
 import {

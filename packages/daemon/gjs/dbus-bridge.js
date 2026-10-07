@@ -75,6 +75,16 @@ for (const name of methodOut.keys()) {
   }
 }
 const exported = Gio.DBusExportedObject.wrapJSObject(XML, impl)
+// Compatibility with the rename (one release): the same object is also exported under the gnomeola name,
+// org.gnome.Gnomeola at /org/gnome/Gnomeola, so a top-bar extension from before the rename (which the
+// Shell keeps running until the user switches on the new one and logs in again) keeps working.
+const LEGACY_BUS_NAME = 'org.gnome.Gnomeola'
+const LEGACY_OBJECT_PATH = '/org/gnome/Gnomeola'
+const legacy = Gio.DBusExportedObject.wrapJSObject(
+  XML.replace(`<interface name="${INTERFACE}">`, `<interface name="${LEGACY_BUS_NAME}">`),
+  impl,
+)
+const both = [exported, legacy]
 
 function setProps(props) {
   for (const [name, value] of Object.entries(props ?? {})) {
@@ -86,15 +96,16 @@ function setProps(props) {
     const v = toVariant(sig, value)
     if (values.get(name).equal(v)) continue
     values.set(name, v)
-    exported.emit_property_changed(name, v)
+    for (const o of both) o.emit_property_changed(name, v)
   }
-  exported.flush()
+  for (const o of both) o.flush()
 }
 
 function emitSignal(name, args) {
   const sigs = signalSig.get(name)
   if (!sigs) return log('warn', `unknown signal ${name}`)
-  exported.emit_signal(name, GLib.Variant.new_tuple(sigs.map((s, i) => toVariant(s, args?.[i]))))
+  for (const o of both)
+    o.emit_signal(name, GLib.Variant.new_tuple(sigs.map((s, i) => toVariant(s, args?.[i]))))
 }
 
 function reply(msg) {
@@ -135,6 +146,19 @@ const ownerId = Gio.bus_own_name(
   },
 )
 
+let legacyOn = null
+const legacyOwnerId = Gio.bus_own_name(
+  Gio.BusType.SESSION,
+  LEGACY_BUS_NAME,
+  Gio.BusNameOwnerFlags.NONE,
+  (connection) => {
+    legacy.export(connection, LEGACY_OBJECT_PATH)
+    legacyOn = connection
+  },
+  null,
+  null,
+)
+
 const stdin = new Gio.DataInputStream({ base_stream: new GioUnix.InputStream({ fd: 0, close_fd: false }) })
 function readNext() {
   stdin.read_line_async(GLib.PRIORITY_DEFAULT, null, (s, res) => {
@@ -169,4 +193,6 @@ loop.run()
 for (const { invocation } of pending.values())
   invocation.return_dbus_error('com.kacperlubisz.Kacola.Error.Unavailable', 'the daemon is shutting down')
 if (exportedOn) exported.unexport()
+if (legacyOn) legacy.unexport()
 Gio.bus_unown_name(ownerId)
+Gio.bus_unown_name(legacyOwnerId)

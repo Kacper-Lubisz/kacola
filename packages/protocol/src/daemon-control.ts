@@ -20,6 +20,11 @@ export const DAEMON_EXIT = {
   LOCKED: 75,
   /** A requested restart: start me again now. */
   RESTART: 76,
+  /**
+   * Both the gnomeola (pre-rename) and the kacola data dir hold data: nothing was moved, and starting
+   * again will not help until one is moved aside (the unit's RestartPreventExitStatus).
+   */
+  MIGRATION_REFUSED: 78,
 } as const
 
 /** How long a suspended recording may wait for the next daemon before it is closed out (default). */

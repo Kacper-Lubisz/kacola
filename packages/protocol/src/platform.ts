@@ -20,6 +20,8 @@ export type PlatformInput = {
   env: Record<string, string | undefined>
   /** os.homedir() */
   home: string
+  /** The directory name under each root (default 'kacola'; the gnomeola migration asks for the old one). */
+  name?: string
 }
 
 export type PlatformPaths = {
@@ -48,28 +50,29 @@ export function packagingKind(i: Pick<PlatformInput, 'platform' | 'env'>): Packa
 
 export function platformPaths(i: PlatformInput): PlatformPaths {
   const { env, home } = i
+  const name = i.name ?? 'kacola'
   const kind = packagingKind(i)
-  const appSupport = join(home, 'Library', 'Application Support', 'kacola')
+  const appSupport = join(home, 'Library', 'Application Support', name)
   const mac = kind === 'macos'
   const dataRoot = env.XDG_DATA_HOME
-    ? join(env.XDG_DATA_HOME, 'kacola')
+    ? join(env.XDG_DATA_HOME, name)
     : mac
       ? appSupport
-      : join(home, '.local', 'share', 'kacola')
+      : join(home, '.local', 'share', name)
   const dataDir = env.KACOLA_DATA_DIR || dataRoot
   return {
     kind,
     dataDir,
     modelsDir: env.KACOLA_MODELS_DIR || join(dataRoot, 'models'),
     configDir: env.XDG_CONFIG_HOME
-      ? join(env.XDG_CONFIG_HOME, 'kacola')
+      ? join(env.XDG_CONFIG_HOME, name)
       : mac
         ? appSupport
-        : join(home, '.config', 'kacola'),
+        : join(home, '.config', name),
     stateDir: env.XDG_STATE_HOME
-      ? join(env.XDG_STATE_HOME, 'kacola')
+      ? join(env.XDG_STATE_HOME, name)
       : mac
         ? join(appSupport, 'state')
-        : join(home, '.local', 'state', 'kacola'),
+        : join(home, '.local', 'state', name),
   }
 }

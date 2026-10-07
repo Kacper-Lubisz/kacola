@@ -135,3 +135,53 @@ export class NoKeyring implements Keyring {
   }
   async clear(): Promise<void> {}
 }
+
+/**
+ * Keys stored under the gnomeola service before the rename, carried over to the kacola one on first use
+ * (one release; see @kacola/protocol legacy.ts). A read that finds nothing under the new name looks under
+ * the old one; a key found there is stored under the new name, read back, and only once that read
+ * matches is the old entry removed — until then it stays where it was. Clearing clears both, so a
+ * cleared key never comes back from the old name.
+ */
+export class LegacyMigratingKeyring implements Keyring {
+  private readonly current: Keyring
+  private readonly legacy: Keyring
+  private readonly log: (msg: string) => void
+  constructor(current: Keyring, legacy: Keyring, log: (msg: string) => void = () => {}) {
+    this.current = current
+    this.legacy = legacy
+    this.log = log
+  }
+
+  async get(account: KeyAccount = 'anthropic'): Promise<string | null> {
+    const key = await this.current.get(account)
+    if (key !== null) return key
+    let old: string | null
+    try {
+      old = await this.legacy.get(account)
+    } catch {
+      return null
+    }
+    if (old === null) return null
+    try {
+      await this.current.set(old, account)
+      if ((await this.current.get(account)) === old) {
+        await this.legacy.clear(account)
+        this.log(`moved the ${account} key from the gnomeola keyring entry to kacola's`)
+      }
+    } catch (err) {
+      // the old entry stays; the key still works from there
+      this.log(`could not move the ${account} key to kacola's keyring entry: ${(err as Error).message}`)
+    }
+    return old
+  }
+
+  set(key: string, account: KeyAccount = 'anthropic'): Promise<void> {
+    return this.current.set(key, account)
+  }
+
+  async clear(account: KeyAccount = 'anthropic'): Promise<void> {
+    await this.current.clear(account)
+    await this.legacy.clear(account)
+  }
+}

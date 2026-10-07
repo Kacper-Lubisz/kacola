@@ -30,6 +30,7 @@ export {
 } from './migrations.ts'
 export { NoteStore } from './notes.ts'
 export { parseQuery, searchText, snippet, toTsQuery } from './search-text.ts'
+export { settleSqliteFile } from './settle.ts'
 export { SqliteStoreApi } from './sqlite-api.ts'
 export {
   type ListSessionsOptions,

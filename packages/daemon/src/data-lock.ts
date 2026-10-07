@@ -16,7 +16,7 @@ import {
 } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { platformPaths } from '@kacola/protocol'
+import { LEGACY_NAME, platformPaths } from '@kacola/protocol'
 
 // One owner per data dir. Everything that opens the store read-write and may run recovery (the daemon,
 // in whatever process composes it) takes `<dataDir>/daemon.lock` first; a second owner is refused before
@@ -153,6 +153,11 @@ export type AcquireOptions = {
    * belt-and-braces half of test isolation (scripts/test-env.ts is the other half).
    */
   guardTests?: boolean
+  /**
+   * A lock already in the dir carrying this token is ours (the gnomeola → kacola migration renamed the
+   * old data dir, our lock inside it, to the new name): replace it atomically instead of refusing.
+   */
+  replaceToken?: string
   env?: NodeJS.ProcessEnv
 }
 
@@ -196,11 +201,13 @@ export function defaultIsAlive(owner: Pick<LockOwner, 'pid' | 'procStart'>): boo
 export function realDataDirs(env: NodeJS.ProcessEnv = process.env): string[] {
   const home = homedir()
   const dirs = new Set<string>()
-  for (const platform of ['linux', 'darwin'])
-    dirs.add(resolve(platformPaths({ platform, env: {}, home }).dataDir))
+  // both names: the gnomeola data dir (before the rename) is the user's real data until it is migrated
+  for (const name of ['kacola', LEGACY_NAME])
+    for (const platform of ['linux', 'darwin'])
+      dirs.add(resolve(platformPaths({ platform, env: {}, home, name }).dataDir))
   // scripts/test-env.ts records the real XDG_DATA_HOME before pointing the tiers at a temp one
   const realXdg = env.KACOLA_TEST_REAL_XDG_DATA_HOME
-  if (realXdg) dirs.add(resolve(join(realXdg, 'kacola')))
+  if (realXdg) for (const name of ['kacola', LEGACY_NAME]) dirs.add(resolve(join(realXdg, name)))
   return [...dirs]
 }
 
@@ -402,6 +409,12 @@ export function acquireDataDirLock(dataDir: string, o: AcquireOptions = {}): Dat
     }
     const cur = readOwner(path)
     if (cur === 'missing') continue // released between our create and our read: try again
+    if (o.replaceToken !== undefined && cur !== null && cur.token === o.replaceToken) {
+      const tmp = `${path}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`
+      writeFileDurably(tmp, JSON.stringify(owner), 'wx')
+      renameSync(tmp, path)
+      break
+    }
     if (cur !== null && isAlive(cur)) throw new DataDirLockedError(dataDir, cur)
     // Stale (dead owner) or unreadable. Unreadable is only possible from a non-atomic writer (the wx
     // fallback, mid-write): give such a file a moment before declaring it garbage.

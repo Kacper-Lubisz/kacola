@@ -9,6 +9,8 @@
 //       finish an interrupted upload from the local WAVs
 //
 // The remote token comes from --token or KACOLA_TOKEN (see `kacola pair`).
+// first: GNOMEOLA_* from before the rename are read as KACOLA_* (one release; @kacola/protocol legacy.ts)
+import '@kacola/protocol/legacy-env'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
