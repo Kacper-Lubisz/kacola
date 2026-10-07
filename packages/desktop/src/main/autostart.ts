@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { LEGACY_APP_ID, LEGACY_AUTOSTART_MARKER } from '@kacola/protocol'
 import type { AutostartState } from '../shared/bridge.ts'
 
 // Background mode (docs/desktop-app.md, "Background mode"): closing the window keeps main and the
@@ -125,4 +126,23 @@ export async function setAutostart(d: AutostartDeps, enabled: boolean): Promise<
     rmSync(p, { force: true })
   }
   return autostartStatus(d)
+}
+
+/**
+ * The autostart entry a gnomeola window wrote (org.gnome.Gnomeola.desktop, X-Gnomeola-Autostart=1) starts
+ * a binary the upgrade removed: replace it with ours, keeping the choice (one release after the rename).
+ * Never touches an entry the old window did not write. Returns whether it moved one.
+ */
+export function migrateLegacyAutostart(d: AutostartDeps): boolean {
+  if (d.env.FLATPAK_ID) return false
+  const legacy = join(dirname(autostartPath(d.env)), `${LEGACY_APP_ID}.desktop`)
+  if (!existsSync(legacy) || !readFileSync(legacy, 'utf8').includes(LEGACY_AUTOSTART_MARKER)) return false
+  if (!autostartStatus(d).enabled) {
+    const p = autostartPath(d.env)
+    mkdirSync(dirname(p), { recursive: true })
+    writeFileSync(`${p}.tmp-${process.pid}`, autostartEntry(d.exec))
+    renameSync(`${p}.tmp-${process.pid}`, p)
+  }
+  rmSync(legacy, { force: true })
+  return true
 }

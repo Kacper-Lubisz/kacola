@@ -8,6 +8,7 @@ import {
   autostartStatus,
   backgroundRequestOptions,
   execArg,
+  migrateLegacyAutostart,
   setAutostart,
 } from '../src/main/autostart.ts'
 import { trayMenuModel, trayTooltip } from '../src/main/tray.ts'
@@ -33,6 +34,23 @@ describe('autostart', () => {
     writeFileSync(autostartPath(d.env), '[Desktop Entry]\nExec=something-else\n')
     expect(await setAutostart(d, false)).toEqual({ enabled: false })
     expect(existsSync(autostartPath(d.env))).toBe(true)
+  })
+
+  it('replaces the entry a gnomeola window wrote (its binary is gone after the upgrade), and only that', () => {
+    const cfg = tmp()
+    const d = { env: { XDG_CONFIG_HOME: cfg }, exec: ['/opt/kacola/kacola', '--background'] }
+    const legacy = join(cfg, 'autostart', 'org.gnome.Gnomeola.desktop')
+    mkdirSync(join(cfg, 'autostart'), { recursive: true })
+    writeFileSync(legacy, '[Desktop Entry]\nExec=/old/gnomeola --background\nX-Gnomeola-Autostart=1\n')
+    expect(migrateLegacyAutostart(d)).toBe(true)
+    expect(existsSync(legacy)).toBe(false)
+    expect(autostartStatus(d)).toEqual({ enabled: true })
+    expect(readFileSync(autostartPath(d.env), 'utf8')).toContain('Exec=/opt/kacola/kacola --background')
+    expect(migrateLegacyAutostart(d)).toBe(false)
+    // an entry of that name the old window did not write stays
+    writeFileSync(legacy, '[Desktop Entry]\nExec=something-else\n')
+    expect(migrateLegacyAutostart(d)).toBe(false)
+    expect(existsSync(legacy)).toBe(true)
   })
 
   it('quotes Exec arguments per the Desktop Entry spec', () => {

@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { LEGACY_EXTENSION_UUID } from '@kacola/protocol'
 import { describe, expect, it } from 'vitest'
 import {
   compareVersions,
@@ -192,6 +193,42 @@ describe('the top-bar extension’s states and its one button', () => {
     // the next login loads and starts it
     w.relogin()
     expect(await w.m.status()).toEqual({ state: 'enabled' })
+  })
+
+  it('the gnomeola extension (before the rename) keeps the top bar until ours is on, then gives way', async () => {
+    const w = world()
+    // the old extension is installed, enabled and running (the daemon answers it on its old bus name)
+    const old = join(extensionsDir(w.env), LEGACY_EXTENSION_UUID)
+    mkdirSync(old, { recursive: true })
+    writeFileSync(join(old, 'metadata.json'), '{"uuid":"gnomeola@gnomeola.org","version-name":"0.1.0"}')
+    w.shell.enabledExtensions = [LEGACY_EXTENSION_UUID]
+    w.shell.loaded[LEGACY_EXTENSION_UUID] = { version: '0.1.0', type: 2 }
+    // Wayland, first press: ours waits for the next login, so the old one stays loaded until then, but
+    // it is out of the enabled list and off the disk, so that login starts only ours
+    expect(await w.m.turnOn()).toMatchObject({ state: 'needs-login', reason: 'new', queued: true })
+    expect(w.shell.loaded[LEGACY_EXTENSION_UUID]).toBeDefined()
+    expect(w.shell.enabledExtensions).toEqual([EXTENSION_UUID])
+    expect(existsSync(old)).toBe(false)
+    w.relogin()
+    expect(await w.m.status()).toEqual({ state: 'enabled' })
+    expect(w.shell.loaded[LEGACY_EXTENSION_UUID]).toBeUndefined()
+  })
+
+  it('when ours can start at once, the old one is unloaded at once', async () => {
+    const w = world()
+    await w.m.turnOn()
+    w.relogin()
+    await w.m.disable()
+    const old = join(extensionsDir(w.env), LEGACY_EXTENSION_UUID)
+    mkdirSync(old, { recursive: true })
+    writeFileSync(join(old, 'metadata.json'), '{"uuid":"gnomeola@gnomeola.org","version-name":"0.1.0"}')
+    w.shell.enabledExtensions = [LEGACY_EXTENSION_UUID]
+    w.shell.loaded[LEGACY_EXTENSION_UUID] = { version: '0.1.0', type: 2 }
+    expect(await w.m.turnOn()).toEqual({ state: 'enabled' })
+    expect(w.shell.calls).toContain(`gdbus UninstallExtension ${LEGACY_EXTENSION_UUID}`)
+    expect(w.shell.loaded[LEGACY_EXTENSION_UUID]).toBeUndefined()
+    expect(w.shell.enabledExtensions).toEqual([EXTENSION_UUID])
+    expect(existsSync(old)).toBe(false)
   })
 
   it('says how on X11 (a Shell restart works there too)', async () => {

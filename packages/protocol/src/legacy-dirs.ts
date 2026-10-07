@@ -341,3 +341,37 @@ export function migrateLegacyUserDirs(i: UserDirsInput): void {
     }
   }
 }
+
+/** A daemon still holding `dir` (its daemon.lock names a live pid), if any. */
+export function daemonLockInUse(dir: string): string | null {
+  let pid: unknown
+  try {
+    pid = (JSON.parse(readFileSync(join(dir, 'daemon.lock'), 'utf8')) as { pid?: unknown }).pid
+  } catch {
+    return null
+  }
+  if (typeof pid !== 'number') return null
+  try {
+    process.kill(pid, 0)
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'EPERM') return null
+  }
+  return `a gnomeola daemon, pid ${pid}`
+}
+
+/**
+ * macOS: the old app kept everything (data, config, its Chromium profile) in Application
+ * Support/gnomeola. The window moves it before Chromium creates the new one; the daemon it then starts
+ * finds nothing left to move, and renames the database under its lock.
+ */
+export function migrateLegacyMacDir(i: UserDirsInput): MigrateDirResult {
+  if (i.platform !== 'darwin' || i.env.KACOLA_DATA_DIR) return { kind: 'none' }
+  const from = platformPaths({ platform: 'darwin', env: {}, home: i.home, name: LEGACY_NAME }).dataDir
+  const to = platformPaths({ platform: 'darwin', env: {}, home: i.home }).dataDir
+  return migrateLegacyDir({
+    from,
+    to,
+    inUse: () => chromiumProfileInUse(from) ?? daemonLockInUse(from),
+    ...(i.log ? { log: i.log } : {}),
+  })
+}

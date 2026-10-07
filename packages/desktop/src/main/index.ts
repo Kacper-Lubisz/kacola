@@ -6,6 +6,7 @@ import { writeFile } from 'node:fs/promises'
 import { join, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { createClient, ingestPcm, MAX_FRAME_BYTES, type Session } from '@kacola/protocol'
+import { migrateLegacyMacDir, migrateLegacyUserDirs } from '@kacola/protocol/legacy-dirs'
 import {
   webContents as allWebContents,
   app,
@@ -39,7 +40,7 @@ import {
   type WindowControl,
 } from '../shared/bridge.ts'
 import { CAPTURE_IPC, type CaptureState, type CaptureTrack } from '../shared/capture.ts'
-import { autostartStatus, requestBackground, setAutostart } from './autostart.ts'
+import { autostartStatus, migrateLegacyAutostart, requestBackground, setAutostart } from './autostart.ts'
 import { CaptureController, type CaptureWindowLike, captureTracks } from './capture.ts'
 import { readDesktopConfig } from './config.ts'
 import { DeepLinkQueue, deepLinkFromArgv, normalizeDeepLink, schemeRegistration } from './deep-link.ts'
@@ -105,6 +106,21 @@ if (config.profile)
   app.setPath('userData', config.userDataDir ?? `${app.getPath('userData')}-${config.profile}`)
 const windowTitle = config.profile ? `kacola · ${config.profile}` : 'kacola'
 
+// The first start after the gnomeola → kacola rename (one release): move the old window's profile, paired
+// hosts and UI state (macOS: the whole Application Support dir) to their kacola names before Chromium
+// creates the new profile. Best effort: it never keeps the window from starting.
+const migrationLog = (msg: string) => process.stdout.write(`${JSON.stringify({ event: 'migrate', msg })}\n`)
+if (!config.profile) {
+  try {
+    const home = app.getPath('home')
+    const r = migrateLegacyMacDir({ platform: process.platform, env: process.env, home, log: migrationLog })
+    if (r.kind === 'refused') migrationLog(r.message)
+    migrateLegacyUserDirs({ platform: process.platform, env: process.env, home, log: migrationLog })
+  } catch (err) {
+    migrationLog(`could not move the gnomeola files: ${(err as Error).message}`)
+  }
+}
+
 if (!app.requestSingleInstanceLock()) {
   // another instance owns the window and the daemon; it was told about us via 'second-instance'
   app.exit(0)
@@ -148,6 +164,9 @@ const autostartDeps = {
     ? [process.execPath, '--background']
     : [process.execPath, process.argv[1] ?? join(HERE, 'index.js'), '--background'],
 }
+
+if (!config.profile && process.platform === 'linux' && migrateLegacyAutostart(autostartDeps))
+  migrationLog('replaced the gnomeola autostart entry')
 
 const client = createClient({
   baseUrl: config.baseUrl,

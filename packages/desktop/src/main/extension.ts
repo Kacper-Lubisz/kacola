@@ -11,6 +11,7 @@ import {
 } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join, relative } from 'node:path'
+import { LEGACY_EXTENSION_UUID } from '@kacola/protocol'
 import type { ExtensionState } from '../shared/bridge.ts'
 import { formatStrv, type GValue, parseGVariant } from './gvariant.ts'
 
@@ -447,7 +448,26 @@ export class ExtensionManager {
     const on = await this.shell.enable(EXTENSION_UUID)
     // the Shell has not loaded it yet: it starts at the next login (the Flatpak can only say how)
     if (on !== true) await this.shell.queue(EXTENSION_UUID, true)
+    await this.retireLegacy(on === true)
     return this.status()
+  }
+
+  /**
+   * The top-bar extension from before the rename (gnomeola@gnomeola.org; the daemon still answers it on
+   * the old D-Bus name for one release) gives way once ours is switched on: it is taken out of
+   * enabled-extensions so it does not start at the next login, and its files are removed. When ours is
+   * running already it is also unloaded now; when ours waits for the next login, the old one keeps the
+   * top bar until then. Nothing happens when there is no old copy.
+   */
+  private async retireLegacy(oursRunning: boolean): Promise<void> {
+    const dir = join(extensionsDir(this.d.env), LEGACY_EXTENSION_UUID)
+    if (!existsSync(dir)) return
+    if (oursRunning) {
+      const info = await this.shell.info(LEGACY_EXTENSION_UUID)
+      if (info?.known && info.type === 2) await this.shell.uninstall(LEGACY_EXTENSION_UUID)
+    }
+    await this.shell.queue(LEGACY_EXTENSION_UUID, false)
+    rmSync(dir, { recursive: true, force: true })
   }
 
   async disable(): Promise<ExtensionState> {
@@ -464,6 +484,7 @@ export class ExtensionManager {
       return { state: 'error', reason: 'failed', detail: `Could not remove it: ${(err as Error).message}` }
     }
     await this.shell.queue(EXTENSION_UUID, false)
+    await this.retireLegacy(true)
     this.updatedUnder = null
     return this.status()
   }
