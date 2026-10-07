@@ -12,6 +12,8 @@ StartupNotify=true
 StartupWMClass=kacola
 DBusActivatable=false
 X-GNOME-UsesNotifications=true
+# the app id before the rename (gnomeola → kacola, 0.2): software centres and launchers carry it over
+X-Flatpak-RenamedFrom=org.gnome.Gnomeola.desktop;
 Actions=background;
 
 [Desktop Action background]

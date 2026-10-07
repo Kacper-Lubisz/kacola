@@ -8,6 +8,10 @@
   <developer id="com.kacperlubisz">
     <name>The kacola contributors</name>
   </developer>
+  <!-- the app id before the rename (gnomeola → kacola, 0.2) -->
+  <replaces>
+    <id>org.gnome.Gnomeola</id>
+  </replaces>
   <description>
     <p>
       kacola records both sides of a meeting — your microphone and what the other side says — and

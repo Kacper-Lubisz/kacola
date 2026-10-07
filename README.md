@@ -63,6 +63,22 @@ node scripts/build-macos.ts     # dist/macos/out/*.zip, arm64 + x64, unsigned (s
 The Flatpak and the macOS app bundle the daemon and the CLI; on first run they offer to install the
 `kacola` command and the Claude skill. Details: [docs/desktop-app.md](docs/desktop-app.md).
 
+### Upgrading from gnomeola
+
+kacola was called gnomeola before 0.2. `scripts/install.sh` over a gnomeola install switches it over, but
+only while nothing is recording (it refuses with exit 3 otherwise, `--force` or not): it replaces the
+`gnomeolad` service with `kacolad`, the launchers and desktop entry with the kacola ones, and keeps
+`gnomeola` as an alias that prints a deprecation note. On its first start `kacolad` moves
+`~/.local/share/gnomeola` to `~/.local/share/kacola` (one rename, or a verified copy across filesystems;
+the old path becomes a symlink) and renames `gnomeola.db` to `kacola.db`. It refuses, and moves nothing,
+while an old daemon still runs or when both directories hold data. The window moves its own settings on
+its first start, and keys stored under the `gnomeola` keyring entry move on first use. `GNOMEOLA_*`
+variables are read as `KACOLA_*`, with a warning. All of this stays for one release.
+
+By hand: switch the top-bar extension on again from the window (the home screen's card, or Preferences ›
+Integration), then log out and back in (the old extension keeps working until then), and allow
+`Bash(kacola:*)` in Claude Code's settings for the skill.
+
 ## Licence
 
 GPL-3.0-or-later. See `LICENSE` and `THIRD_PARTY_NOTICES.md`.
