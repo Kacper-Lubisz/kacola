@@ -1,7 +1,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { platformPaths } from '@kacola/protocol'
+import { LEGACY_NAME, platformPaths } from '@kacola/protocol'
 
 // Tokens from `kacola pair`, one per host, in ${XDG_CONFIG_HOME:-~/.config}/kacola/hosts.json (0600).
 // A loopback daemon needs none; every remote host does. Resolution order for a request: --token, then
@@ -22,8 +22,17 @@ export function hostsFile(
 export const hostKey = (url: string) => url.replace(/\/+$/, '')
 
 export function readHosts(env: Record<string, string | undefined>): Hosts {
-  const f = hostsFile(env)
-  if (!existsSync(f)) return {}
+  let f = hostsFile(env)
+  // until the daemon or the window has moved the config dir from its gnomeola name (one release)
+  if (!existsSync(f)) {
+    const old = join(
+      platformPaths({ platform: process.platform, env, home: env.HOME || homedir(), name: LEGACY_NAME })
+        .configDir,
+      'hosts.json',
+    )
+    if (!existsSync(old)) return {}
+    f = old
+  }
   try {
     return JSON.parse(readFileSync(f, 'utf8')) as Hosts
   } catch {

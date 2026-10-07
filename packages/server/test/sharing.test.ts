@@ -1,4 +1,9 @@
-import { createClient, type KacolaApiError, PARTICIPANT_HEADER } from '@kacola/protocol'
+import {
+  createClient,
+  type KacolaApiError,
+  LEGACY_PARTICIPANT_HEADER,
+  PARTICIPANT_HEADER,
+} from '@kacola/protocol'
 import { afterEach, describe, expect, it } from 'vitest'
 import { MemoryMailer } from '../src/mailer.ts'
 import { ADMIN, type Hosted, SECRET, startHosted } from './helpers.ts'
@@ -91,6 +96,13 @@ describe('shared agendas on the hosted server', () => {
     expect(
       await status(ivy.client.call('pushShare', { params: { shareId: t.share.id }, body: { ops: [] } })),
     ).toBe(403)
+  })
+
+  it("a member's daemon from before the rename (the gnomeola header) is still recognised", async () => {
+    const t = await setup()
+    const ana = await t.join('ana@example.com')
+    const old = createClient({ baseUrl: t.h.url, headers: { [LEGACY_PARTICIPANT_HEADER]: ana.token } })
+    expect((await old.call('getShareState', { params: { shareId: t.share.id } })).you.role).toBe('member')
   })
 
   it('the push is a strict projection: evidence, quotes or notes are refused, not stripped', async () => {

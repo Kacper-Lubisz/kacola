@@ -1,4 +1,5 @@
-import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -357,6 +358,26 @@ describe('skill install', () => {
       'updated',
     )
     expect(readFileSync(path, 'utf8')).not.toMatch(/my note/)
+  })
+
+  it('updates a skill a gnomeola install put there (its old stamp), and still keeps edited ones', async () => {
+    const sha = (s: string) => createHash('sha256').update(s).digest('hex').slice(0, 12)
+    const dir = mkdtempSync(join(tmpdir(), 'kacola-skill-'))
+    const skill = join(dir, 'meeting-context')
+    mkdirSync(skill)
+    const old = '---\nname: meeting-context\nallowed-tools: Bash(gnomeola:*)\n---\n'
+    writeFileSync(join(skill, 'SKILL.md'), old)
+    writeFileSync(join(skill, '.gnomeola-installed'), `${sha(old)}\n`)
+    const r = await cli(['skill', 'install', '--dir', dir], { url: d.url })
+    expect(r.json().action).toBe('updated')
+    expect(readFileSync(join(skill, 'SKILL.md'), 'utf8')).toContain('Bash(kacola:*)')
+    expect(existsSync(join(skill, '.gnomeola-installed'))).toBe(false)
+    expect(existsSync(join(skill, '.kacola-installed'))).toBe(true)
+    // an old install the user edited is still theirs
+    writeFileSync(join(skill, 'SKILL.md'), `${old}<!-- mine -->\n`)
+    writeFileSync(join(skill, '.gnomeola-installed'), `${sha(old)}\n`)
+    rmSync(join(skill, '.kacola-installed'))
+    expect((await cli(['skill', 'install', '--dir', dir], { url: d.url })).code).toBe(EXIT.REFUSED)
   })
 })
 

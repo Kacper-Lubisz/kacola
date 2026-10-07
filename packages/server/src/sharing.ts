@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto'
 import {
   formatShareLink,
+  LEGACY_PARTICIPANT_HEADER,
   normalizeUserCode,
   PARTICIPANT_HEADER,
   publicActorLabel,
@@ -83,7 +84,7 @@ export const SHARE_PARTICIPANT_ROUTES: readonly string[] = ['pushShare', 'getSha
 /** Without a pairing token: may this request go on (as `anonymous`, authorized by the handler)? */
 export const shareOpen = (route: string, req: Request): boolean =>
   SHARE_LINK_ROUTES.includes(route) ||
-  (SHARE_PARTICIPANT_ROUTES.includes(route) && req.headers.has(PARTICIPANT_HEADER))
+  (SHARE_PARTICIPANT_ROUTES.includes(route) && participantToken(req) !== null)
 
 const isOwner = (p: Principal) => p.kind !== 'anonymous'
 
@@ -91,8 +92,12 @@ function requireOwner(p: Principal): void {
   if (!isOwner(p)) throw new HttpError('unauthorized', 'only the owner (a paired device) can do this', 401)
 }
 
+/** The participant token: the kacola header, else the gnomeola one an old member's daemon sends (one release). */
+const participantToken = (req: Request): string | null =>
+  req.headers.get(PARTICIPANT_HEADER) ?? req.headers.get(LEGACY_PARTICIPANT_HEADER)
+
 const participantHash = (req: Request): string | null => {
-  const t = req.headers.get(PARTICIPANT_HEADER)
+  const t = participantToken(req)
   return t ? sha256(t.trim()) : null
 }
 

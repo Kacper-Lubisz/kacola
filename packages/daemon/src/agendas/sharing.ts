@@ -9,6 +9,7 @@ import {
   formatShareLink,
   KacolaApiError,
   type KacolaClient,
+  LEGACY_PARTICIPANT_HEADER,
   PARTICIPANT_HEADER,
   parseShareLink,
   peerAttribution,
@@ -211,7 +212,15 @@ export class SharingService {
       timeoutMs: 20_000,
       ...(this.d.config.fetch ? { fetch: this.d.config.fetch } : {}),
       ...(owner && this.d.config.token ? { token: this.d.config.token } : {}),
-      ...(!owner && rec.participantToken ? { headers: { [PARTICIPANT_HEADER]: rec.participantToken } } : {}),
+      // the gnomeola header too, for hosted servers not yet redeployed since the rename (one release)
+      ...(!owner && rec.participantToken
+        ? {
+            headers: {
+              [PARTICIPANT_HEADER]: rec.participantToken,
+              [LEGACY_PARTICIPANT_HEADER]: rec.participantToken,
+            },
+          }
+        : {}),
     })
   }
 
