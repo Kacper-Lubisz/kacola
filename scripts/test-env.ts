@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -36,7 +36,13 @@ if (!process.env.KACOLA_TEST_HOME) {
     CONFIG: process.env.XDG_CONFIG_HOME || join(home, '.config'),
     STATE: process.env.XDG_STATE_HOME || join(home, '.local', 'state'),
   }
-  process.env.KACOLA_MODELS_DIR ||= join(real.DATA, 'kacola', 'models')
+  // Never CREATE the user's real data dir from a test: on a machine still on gnomeola, an empty
+  // ~/.local/share/kacola/models would make the daemon's first-start migration see two data dirs and
+  // refuse. Until it exists, test downloads go to the cache instead.
+  const realModels = join(real.DATA, 'kacola', 'models')
+  process.env.KACOLA_MODELS_DIR ||= existsSync(realModels)
+    ? realModels
+    : join(process.env.XDG_CACHE_HOME || join(home, '.cache'), 'kacola', 'models')
   const root = mkdtempSync(join(tmpdir(), 'kacola-test-home-'))
   process.env.KACOLA_TEST_HOME = root
   for (const [k, v] of Object.entries(real)) {
