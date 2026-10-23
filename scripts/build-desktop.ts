@@ -58,7 +58,7 @@ export function viteBuild(): void {
  * Stage the app as an electron-builder project: a package.json with no dependencies (everything is
  * bundled) and packages/desktop/out. Returns the app's version.
  */
-export function stageDesktopApp(stage: string, o: { skipVite?: boolean } = {}): string {
+export function stageDesktopApp(stage: string, o: { skipVite?: boolean; extension?: boolean } = {}): string {
   if (!o.skipVite) viteBuild()
   const out = join(DESKTOP, 'out')
   for (const f of ['main/index.js', 'preload/index.cjs', 'renderer/index.html'])
@@ -91,6 +91,7 @@ export function stageDesktopApp(stage: string, o: { skipVite?: boolean } = {}): 
   cpSync(join(BRAND_ICONS, 'png', '512.png'), join(stage, 'icon.png'))
   cpSync(join(BRAND_ICONS, 'png', '16.png'), join(stage, 'tray.png'))
   cpSync(join(BRAND_ICONS, 'png', '32.png'), join(stage, 'tray@2x.png'))
+  if (o.extension === false) return pkg.version!
   // the top-bar extension as the app installs it: its GSettings schema compiled (the Shell needs
   // gschemas.compiled for an extension copied into place by hand)
   const ext = join(stage, 'extension', EXTENSION_UUID)
