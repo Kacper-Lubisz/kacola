@@ -124,7 +124,7 @@ tree; do not edit it by hand.
 | is-stream | 2.0.1 | MIT | https://github.com/sindresorhus/is-stream#readme |
 | isbot | 5.2.2 | Unlicense | https://isbot.js.org |
 | isexe | 2.0.0 | ISC | https://github.com/isaacs/isexe#readme |
-| jose | 5.10.0, 6.2.12 | MIT | https://github.com/panva/jose |
+| jose | 5.10.0, 6.2.13 | MIT | https://github.com/panva/jose |
 | json-schema-to-ts | 3.1.1 | MIT | https://github.com/ThomasAribart/json-schema-to-ts#readme |
 | json-schema-traverse | 1.0.0 | MIT | https://github.com/epoberezkin/json-schema-traverse#readme |
 | json-schema-typed | 8.0.2 | BSD-2-Clause | https://github.com/RemyRylan/json-schema-typed/tree/main/dist/node |
