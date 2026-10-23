@@ -295,10 +295,32 @@ describe('contract: every route, real server, typed client', () => {
       },
       deleteSession: () => c.call('deleteSession', { params: { id: priv.id } }),
 
-      // ---- M8: a local daemon is a sync source, not a target; pairing needs auth configured (this
-      // daemon has none — see auth.int.test.ts for the paired daemon). All answer a typed 501.
-      syncPush: () => notHere(c.call('syncPush', { body: { items: [] } })),
-      syncCursor: () => notHere(c.call('syncCursor', { query: {} })),
+      // ---- two-way sync: the local daemon ingests what its sync agent pulls (loopback only, under the
+      // hosted server's cursor); sync is off here (no KACOLA_SYNC_URL), so signing in changes nothing
+      syncPush: async () =>
+        expect(await c.call('syncPush', { body: { items: [] } })).toMatchObject({
+          deviceId: 'hosted-server',
+          applied: 0,
+        }),
+      syncCursor: async () =>
+        expect(await c.call('syncCursor', { query: {} })).toEqual({ deviceId: 'hosted-server', cursor: 0 }),
+      syncStatus: async () =>
+        expect(await c.call('syncStatus')).toMatchObject({ state: 'off', server: null, email: null }),
+      setSyncAccount: async () =>
+        expect(
+          await c.call('setSyncAccount', {
+            body: {
+              issuer: 'https://accounts.example.com',
+              clientId: 'kacola-desktop',
+              resource: 'https://kacola.example.com',
+              refreshToken: 'rt',
+              email: 'me@example.com',
+            },
+          }),
+        ).toMatchObject({ state: 'off', email: 'me@example.com' }),
+      clearSyncAccount: async () => expect(await c.call('clearSyncAccount')).toMatchObject({ email: null }),
+      // ---- pairing needs auth configured (this daemon has none — see auth.int.test.ts for the paired
+      // daemon). All answer a typed 501.
       pairStart: () => notHere(c.call('pairStart', { body: { name: 'x' } })),
       pairApprove: () => notHere(c.call('pairApprove', { body: { userCode: 'BCDF-GHJK' } })),
       pairToken: () => notHere(c.call('pairToken', { body: { deviceCode: 'x' } })),

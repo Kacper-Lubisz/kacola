@@ -242,7 +242,17 @@ for (const dialect of ['sqlite', 'postgres'] as const) {
         ac.abort()
         await sub
         assertNoViolations(checkEventLog(received))
-        expect(received.map((e) => e.data)).toEqual(log.map((e) => e.data))
+        // the server stamps each session with the device that pushed it; everything else is the log
+        const recorded = received.flatMap((e) =>
+          e.data.type === 'session.upserted' ? [e.data.session.origin] : [],
+        )
+        expect(new Set(recorded).size).toBe(1)
+        expect(recorded[0]).toMatch(/\w/)
+        const content = (e: DurableEvent) =>
+          e.data.type === 'session.upserted'
+            ? { ...e.data, session: { ...e.data.session, origin: undefined } }
+            : e.data
+        expect(received.map(content)).toEqual(log.map(content))
         expect(ends).toBeGreaterThanOrEqual(2) // ~6 s of pushes across a 2 s cap
         const s = await h.stats()
         if (platformKills) expect(s.kills.events ?? 0).toBeGreaterThanOrEqual(2)

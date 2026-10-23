@@ -266,7 +266,7 @@ export class AgentChannel {
   ): Promise<LiveSession[]> {
     const list = () =>
       this.d.store
-        .sessionsWithStatus(LIVE)
+        .localSessionsWithStatus(LIVE)
         .filter((s) => this.attachable(s))
         .filter((s) => !o.meeting || s.meeting?.id === o.meeting || s.meeting?.uid === o.meeting)
         .sort((a, b) => (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt))

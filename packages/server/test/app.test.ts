@@ -140,6 +140,20 @@ describe('hosted contract: every route', () => {
           deviceId: 'laptop',
           cursor: 1,
         }),
+      syncStatus: () => notHere(c.call('syncStatus')),
+      setSyncAccount: () =>
+        notHere(
+          c.call('setSyncAccount', {
+            body: {
+              issuer: 'https://accounts.example.com',
+              clientId: 'kacola-desktop',
+              resource: 'https://kacola.example.com',
+              refreshToken: 'rt',
+              email: null,
+            },
+          }),
+        ),
+      clearSyncAccount: () => notHere(c.call('clearSyncAccount')),
       pairStart: () => c.call('pairStart', { body: { name: 'phone' } }),
       pairApprove: async () => {
         const start = await c.call('pairStart', { body: { name: 'tablet' } })

@@ -83,7 +83,16 @@ export function applyNotesEvent(db: Database.Database, data: NotesEvent): void {
         // a proposal: it waits beside the head and never replaces it by itself
         stmt(db, 'UPDATE notes SET pending_enhancement = ? WHERE session_id = ?').run(v.version, v.sessionId)
       } else {
-        stmt(db, 'UPDATE notes SET head = ? WHERE session_id = ?').run(v.version, v.sessionId)
+        // The newest write is the head: a version another device wrote earlier, arriving later, joins the
+        // history without taking over. Ties go by the text itself (byte order), never by version number,
+        // which differs between replicas: every replica picks the same head.
+        stmt(
+          db,
+          `UPDATE notes SET head = ? WHERE session_id = ? AND (head = 0 OR
+             (SELECT created_at FROM note_versions WHERE session_id = notes.session_id AND version = notes.head) < ? OR
+             ((SELECT created_at FROM note_versions WHERE session_id = notes.session_id AND version = notes.head) = ? AND
+              (SELECT markdown FROM note_versions WHERE session_id = notes.session_id AND version = notes.head) <= ?))`,
+        ).run(v.version, v.sessionId, v.createdAt, v.createdAt, v.markdown)
         if (v.merge)
           stmt(
             db,
@@ -166,6 +175,14 @@ export class NoteStore {
     return r ? rowToVersion(r) : null
   }
 
+  /** The highest version number in a session (0: no notes yet). */
+  maxVersion(sessionId: string): number {
+    const r = stmt(this.db, 'SELECT MAX(version) AS v FROM note_versions WHERE session_id = ?').get(
+      sessionId,
+    ) as { v: number | null } | undefined
+    return r?.v ?? 0
+  }
+
   /** Every version, oldest first. */
   versions(sessionId: string): NoteVersion[] {
     return (
@@ -194,6 +211,16 @@ export class NoteStore {
     return (r.v ?? 0) + 1
   }
 
+  /**
+   * A version written here replaces the head, and the head is the newest write (two-way sync, see
+   * applyNotesEvent): so it is stamped at least a millisecond after the head, whatever the clock says.
+   */
+  private after(sessionId: string, headVersion: number, now: Date): string {
+    const head = headVersion ? this.version(sessionId, headVersion) : null
+    const floor = head ? Date.parse(head.createdAt) + 1 : Number.NEGATIVE_INFINITY
+    return new Date(Math.max(now.getTime(), floor)).toISOString()
+  }
+
   private requireSession(sessionId: string): void {
     if (!this.store.getSession(sessionId)) throw new StoreError('not_found', `no session ${sessionId}`)
   }
@@ -217,12 +244,13 @@ export class NoteStore {
     try {
       this.store.commit(() => {
         this.requireSession(sessionId)
-        const partial = build(this.get(sessionId))
+        const head = this.get(sessionId)
+        const partial = build(head)
         const version: NoteVersion = {
           ...partial,
           sessionId,
           version: this.nextVersion(sessionId),
-          createdAt: now.toISOString(),
+          createdAt: this.after(sessionId, head.version, now),
         }
         return { sessionId, data: { type: 'note.version', version } }
       })

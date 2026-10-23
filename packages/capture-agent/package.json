@@ -23,6 +23,7 @@
     "@kacola/server": "workspace:*",
     "@kacola/store": "workspace:*",
     "@kacola/stt": "workspace:*",
-    "@kacola/testkit": "workspace:*"
+    "@kacola/testkit": "workspace:*",
+    "jose": "^6.2.13"
   }
 }

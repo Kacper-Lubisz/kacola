@@ -55,7 +55,7 @@ export class RestartControl {
   live(): LiveRecording[] {
     const ids = new Set(this.d.sessions.activeIds())
     const out = new Map<string, Session>()
-    for (const s of this.d.store.sessionsWithStatus(['recording', 'paused'])) out.set(s.id, s)
+    for (const s of this.d.store.localSessionsWithStatus(['recording', 'paused'])) out.set(s.id, s)
     for (const id of ids)
       if (!out.has(id)) {
         const s = this.d.store.getSession(id)

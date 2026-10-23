@@ -404,7 +404,7 @@ export class SessionManager {
     const windowMs = this.d.pipeline.canContinue ? (o.resumeWindowMs ?? 0) : 0
     const now = this.now()
     const plan: RecoveryPlan = { recovered: [], closed: [], resumable: [] }
-    for (const s of this.d.store.sessionsWithStatus(['recording', 'paused'])) {
+    for (const s of this.d.store.localSessionsWithStatus(['recording', 'paused'])) {
       const marker = this.readSuspend(s.id)
       // The capturing process stopped without (or before) finalising its WAV headers: repair them so the
       // audio up to the last write is playable, and let its real length count towards the duration.

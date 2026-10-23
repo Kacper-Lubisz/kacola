@@ -7,6 +7,7 @@ import {
   USER_CODE_ALPHABET,
 } from '@kacola/protocol'
 import type { StoreApi } from '@kacola/store/core'
+import { createRemoteJWKSet, jwtVerify } from 'jose'
 import { HttpError, needsToken } from './errors.ts'
 
 // H-6 — pairing auth, shared by the hosted server and the local daemon (when it listens beyond
@@ -29,6 +30,8 @@ export type Principal =
   | { kind: 'loopback' }
   | { kind: 'admin' }
   | { kind: 'device'; deviceId: string }
+  /** Signed in with an account from the accounts service (AuthConfig.accounts), one of its owners. */
+  | { kind: 'account'; userId: string }
   /** No credentials, on one of the OPEN_ROUTES (how a device gets its token). */
   | { kind: 'anonymous' }
 
@@ -39,6 +42,11 @@ export type AuthConfig = {
   adminToken?: string
   pairingTtlMs?: number
   pollIntervalMs?: number
+  /**
+   * Sign-in with accounts.kacperlubisz.com instead of pairing: a bearer JWT from that issuer, for this
+   * server (audience), whose subject or email is one of `owners`. Pairing tokens keep working beside it.
+   */
+  accounts?: { issuer: string; audience: string; owners: readonly string[] }
 }
 
 export type PairingStore = Pick<
@@ -117,12 +125,35 @@ export class Auth {
     this.now = now
   }
 
+  #accountKeys: ReturnType<typeof createRemoteJWKSet> | null = null
+
+  /** An account's access token: signed by the accounts service, for this server, from an owner. */
+  async #account(token: string): Promise<Principal> {
+    const a = this.config.accounts!
+    this.#accountKeys ??= createRemoteJWKSet(new URL(`${a.issuer.replace(/\/+$/, '')}/api/auth/jwks`))
+    let payload: Awaited<ReturnType<typeof jwtVerify>>['payload']
+    try {
+      ;({ payload } = await jwtVerify(token, this.#accountKeys, {
+        issuer: a.issuer.replace(/\/+$/, ''),
+        audience: a.audience,
+      }))
+    } catch (err) {
+      throw needsToken(`invalid account token: ${(err as Error).message}`)
+    }
+    const who = [payload.sub, typeof payload.email === 'string' ? payload.email.toLowerCase() : null]
+    if (!payload.sub || !who.some((x) => x && a.owners.includes(x)))
+      throw new HttpError('unauthorized', 'this account may not use this server', 403)
+    return { kind: 'account', userId: payload.sub }
+  }
+
   /** Who is calling. Throws 401 for a missing, malformed, forged or revoked token. */
   async authenticate(authorization: string | null | undefined): Promise<Principal> {
     const m = /^Bearer\s+(\S+)\s*$/i.exec(authorization ?? '')
     if (!m) throw needsToken()
     const token = m[1]!
     if (this.config.adminToken && safeEqual(token, this.config.adminToken)) return { kind: 'admin' }
+    if (this.config.accounts && token.split('.').length === 3 && !token.startsWith(`${TOKEN_PREFIX}.`))
+      return this.#account(token)
     const v = verifyToken(this.config.secret, token)
     if (!v) throw needsToken('invalid token')
     const dev = await this.store.getDevice(v.deviceId)
@@ -177,11 +208,29 @@ export class Auth {
   }
 }
 
-/** Read the auth config from the environment (KACOLA_AUTH_SECRET, KACOLA_ADMIN_TOKEN). */
+/**
+ * Read the auth config from the environment: KACOLA_AUTH_SECRET and KACOLA_ADMIN_TOKEN (pairing), and
+ * KACOLA_ACCOUNTS_ISSUER + KACOLA_ACCOUNTS_OWNERS (account ids or emails, comma-separated) +
+ * KACOLA_ACCOUNTS_AUDIENCE (default: KACOLA_PUBLIC_URL) for sign-in with the accounts service. With
+ * accounts and no secret, pairing tokens are signed with a per-process secret (so none survive: there is
+ * no pairing to speak of).
+ */
 export function authConfigFromEnv(env: Record<string, string | undefined>): AuthConfig | null {
-  if (!env.KACOLA_AUTH_SECRET) return null
+  const issuer = env.KACOLA_ACCOUNTS_ISSUER
+  const owners = (env.KACOLA_ACCOUNTS_OWNERS ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+  const audience = env.KACOLA_ACCOUNTS_AUDIENCE ?? env.KACOLA_PUBLIC_URL
+  if (issuer && (!owners.length || !audience))
+    throw new Error(
+      'KACOLA_ACCOUNTS_ISSUER needs KACOLA_ACCOUNTS_OWNERS and KACOLA_ACCOUNTS_AUDIENCE (or KACOLA_PUBLIC_URL)',
+    )
+  const secret = env.KACOLA_AUTH_SECRET ?? (issuer ? randomBytes(32).toString('hex') : null)
+  if (!secret) return null
   return {
-    secret: env.KACOLA_AUTH_SECRET,
+    secret,
     ...(env.KACOLA_ADMIN_TOKEN ? { adminToken: env.KACOLA_ADMIN_TOKEN } : {}),
+    ...(issuer ? { accounts: { issuer, audience: audience!, owners } } : {}),
   }
 }

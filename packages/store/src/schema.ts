@@ -15,6 +15,8 @@ export type SessionRow = {
   error: string | null
   /** JSON SessionMeeting, or null (M4). */
   meeting: string | null
+  /** Two-way sync: the device that recorded it, when that is another one. */
+  origin: string | null
 }
 
 export type TrackRow = {
@@ -89,6 +91,8 @@ export type EventRow = {
   type: string
   /** JSON DurableEventData */
   data: string
+  /** Two-way sync: the device that made the change, when it is not this store's own. */
+  origin: string | null
 }
 
 export type DB = {

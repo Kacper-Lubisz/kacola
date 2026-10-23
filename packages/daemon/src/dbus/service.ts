@@ -77,7 +77,7 @@ export class DbusService {
 
   start(): void {
     const { bus, calendar, logger } = this.d
-    for (const s of this.d.store.sessionsWithStatus(LIVE)) this.statusOf.set(s.id, s.status)
+    for (const s of this.d.store.localSessionsWithStatus(LIVE)) this.statusOf.set(s.id, s.status)
     this.unsubscribe.push(
       bus.subscribe((e) => this.onEvent(e)),
       calendar.onChange(() => this.push()),

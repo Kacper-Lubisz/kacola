@@ -27,7 +27,7 @@ export class RecordingControl {
 
   /** The live (recording or paused) session — the most recently started if, somehow, there are several. */
   active(): Session | null {
-    const live = this.d.store.sessionsWithStatus(['recording', 'paused'])
+    const live = this.d.store.localSessionsWithStatus(['recording', 'paused'])
     if (!live.length) return null
     return live.sort((a, b) => (b.startedAt ?? '').localeCompare(a.startedAt ?? ''))[0]!
   }

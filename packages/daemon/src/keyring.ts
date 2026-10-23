@@ -2,7 +2,12 @@ import { spawn } from 'node:child_process'
 import { DaemonError } from './errors.ts'
 import type { KeyAccount, Keyring } from './interfaces.ts'
 
-const LABELS: Record<KeyAccount, string> = { anthropic: 'Anthropic', openai: 'OpenAI', typesafe: 'TypeSafe' }
+const LABELS: Record<KeyAccount, string> = {
+  anthropic: 'Anthropic',
+  openai: 'OpenAI',
+  typesafe: 'TypeSafe',
+  'sync-account': 'kacola sync sign-in',
+}
 
 // libsecret via `secret-tool`. The key goes over stdin — never argv, which any local user can read
 // from /proc — and comes back on stdout. A timeout guards against an unlock prompt nobody answers.

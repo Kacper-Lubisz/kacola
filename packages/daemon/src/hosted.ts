@@ -1,4 +1,8 @@
+import { randomBytes } from 'node:crypto'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import type { IncomingMessage } from 'node:http'
+import { join } from 'node:path'
+import type { SyncPushBody } from '@kacola/protocol'
 import { Auth, type AuthConfig, isLoopbackRequest, OPEN_ROUTES, type Principal } from '@kacola/server/auth'
 import { SqliteStoreApi, type Store } from '@kacola/store'
 import { DaemonError } from './errors.ts'
@@ -11,8 +15,10 @@ import { DaemonError } from './errors.ts'
 // entry points are the only routes an unpaired remote device can reach. Without auth the daemon stays
 // exactly as before: loopback bind, loopback Host header, no tokens.
 //
-// Sync ingest and audio upload are hosted-server features (packages/server): a local daemon is the thing
-// that pushes, not a target, so those routes answer a typed 501.
+// Audio upload is a hosted-server feature (packages/server), so those routes answer a typed 501. Sync
+// ingest answers here for this machine's own sync agent only (two-way sync, capture-agent/sync.ts): it
+// pulls the other devices' changes from the hosted server and applies them through the same ingest the
+// server uses, under the device id `PULL_DEVICE` (its cursor is the server's seq), never as this device.
 
 const hostedOnly = (what: string) => () => {
   throw new DaemonError(
@@ -56,7 +62,20 @@ export function remoteAccess(store: Store, config: AuthConfig | null, trustLoopb
   }
 }
 
-export function hostedHandlers(access: RemoteAccess) {
+/** The local cursor for what has been pulled from the hosted server. */
+export const PULL_DEVICE = 'hosted-server'
+
+export function requireLocal(req: IncomingMessage) {
+  const local = isLoopbackRequest({
+    remoteAddress: req.socket.remoteAddress,
+    host: req.headers.host,
+    forwarded: req.headers['x-forwarded-for'] !== undefined || req.headers.forwarded !== undefined,
+  })
+  if (!local) throw new DaemonError('unauthorized', 'this is for this machine only', 403)
+}
+
+export function hostedHandlers(access: RemoteAccess, store: Store, deviceId: string) {
+  const api = new SqliteStoreApi(store)
   const pairing = () => {
     if (!access.auth)
       throw new DaemonError(
@@ -67,8 +86,18 @@ export function hostedHandlers(access: RemoteAccess) {
     return access.auth
   }
   return {
-    syncPush: hostedOnly('sync'),
-    syncCursor: hostedOnly('sync'),
+    syncPush: ({ body, req }: { body: SyncPushBody; req: IncomingMessage }) => {
+      requireLocal(req)
+      return api.ingest(body.deviceId ?? PULL_DEVICE, body.items, {
+        ...(body.partial ? { partial: true } : {}),
+        self: deviceId,
+      })
+    },
+    syncCursor: async ({ query, req }: { query: { deviceId?: string }; req: IncomingMessage }) => {
+      requireLocal(req)
+      const id = query.deviceId ?? PULL_DEVICE
+      return { deviceId: id, cursor: await api.syncCursor(id) }
+    },
     pairStart: ({ body }: { body: { name: string } }) => pairing().start(body.name),
     // Not an open route: reaching it means loopback (the owner at this machine) or a paired device.
     pairApprove: ({ body }: { body: { userCode: string } }) => pairing().approve(body.userCode),
@@ -80,4 +109,19 @@ export function hostedHandlers(access: RemoteAccess) {
     getAudioStatus: hostedOnly('audio upload'),
     finalizeAudio: hostedOnly('audio upload'),
   }
+}
+
+/**
+ * This install's device id: who its changes are from, on the hosted server and to the other devices.
+ * Made once and kept in the data dir, so a reinstall over the same data stays the same device.
+ */
+export function installDeviceId(dataDir: string): string {
+  const file = join(dataDir, 'device-id')
+  if (existsSync(file)) {
+    const id = readFileSync(file, 'utf8').trim()
+    if (/^dev_[A-Za-z0-9_-]{8,64}$/.test(id)) return id
+  }
+  const id = `dev_${randomBytes(12).toString('base64url')}`
+  writeFileSync(file, `${id}\n`, { mode: 0o600 })
+  return id
 }

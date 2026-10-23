@@ -234,7 +234,7 @@ export class AgendaTracker {
     this.#unsubscribe ??= this.#d.store.onCommit((e) => this.#onEvent(e))
     // recordings already under way (a daemon restart mid-meeting keeps them recovered, not recording,
     // but a tracker started after the service is still correct)
-    for (const s of this.#d.store.sessionsWithStatus(['recording', 'paused'])) this.#maybeBegin(s.id)
+    for (const s of this.#d.store.localSessionsWithStatus(['recording', 'paused'])) this.#maybeBegin(s.id)
   }
 
   stop(): void {

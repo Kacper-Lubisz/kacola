@@ -43,6 +43,8 @@ export const DurableEvent = z.object({
   at: Iso,
   sessionId: z.string().nullable(),
   data: DurableEventData,
+  /** Two-way sync: the device that made this change, when it is not this store's own. */
+  origin: z.string().min(1).max(100).optional(),
 })
 export type DurableEvent = z.infer<typeof DurableEvent>
 

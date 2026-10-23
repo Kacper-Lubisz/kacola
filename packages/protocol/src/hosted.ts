@@ -15,7 +15,15 @@ import { Iso, TrackKind } from './schemas.ts'
 // ------------------------------------------------------------------------------------------ sync
 
 /** One durable event as the pushing device logged it. `seq` is the DEVICE's seq, not the server's. */
-export const SyncItem = z.object({ seq: z.int().positive(), data: DurableEventData })
+export const SyncItem = z.object({
+  seq: z.int().positive(),
+  data: DurableEventData,
+  /**
+   * The device that made the change, when it is not the pushing one: a device pulling from the server
+   * applies other devices' changes with their origin. Absent: the pusher made it.
+   */
+  origin: z.string().min(1).max(100).optional(),
+})
 export type SyncItem = z.infer<typeof SyncItem>
 
 export const SYNC_MAX_ITEMS = 500
@@ -51,6 +59,37 @@ export type SyncPushResult = z.infer<typeof SyncPushResult>
 
 export const SyncCursor = z.object({ deviceId: z.string(), cursor: z.int().nonnegative() })
 export type SyncCursor = z.infer<typeof SyncCursor>
+
+// ----------------------------------------------------------------------- two-way sync, signed in
+
+/**
+ * The local daemon's sync, as the window shows it. `off`: no sync server configured (KACOLA_SYNC_URL);
+ * `signed-out`: configured, nobody signed in; `syncing`: pushing and pulling; `error`: the last attempt
+ * failed (`detail` says why; it keeps retrying).
+ */
+export const SyncStatus = z.object({
+  state: z.enum(['off', 'signed-out', 'syncing', 'error']),
+  server: z.string().nullable(),
+  /** The signed-in account's email, when known. */
+  email: z.string().nullable(),
+  /** This install, as the server and the other devices know it. */
+  deviceId: z.string(),
+  detail: z.string().nullable(),
+})
+export type SyncStatus = z.infer<typeof SyncStatus>
+
+/**
+ * Hand the daemon a signed-in account (the window ran the browser sign-in): it keeps the refresh token
+ * in the keyring and renews access tokens itself. Loopback only.
+ */
+export const SetSyncAccountBody = z.object({
+  issuer: z.url(),
+  clientId: z.string().min(1).max(100),
+  resource: z.url(),
+  refreshToken: z.string().min(1).max(4000),
+  email: z.string().max(320).nullable(),
+})
+export type SetSyncAccountBody = z.infer<typeof SetSyncAccountBody>
 
 // --------------------------------------------------------------------------------------- pairing
 

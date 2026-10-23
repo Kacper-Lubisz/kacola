@@ -513,7 +513,8 @@ export function storeContract(dialect: string, factory: StoreFactory): void {
       expect(r.applied + r.skipped).toBe(log.length)
       const a = await dev.snapshot()
       const b = await srv.snapshot()
-      expect(b.sessions).toEqual(a.sessions)
+      // the server remembers which device recorded each session
+      expect(b.sessions).toEqual(a.sessions.map((x) => ({ ...x, origin: 'laptop' })))
       expect(b.segments).toEqual(a.segments)
       expect(b.qa).toEqual(a.qa)
       expect(b.settings).toBeNull()
@@ -733,6 +734,117 @@ export function storeContract(dialect: string, factory: StoreFactory): void {
       ])
       expect(r2.rejected.map((x) => x.reason)).toEqual(['no session ses_unknown'])
       src.close()
+    })
+
+    // two-way sync: every device pulls the others' changes through ingest, with their origin
+    const version = (sessionId: string, n: number, markdown: string, createdAt: string) => ({
+      type: 'note.version' as const,
+      version: {
+        sessionId,
+        version: n,
+        kind: 'user' as const,
+        markdown,
+        baseVersion: n - 1,
+        createdAt,
+        enhancement: null,
+        merge: null,
+        restoredFrom: null,
+      },
+    })
+
+    it('two devices writing the same note version: both kept, the newest is the head, on every replica', async () => {
+      const s = await make()
+      const sess = await s.createSession({ title: 'Sync' })
+      const base = version(sess.id, 1, 'shared start', '2026-10-01T09:00:00.000Z')
+      const fromA = version(sess.id, 2, 'edited on A', '2026-10-01T09:05:00.000Z')
+      const fromB = version(sess.id, 2, 'edited on B', '2026-10-01T09:06:00.000Z')
+      // the server sees A's edit, then B's (B was offline); a device that saw B's first gets the reverse
+      const server = await make()
+      await server.ingest('creator', [{ seq: 1, data: { type: 'session.upserted', session: sess } }])
+      await server.ingest('a', [
+        { seq: 1, data: base },
+        { seq: 2, data: fromA },
+      ])
+      await server.ingest('b', [{ seq: 1, data: fromB }])
+      const other = await make()
+      await other.ingest('creator', [{ seq: 1, data: { type: 'session.upserted', session: sess } }])
+      await other.ingest('x', [
+        { seq: 1, data: base, origin: 'a' },
+        { seq: 2, data: fromB, origin: 'b' },
+        { seq: 3, data: fromA, origin: 'a' },
+      ])
+      for (const replica of [server, other]) {
+        const texts = (await replica.noteVersions(sess.id)).map((v) => v.markdown).sort()
+        expect(texts).toEqual(['edited on A', 'edited on B', 'shared start'])
+        expect((await replica.getNotes(sess.id)).markdown).toBe('edited on B')
+      }
+      // the same version again is a no-op, whichever device sends it
+      const seq = await server.lastSeq()
+      await server.ingest('c', [{ seq: 1, data: fromA, origin: 'a' }])
+      expect(await server.lastSeq()).toBe(seq)
+      // written in the same millisecond on two devices: the text decides, the same way on every replica
+      const tieA = version(sess.id, 3, 'tie from A', '2026-10-01T09:30:00.000Z')
+      const tieB = version(sess.id, 3, 'tie from B', '2026-10-01T09:30:00.000Z')
+      const [one, two] = [await make(), await make()]
+      for (const r of [one, two]) {
+        await r.ingest('creator', [{ seq: 1, data: { type: 'session.upserted', session: sess } }])
+        await r.ingest('a', [{ seq: 1, data: base }])
+      }
+      await one.ingest('x', [
+        { seq: 1, data: tieA },
+        { seq: 2, data: tieB, origin: 'b' },
+      ])
+      await two.ingest('x', [
+        { seq: 1, data: tieB },
+        { seq: 2, data: tieA, origin: 'a' },
+      ])
+      expect((await one.getNotes(sess.id)).markdown).toBe('tie from B')
+      expect((await two.getNotes(sess.id)).markdown).toBe('tie from B')
+      // an edit made after both, on either replica, takes over
+      await server.ingest('a', [
+        { seq: 3, data: version(sess.id, 3, 'later on A', '2026-10-01T10:00:00.000Z') },
+      ])
+      expect((await server.getNotes(sess.id)).markdown).toBe('later on A')
+    })
+
+    it('a session from another device keeps this device’s audio paths, and remembers who recorded it', async () => {
+      const here = await make()
+      const mine = await here.createSession({ title: 'Recorded here' })
+      // its copy coming back from the server: no audio paths (they never sync), renamed elsewhere
+      const fromServer = {
+        ...mine,
+        title: 'Renamed on the other Mac',
+        tracks: mine.tracks.map((t) => ({ ...t, audioPath: null, archivePath: null })),
+        origin: 'this-mac',
+      }
+      await here.ingest(
+        'server',
+        [{ seq: 1, data: { type: 'session.upserted', session: fromServer }, origin: 'other-mac' }],
+        {
+          self: 'this-mac',
+        },
+      )
+      const after = (await here.getSession(mine.id))!
+      expect(after.title).toBe('Renamed on the other Mac')
+      expect(after.tracks).toEqual(mine.tracks)
+      expect(after.origin).toBeUndefined()
+      // a session recorded on the other Mac arrives as theirs, and its events carry who changed them
+      const theirs = { ...mine, id: 'ses_theirs00001', title: 'Recorded there' }
+      await here.ingest(
+        'server',
+        [
+          {
+            seq: 2,
+            data: { type: 'session.upserted', session: { ...theirs, origin: 'other-mac' } },
+            origin: 'other-mac',
+          },
+        ],
+        { self: 'this-mac' },
+      )
+      expect((await here.getSession('ses_theirs00001'))!.origin).toBe('other-mac')
+      expect((await here.eventsAfter(0)).at(-1)!.origin).toBe('other-mac')
+      // this device's own changes carry no origin
+      expect((await here.eventsAfter(0))[0]!.origin).toBeUndefined()
     })
   })
 

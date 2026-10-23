@@ -26,9 +26,11 @@ import {
   PairStartBody,
   PairToken,
   PairTokenBody,
+  SetSyncAccountBody,
   SyncCursor,
   SyncPushBody,
   SyncPushResult,
+  SyncStatus,
 } from './hosted.ts'
 import { notesRoutes } from './notes.ts'
 import {
@@ -295,6 +297,10 @@ export const routes = {
     query: z.object({ deviceId: z.string().min(1).max(100).optional() }),
     response: SyncCursor,
   },
+  // two-way sync, signed in with an account (the local daemon; the hosted server answers 501)
+  syncStatus: { method: 'GET', path: '/sync/status', response: SyncStatus },
+  setSyncAccount: { method: 'PUT', path: '/sync/account', body: SetSyncAccountBody, response: SyncStatus },
+  clearSyncAccount: { method: 'DELETE', path: '/sync/account', response: SyncStatus },
   pairStart: { method: 'POST', path: '/pair/start', body: PairStartBody, response: PairStart },
   pairApprove: { method: 'POST', path: '/pair/approve', body: PairApproveBody, response: PairApprove },
   pairToken: { method: 'POST', path: '/pair/token', body: PairTokenBody, response: PairToken },

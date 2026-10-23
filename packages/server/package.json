@@ -20,6 +20,7 @@
     "@kacola/protocol": "workspace:*",
     "@kacola/store": "workspace:*",
     "@kacola/stt": "workspace:*",
+    "jose": "^6.2.13",
     "zod": "^4.6.5"
   },
   "devDependencies": {

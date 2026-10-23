@@ -218,7 +218,7 @@ export class AgendaService {
     // recording may already be under way for this meeting
     if (meeting) {
       const live = this.d.store
-        .sessionsWithStatus(['recording', 'paused'])
+        .localSessionsWithStatus(['recording', 'paused'])
         .find((s) => this.sessionMatches(s, view.agenda))
       if (live) return { view: this.attach(view.agenda.id, live.id), created: true }
     }

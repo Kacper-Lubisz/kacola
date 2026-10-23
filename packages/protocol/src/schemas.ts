@@ -62,6 +62,11 @@ export const Session = z.object({
   error: z.string().nullable(),
   /** M4: the calendar meeting this session was recorded for. Absent when it was not started from one. */
   meeting: SessionMeeting.optional(),
+  /**
+   * Two-way sync: the device that recorded it, when that is another device (this one has its transcript
+   * and notes, not its audio). Absent for sessions recorded here.
+   */
+  origin: z.string().min(1).max(100).optional(),
 })
 export type Session = z.infer<typeof Session>
 

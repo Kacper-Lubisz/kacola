@@ -332,7 +332,8 @@ function refreshActive(): void {
   void client
     .call('listSessions', { query: { limit: 5, includePrivate: true } })
     .then(({ sessions }) => {
-      active = sessions.find((s) => s.status === 'recording' || s.status === 'paused') ?? null
+      // a recording on another Mac (two-way sync) is not this menu bar's
+      active = sessions.find((s) => !s.origin && (s.status === 'recording' || s.status === 'paused')) ?? null
       refreshTray()
     })
     .catch(() => {})

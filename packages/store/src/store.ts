@@ -266,7 +266,10 @@ export class Store {
    * The only way state changes. `build` runs inside the IMMEDIATE transaction and may read current
    * state to decide the event (e.g. the next segment revision); throwing aborts with nothing written.
    */
-  commit(build: () => { sessionId: string | null; data: DurableEventData }): DurableEvent {
+  commit(
+    build: () => { sessionId: string | null; data: DurableEventData },
+    opts: { origin?: string } = {},
+  ): DurableEvent {
     const event = this.db
       .transaction(() => {
         const { sessionId, data: raw } = build()
@@ -277,7 +280,13 @@ export class Store {
             value: number
           }
         ).value
-        const e: DurableEvent = { seq, at: this.now().toISOString(), sessionId, data }
+        const e: DurableEvent = {
+          seq,
+          at: this.now().toISOString(),
+          sessionId,
+          data,
+          ...(opts.origin ? { origin: opts.origin } : {}),
+        }
         this.insertEvent(e)
         return e
       })
@@ -319,6 +328,7 @@ export class Store {
         session_id: e.sessionId,
         type: e.data.type,
         data: JSON.stringify(e.data),
+        origin: e.origin ?? null,
       }),
     )
   }
@@ -339,6 +349,7 @@ export class Store {
           duration_ms: s.durationMs,
           error: s.error,
           meeting: s.meeting ? JSON.stringify(s.meeting) : null,
+          origin: s.origin ?? null,
         }
         const { id: _id, ...rest } = row
         this.run(
@@ -641,11 +652,18 @@ export class Store {
     let q = compiler.selectFrom('events').selectAll().where('seq', '>', after).orderBy('seq')
     if (opts.sessionId !== undefined) q = q.where('session_id', '=', opts.sessionId)
     if (opts.limit !== undefined) q = q.limit(opts.limit)
-    return this.all<{ seq: number; at: string; session_id: string | null; data: string }>(q).map((r) => ({
+    return this.all<{
+      seq: number
+      at: string
+      session_id: string | null
+      data: string
+      origin: string | null
+    }>(q).map((r) => ({
       seq: r.seq,
       at: r.at,
       sessionId: r.session_id,
       data: JSON.parse(r.data) as DurableEventData,
+      ...(r.origin ? { origin: r.origin } : {}),
     }))
   }
 
@@ -686,6 +704,7 @@ export class Store {
       tracks: tracks.get(r.id) ?? [],
       error: r.error,
       ...(r.meeting ? { meeting: JSON.parse(r.meeting) as Session['meeting'] } : {}),
+      ...(r.origin ? { origin: r.origin } : {}),
     }))
   }
 
@@ -711,6 +730,14 @@ export class Store {
         compiler.selectFrom('sessions').selectAll().where('status', 'in', statuses).orderBy('id'),
       ),
     )
+  }
+
+  /**
+   * Sessions recorded HERE in one of these states: a session another device is recording, seen through
+   * two-way sync, is not this daemon's to recover, resume, wait for or stop.
+   */
+  localSessionsWithStatus(statuses: SessionStatus[]): Session[] {
+    return this.sessionsWithStatus(statuses).filter((s) => s.origin === undefined)
   }
 
   /** Timestamp of the newest durable event about this session — "last known alive". */

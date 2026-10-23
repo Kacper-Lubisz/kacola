@@ -382,6 +382,16 @@ export const migrations: readonly Migration[] = [
       CREATE INDEX share_codes_share ON share_codes (share_id, created_at);
     `,
   },
+  {
+    // Two-way sync: which device made a change (null: this store's own), on each event and on each
+    // session (the device that recorded it). Mirrored in ./pg/migrations.ts.
+    version: 8,
+    name: 'sync-origin',
+    up: `
+      ALTER TABLE events ADD COLUMN origin TEXT;
+      ALTER TABLE sessions ADD COLUMN origin TEXT;
+    `,
+  },
 ]
 
 /**

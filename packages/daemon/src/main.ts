@@ -22,7 +22,6 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { ExternalCaptureHub } from '@kacola/capture'
-import { SyncAgent } from '@kacola/capture-agent/sync'
 import { createClient, DAEMON_EXIT, LEGACY_NAME } from '@kacola/protocol'
 import { migrateLegacyUserDirs } from '@kacola/protocol/legacy-dirs'
 import { DEFAULT_MODELS, defaultModelsDir, ModelManager } from '@kacola/stt'
@@ -172,6 +171,7 @@ async function main(): Promise<void> {
               })
             : new NoCalendar()
   opts.dbus = cfg.dbus ? { gjs: cfg.gjs } : null
+  opts.sync = { url: cfg.syncUrl ?? null, token: cfg.syncToken ?? null }
   if (cfg.micActivity.kind === 'pipewire')
     opts.micActivity = new PwDumpMicActivity({ onlyTarget: cfg.micActivity.target })
   opts.micIdleStopMs = cfg.micIdleStopMs
@@ -232,25 +232,6 @@ async function main(): Promise<void> {
     }
   })
 
-  // H-7 hybrid sync: push this machine's transcripts and notes to a hosted server, as a protocol client
-  // of both ends (the agent reads this daemon's own /events over loopback).
-  const sync = new AbortController()
-  if (cfg.syncUrl) {
-    const agent = new SyncAgent({
-      local: createClient({ baseUrl: daemon.url }),
-      remote: createClient({
-        baseUrl: cfg.syncUrl,
-        timeoutMs: 60_000,
-        ...(cfg.syncToken ? { token: cfg.syncToken } : {}),
-      }),
-      log: (level, msg, fields) => daemon.logger[level](`sync: ${msg}`, fields),
-    })
-    daemon.logger.info('hybrid sync on', { to: cfg.syncUrl })
-    void agent
-      .run(sync.signal)
-      .catch((err) => daemon.logger.error('sync stopped', { err: (err as Error).message }))
-  }
-
   let stopping = false
   // The suspend path writes its markers first and bounds the audio flush (6 s), so this stays well inside
   // systemd's stop timeout and a logout is never held up; past 10 s we exit anyway.
@@ -267,7 +248,6 @@ async function main(): Promise<void> {
   function shutdown(why: string, recordings: 'suspend' | 'stop', code = 0, resume = true) {
     if (stopping) return
     stopping = true
-    sync.abort()
     unwatchConfig()
     daemon.logger.info(code === DAEMON_EXIT.RESTART ? 'restart' : 'signal received', { why, recordings })
     const force = setTimeout(() => process.exit(code || 1), 10_000)

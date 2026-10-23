@@ -1,5 +1,6 @@
 import {
   type DurableEventData,
+  type NoteVersion,
   newId,
   type Segment,
   type Session,
@@ -63,10 +64,21 @@ export function nextSegment(input: SegmentInput, prev: Segment | null, sessionEx
 export type IngestFacts = {
   sessionExists: boolean
   prevSegment: Segment | null
-  /** For `note.version`: that session already has a version with this number. */
-  noteVersionExists?: boolean
+  /** For `note.version`: the version already stored under that number in that session, if any. */
+  noteVersion?: Pick<NoteVersion, 'markdown' | 'createdAt'> | null
+  /** For `note.version`: the session's highest version number (0: no notes yet). */
+  noteMaxVersion?: number
   /** For speaker events: every speaker id the item names exists, in the item's session. */
   speakersExist?: boolean
+  /** For `session.upserted`: the session as this store has it now. */
+  existingSession?: Session | null
+  /**
+   * Two-way sync: the device the change comes from (it recorded a session it upserts first), or null when
+   * that is this store itself.
+   */
+  origin?: string | null
+  /** This store's own device id, when it has one (a device pulling): never recorded as an origin. */
+  self?: string | null
 }
 
 export type IngestDecision =
@@ -126,6 +138,34 @@ export function ingestSubject(data: DurableEventData): {
 }
 
 /**
+ * A session coming from elsewhere: it keeps this store's own audio files (they never sync, so the
+ * incoming copy has none), and records the device that recorded it unless that is this store.
+ */
+function replicatedSession(
+  data: Extract<DurableEventData, { type: 'session.upserted' }>,
+  facts: IngestFacts,
+): DurableEventData {
+  const incoming = data.session
+  const mine = facts.existingSession
+  const origin = incoming.origin ?? facts.origin ?? undefined
+  const tracks = mine
+    ? incoming.tracks.map((t) => {
+        const here = mine.tracks.find((x) => x.kind === t.kind)
+        return here
+          ? { ...t, audioPath: t.audioPath ?? here.audioPath, archivePath: t.archivePath ?? here.archivePath }
+          : t
+      })
+    : incoming.tracks
+  const { origin: _drop, ...rest } = incoming
+  // recorded here: whoever renamed it elsewhere, it is ours
+  const recordedHere = mine !== null && mine !== undefined && mine.origin === undefined
+  return {
+    ...data,
+    session: { ...rest, tracks, ...(origin && !recordedHere && origin !== facts.self ? { origin } : {}) },
+  }
+}
+
+/**
  * The conflict rules of hybrid sync (docs/hosting.md), as one pure function. The hosted store is a
  * replica: every session has exactly one writer — the device that recorded it — so items are applied
  * verbatim (keeping that device's segment revisions) and the only judgement calls are:
@@ -133,7 +173,10 @@ export function ingestSubject(data: DurableEventData): {
  *   - a segment revision at or below the one already stored is a no-op (snapshots and re-pushes);
  *   - anything that would break a store invariant (unknown session, final → live, track change,
  *     mic not `me`) is rejected, reported back, and does not stop the rest of the batch;
- *   - notes versions are append-only, so a version number already present is a no-op;
+ *   - notes versions are append-only: the same version again is a no-op; a different one under a number
+ *     already taken (two devices editing) is kept as the next version, and the newest is the head;
+ *   - two-way sync: a session from another device keeps this store's own audio paths and remembers
+ *     which device recorded it;
  *   - M3 speakers, merges and attributions apply when their session (and every speaker they name)
  *     exists; voiceprints are biometric, device-local data and are never stored here, even if pushed;
  *   - settings and notes templates are device-local and never synced; deleting an absent session is a
@@ -147,7 +190,7 @@ export function ingestSubject(data: DurableEventData): {
 export function decideIngest(data: DurableEventData, facts: IngestFacts): IngestDecision {
   switch (data.type) {
     case 'session.upserted':
-      return { kind: 'apply', sessionId: data.session.id, data }
+      return { kind: 'apply', sessionId: data.session.id, data: replicatedSession(data, facts) }
     case 'segment.upserted': {
       const g = data.segment
       if (!facts.sessionExists) return { kind: 'reject', reason: `no session ${g.sessionId}` }
@@ -170,12 +213,25 @@ export function decideIngest(data: DurableEventData, facts: IngestFacts): Ingest
       return { kind: 'apply', sessionId: m.sessionId, data }
     }
     case 'session.deleted':
-      return facts.sessionExists ? { kind: 'apply', sessionId: data.sessionId, data } : { kind: 'skip' }
+      if (!facts.sessionExists) return { kind: 'skip' }
+      // a device never loses its own recording because of another device (only privacy deletes travel,
+      // and those come from the device that recorded it)
+      if (facts.self && facts.existingSession && facts.existingSession.origin === undefined)
+        return { kind: 'skip' }
+      return { kind: 'apply', sessionId: data.sessionId, data }
     case 'note.version': {
       const v = data.version
       if (!facts.sessionExists) return { kind: 'reject', reason: `no session ${v.sessionId}` }
-      if (facts.noteVersionExists) return { kind: 'skip' }
-      return { kind: 'apply', sessionId: v.sessionId, data }
+      const there = facts.noteVersion
+      if (!there) return { kind: 'apply', sessionId: v.sessionId, data }
+      if (there.markdown === v.markdown && there.createdAt === v.createdAt) return { kind: 'skip' }
+      // Two devices wrote this version number: both stay, the incoming one as the next version. Which
+      // is the head is decided by when each was written (the notes fold), so every replica agrees.
+      return {
+        kind: 'apply',
+        sessionId: v.sessionId,
+        data: { ...data, version: { ...v, version: (facts.noteMaxVersion ?? v.version) + 1 } },
+      }
     }
     case 'speaker.upserted':
       if (!facts.sessionExists) return { kind: 'reject', reason: `no session ${data.speaker.sessionId}` }

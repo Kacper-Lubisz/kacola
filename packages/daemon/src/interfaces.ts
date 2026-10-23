@@ -155,7 +155,8 @@ export interface QaEngine {
 
 /** Where the Anthropic API key lives. The daemon never writes it anywhere else. */
 /** Which provider a stored key belongs to. */
-export type KeyAccount = KeyedProvider
+/** A provider's API key, or the two-way sync sign-in (sync.ts). */
+export type KeyAccount = KeyedProvider | 'sync-account'
 
 export interface Keyring {
   get(account?: KeyAccount): Promise<string | null>

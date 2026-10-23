@@ -106,8 +106,16 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
     if (!auth) throw new HttpError('unavailable', 'pairing needs KACOLA_AUTH_SECRET on the server', 501)
     return auth
   }
-  const deviceIdFor = (p: Principal, fromBody: string | undefined) =>
-    p.kind === 'device' ? p.deviceId : (fromBody ?? 'local')
+  // an account signs in from several devices: each names itself (an install's id, `dev_…`)
+  const deviceIdFor = (p: Principal, fromBody: string | undefined) => {
+    if (p.kind === 'device') return p.deviceId
+    if (p.kind === 'account') {
+      if (!fromBody || !/^dev_[A-Za-z0-9_-]{8,64}$/.test(fromBody))
+        throw new HttpError('bad_request', 'a signed-in device names itself: deviceId dev_…')
+      return fromBody
+    }
+    return fromBody ?? 'local'
+  }
   const health = async (): Promise<ResponseOf<'health'>> => ({
     ok: true,
     version: VERSION,
@@ -293,6 +301,10 @@ export function createHostedApp(o: HostedAppOptions): HostedApp {
       const deviceId = deviceIdFor(principal, query.deviceId)
       return { deviceId, cursor: await store.syncCursor(deviceId) }
     },
+    // the local daemon's sign-in for two-way sync; a hosted server is what it signs in to
+    syncStatus: 'unsupported',
+    setSyncAccount: 'unsupported',
+    clearSyncAccount: 'unsupported',
     pairStart: ({ body }) => pairing().start(body.name),
     pairApprove: ({ body }) => pairing().approve(body.userCode),
     pairToken: ({ body }) => pairing().poll(body.deviceCode),

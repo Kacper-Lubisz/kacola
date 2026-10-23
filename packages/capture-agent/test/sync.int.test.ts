@@ -88,8 +88,10 @@ async function view(c: KacolaClient) {
     const t = await c.call('getTranscript', { params: { id: s.id } })
     const qa = await c.call('getQaHistory', { params: { id: s.id } })
     const notes = await c.call('listNoteVersions', { params: { id: s.id } })
+    // which device recorded it is the server's bookkeeping (checked on its own below), not content
+    const { origin: _origin, ...session } = s
     out.push({
-      session: { ...s, tracks: s.tracks.map((x) => ({ ...x, audioPath: null, archivePath: null })) },
+      session: { ...session, tracks: s.tracks.map((x) => ({ ...x, audioPath: null, archivePath: null })) },
       segments: t.segments,
       qa: qa.messages,
       notes: notes.versions,
@@ -117,6 +119,9 @@ describe('hybrid sync: local daemon → hosted server', () => {
 
     const want = await view(d.client)
     const got = await view(r.client)
+    // the server remembers which device recorded each session: the pushing device
+    for (const s of (await r.client.call('listSessions', { query: { limit: 500 } })).sessions)
+      expect(s.origin).toBe(dev.deviceId)
     expect(got).toEqual(want)
     expect(got.map((x) => x.session.title).sort()).toEqual(['Roadmap', 'Standup'])
     expect(got.every((x) => x.segments.length > 0 && x.qa.length === 2 && x.notes.length === 1)).toBe(true)
@@ -227,7 +232,12 @@ describe('hybrid sync: local daemon → hosted server', () => {
     const a = await clean.store.eventsAfter(0)
     const b = await flaky.store.eventsAfter(0)
     assertNoViolations(checkEventLog(b))
-    expect(b.map((e) => e.data)).toEqual(a.map((e) => e.data))
+    // (each server was paired as its own device, so the recorded origin differs; nothing else may)
+    const content = (e: (typeof a)[number]) =>
+      e.data.type === 'session.upserted'
+        ? { ...e.data, session: { ...e.data.session, origin: undefined } }
+        : e.data
+    expect(b.map(content)).toEqual(a.map(content))
   })
 
   it('runs continuously: follows a live recording, and a restarted agent picks up where the server is', async () => {

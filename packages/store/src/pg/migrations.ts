@@ -333,6 +333,14 @@ export const pgMigrations: readonly Migration[] = [
       CREATE INDEX share_codes_share ON share_codes (share_id, created_at);
     `,
   },
+  {
+    version: 8,
+    name: 'sync-origin',
+    up: `
+      ALTER TABLE events ADD COLUMN origin text COLLATE "C";
+      ALTER TABLE sessions ADD COLUMN origin text COLLATE "C";
+    `,
+  },
 ]
 
 const LOCK_KEY = 0x676e6f6d // 'gnom'

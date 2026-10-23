@@ -192,7 +192,7 @@ export class SqliteStoreApi implements StoreApi {
   async ingest(
     deviceId: string,
     items: SyncItem[],
-    opts: { partial?: boolean } = {},
+    opts: { partial?: boolean; self?: string } = {},
   ): Promise<SyncPushResult> {
     checkIngestOrder(items)
     const s = this.store
@@ -211,20 +211,26 @@ export class SqliteStoreApi implements StoreApi {
         }
         out.cursor = Math.max(out.cursor, item.seq)
         const subj = ingestSubject(item.data)
+        const session = subj.sessionId !== null ? s.getSession(subj.sessionId) : null
+        const origin = (item.origin ?? deviceId) === opts.self ? null : (item.origin ?? deviceId)
         const d = decideIngest(item.data, {
-          sessionExists: subj.sessionId !== null && s.getSession(subj.sessionId) !== null,
+          sessionExists: session !== null,
           prevSegment: subj.segmentId ? s.getSegment(subj.segmentId) : null,
-          noteVersionExists:
-            subj.noteVersion !== undefined && this.notes.version(subj.sessionId!, subj.noteVersion) !== null,
+          noteVersion:
+            subj.noteVersion !== undefined ? this.notes.version(subj.sessionId!, subj.noteVersion) : null,
+          noteMaxVersion: subj.noteVersion !== undefined ? this.notes.maxVersion(subj.sessionId!) : 0,
           speakersExist: (subj.speakerIds ?? []).every(
             (id) => s.getSpeaker(id)?.sessionId === subj.sessionId,
           ),
+          existingSession: session,
+          origin,
+          self: opts.self ?? null,
         })
         if (d.kind === 'skip') out.skipped++
         else if (d.kind === 'reject')
           out.rejected.push({ seq: item.seq, type: item.data.type, reason: d.reason })
         else {
-          s.commit(() => ({ sessionId: d.sessionId, data: d.data }))
+          s.commit(() => ({ sessionId: d.sessionId, data: d.data }), origin ? { origin } : {})
           out.applied++
         }
       }

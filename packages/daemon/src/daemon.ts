@@ -50,7 +50,7 @@ import { apiErrorBody, DaemonError, toDaemonError } from './errors.ts'
 import { streamEvents } from './events-stream.ts'
 import { externalCaptureHandlers } from './external-capture.ts'
 import { NoDevices, NoModels, UnavailablePipeline } from './fakes/providers.ts'
-import { hostedHandlers, remoteAccess } from './hosted.ts'
+import { hostedHandlers, installDeviceId, remoteAccess, requireLocal } from './hosted.ts'
 import { readJsonBody, SseWriter, sendJson } from './http.ts'
 import type { DeviceProvider, Keyring, ModelProvider, QaEngine, TranscriptionPipeline } from './interfaces.ts'
 import { NoKeyring } from './keyring.ts'
@@ -63,6 +63,7 @@ import { RestartControl, type RestartHook } from './restart.ts'
 import { SessionManager } from './sessions.ts'
 import { SettingsService } from './settings.ts'
 import { SpeakerService } from './speakers.ts'
+import { SyncService } from './sync.ts'
 
 export const VERSION: string = pkg.version
 
@@ -149,6 +150,8 @@ export type DaemonOptions = {
   onRestart?: RestartHook | null
   /** Running under a supervisor that starts the daemon again after it exits (reported on /daemon). */
   supervised?: boolean
+  /** Two-way sync with a hosted server (sync.ts): KACOLA_SYNC_URL, and KACOLA_SYNC_TOKEN when paired. */
+  sync?: { url: string | null; token: string | null }
 }
 
 export type CloseOptions = {
@@ -182,6 +185,8 @@ export type Daemon = {
   readonly agents: AgentChannel
   /** Agendas wave 1B: the typed-decision provider the settings select. */
   readonly decisions: DecisionsService
+  /** This install's id for two-way sync (hosted.ts installDeviceId). */
+  readonly deviceId: string
   /** Agendas wave 2: the live tracker (null when switched off); `tracker.guard` is the SpeechGuard. */
   readonly tracker: AgendaTracker | null
   /** Team sharing: shared agendas and the ones this device follows. */
@@ -240,6 +245,14 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
   const bus = new EventBus()
   store.onCommit((e) => bus.publish(e))
   const access = remoteAccess(store, o.auth ?? null, o.trustLoopback ?? true)
+  const deviceId = installDeviceId(o.dataDir)
+  const sync = new SyncService({
+    server: o.sync?.url ?? null,
+    staticToken: o.sync?.token ?? null,
+    deviceId,
+    keyring: o.keyring ?? new NoKeyring(),
+    logger,
+  })
   const pipeline: TranscriptionPipeline = o.pipeline ?? new UnavailablePipeline()
   const models = o.models ?? new NoModels()
   const devices = o.devices ?? new NoDevices()
@@ -540,7 +553,16 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
       return { deleted: true as const }
     },
 
-    ...hostedHandlers(access),
+    ...hostedHandlers(access, store, deviceId),
+    syncStatus: () => sync.status(),
+    setSyncAccount: ({ body, req }) => {
+      requireLocal(req)
+      return sync.setAccount(body)
+    },
+    clearSyncAccount: ({ req }) => {
+      requireLocal(req)
+      return sync.clearAccount()
+    },
     // ---- P: platform — external capture ingest
     ...externalCaptureHandlers(o.externalCapture ?? null),
     // ---- agendas, deep links, the invite block; the agent channel (leases, live attach)
@@ -704,6 +726,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
   const resuming = Promise.all(plan.resumable.map((r) => sessions.continueAfterRestart(r))).then(() => {})
   calendar.start()
   autoRecord.start()
+  void sync.start(url)
   const dbus = o.dbus
     ? new DbusService({
         store,
@@ -727,6 +750,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
     closing ??= (async () => {
       logger.info('shutting down', co.suspend ? { suspend: true, reason: co.reason } : {})
       server.close()
+      await sync.stop()
       restart.stop()
       autoRecord.stop()
       tracker?.stop()
@@ -759,6 +783,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
     logger,
     sessions,
     decisions,
+    deviceId,
     settings,
     calendar,
     control,

@@ -19,7 +19,9 @@ import {
 // crash, lost response or restart the agent asks the server for its cursor and carries on from there.
 //
 // What leaves the machine (docs/hosting.md, "Hybrid sync"):
-//   - sessions (with local audio paths blanked — audio never syncs), segments, session Q&A, notes;
+//   - sessions (with local audio paths blanked — audio never syncs), segments, session Q&A, notes —
+//     made here: what was pulled from another device (`origin`) is never pushed back;
+//   - NOT deletes: deleting a session here leaves the server's and the other devices' copies;
 //   - NOT private sessions: while a session is private none of its events are pushed; making a synced
 //     session private pushes a delete; making it public again pushes a snapshot of it;
 //   - NOT settings, notes templates, or cross-session Q&A (it may quote private meetings).
@@ -110,7 +112,9 @@ export class SyncAgent {
   /** One local durable event → the items to push (none for anything that must not leave). */
   async plan(e: DurableEvent): Promise<SyncItem[]> {
     const d = e.data
-    const push = e.seq > this.stats.remoteCursor
+    // two-way sync: a change pulled from another device is already on the server. Its privacy is still
+    // folded (a session's later events here decide by it), but it is never pushed back.
+    const push = e.seq > this.stats.remoteCursor && e.origin === undefined
     const item = (data: SyncItem['data']): SyncItem => ({ seq: e.seq, data })
     switch (d.type) {
       case 'session.upserted': {
@@ -127,8 +131,10 @@ export class SyncAgent {
         return out
       }
       case 'session.deleted':
+        // deleting a recording here removes it here only: the server and the other devices keep it
+        // (a session made private still leaves the server, above)
         this.privacy.delete(d.sessionId)
-        return push ? [item(d)] : []
+        return []
       case 'segment.upserted':
         return push && this.privacy.get(d.segment.sessionId) === false ? [item(d)] : []
       case 'qa.message':
@@ -343,5 +349,124 @@ export class SyncAgent {
     } finally {
       clearInterval(timer)
     }
+  }
+}
+
+// ------------------------------------------------------------------------------------ pull
+
+export type SyncPullerOptions = {
+  local: KacolaClient
+  remote: KacolaClient
+  /** This device's id on the server (its own changes come back with it as origin, and are skipped). */
+  self: string
+  batchSize?: number
+  flushMs?: number
+  retryMinMs?: number
+  retryMaxMs?: number
+  log?: (level: 'info' | 'warn' | 'error', msg: string, fields?: Record<string, unknown>) => void
+}
+
+export type PullStats = {
+  cursor: number
+  pulled: number
+  applied: number
+  skipped: number
+  rejected: number
+  failures: number
+}
+
+/**
+ * Two-way sync, the other half: follows the hosted server's log and applies the OTHER devices' changes to
+ * the local daemon, through its loopback /sync/push — the same ingest the server runs, so the same conflict
+ * rules (@kacola/store decideIngest) hold on every replica. The local cursor is the server's seq, kept by the
+ * daemon in the same transaction as what it applied: resumable and idempotent like the push.
+ */
+export class SyncPuller {
+  private readonly o: Required<Omit<SyncPullerOptions, 'log'>> & Pick<SyncPullerOptions, 'log'>
+  private pending: SyncItem[] = []
+  readonly stats: PullStats = { cursor: 0, pulled: 0, applied: 0, skipped: 0, rejected: 0, failures: 0 }
+
+  constructor(opts: SyncPullerOptions) {
+    this.o = {
+      batchSize: Math.min(opts.batchSize ?? SYNC_MAX_ITEMS, SYNC_MAX_ITEMS),
+      flushMs: 300,
+      retryMinMs: 200,
+      retryMaxMs: 30_000,
+      ...opts,
+    }
+  }
+
+  private log(level: 'info' | 'warn' | 'error', msg: string, fields?: Record<string, unknown>) {
+    this.o.log?.(level, msg, fields)
+  }
+
+  private async apply(signal?: AbortSignal): Promise<void> {
+    if (!this.pending.length) return
+    const items = this.pending
+    this.pending = []
+    const r = await this.o.local.call('syncPush', { body: { items }, signal })
+    this.stats.applied += r.applied
+    this.stats.skipped += r.skipped
+    this.stats.rejected += r.rejected.length
+    this.stats.cursor = Math.max(this.stats.cursor, r.cursor)
+    for (const x of r.rejected) this.log('warn', 'pulled item not applied here', { ...x })
+  }
+
+  /** Pull until `signal` aborts (or, with `until`, until the server's log up to that seq is applied). */
+  async run(signal?: AbortSignal, until: number | null = null): Promise<PullStats> {
+    let delay = this.o.retryMinMs
+    while (!signal?.aborted) {
+      try {
+        this.stats.cursor = (await this.o.local.call('syncCursor', { query: {}, signal })).cursor
+        if (until !== null && this.stats.cursor >= until) return { ...this.stats }
+        let quiet: ReturnType<typeof setTimeout> | null = null
+        let failed: unknown = null
+        const flushSoon = () => {
+          if (quiet) clearTimeout(quiet)
+          quiet = setTimeout(() => {
+            this.apply(signal).catch((err) => {
+              failed = err
+            })
+          }, this.o.flushMs)
+        }
+        for await (const msg of this.o.remote.stream('events', {
+          query: { since: this.stats.cursor, ephemeral: false },
+          signal,
+        })) {
+          if (failed) throw failed
+          if (!msg.data) continue
+          const e = AnyEvent.parse(JSON.parse(msg.data))
+          if (!isDurable(e) || e.seq <= this.stats.cursor) continue
+          this.stats.pulled++
+          // our own changes, back from the server: already here
+          if (e.origin !== this.o.self)
+            this.pending.push({ seq: e.seq, data: e.data, ...(e.origin ? { origin: e.origin } : {}) })
+          else this.stats.cursor = Math.max(this.stats.cursor, e.seq)
+          if (this.pending.length >= this.o.batchSize) await this.apply(signal)
+          else if (this.pending.length) flushSoon()
+          delay = this.o.retryMinMs
+          if (until !== null && e.seq >= until) {
+            if (quiet) clearTimeout(quiet)
+            await this.apply(signal)
+            return { ...this.stats }
+          }
+        }
+        if (quiet) clearTimeout(quiet)
+        await this.apply(signal)
+      } catch (err) {
+        if (signal?.aborted) break
+        this.stats.failures++
+        this.log('warn', 'sync pull failed; retrying', { err: (err as Error).message, inMs: delay })
+        await sleep(delay, signal)
+        delay = Math.min(delay * 2, this.o.retryMaxMs)
+      }
+    }
+    return { ...this.stats }
+  }
+
+  /** Apply everything the server's log holds right now, then return (tests, `kacola-agent sync --once`). */
+  async pullOnce(signal?: AbortSignal): Promise<PullStats> {
+    const { lastSeq } = await this.o.remote.call('health', { signal })
+    return this.run(signal, lastSeq)
   }
 }

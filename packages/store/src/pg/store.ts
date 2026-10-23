@@ -165,6 +165,7 @@ export class PgStore implements StoreApi {
     trx: Transaction<DB>,
     events: DurableEvent[],
     build: () => Built | Promise<Built>,
+    origin: string | null = null,
   ): Promise<DurableEvent> {
     const cur = await one(trx, sql`SELECT value FROM counters WHERE name = 'seq' FOR UPDATE`)
     const { sessionId, data: raw } = await build()
@@ -172,7 +173,13 @@ export class PgStore implements StoreApi {
     await this.applyEvent(trx, data)
     const seq = Number(cur!.value) + 1
     await sql`UPDATE counters SET value = ${seq} WHERE name = 'seq'`.execute(trx)
-    const e: DurableEvent = { seq, at: this.now().toISOString(), sessionId, data }
+    const e: DurableEvent = {
+      seq,
+      at: this.now().toISOString(),
+      sessionId,
+      data,
+      ...(origin ? { origin } : {}),
+    }
     await this.insertEvent(trx, e)
     events.push(e)
     return e
@@ -183,8 +190,10 @@ export class PgStore implements StoreApi {
   }
 
   private async insertEvent(e: Exec, ev: DurableEvent): Promise<void> {
-    await sql`INSERT INTO events (seq, at, session_id, type, data)
-      VALUES (${ev.seq}, ${ev.at}, ${ev.sessionId}, ${ev.data.type}, ${JSON.stringify(ev.data)})`.execute(e)
+    await sql`INSERT INTO events (seq, at, session_id, type, data, origin)
+      VALUES (${ev.seq}, ${ev.at}, ${ev.sessionId}, ${ev.data.type}, ${JSON.stringify(ev.data)}, ${ev.origin ?? null})`.execute(
+      e,
+    )
   }
 
   /** Tables are a function of the log: this is the only code that writes them. */
@@ -193,12 +202,12 @@ export class PgStore implements StoreApi {
       case 'session.upserted': {
         const s = data.session
         const meeting = s.meeting ? JSON.stringify(s.meeting) : null
-        await sql`INSERT INTO sessions (id, title, created_at, started_at, ended_at, status, private, duration_ms, error, meeting)
-          VALUES (${s.id}, ${s.title}, ${s.createdAt}, ${s.startedAt}, ${s.endedAt}, ${s.status}, ${s.private}, ${s.durationMs}, ${s.error}, ${meeting})
+        await sql`INSERT INTO sessions (id, title, created_at, started_at, ended_at, status, private, duration_ms, error, meeting, origin)
+          VALUES (${s.id}, ${s.title}, ${s.createdAt}, ${s.startedAt}, ${s.endedAt}, ${s.status}, ${s.private}, ${s.durationMs}, ${s.error}, ${meeting}, ${s.origin ?? null})
           ON CONFLICT (id) DO UPDATE SET title = excluded.title, created_at = excluded.created_at,
             started_at = excluded.started_at, ended_at = excluded.ended_at, status = excluded.status,
             private = excluded.private, duration_ms = excluded.duration_ms, error = excluded.error,
-            meeting = excluded.meeting`.execute(e)
+            meeting = excluded.meeting, origin = excluded.origin`.execute(e)
         await sql`DELETE FROM tracks WHERE session_id = ${s.id}`.execute(e)
         for (const [position, t] of s.tracks.entries()) {
           await sql`INSERT INTO tracks (session_id, position, kind, device, sample_rate, audio_path, archive_path, gaps)
@@ -270,7 +279,12 @@ export class PgStore implements StoreApi {
             e,
           )
         } else {
-          await sql`UPDATE notes SET head = ${v.version} WHERE session_id = ${v.sessionId}`.execute(e)
+          await sql`UPDATE notes SET head = ${v.version} WHERE session_id = ${v.sessionId} AND (head = 0 OR
+            (SELECT created_at FROM note_versions WHERE session_id = notes.session_id AND version = notes.head) < ${v.createdAt} OR
+            ((SELECT created_at FROM note_versions WHERE session_id = notes.session_id AND version = notes.head) = ${v.createdAt} AND
+             (SELECT markdown FROM note_versions WHERE session_id = notes.session_id AND version = notes.head) COLLATE "C" <= ${v.markdown}))`.execute(
+            e,
+          )
           if (v.merge)
             await sql`UPDATE notes SET pending_enhancement = NULL
               WHERE session_id = ${v.sessionId} AND pending_enhancement = ${v.merge.enhancedVersion}`.execute(
@@ -469,13 +483,14 @@ export class PgStore implements StoreApi {
     const limit = opts.limit !== undefined ? sql`LIMIT ${opts.limit}` : sql``
     const rs = await rows(
       this.db,
-      sql`SELECT seq, at, session_id, data FROM events WHERE ${sql.join(where, sql` AND `)} ORDER BY seq ${limit}`,
+      sql`SELECT seq, at, session_id, data, origin FROM events WHERE ${sql.join(where, sql` AND `)} ORDER BY seq ${limit}`,
     )
     return rs.map((r) => ({
       seq: Number(r.seq),
       at: r.at as string,
       sessionId: r.session_id as string | null,
       data: JSON.parse(r.data as string) as DurableEventData,
+      ...(r.origin ? { origin: r.origin as string } : {}),
     }))
   }
 
@@ -504,6 +519,7 @@ export class PgStore implements StoreApi {
       tracks: tracks.get(r.id as string) ?? [],
       error: r.error as string | null,
       ...(r.meeting ? { meeting: JSON.parse(r.meeting as string) as Session['meeting'] } : {}),
+      ...(r.origin ? { origin: r.origin as string } : {}),
     }))
   }
 
@@ -832,7 +848,7 @@ export class PgStore implements StoreApi {
   async ingest(
     deviceId: string,
     items: SyncItem[],
-    opts: { partial?: boolean } = {},
+    opts: { partial?: boolean; self?: string } = {},
   ): Promise<SyncPushResult> {
     checkIngestOrder(items)
     return this.write(async (trx, events) => {
@@ -848,8 +864,24 @@ export class PgStore implements StoreApi {
         }
         out.cursor = Math.max(out.cursor, item.seq)
         const subj = ingestSubject(item.data)
+        const session = subj.sessionId !== null ? await this.getSessionIn(trx, subj.sessionId) : null
+        const origin = (item.origin ?? deviceId) === opts.self ? null : (item.origin ?? deviceId)
+        const noteRow =
+          subj.noteVersion !== undefined
+            ? await one(
+                trx,
+                sql`SELECT markdown, created_at FROM note_versions WHERE session_id = ${subj.sessionId} AND version = ${subj.noteVersion}`,
+              )
+            : undefined
+        const noteMax =
+          subj.noteVersion !== undefined
+            ? await one(
+                trx,
+                sql`SELECT MAX(version) AS v FROM note_versions WHERE session_id = ${subj.sessionId}`,
+              )
+            : undefined
         const d = decideIngest(item.data, {
-          sessionExists: subj.sessionId !== null && (await this.getSessionIn(trx, subj.sessionId)) !== null,
+          sessionExists: session !== null,
           prevSegment: subj.segmentId ? await this.getSegmentIn(trx, subj.segmentId) : null,
           speakersExist: await (async () => {
             for (const id of subj.speakerIds ?? []) {
@@ -858,18 +890,19 @@ export class PgStore implements StoreApi {
             }
             return true
           })(),
-          noteVersionExists:
-            subj.noteVersion !== undefined &&
-            (await one(
-              trx,
-              sql`SELECT 1 AS x FROM note_versions WHERE session_id = ${subj.sessionId} AND version = ${subj.noteVersion}`,
-            )) !== undefined,
+          noteVersion: noteRow
+            ? { markdown: noteRow.markdown as string, createdAt: noteRow.created_at as string }
+            : null,
+          noteMaxVersion: noteMax?.v === null || noteMax?.v === undefined ? 0 : Number(noteMax.v),
+          existingSession: session,
+          origin,
+          self: opts.self ?? null,
         })
         if (d.kind === 'skip') out.skipped++
         else if (d.kind === 'reject')
           out.rejected.push({ seq: item.seq, type: item.data.type, reason: d.reason })
         else {
-          await this.commitIn(trx, events, () => ({ sessionId: d.sessionId, data: d.data }))
+          await this.commitIn(trx, events, () => ({ sessionId: d.sessionId, data: d.data }), origin)
           out.applied++
         }
       }
