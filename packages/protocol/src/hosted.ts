@@ -74,6 +74,8 @@ export const SyncStatus = z.object({
   email: z.string().nullable(),
   /** This install, as the server and the other devices know it. */
   deviceId: z.string(),
+  /** Where to sign in (KACOLA_ACCOUNTS_URL; default https://accounts.kacperlubisz.com). */
+  issuer: z.string(),
   detail: z.string().nullable(),
 })
 export type SyncStatus = z.infer<typeof SyncStatus>

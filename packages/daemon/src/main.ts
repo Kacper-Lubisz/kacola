@@ -171,7 +171,11 @@ async function main(): Promise<void> {
               })
             : new NoCalendar()
   opts.dbus = cfg.dbus ? { gjs: cfg.gjs } : null
-  opts.sync = { url: cfg.syncUrl ?? null, token: cfg.syncToken ?? null }
+  opts.sync = {
+    url: cfg.syncUrl ?? null,
+    token: cfg.syncToken ?? null,
+    issuer: process.env.KACOLA_ACCOUNTS_URL || 'https://accounts.kacperlubisz.com',
+  }
   if (cfg.micActivity.kind === 'pipewire')
     opts.micActivity = new PwDumpMicActivity({ onlyTarget: cfg.micActivity.target })
   opts.micIdleStopMs = cfg.micIdleStopMs

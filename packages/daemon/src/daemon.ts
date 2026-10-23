@@ -151,7 +151,7 @@ export type DaemonOptions = {
   /** Running under a supervisor that starts the daemon again after it exits (reported on /daemon). */
   supervised?: boolean
   /** Two-way sync with a hosted server (sync.ts): KACOLA_SYNC_URL, and KACOLA_SYNC_TOKEN when paired. */
-  sync?: { url: string | null; token: string | null }
+  sync?: { url: string | null; token: string | null; issuer?: string }
 }
 
 export type CloseOptions = {
@@ -249,6 +249,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
   const sync = new SyncService({
     server: o.sync?.url ?? null,
     staticToken: o.sync?.token ?? null,
+    issuer: o.sync?.issuer ?? 'https://accounts.kacperlubisz.com',
     deviceId,
     keyring: o.keyring ?? new NoKeyring(),
     logger,

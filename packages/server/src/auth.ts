@@ -132,11 +132,11 @@ export class Auth {
     const a = this.config.accounts!
     this.#accountKeys ??= createRemoteJWKSet(new URL(`${a.issuer.replace(/\/+$/, '')}/api/auth/jwks`))
     let payload: Awaited<ReturnType<typeof jwtVerify>>['payload']
+    const issuer = a.issuer.replace(/\/+$/, '')
     try {
-      ;({ payload } = await jwtVerify(token, this.#accountKeys, {
-        issuer: a.issuer.replace(/\/+$/, ''),
-        audience: a.audience,
-      }))
+      // this server's own access tokens (the apps), or the accounts service's identity token (web pages
+      // on any kacperlubisz.com subdomain, signed in with the shared session)
+      ;({ payload } = await jwtVerify(token, this.#accountKeys, { issuer, audience: [a.audience, issuer] }))
     } catch (err) {
       throw needsToken(`invalid account token: ${(err as Error).message}`)
     }

@@ -17,6 +17,8 @@ export type SyncServiceDeps = {
   server: string | null
   /** KACOLA_SYNC_TOKEN (a pairing token), used instead of an account when set. */
   staticToken: string | null
+  /** The accounts service the window signs in with (KACOLA_ACCOUNTS_URL). */
+  issuer: string
   deviceId: string
   keyring: Keyring
   logger: Logger
@@ -46,6 +48,7 @@ export class SyncService {
       server: this.#d.server,
       email: this.#account?.email ?? null,
       deviceId: this.#d.deviceId,
+      issuer: this.#d.issuer,
       detail: this.#error,
     }
   }
