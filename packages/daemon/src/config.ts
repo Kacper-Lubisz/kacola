@@ -127,8 +127,9 @@ environment:
   KACOLA_GJS             gjs binary for cal-agent and the D-Bus bridge (default gjs)
   KACOLA_AUTH_SECRET     HMAC key for device tokens (implies --remote; else <data-dir>/auth-secret)
   KACOLA_ADMIN_TOKEN     optional owner token that can approve pairings remotely
-  KACOLA_SYNC_URL        hybrid sync: push transcripts and notes to this hosted server
-  KACOLA_SYNC_TOKEN      the device token for KACOLA_SYNC_URL (from \`kacola pair\`)
+  KACOLA_SYNC_URL        two-way sync: share transcripts and notes with your other devices through this hosted server
+  KACOLA_SYNC_TOKEN      a device token for KACOLA_SYNC_URL (from \`kacola pair\`), instead of signing in
+  KACOLA_ACCOUNTS_URL    the accounts service the window signs sync in with (default https://accounts.kacperlubisz.com)
   KACOLA_SHARE_URL       team sharing: the hosted server agendas are shared on (default KACOLA_SYNC_URL)
   KACOLA_SHARE_TOKEN     its device token (default KACOLA_SYNC_TOKEN); only agendas leave, never transcripts
   KACOLA_OWNER_NAME      how you appear on shared agendas (default "Organizer")

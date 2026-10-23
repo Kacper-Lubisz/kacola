@@ -24,6 +24,10 @@ export const CONFIG_TEMPLATE = `# kacola — advanced settings
 # KACOLA_DECISIONS_MODEL=
 # TYPESAFE_API_KEY=
 
+# --- Sync with your other Macs -------------------------------------------------------------
+# The kacola server your Macs share meetings through. Then sign in under Preferences › Advanced.
+# KACOLA_SYNC_URL=https://kacola.kacperlubisz.com
+
 # --- Speakers ------------------------------------------------------------------------------
 # Recognise people you have named in earlier meetings by their voice (on this computer only).
 # KACOLA_VOICEPRINTS=on

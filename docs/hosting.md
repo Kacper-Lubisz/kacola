@@ -9,7 +9,7 @@ and it follows the plan's "Hosting it remotely" section.
 | | capture | transcription | what leaves the laptop | cost per minute |
 | --- | --- | --- | --- | --- |
 | **local** (default) | laptop | laptop | nothing | 0 |
-| **hybrid sync** (recommended) | laptop | laptop | transcripts, notes, Q&A of non-private sessions | 0 |
+| **two-way sync** (recommended) | each Mac | each Mac | transcripts, notes, Q&A of non-private sessions, both ways | 0 |
 | **full offload** | laptop (`kacola-agent record`) | cloud STT on the server (Deepgram) | the audio | the provider's |
 | **remote daemon** | the daemon's machine | the daemon's machine | — (clients reach it over the network with a token) | 0 |
 
@@ -23,7 +23,7 @@ over SQLite or Postgres.
 | package | role | may import (production code) |
 | --- | --- | --- |
 | `server` | hosted server as a `(Request) => Response` app + a Node adapter | protocol, store (core/pg/blob; SQLite only for self-hosting), `stt/cloud` |
-| `capture-agent` | local half: capture + chunked upload; the hybrid-sync pusher | protocol, capture |
+| `capture-agent` | local half: capture + chunked upload; the two-way sync pusher and puller | protocol, capture |
 | `web` | read-only web viewer (static SPA) | protocol |
 | `vercel` | the server + viewer as a Vercel deployment | server, store (pg/blob/core), `stt/cloud`, protocol |
 
@@ -66,19 +66,46 @@ kacola pair approve BDFG-HJKL        # on this machine, when a device asks
 
 Without `--remote` (or `KACOLA_AUTH_SECRET`), `kacolad` still refuses any non-loopback `--host`.
 
-## Hybrid sync (H-7) — the recommended hosted mode
+## Two-way sync (H-7) — the recommended hosted mode
+
+Every Mac signed in to the same hosted server sees the same meetings: each daemon pushes the changes made
+on it and pulls the others'. Recording and transcription stay on the Mac that recorded; the server is
+the meeting place, not a daemon.
+
+**Signing in.** With an account: Preferences › Advanced › Sync › **Sign in** opens the accounts service
+(`KACOLA_ACCOUNTS_URL`, default `https://accounts.kacperlubisz.com`) in the browser, where the passkey
+lives; OAuth 2 authorization code + PKCE (client `kacola-desktop`, back on `kacola://auth/callback`,
+`resource` = the server's URL). The window hands the refresh token to the daemon (`PUT /sync/account`,
+loopback only), which keeps it in the keyring (`sync-account`), renews short-lived access tokens itself
+(refresh tokens rotate; one renewal at a time) and syncs with no window open. `GET /sync/status` is what
+the window shows; `DELETE /sync/account` signs out. The server accepts the account when it runs with
+`KACOLA_ACCOUNTS_ISSUER`, `KACOLA_ACCOUNTS_OWNERS` (account ids or emails) and its own URL as the
+audience (`KACOLA_ACCOUNTS_AUDIENCE` or `KACOLA_PUBLIC_URL`); anyone else gets 403. A device's id
+(`<data-dir>/device-id`, `dev_…`) names it to the server.
+
+Or with a pairing token, as before (no accounts service involved):
 
 ```sh
 kacola pair --url https://you.example                    # once, on the laptop
 KACOLA_SYNC_URL=https://you.example \
 KACOLA_SYNC_TOKEN=$(kacola pair token --url https://you.example) kacolad
-# or, beside an existing daemon:  kacola-agent sync --remote https://you.example --token …
+# or, push only, beside an existing daemon:  kacola-agent sync --remote https://you.example --token …
 ```
 
-The daemon (or `kacola-agent sync`) reads its own `/events` and POSTs `/sync/push`. Each pushed item
-carries the **device's** seq; the server keeps a cursor per device and, in one transaction, skips items at
-or below it, applies the rest and advances it. So a push is idempotent (a lost response is simply pushed
-again) and resumable (after any restart the agent asks for its cursor and continues).
+`KACOLA_SYNC_URL` turns sync on either way; a pairing token wins over a signed-in account.
+
+**Push** (`SyncAgent`, `packages/capture-agent/src/sync.ts`): the daemon reads its own `/events` and
+POSTs `/sync/push`. Each pushed item carries the **device's** seq; the server keeps a cursor per device
+and, in one transaction, skips items at or below it, applies the rest and advances it. So a push is
+idempotent (a lost response is simply pushed again) and resumable (after any restart the agent asks for
+its cursor and continues). Only changes made on this device are pushed: an event pulled from elsewhere
+carries its `origin` and is never sent back, so nothing echoes.
+
+**Pull** (`SyncPuller`): the daemon reads the server's `/events` and applies the other devices' items
+through its own loopback `/sync/push`, as the device `hosted-server` — the same ingest, the same
+conflict rules, the same idempotent cursor. Items whose origin is this device are skipped. A pulled
+session is stored with `origin` = the device that recorded it: it is a replica, and nothing that acts
+on live sessions here (recovery after a crash, stop-on-quit, the tray, agendas) touches it.
 
 What syncs: sessions (local audio paths blanked), segments, per-session Q&A, notes versions, and who
 spoke (M3 speakers, renames, merges, attributions — with the voiceprint link blanked).
@@ -87,21 +114,31 @@ server skips them even if pushed), settings, notes templates, cross-session Q&A 
 private meeting).
 
 **Conflict rules** (`decideIngest` in `packages/store/src/domain.ts`, one pure function used by both
-dialects):
+dialects and by both directions):
 
-- The hosted store is a replica and every session has one writer: the device that recorded it. Items
-  are applied verbatim, keeping the device's segment revisions.
-- A segment revision at or below the stored one is a no-op (re-pushes, snapshots).
+- Every recording has one writer for its audio and transcript: the device that recorded it. Segments
+  are applied verbatim, keeping that device's revisions; a revision at or below the stored one is a
+  no-op (re-pushes, snapshots).
+- Metadata (title, …) is last-writer-wins and may come from any device. A replica keeps its own local
+  audio paths: a rename on another Mac does not take the audio away from the one that recorded it.
+- **Notes keep every version.** Two devices editing at once both land in the history; identical text
+  under the same number is a no-op, different text under a taken number is appended as the next one.
+  The current notes are the newest version by time (ties broken by the text, byte order), so every
+  device and the server converge on the same head. A local edit is stamped at least 1 ms after the
+  head it replaces.
+- **Deletes stay local.** Deleting a meeting on one Mac removes it there only; the server and the other
+  Macs keep it (a pulled delete never removes a meeting recorded on this device). The exception is
+  privacy: making a synced session private pushes a delete, which removes the copies elsewhere; making
+  it public again pushes a snapshot of its current state (split across pushes with `partial` when
+  large).
 - Anything that would break a store invariant (a segment or note for an unknown session, final → live,
   a track change, a mic segment not attributed to `me`) is rejected, reported back in `rejected`, and
   does not stop the rest of the batch; the cursor moves past it.
-- Notes versions are append-only: a version number already present is a no-op.
 - Speaker merges and attributions apply only when their session and every speaker they name exist.
-- Deleting an absent session is a no-op. Settings and templates are device-local and skipped.
-- Privacy is followed, not just filtered: making a synced session private pushes a delete; making it
-  public again pushes a snapshot of its current state (split across pushes with `partial` when large).
-- Edits made on the server (a rename through the API) are overwritten by the device's next update of
-  that session: the device wins.
+- Settings and templates are device-local and skipped.
+
+Checked end to end with two real daemons and the hosted server
+(`packages/capture-agent/test/two-way.int.test.ts`).
 
 ## Full offload (H-2, H-3, H-8)
 
@@ -182,7 +219,9 @@ Nothing in this repository deploys or logs in on its own. To deploy:
    ```
    (`vercel build` also works offline without a login, given a `.vercel/project.json`; that is how it
    was checked here. `node scripts/build.ts` produces the same output.)
-5. Pair your first device with the admin token: on the laptop `kacola pair --url https://…`, then
+5. With accounts (`KACOLA_ACCOUNTS_*` set): nothing to pair. Sign each Mac in from Preferences ›
+   Advanced › Sync, with `KACOLA_SYNC_URL` set for its daemon, and open the URL in a browser to sign
+   the viewer in. Without accounts, pair your first device with the admin token: on the laptop `kacola pair --url https://…`, then
    approve it with `KACOLA_TOKEN=<admin token> kacola pair approve CODE --url https://…`. Open the
    URL in a browser, and approve the browser's code the same way (or from the paired laptop).
 6. Smoke-test the preview: `KACOLA_PREVIEW_URL=… KACOLA_PREVIEW_ADMIN_TOKEN=… pnpm test:e2e

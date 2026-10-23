@@ -10,7 +10,7 @@ sync) + `share-projection.ts` (the privacy boundary), `packages/web/src/agenda*.
 
 | role | how they act | may |
 | --- | --- | --- |
-| **owner** | their own daemon, with the hosted server's pairing token (`KACOLA_SHARE_URL` / `KACOLA_SHARE_TOKEN`, else the hybrid-sync ones) | share, unshare, edit everything, share the recap, moderate |
+| **owner** | their own daemon, with the hosted server's pairing token (`KACOLA_SHARE_URL` / `KACOLA_SHARE_TOKEN`, else the sync ones) | share, unshare, edit everything, share the recap, moderate |
 | **member** | an attendee running kacola whose email the owner listed (`members`): their daemon follows with the link + a magic-link code and keeps a participant token | push their own status changes (person, tracker, agent), add and edit their own items |
 | **invitee** | anyone with the link who confirmed an email (magic link), in the browser | add an item (topic or question), comment |
 | anyone with the link | the page | read the agenda; outcomes only once the recap is shared |
@@ -40,7 +40,7 @@ Further rules:
 - Secrets — the link token, participant tokens, magic-link codes — are random, shown once and stored only
   as SHA-256 in bookkeeping tables (`share_tokens`, `share_participant_tokens`, `share_codes`), never in an
   event, never over `/events`. Locally they live in `<dataDir>/agenda-shares.json` (0600).
-- `decideIngest` (hybrid sync) still **skips** a device's `agenda.*` events and **rejects** `share.*`
+- `decideIngest` (two-way sync) still **skips** a device's `agenda.*` events and **rejects** `share.*`
   events: a device cannot replicate its agenda log, nor forge server state.
 - The page shows people by name or masked email (`i…@example.com`); only the owner sees participants'
   addresses (members get an empty list).

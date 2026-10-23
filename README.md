@@ -25,13 +25,13 @@ One local backend (`kacolad`) and several clients that may only talk to it over 
 | `desktop` | the window: Electron (main supervises the daemon, a fetch tunnel; React renderer). [docs/desktop-app.md](docs/desktop-app.md) |
 | `ui-core` | the window's data layer: pure folds and view logic over the protocol |
 | `testkit` | fixtures, invariants, cassettes, the PipeWire rig |
-| `server` | the hosted server: the same protocol over Postgres, pairing auth, hybrid sync, chunked audio |
-| `capture-agent` | the local-only half: capture + resumable upload (full offload), and the hybrid-sync pusher |
+| `server` | the hosted server: the same protocol over Postgres, pairing and account auth, two-way sync, chunked audio |
+| `capture-agent` | the local-only half: capture + resumable upload (full offload), and the two-way sync pusher and puller |
 | `web` | the read-only web viewer (a protocol client) |
 | `vercel` | the hosted server + viewer as a Vercel deployment (Build Output API) |
 
 The client/backend boundary and the hosted layers are enforced in CI (`pnpm boundaries`). Hosting it
-remotely — hybrid sync (recommended), full offload, pairing, Vercel — is in [docs/hosting.md](docs/hosting.md).
+remotely — two-way sync between Macs (recommended), full offload, pairing and accounts, Vercel — is in [docs/hosting.md](docs/hosting.md).
 
 ## Development
 

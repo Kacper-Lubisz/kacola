@@ -767,7 +767,7 @@ flowchart TD
 ### web-viewer — The hosted web viewer
 - **Status:** built (M8)
 - **Steps:** 1. A browser without a token shows a pairing code; the owner approves it from a trusted
-  device. 2. The meetings list, live as hybrid sync pushes. 3. A meeting's transcript and notes. 4. Search
+  device. 2. The meetings list, live as two-way sync pushes. 3. A meeting's transcript and notes. 4. Search
   with highlighted matches. A revoked token goes back to pairing.
 - **States:** `web-viewer__pair__code`, `web-viewer__list__sessions`, `web-viewer__session__transcript-notes`,
   `web-viewer__search__hits`.

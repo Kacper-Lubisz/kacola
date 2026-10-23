@@ -159,6 +159,21 @@ models:
   protocol, reports `access` until it is allowed and notices a grant within seconds. Read-only: the
   agenda invitation block is handed back to paste.
 
+## Sync and the config file
+
+Preferences › Advanced holds what most people never touch:
+
+- **Sync**: "Sign in" opens the accounts service in the browser (passkey first) and comes back on
+  `kacola://auth/callback` (`src/main/account.ts`: PKCE, the state checked, the code traded for tokens).
+  That link is caught before the deep-link queue and never reaches the renderer; the refresh token goes
+  straight to the daemon (`PUT /sync/account`), which syncs from then on with no window open. The row
+  shows "Syncing as {email}", the error if any, and Sign out. How sync works: docs/hosting.md, Two-way
+  sync.
+- **Open config file**: `kacola.env` (`platformPaths().configFile`, or `KACOLA_CONFIG_FILE`), created
+  from a commented template on first open. It holds the language model provider, model and keys, the
+  decisions model (Jev), Ollama's URL and voiceprints. The daemon reads it at start (the real
+  environment wins) and restarts itself after a save, once nothing is recording.
+
 ## Background mode
 
 Closing the window never stops main or the daemon. To also start that way at login: Preferences →
