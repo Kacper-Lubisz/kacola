@@ -1,5 +1,14 @@
 import { createClient, isDurable, KacolaApiError, type KacolaClient } from '@kacola/protocol'
 import {
+  ACCOUNTS_META,
+  accountTokens,
+  authMode,
+  jwtClaims,
+  renderAccountSignIn,
+  signInUrl,
+  signOutOfAccounts,
+} from './account.ts'
+import {
   esc,
   hrefFor,
   parseRoute,
@@ -12,7 +21,8 @@ import {
 } from './data.ts'
 
 // The viewer in the browser: a hash router over ./data.ts, a pairing screen for a browser without a
-// token (the same device-code flow as `kacola pair`), and live refresh from the resumable event
+// token (the same device-code flow as `kacola pair`) — or, when the build named an accounts service,
+// sign-in with that account instead (./account.ts) — and live refresh from the resumable event
 // stream (it reconnects with its cursor whenever the host's function cap ends a stream).
 
 // The protocol client reads streams with `for await`; browsers without async-iterable ReadableStream
@@ -54,14 +64,20 @@ const store = {
   },
 }
 
-let token = store.get()
+const mode = authMode(document.querySelector<HTMLMetaElement>(`meta[name="${ACCOUNTS_META}"]`)?.content)
+const accounts = mode.kind === 'account' ? accountTokens(mode.issuer) : null
+
+let token = accounts ? null : store.get()
+// with an account, known once the accounts service has answered
+let signedIn = !!token
 let client: KacolaClient = makeClient()
 let data = viewerData(client)
 let navigation = new AbortController()
 let live: AbortController | null = null
 
 function makeClient(): KacolaClient {
-  return createClient({ baseUrl: location.origin, timeoutMs: 20_000, ...(token ? { token } : {}) })
+  const auth = accounts ? { token: accounts.get } : token ? { token } : {}
+  return createClient({ baseUrl: location.origin, timeoutMs: 20_000, ...auth })
 }
 
 function setToken(t: string | null) {
@@ -69,23 +85,40 @@ function setToken(t: string | null) {
   store.set(t)
   client = makeClient()
   data = viewerData(client)
+  signedIn = !!t
   signOut.hidden = !t
   startLive()
+}
+
+function setAccountSignedIn(v: boolean) {
+  if (v === signedIn) return
+  signedIn = v
+  signOut.hidden = !v
+  if (v) startLive()
+  else live?.abort()
 }
 
 const show = (html: string) => {
   main.innerHTML = html
 }
 
-async function render(): Promise<void> {
+/** `retry`: with an account, a refused token is renewed and the page tried once more. */
+async function render(retry = true): Promise<void> {
   navigation.abort()
   navigation = new AbortController()
   const signal = navigation.signal
   const route = parseRoute(location.hash)
   try {
-    if (route.view === 'pair' && route.code && token) return approve(route.code)
-    if (!token || route.view === 'pair') return pairThisBrowser(signal)
-    if (route.view === 'sessions') {
+    if (accounts) {
+      const signedInNow = !!(await accounts.get())
+      if (signal.aborted) return
+      setAccountSignedIn(signedInNow)
+      if (!signedInNow) return accountSignIn(null)
+    }
+    if (route.view === 'pair' && route.code && signedIn) return approve(route.code)
+    if (!accounts && (!token || route.view === 'pair')) return pairThisBrowser(signal)
+    // with an account there is nothing to pair: #/pair is the list
+    if (route.view === 'sessions' || route.view === 'pair') {
       show('<p class="meta">Loading your meetings…</p>')
       show(renderSessions(await data.sessions(signal)))
     } else if (route.view === 'session') {
@@ -96,12 +129,38 @@ async function render(): Promise<void> {
     }
   } catch (err) {
     if (signal.aborted) return
-    if (err instanceof KacolaApiError && err.status === 401) {
+    if (accounts && err instanceof KacolaApiError) {
+      if (err.status === 401) {
+        accounts.clear()
+        // renewed once; a fresh token refused again is the server's configuration: its message shows
+        if (retry) return render(false)
+      } else if (err.status === 403) {
+        // signed in, but not as one of the server's owners
+        const t = await accounts.get().catch(() => null)
+        if (signal.aborted) return
+        setAccountSignedIn(false)
+        const email = t ? jwtClaims(t)?.email : null
+        return accountSignIn({ email: typeof email === 'string' ? email : null })
+      }
+    } else if (err instanceof KacolaApiError && err.status === 401) {
       setToken(null)
       return render()
     }
     show(`<p class="error">${esc((err as Error).message)}</p>`)
   }
+}
+
+/** Sign-in with the accounts service: it returns to this page, signed in. */
+function accountSignIn(refused: { email: string | null } | null): void {
+  if (mode.kind !== 'account') return
+  show(renderAccountSignIn(mode.issuer, refused))
+  document.querySelector('#signin')?.addEventListener('click', () => {
+    location.href = signInUrl(mode.issuer, location.href)
+  })
+  document.querySelector('#switch-account')?.addEventListener('click', async () => {
+    await signOutOfAccounts(mode.issuer).catch(() => {})
+    location.href = signInUrl(mode.issuer, location.href)
+  })
 }
 
 /** Device-code pairing for this browser: show a code, wait for a trusted device to approve it. */
@@ -160,7 +219,7 @@ function approve(code: string): void {
  */
 function startLive(): void {
   live?.abort()
-  if (!token) return
+  if (!signedIn) return
   const ac = new AbortController()
   live = ac
   let timer: ReturnType<typeof setTimeout> | null = null
@@ -198,11 +257,19 @@ searchForm.addEventListener('submit', (e) => {
   const q = (searchForm.elements.namedItem('q') as HTMLInputElement).value.trim()
   location.hash = hrefFor({ view: 'search', q })
 })
-signOut.addEventListener('click', () => {
+signOut.addEventListener('click', async () => {
+  if (mode.kind === 'account') {
+    try {
+      await signOutOfAccounts(mode.issuer)
+    } catch (err) {
+      return show(`<p class="error">${esc((err as Error).message)}</p>`)
+    }
+    return location.reload()
+  }
   setToken(null)
   void render()
 })
 window.addEventListener('hashchange', () => void render())
-signOut.hidden = !token
+signOut.hidden = !signedIn
 startLive()
 void render()

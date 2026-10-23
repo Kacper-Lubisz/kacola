@@ -144,7 +144,10 @@ describe('the build output', () => {
     // the SQLite entry (native driver) stays a lazy external import(), reached only by a sqlite: URL
     expect(bundle).toContain('import("@kacola/store")')
     expect(bundle).not.toMatch(/^import [^\n]*better-sqlite3/m)
-    expect(readFileSync(join(out, 'static', 'index.html'), 'utf8')).toContain('/app.js')
+    const html = readFileSync(join(out, 'static', 'index.html'), 'utf8')
+    expect(html).toContain('/app.js')
+    // no KACOLA_ACCOUNTS_ISSUER given: the viewer pairs
+    expect(html).not.toContain('kacola-accounts')
   })
 })
 

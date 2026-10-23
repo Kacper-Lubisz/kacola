@@ -33,7 +33,12 @@ export const API_PREFIXES: string[] = [
 
 export const RUNTIME = 'nodejs22.x'
 
-export type BuildOptions = { out?: string; maxDuration?: Partial<Record<FunctionName, number>> }
+export type BuildOptions = {
+  out?: string
+  maxDuration?: Partial<Record<FunctionName, number>>
+  /** The viewer signs in with this accounts service instead of pairing (KACOLA_ACCOUNTS_ISSUER). */
+  accountsIssuer?: string
+}
 
 export async function buildOutput(
   o: BuildOptions = {},
@@ -43,7 +48,7 @@ export async function buildOutput(
   mkdirSync(out, { recursive: true })
   const durations = { ...MAX_DURATION, ...o.maxDuration }
 
-  await buildViewer(join(out, 'static'))
+  await buildViewer(join(out, 'static'), { accountsIssuer: o.accountsIssuer })
 
   for (const fn of Object.keys(durations) as FunctionName[]) {
     const dir = join(out, 'functions', '_fn', `${fn}.func`)
@@ -131,6 +136,10 @@ if (import.meta.main) {
         return [k, Number(v)]
       }),
   ) as Partial<Record<FunctionName, number>>
-  const r = await buildOutput({ out: values.out, maxDuration })
+  const r = await buildOutput({
+    out: values.out,
+    maxDuration,
+    accountsIssuer: process.env.KACOLA_ACCOUNTS_ISSUER,
+  })
   console.log(`vercel output → ${r.out} (functions: ${JSON.stringify(r.functions)})`)
 }
