@@ -4,14 +4,27 @@
 // favicon and the typefaces they use (served at /a/<token> by a rewrite to agenda.html).
 //   node packages/web/scripts/build.ts [OUT_DIR]      (default packages/web/dist)
 // packages/vercel/scripts/build.ts calls buildViewer() to place it in the deployment's static output.
-import { copyFileSync, mkdirSync } from 'node:fs'
+// KACOLA_ACCOUNTS_ISSUER at build time makes the viewer sign in with that accounts service (src/account.ts).
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { build } from 'esbuild'
+import { ACCOUNTS_META, normalizeIssuer } from '../src/account.ts'
+import { esc } from '../src/data.ts'
 
 const root = resolve(import.meta.dirname, '..')
 const brand = resolve(root, '..', '..', 'brand')
 
-export async function buildViewer(outDir: string): Promise<{ bytes: number }> {
+/** The viewer's index.html, told which accounts service to sign in with (none: it pairs). */
+export function withAccountsMeta(html: string, issuer: string | undefined): string {
+  if (!issuer) return html
+  const normalized = normalizeIssuer(issuer)
+  if (!normalized) throw new Error(`KACOLA_ACCOUNTS_ISSUER is not an http(s) URL: ${issuer}`)
+  return html.replace('</head>', `  <meta name="${ACCOUNTS_META}" content="${esc(normalized)}" />\n  </head>`)
+}
+
+export type ViewerOptions = { accountsIssuer?: string }
+
+export async function buildViewer(outDir: string, o: ViewerOptions = {}): Promise<{ bytes: number }> {
   mkdirSync(outDir, { recursive: true })
   const r = await build({
     entryPoints: { app: join(root, 'src', 'main.ts'), agenda: join(root, 'src', 'agenda-main.ts') },
@@ -41,7 +54,10 @@ export async function buildViewer(outDir: string): Promise<{ bytes: number }> {
       },
     ],
   })
-  copyFileSync(join(root, 'index.html'), join(outDir, 'index.html'))
+  writeFileSync(
+    join(outDir, 'index.html'),
+    withAccountsMeta(readFileSync(join(root, 'index.html'), 'utf8'), o.accountsIssuer),
+  )
   copyFileSync(join(root, 'app.css'), join(outDir, 'app.css'))
   copyFileSync(join(root, 'agenda.html'), join(outDir, 'agenda.html'))
   copyFileSync(join(root, 'agenda.css'), join(outDir, 'agenda.css'))
@@ -61,6 +77,6 @@ export async function buildViewer(outDir: string): Promise<{ bytes: number }> {
 
 if (import.meta.main) {
   const out = resolve(process.argv[2] ?? join(root, 'dist'))
-  const { bytes } = await buildViewer(out)
+  const { bytes } = await buildViewer(out, { accountsIssuer: process.env.KACOLA_ACCOUNTS_ISSUER })
   console.log(`viewer → ${out} (js ${(bytes / 1024).toFixed(0)} KiB)`)
 }

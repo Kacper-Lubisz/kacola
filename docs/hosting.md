@@ -50,6 +50,13 @@ codes are stored only as SHA-256 and expire after ten minutes. "Loopback" means 
 loopback `Host` AND no `X-Forwarded-For`/`Forwarded` header — a reverse proxy on the same machine does not
 make its callers anonymous. Browsers: cross-origin requests are refused; the viewer is same-origin.
 
+The web viewer pairs like any device, unless it was built with `KACOLA_ACCOUNTS_ISSUER` (e.g.
+`https://accounts.kacperlubisz.com`): then it signs in with that accounts service instead ("Sign in with
+kacperlubisz.com"), sending the service's 15-minute identity token as its bearer, renewed as it goes.
+The build writes the issuer into the viewer's `index.html` (`<meta name="kacola-accounts">`); the server
+accepts the token when it runs with the same `KACOLA_ACCOUNTS_ISSUER` and `KACOLA_ACCOUNTS_OWNERS`. An
+account that is not one of the owners is told so and offered another account.
+
 ### Letting the local daemon accept remote devices
 
 ```sh
@@ -164,6 +171,7 @@ Nothing in this repository deploys or logs in on its own. To deploy:
    | `KACOLA_POLL_MS` | optional; event-stream poll interval (default 1000) |
    | `KACOLA_MAIL_WEBHOOK` | optional; team sharing: where magic-link codes are POSTed (`{to, subject, text}`); without it shared pages are read-only |
    | `KACOLA_PUBLIC_URL` | optional; base of the links in those emails (default the request's origin) |
+   | `KACOLA_ACCOUNTS_ISSUER` | optional; sign-in with the accounts service (e.g. `https://accounts.kacperlubisz.com`): the server accepts its tokens and, since it is also set at build time, the viewer signs in with it instead of pairing. Needs `KACOLA_ACCOUNTS_OWNERS` (account ids or emails) and `KACOLA_ACCOUNTS_AUDIENCE` or `KACOLA_PUBLIC_URL` |
 
 4. Deploy: push to the connected Git repository, or from a checkout:
    ```sh
@@ -187,7 +195,9 @@ Migrations run on the first request of a cold instance, under a Postgres advisor
 
 `kacola-server --host 0.0.0.0 --db postgres://… --blobs /srv/kacola/blobs` with
 `KACOLA_AUTH_SECRET` (it refuses a non-loopback host without it). `--db sqlite:/path` works for a
-single box.
+single box. It serves the API only; to serve the viewer from the same origin, build it with
+`node packages/web/scripts/build.ts DIR` (with `KACOLA_ACCOUNTS_ISSUER` set for account sign-in) and
+serve DIR at the same origin from the reverse proxy in front of it.
 
 ## Team sharing
 
