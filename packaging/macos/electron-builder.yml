@@ -64,5 +64,8 @@ mac:
     NSAudioCaptureUsageDescription: kacola records what the other side of a meeting says from your Mac's audio output and transcribes it on this Mac.
     # getDisplayMedia loopback audio goes through the Screen Recording permission on older macOS
     NSScreenCaptureUsageDescription: kacola captures your Mac's audio output (not the screen) to record the other side of a meeting.
+    # kacola-cal-agent (EventKit) reads your meetings; macOS 14+ asks with the FullAccess string
+    NSCalendarsUsageDescription: kacola reads your calendars to show your meetings and to title and prepare their recordings.
+    NSCalendarsFullAccessUsageDescription: kacola reads your calendars to show your meetings and to title and prepare their recordings.
     LSUIElement: false
     LSApplicationCategoryType: public.app-category.productivity

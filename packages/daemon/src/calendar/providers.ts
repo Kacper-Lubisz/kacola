@@ -12,6 +12,8 @@ import { AgentMessage, CAL_AGENT_PROTOCOL, type DaemonToAgent, RawOccurrence } f
 //
 //   EdsCalendarProvider   Evolution Data Server via the cal-agent GJS helper — every calendar the user
 //                         has in GNOME (local, GNOME Online Accounts: Google, Microsoft 365, CalDAV)
+//   EventKitCalendarProvider  the same protocol from kacola-cal-agent (Swift): every calendar in macOS
+//                         Calendar (Internet Accounts: Google, iCloud, Exchange), once the user allows it
 //   FileCalendarProvider  a JSON file of occurrences, re-read when it changes (tests, demos, and anyone
 //                         who wants to feed meetings from a script)
 //   NoCalendar            calendar reading is off
@@ -201,12 +203,11 @@ export class FileCalendarProvider implements CalendarProvider {
 // ------------------------------------------------------------------------------------------- EDS
 
 export const CAL_AGENT_PATH = resolve(import.meta.dirname, '../../gjs/cal-agent.js')
+/** Built by scripts/build-cal-agent.ts (macOS only; a bundle has it at the same place under root/). */
+export const EVENTKIT_AGENT_PATH = resolve(import.meta.dirname, '../../macos/kacola-cal-agent')
 
-export type EdsProviderOptions = {
+type AgentProviderOptions = {
   logger: Logger
-  /** gjs binary. Default `gjs` on PATH (KACOLA_GJS overrides in main.ts). */
-  gjs?: string
-  agentPath?: string
   env?: NodeJS.ProcessEnv
   minBackoffMs?: number
   maxBackoffMs?: number
@@ -214,12 +215,25 @@ export type EdsProviderOptions = {
   requestTimeoutMs?: number
 }
 
+export type EdsProviderOptions = AgentProviderOptions & {
+  /** gjs binary. Default `gjs` on PATH (KACOLA_GJS overrides in main.ts). */
+  gjs?: string
+  agentPath?: string
+}
+
+export type EventKitProviderOptions = AgentProviderOptions & {
+  /** The kacola-cal-agent binary (default EVENTKIT_AGENT_PATH). */
+  agentPath?: string
+}
+
 type DescriptionReply = Extract<AgentMessage, { type: 'description' | 'description-written' }>
 
-export class EdsCalendarProvider implements CalendarProvider {
-  readonly name = 'eds'
+/** A calendar agent speaking agent-protocol.ts on stdin/stdout, restarted with backoff when it exits. */
+abstract class AgentCalendarProvider implements CalendarProvider {
+  abstract readonly name: string
   readonly expands = true
-  private readonly o: EdsProviderOptions
+  protected abstract readonly spawn: { command: string; args: string[] }
+  private readonly o: AgentProviderOptions
   private child: LineChild | null = null
   private l: ProviderListener | null = null
   private window: { from: Date; to: Date } | null = null
@@ -227,7 +241,7 @@ export class EdsCalendarProvider implements CalendarProvider {
   /** Description requests waiting for the agent's answer, by requestId. */
   private readonly pending = new Map<string, (reply: DescriptionReply | { failed: string }) => void>()
 
-  constructor(o: EdsProviderOptions) {
+  constructor(o: AgentProviderOptions) {
     this.o = o
   }
 
@@ -235,14 +249,24 @@ export class EdsCalendarProvider implements CalendarProvider {
     return this.child?.pid ?? null
   }
 
+  /** Why the agent cannot run at all (then it is not started), or null. */
+  protected unavailable(): string | null {
+    return null
+  }
+
   start(l: ProviderListener): void {
     this.l = l
+    const missing = this.unavailable()
+    if (missing) {
+      l.status('unavailable', missing)
+      return
+    }
     l.status('starting', null)
     const log = this.o.logger
     this.child = new LineChild({
       name: 'cal-agent',
-      command: this.o.gjs ?? 'gjs',
-      args: ['-m', this.o.agentPath ?? CAL_AGENT_PATH],
+      command: this.spawn.command,
+      args: this.spawn.args,
       env: this.o.env,
       minBackoffMs: this.o.minBackoffMs ?? 1000,
       maxBackoffMs: this.o.maxBackoffMs ?? 60_000,
@@ -255,7 +279,7 @@ export class EdsCalendarProvider implements CalendarProvider {
         this.greeted = false
         this.failPending('the calendar helper exited')
         const why = error
-          ? `could not run gjs: ${error}`
+          ? `could not run ${this.spawn.command}: ${error}`
           : `cal-agent exited (${signal ?? `code ${code}`})${stderr ? `: ${lastLine(stderr)}` : ''}`
         this.l?.status(willRestart ? 'starting' : 'unavailable', why)
         if (!willRestart) log.error('cal-agent gave up', { why })
@@ -292,6 +316,9 @@ export class EdsCalendarProvider implements CalendarProvider {
           ...(m.offline ? { offline: m.offline } : {}),
         })
         this.l?.status('ok', null)
+        return
+      case 'access':
+        this.l?.status(m.granted ? 'starting' : 'unavailable', m.detail)
         return
       case 'error':
         log[m.fatal ? 'error' : 'warn']('cal-agent error', { message: m.message })
@@ -403,6 +430,29 @@ export class EdsCalendarProvider implements CalendarProvider {
     this.l = null
     this.failPending('the calendar provider stopped')
     await c?.stop()
+  }
+}
+
+export class EdsCalendarProvider extends AgentCalendarProvider {
+  readonly name = 'eds'
+  protected readonly spawn: { command: string; args: string[] }
+  constructor(o: EdsProviderOptions) {
+    super(o)
+    this.spawn = { command: o.gjs ?? 'gjs', args: ['-m', o.agentPath ?? CAL_AGENT_PATH] }
+  }
+}
+
+export class EventKitCalendarProvider extends AgentCalendarProvider {
+  readonly name = 'eventkit'
+  protected readonly spawn: { command: string; args: string[] }
+  constructor(o: EventKitProviderOptions) {
+    super(o)
+    this.spawn = { command: o.agentPath ?? EVENTKIT_AGENT_PATH, args: [] }
+  }
+  protected override unavailable(): string | null {
+    return existsSync(this.spawn.command)
+      ? null
+      : `this build has no macOS calendar helper (${this.spawn.command})`
   }
 }
 

@@ -28,7 +28,12 @@ import { migrateLegacyUserDirs } from '@kacola/protocol/legacy-dirs'
 import { DEFAULT_MODELS, defaultModelsDir, ModelManager } from '@kacola/stt'
 import { heuristicGuard, passThroughGuard } from './agents/guard.ts'
 import { IcsCalendarProvider } from './calendar/ics.ts'
-import { EdsCalendarProvider, FileCalendarProvider, NoCalendar } from './calendar/providers.ts'
+import {
+  EdsCalendarProvider,
+  EventKitCalendarProvider,
+  FileCalendarProvider,
+  NoCalendar,
+} from './calendar/providers.ts'
 import { parseConfig, UsageError } from './config.ts'
 import { createDaemon, type DaemonOptions } from './daemon.ts'
 import { acquireDataDirLock, type DataDirLock, DataDirLockedError } from './data-lock.ts'
@@ -149,11 +154,20 @@ async function main(): Promise<void> {
   opts.calendar =
     cfg.calendar.kind === 'eds'
       ? new EdsCalendarProvider({ logger: opts.logger, gjs: cfg.gjs })
-      : cfg.calendar.kind === 'file'
-        ? new FileCalendarProvider(cfg.calendar.path)
-        : cfg.calendar.kind === 'ics'
-          ? new IcsCalendarProvider({ source: cfg.calendar.source, me: cfg.calendar.me, logger: opts.logger })
-          : new NoCalendar()
+      : cfg.calendar.kind === 'eventkit'
+        ? new EventKitCalendarProvider({
+            logger: opts.logger,
+            ...(cfg.calendar.agent ? { agentPath: cfg.calendar.agent } : {}),
+          })
+        : cfg.calendar.kind === 'file'
+          ? new FileCalendarProvider(cfg.calendar.path)
+          : cfg.calendar.kind === 'ics'
+            ? new IcsCalendarProvider({
+                source: cfg.calendar.source,
+                me: cfg.calendar.me,
+                logger: opts.logger,
+              })
+            : new NoCalendar()
   opts.dbus = cfg.dbus ? { gjs: cfg.gjs } : null
   if (cfg.micActivity.kind === 'pipewire')
     opts.micActivity = new PwDumpMicActivity({ onlyTarget: cfg.micActivity.target })

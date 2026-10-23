@@ -36,3 +36,6 @@ packaging/flatpak/input/
 
 # real meetings exported as private eval fixtures (transcripts + labels): never committed
 packages/testkit/fixtures/evals/private/
+
+# the macOS calendar helper, compiled by scripts/build-cal-agent.ts
+packages/daemon/macos/kacola-cal-agent
