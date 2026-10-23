@@ -71,13 +71,22 @@ export function withStored(prev: Settings | null, stored: StoredSettings): Setti
 }
 
 /**
- * Models the configured pipeline needs: live + VAD always, the final model unless the pass is off. The
- * decisions text embedder is optional (the on-device provider falls back to a model-free embedder), so it
- * never blocks onboarding.
+ * Models the configured pipeline needs, as the daemon marks them (ModelInfo.required). A daemon that
+ * predates the mark: the selected live and final models (the final one unless the pass is off), and every
+ * model of the roles that have no setting. The decisions text embedder is optional (the on-device
+ * provider falls back to a model-free embedder), so it is never required.
  */
 export function requiredModels(models: readonly ModelInfo[], settings: Settings | null): ModelInfo[] {
-  const finalOff = settings?.stt.finalPass === 'off'
-  return models.filter((m) => !(finalOff && m.role === 'final') && m.role !== 'text-embedding')
+  if (models.some((m) => m.required !== undefined)) return models.filter((m) => m.required)
+  const stt = settings?.stt
+  return models.filter((m) => {
+    if (m.role === 'text-embedding') return false
+    if (m.role === 'final' && stt?.finalPass === 'off') return false
+    if (m.role === 'live' && stt && models.some((x) => x.id === stt.liveModel)) return m.id === stt.liveModel
+    if (m.role === 'final' && stt && models.some((x) => x.id === stt.finalModel))
+      return m.id === stt.finalModel
+    return true
+  })
 }
 
 export const missingModels = (models: readonly ModelInfo[], settings: Settings | null): ModelInfo[] =>

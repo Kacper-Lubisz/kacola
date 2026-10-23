@@ -2276,27 +2276,34 @@ describe('atlas: first run (real daemon, models not downloaded, calendar off)', 
   })
 
   it('onboarding, then the empty window and its missing-model banner', async () => {
-    daemon = await startDaemon({ entry: join(import.meta.dirname, '..', 'src', 'slow-models-daemon.ts') })
+    // slow enough that the download setup starts is still going after its three steps and the skip
+    daemon = await startDaemon({
+      entry: join(import.meta.dirname, '..', 'src', 'slow-models-daemon.ts'),
+      env: { KACOLA_E2E_MODEL_STEP_MS: '8000' },
+    })
     rmSync(uiStatePath(display), { force: true })
     app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl, ...WINDOW_ENV } })
     await freeze(app)
     const welcome = app.window.getByRole('dialog', { name: 'Welcome to kacola' })
     await welcome.getByText('Working', { exact: true }).waitFor({ timeout: 20_000 })
-    await welcome.getByText(/Lets agents like Claude Code/).waitFor({ timeout: 20_000 })
+    const progress = welcome.getByRole('progressbar', { name: 'Speech models download progress' })
     await atlas.shoot(app.window, 'first-run__welcome__checks', {
-      expect: [
-        welcome.getByText('Working', { exact: true }),
-        welcome.getByText(/Lets agents like Claude Code/),
-      ],
+      expect: [welcome.getByText('Working', { exact: true }), progress],
+      // download progress moves on the daemon's clock
+      masks: [progress],
     })
+    await welcome.getByRole('button', { name: 'Continue' }).click()
     const cal = welcome.getByText(/Calendar reading is turned off|Calendar not available/).first()
-    await cal.scrollIntoViewIfNeeded()
-    await atlas.shoot(app.window, 'calendar-offline__onboarding__calendar-status', { expect: cal })
-    await welcome.getByRole('button', { name: 'Skip for now' }).click()
+    await cal.waitFor({ timeout: 10_000 })
+    await atlas.shoot(app.window, 'calendar-offline__onboarding__calendar-status', {
+      expect: cal,
+      masks: [progress],
+    })
+    await welcome.getByRole('button', { name: 'Continue' }).click()
+    await welcome.getByText(/Lets agents like Claude Code/).waitFor({ timeout: 10_000 })
+    // Escape skips: nothing is installed, the download carries on
+    await app.window.keyboard.press('Escape')
     await welcome.waitFor({ state: 'detached', timeout: 5000 })
-    // closing onboarding runs its default-on "Install command-line tool and Claude skill" (into the
-    // display's private HOME); its toast would come and go between shots, so it is dismissed first
-    await dismissToast(app, 'Command-line tool installed')
     await atlas.shoot(app.window, 'first-run__skipped__empty-window', {
       expect: [
         app.window.getByText(/^Nothing recorded today/),
@@ -2305,20 +2312,14 @@ describe('atlas: first run (real daemon, models not downloaded, calendar off)', 
     })
     const setUp = app.window.getByRole('button', { name: /Set up/ }).first()
     await setUp.click()
-    const models = app.window.getByRole('dialog').first()
-    await models
-      .getByRole('button', { name: /^Download/ })
-      .first()
-      .waitFor({ timeout: 10_000 })
-    await atlas.shoot(app.window, 'no-models__window__banner', { expect: models })
-    await models
-      .getByRole('button', { name: /^Download/ })
-      .first()
-      .click()
+    const models = app.window.getByRole('dialog', { name: 'Welcome to kacola' })
     await models.getByRole('progressbar').first().waitFor({ timeout: 10_000 })
+    await atlas.shoot(app.window, 'no-models__window__banner', {
+      expect: models,
+      masks: [models.getByRole('progressbar')],
+    })
     await atlas.shoot(app.window, 'settings-capture__models__speech-models', {
       expect: models.getByRole('progressbar').first(),
-      // download progress moves on the daemon's clock
       masks: [models.getByRole('progressbar')],
     })
     expect(app.problems()).toEqual([])

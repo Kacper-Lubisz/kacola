@@ -122,7 +122,7 @@ function Window() {
   )
 }
 
-function DialogHost({ onOnboardingDone }: { onOnboardingDone: (skipped: string[] | null) => void }) {
+function DialogHost({ onOnboardingDone }: { onOnboardingDone: () => void }) {
   const { current, close } = useDialogs()
   const { appInfo } = useServices()
   if (current === 'preferences') return <PreferencesDialog onClose={close} />
@@ -131,8 +131,8 @@ function DialogHost({ onOnboardingDone }: { onOnboardingDone: (skipped: string[]
   if (current === 'onboarding')
     return (
       <OnboardingDialog
-        onFinished={(skipped) => {
-          onOnboardingDone(skipped)
+        onFinished={() => {
+          onOnboardingDone()
           close()
         }}
       />

@@ -41,9 +41,13 @@ export type MainConfig = {
   keyringService: string
   echoLogs: boolean
   // ---- M4
-  /** Where meetings come from: Evolution Data Server, a JSON file, an iCalendar file/URL, or nowhere. */
+  /**
+   * Where meetings come from: Evolution Data Server, macOS Calendar (EventKit, through `agent`: null =
+   * the bundled kacola-cal-agent), a JSON file, an iCalendar file/URL, or nowhere.
+   */
   calendar:
     | { kind: 'eds' }
+    | { kind: 'eventkit'; agent: string | null }
     | { kind: 'file'; path: string }
     | { kind: 'ics'; source: string; me: string[] }
     | { kind: 'off' }
@@ -103,7 +107,9 @@ environment:
   OPENAI_API_KEY           takes precedence over the keyring (OpenAI provider)
   TYPESAFE_API_KEY         takes precedence over the keyring (TypeSafe Jev decisions provider)
   OPENAI_BASE_URL          OpenAI-compatible endpoint (default https://api.openai.com/v1)
-  KACOLA_CALENDAR        eds | off | file:PATH | ics:PATH-OR-URL  (default eds; off with --fake / macOS)
+  KACOLA_CALENDAR        eds | eventkit | off | file:PATH | ics:PATH-OR-URL
+                         (default eds; eventkit on macOS; off with --fake)
+  KACOLA_CAL_AGENT       the macOS calendar helper for eventkit (default: the bundled kacola-cal-agent)
   KACOLA_CALENDAR_ME     your addresses (comma-separated), to read your RSVP from an ICS calendar
   KACOLA_CAPTURE         pipewire | external     (default pipewire; external on macOS)
   KACOLA_PLATFORM        resolve defaults as this platform (tests: darwin on Linux)
@@ -201,9 +207,12 @@ export function parseConfig(
   }
   // M4 integrations touch the desktop session (EDS, the session bus, PipeWire's graph), so the fakes —
   // which every test harness uses — leave them off unless a test asks for one explicitly.
-  const cal = env.KACOLA_CALENDAR ?? (fakes || mac ? 'off' : 'eds')
+  const cal = env.KACOLA_CALENDAR ?? (fakes ? 'off' : mac ? 'eventkit' : 'eds')
   let calendar: MainConfig['calendar']
-  if (cal === 'eds' || cal === 'off')
+  if (cal === 'eventkit') {
+    if (!mac) throw new UsageError('KACOLA_CALENDAR=eventkit is only available on macOS')
+    calendar = { kind: 'eventkit', agent: env.KACOLA_CAL_AGENT || null }
+  } else if (cal === 'eds' || cal === 'off')
     calendar = { kind: linuxOnly('KACOLA_CALENDAR', cal, 'off') as 'eds' | 'off' }
   else if (cal.startsWith('file:') && cal.length > 5) calendar = { kind: 'file', path: cal.slice(5) }
   else if (cal.startsWith('ics:') && cal.length > 4)
@@ -215,7 +224,10 @@ export function parseConfig(
         .map((s) => s.trim())
         .filter(Boolean),
     }
-  else throw new UsageError(`KACOLA_CALENDAR must be eds, off, file:PATH or ics:PATH-OR-URL (got ${cal})`)
+  else
+    throw new UsageError(
+      `KACOLA_CALENDAR must be eds, eventkit, off, file:PATH or ics:PATH-OR-URL (got ${cal})`,
+    )
   const dbusEnv = linuxOnly('KACOLA_DBUS', env.KACOLA_DBUS ?? (fakes || mac ? 'off' : 'session'), 'off')
   if (dbusEnv !== 'session' && dbusEnv !== 'off') throw new UsageError('KACOLA_DBUS must be session or off')
   const mic = linuxOnly(

@@ -502,7 +502,7 @@ describe('axe on the first run and the empty window (no sessions, a model missin
     if (dataDir) rmSync(dataDir, { recursive: true, force: true })
   })
 
-  it('onboarding, then the empty window with its missing-model banner', async () => {
+  it('onboarding, then the empty window', async () => {
     dataDir = mkdtempSync(join(tmpdir(), 'kacola-desktop-a11y-empty-'))
     daemon = await startDaemon({ dataDir })
     // a first run: no ui-state (onboarding shows)
@@ -514,7 +514,7 @@ describe('axe on the first run and the empty window (no sessions, a model missin
     await app.window.keyboard.press('Escape')
     await welcome.waitFor({ state: 'detached', timeout: 5000 })
     await app.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 10_000 })
-    await sweep(app, 'empty window + missing-model banner', found)
+    await sweep(app, 'empty window', found)
     expect(found).toEqual([])
     expect(app.problems()).toEqual([])
   })

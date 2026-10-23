@@ -8,7 +8,8 @@
 // Output (default dist/runtime):
 //   daemon.mjs  cli.mjs  diarize-worker.mjs      the bundles (workspace TS + pure-JS deps inlined)
 //   root/…                                       files the code opens at runtime, at their repo paths
-//                                                (gjs helpers, the D-Bus interface XML)
+//                                                (gjs helpers, the D-Bus interface XML, and for darwin
+//                                                targets built on a Mac the kacola-cal-agent binary)
 //   node_modules/better-sqlite3                  natives, external to the bundle: N-API builds, so the
 //   node_modules/sherpa-onnx-node                same binary loads in Node and in Electron (no rebuild)
 //   node_modules/sherpa-onnx-<platform>-<arch>   one per --target (darwin ones fetched with `npm pack`)
@@ -34,6 +35,7 @@ import {
 import { dirname, join, relative, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { type BuildOptions, build, type Plugin } from 'esbuild'
+import { buildCalAgent, CAL_AGENT_DEV_PATH, type MacArch } from './build-cal-agent.ts'
 
 export const REPO = resolve(import.meta.dirname, '..')
 export type Target = `${'linux' | 'darwin'}-${'x64' | 'arm64'}`
@@ -137,6 +139,10 @@ export async function buildRuntime(o: { outDir: string; targets?: Target[] }): P
   const tiktoken = join(REPO, 'node_modules', '.pnpm', 'node_modules', 'tiktoken', 'lite', 'tiktoken_bg.wasm')
   cpSync(tiktoken, join(outDir, 'tiktoken_bg.wasm'), { dereference: true })
   stageNatives(outDir, targets)
+  const macArchs = targets.filter((t) => t.startsWith('darwin-')).map((t) => t.slice(7) as MacArch)
+  const calAgent = join(outDir, 'root', relative(REPO, CAL_AGENT_DEV_PATH))
+  if (macArchs.length && !buildCalAgent(calAgent, macArchs))
+    console.warn('build-runtime: not on a Mac, so no kacola-cal-agent: macOS Calendar will be unavailable')
   const files: Record<string, number> = {}
   for (const f of readdirSync(outDir)) if (f.endsWith('.mjs')) files[f] = statSync(join(outDir, f)).size
   const info: RuntimeInfo = {

@@ -34,11 +34,11 @@ describe('platform config', () => {
     })
   })
 
-  it('macOS: external capture, Keychain, and no Linux desktop integrations', () => {
+  it('macOS: external capture, Keychain, the Calendar app, and no Linux desktop integrations', () => {
     expect(parseConfig([], {}, 'darwin')).toMatchObject({
       platform: 'darwin',
       capture: 'external',
-      calendar: { kind: 'off' },
+      calendar: { kind: 'eventkit', agent: null },
       dbus: false,
       micActivity: { kind: 'off' },
       keyring: 'keychain',
@@ -57,6 +57,12 @@ describe('platform config', () => {
       me: [],
     })
     expect(parseConfig([], { KACOLA_KEYRING: 'memory' }, 'darwin').keyring).toBe('memory')
+    expect(parseConfig([], { KACOLA_CAL_AGENT: '/opt/agent' }, 'darwin').calendar).toEqual({
+      kind: 'eventkit',
+      agent: '/opt/agent',
+    })
+    expect(parseConfig(['--fake'], {}, 'darwin').calendar).toEqual({ kind: 'off' })
+    expect(() => parseConfig([], { KACOLA_CALENDAR: 'eventkit' }, 'linux')).toThrow(/only available on macOS/)
   })
 
   it('external capture on Linux (how the macOS path is tested here) turns the mic rule off', () => {

@@ -110,6 +110,8 @@ export interface TranscriptionPipeline {
   readonly canContinue?: boolean
   health(): Promise<{ available: boolean; backend: string; detail: string | null }>
   start(opts: PipelineStartOptions, sink: PipelineSink): Promise<RecordingHandle>
+  /** The model ids a recording with these settings would load (ModelInfo.required). */
+  requiredModels?(settings: StoredSettings): string[]
 }
 
 // -------------------------------------------------------------------- Q&A

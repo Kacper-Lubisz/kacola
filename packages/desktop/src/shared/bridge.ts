@@ -37,6 +37,10 @@ export const IPC = {
   deepLink: 'kacola:deep-link',
   /** invoke: marks the sender ready for pushes; returns and clears the pending link. */
   deepLinkTake: 'kacola:deep-link-take',
+  permissions: 'kacola:permissions',
+  permissionRequest: 'kacola:permission-request',
+  permissionSettings: 'kacola:permission-settings',
+  relaunch: 'kacola:relaunch',
 } as const
 
 // ---- fetch tunnel -----------------------------------------------------------------------------------
@@ -170,6 +174,23 @@ export type ExtensionState =
    */
   | { state: 'error'; reason: 'crashed' | 'shell-version' | 'failed'; detail: string }
 
+/** What setup asks the system for (macOS; Linux needs none of them). */
+export type PermissionKind = 'microphone' | 'system-audio' | 'calendar'
+/**
+ * `not-determined`: never asked, so asking shows the system prompt. `denied` / `restricted`: only System
+ * Settings can change it. `unavailable`: this build cannot tell (no calendar helper). `not-needed`: Linux.
+ */
+export type PermissionState =
+  | 'granted'
+  | 'denied'
+  | 'restricted'
+  | 'not-determined'
+  | 'unavailable'
+  | 'not-needed'
+export type PermissionsState = Record<PermissionKind, PermissionState>
+/** A System Settings pane setup can open (macOS). */
+export type SettingsPane = PermissionKind | 'internet-accounts'
+
 /** Background mode: start (without a window) at login. */
 export type AutostartState = { enabled: boolean; detail?: string }
 
@@ -222,4 +243,11 @@ export interface KacolaBridge {
   onDeepLink(cb: (url: string) => void): Unsubscribe
   /** The link the app was opened with (or one that arrived before this page asked), once; null if none. */
   takeDeepLink(): Promise<string | null>
+  permissions(): Promise<PermissionsState>
+  /** Show the system's prompt for one permission if it was never asked; every state afterwards. */
+  requestPermission(kind: PermissionKind): Promise<PermissionsState>
+  /** Open System Settings at a pane (false where there is none: Linux). */
+  openSettingsPane(pane: SettingsPane): Promise<boolean>
+  /** Quit and start again (macOS applies a new Screen & System Audio Recording grant only then). */
+  relaunch(): void
 }

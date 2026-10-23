@@ -156,18 +156,20 @@ flowchart TD
 - **Status:** built
 - **Persona:** someone who just installed kacola (Flatpak, the macOS zip, or from source).
 - **Entry points:** first launch of the app window.
-- **Steps:** 1. The window opens the Welcome dialog. 2. It checks the speech models (download with
-  progress), audio capture (microphone and system audio), calendar access, and offers to install the
-  command-line tool and the Claude skill (on by default). 3. The user downloads the models or skips.
-  4. The empty window says "No Sessions Yet". If a model is missing, a banner offers Set Up.
+- **Steps:** 1. The window opens the Welcome dialog, and the speech models the pipeline needs start
+  downloading at once, with one progress bar. 2. Recording: microphone and system audio (on macOS each
+  with an Allow button for the system prompt, System Settings once answered). 3. Your meetings: calendar
+  access (macOS Calendar with its Internet Accounts; GNOME's calendars on Linux). 4. For agents: the
+  command-line tool and Claude skill (on by default) and, on GNOME, the top-bar extension. 5. Done, or Skip
+  at any step. While a model is still missing, a banner offers Set Up.
 - **States:** `first-run__welcome__checks`, `first-run__skipped__empty-window`, `no-models__window__banner`,
   `settings-capture__models__speech-models`, `calendar-offline__onboarding__calendar-status`.
 - **Tests:** desktop-dialogs (opens on first run, remembers the skip), desktop-visual (onboarding).
 
 ```mermaid
 flowchart TD
-  A([First launch]) --> B[Welcome dialog: models, capture, calendar, CLI + skill]
-  B -->|Download| C[Models download with progress]
+  A([First launch]) --> B[Welcome dialog: steps for capture, calendar, CLI + skill]
+  B -.at once.-> C[Required models download with progress]
   B -->|Skip for Now| D[Empty window: No Sessions Yet]
   B -.calendar off or EDS down.-> CAL[Calendar: not available]
   B -.default on.-> CLI[CLI + skill installed]

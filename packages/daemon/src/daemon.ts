@@ -8,6 +8,7 @@ import {
   type BodyOut,
   DEFAULT_PORT,
   DEFAULT_RESUME_WINDOW_MS,
+  type ModelInfo,
   matchPath,
   type ParamsOf,
   parseSince,
@@ -238,7 +239,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
   const bus = new EventBus()
   store.onCommit((e) => bus.publish(e))
   const access = remoteAccess(store, o.auth ?? null, o.trustLoopback ?? true)
-  const pipeline = o.pipeline ?? new UnavailablePipeline()
+  const pipeline: TranscriptionPipeline = o.pipeline ?? new UnavailablePipeline()
   const models = o.models ?? new NoModels()
   const devices = o.devices ?? new NoDevices()
   const engine = o.qaEngine ?? null
@@ -384,6 +385,11 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
     if (Number.isNaN(d.getTime())) throw new DaemonError('bad_request', `${name} must be an ISO time or date`)
     return d
   }
+  const listModels = async (): Promise<ModelInfo[]> => {
+    const all = await models.list()
+    const required = pipeline.requiredModels?.(settings.get())
+    return required ? all.map((m) => ({ ...m, required: required.includes(m.id) })) : all
+  }
   const llmReady = async () => {
     const s = settings.get().llm
     if (!engine || s.provider === 'none') return false
@@ -395,7 +401,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
     uptimeMs: Date.now() - startedAt,
     lastSeq: store.lastSeq(),
     capture: await pipeline.health(),
-    models: await models.list(),
+    models: await listModels(),
     llm: { provider: settings.get().llm.provider, ready: await llmReady() },
     decisions: await decisions.health(),
   })
@@ -484,7 +490,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
       })
     },
 
-    listModels: async () => ({ models: await models.list() }),
+    listModels: async () => ({ models: await listModels() }),
     downloadModel: ({ params }) =>
       models.startDownload(params.id, (model) => bus.ephemeral(null, { type: 'model.progress', model })),
 

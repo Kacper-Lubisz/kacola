@@ -71,6 +71,23 @@ export function daemonEntry(
   return candidates.find((p) => existsSync(p)) ?? null
 }
 
+/**
+ * The macOS calendar helper (kacola-cal-agent) the daemon's EventKit provider runs: KACOLA_CAL_AGENT, the
+ * packaged runtime's (scripts/build-runtime.ts), the dev build (scripts/build-cal-agent.ts), else none.
+ */
+export function calAgentPath(
+  env: Record<string, string | undefined>,
+  o: { resourcesPath?: string; appDir: string },
+): string | null {
+  if (env.KACOLA_CAL_AGENT) return env.KACOLA_CAL_AGENT
+  const rel = ['packages', 'daemon', 'macos', 'kacola-cal-agent']
+  const candidates = [
+    ...(o.resourcesPath ? [join(o.resourcesPath, 'runtime', 'root', ...rel)] : []),
+    join(o.appDir, '..', '..', '..', '..', ...rel),
+  ]
+  return candidates.find((p) => existsSync(p)) ?? null
+}
+
 /** KACOLA_PROFILE: a short lower-case name, or null. Anything else is refused (it names a directory). */
 export function profileFrom(env: Record<string, string | undefined>): string | null {
   const p = (env.KACOLA_PROFILE ?? '').trim()

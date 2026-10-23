@@ -3,7 +3,9 @@ import {
   type DaemonStatus,
   IPC,
   type KacolaBridge,
+  type PermissionKind,
   type SaveTextRequest,
+  type SettingsPane,
   type Theme,
   type TunnelRequest,
   type UiState,
@@ -55,6 +57,10 @@ const bridge: KacolaBridge = {
   setAutostart: (enabled: boolean) => ipcRenderer.invoke(IPC.autostartSet, enabled === true),
   onDeepLink: (cb) => listen<string>(IPC.deepLink, cb),
   takeDeepLink: () => ipcRenderer.invoke(IPC.deepLinkTake),
+  permissions: () => ipcRenderer.invoke(IPC.permissions),
+  requestPermission: (kind: PermissionKind) => ipcRenderer.invoke(IPC.permissionRequest, kind),
+  openSettingsPane: (pane: SettingsPane) => ipcRenderer.invoke(IPC.permissionSettings, pane),
+  relaunch: () => ipcRenderer.send(IPC.relaunch),
 }
 
 contextBridge.exposeInMainWorld('kacola', bridge)

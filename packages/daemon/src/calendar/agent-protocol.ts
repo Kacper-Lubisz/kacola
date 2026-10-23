@@ -1,8 +1,9 @@
 import { OfflineCalendar } from '@kacola/protocol'
 import { z } from 'zod'
 
-// C-2: the line protocol between kacolad and `cal-agent` (packages/daemon/gjs/cal-agent.js), a GJS
-// helper that reads Evolution Data Server through ECal-2.0. One JSON object per line, both directions.
+// C-2: the line protocol between kacolad and a calendar agent: `cal-agent` (packages/daemon/gjs/cal-agent.js),
+// a GJS helper that reads Evolution Data Server through ECal-2.0, or on macOS `kacola-cal-agent`
+// (packages/daemon/macos/cal-agent.swift) over EventKit. One JSON object per line, both directions.
 //
 // daemon → agent (stdin)
 //   {"type":"window","from":ISO,"to":ISO}   the range to expand recurrences over; replaces the previous
@@ -23,6 +24,8 @@ import { z } from 'zod'
 //              plus the calendars that are not up to date (`offline`: needs sign-in, offline, failed).
 //              Sent after the first window message and again (debounced) after any change: an event
 //              added/modified/removed through a client view, or a calendar source added/removed/enabled.
+//   access     (EventKit) whether the user has let the agent read calendars; no snapshot comes while not,
+//              and the agent says so again when that changes.
 //   error      something failed; fatal ones are followed by exit and the daemon restarts the agent.
 //   log        diagnostics for the daemon's log.
 //   description / description-written   answers to the two v2 requests above, by requestId.
@@ -84,6 +87,7 @@ export const AgentMessage = z.discriminatedUnion('type', [
      *  helper that predates it still speaks protocol 2. */
     offline: z.array(OfflineCalendar).optional(),
   }),
+  z.object({ type: z.literal('access'), granted: z.boolean(), detail: z.string().nullable() }),
   z.object({ type: z.literal('error'), message: z.string(), fatal: z.boolean() }),
   z.object({ type: z.literal('log'), level: z.enum(['debug', 'info', 'warn']), message: z.string() }),
   // ---- v2: the agenda invitation block (write path)

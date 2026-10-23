@@ -36,7 +36,7 @@ export async function buildMacos(o: {
   rmSync(join(out, 'out'), { recursive: true, force: true })
   mkdirSync(stage, { recursive: true })
 
-  const version = stageDesktopApp(stage, { skipVite: o.skipVite })
+  const version = stageDesktopApp(stage, { skipVite: o.skipVite, extension: false })
   for (const arch of archs)
     await buildRuntime({ outDir: join(stage, `runtime-${arch}`), targets: [`darwin-${arch}` as Target] })
   mkdirSync(join(stage, 'bin'))
