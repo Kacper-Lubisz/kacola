@@ -148,7 +148,7 @@ describe('Q&A chain without a key', () => {
       const s = await bare.client.call('createSession', { body: { title: 'x' } })
       const r = await kacola(['ask', 'q', '--session', s.id], bare.baseUrl)
       expect(r.code).toBe(6)
-      expect(r.stderr).toMatch(/Anthropic needs an API key\. Add it in Preferences\./)
+      expect(r.stderr).toMatch(/Anthropic needs an API key\. Add it in Preferences › Advanced\./)
       expect(r.stderr).not.toMatch(/not ready|none provider/)
     } finally {
       await bare.stop()

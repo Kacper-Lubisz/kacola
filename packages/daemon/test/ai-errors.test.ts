@@ -68,13 +68,13 @@ describe('provider errors on the wire', () => {
     const none = apiErrorBody(notReadyError({ provider: 'none', ollamaUrl: '' }, false, 'Ask')).error
     expect(none).toEqual({
       code: 'unavailable',
-      message: 'Ask needs an AI provider. Set one up in Preferences.',
+      message: 'Ask needs an AI provider. Set one up in Preferences › Advanced.',
       reason: 'no-provider',
       action: 'set-up-provider',
     })
     const noKey = apiErrorBody(notReadyError({ provider: 'openai', ollamaUrl: '' }, false, 'Enhance')).error
     expect(noKey).toMatchObject({ reason: 'no-key', provider: 'OpenAI', action: 'set-up-provider' })
-    expect(noKey.message).toBe('OpenAI needs an API key. Add it in Preferences.')
+    expect(noKey.message).toBe('OpenAI needs an API key. Add it in Preferences › Advanced.')
     for (const e of [none, noKey]) expect(e.message).not.toMatch(/none|not ready|\?/)
   })
 })

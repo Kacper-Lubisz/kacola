@@ -634,7 +634,7 @@ describe('contract: every route, real server, typed client', () => {
         capture: { micDevice: 'default', systemDevice: 'default' },
         retention: { audio: 'keep', days: 30, archive: false },
         autoRecord: { calendar: false, micActivity: false, calendarFilter: 'likely' },
-        speakers: { diarize: true, voiceprints: false },
+        speakers: { diarize: true, voiceprints: true },
         decisions: { provider: 'local', model: '', apiKeyConfigured: false },
       })
       const patched = await c2.call('updateSettings', {

@@ -56,6 +56,9 @@ describe('speakers through the daemon', () => {
 
   it('tells the far end apart; the mic is always me', async () => {
     const c = d.client
+    // on by default; this meeting is about what is kept with them off
+    expect((await c.call('getSettings')).speakers?.voiceprints).toBe(true)
+    await c.call('updateSettings', { body: { speakers: { voiceprints: false } } })
     first = await record('Planning', 4)
     const { speakers } = await c.call('listSpeakers', { params: { id: first } })
     // (stopping flushes a last far-end line, so a third fake voice may or may not have spoken)
@@ -67,7 +70,7 @@ describe('speakers through the daemon', () => {
     for (const s of t.segments)
       if (s.track === 'system') expect(s.speakerId, s.id).toMatch(/^spk_/)
       else expect(s.speakerId).toBeUndefined()
-    // voiceprints are off by default: nothing about anyone's voice was kept
+    // voiceprints off: nothing about anyone's voice was kept
     expect(existsSync(join(d.dataDir, 'sessions', first, 'voices.json'))).toBe(false)
     expect((await c.call('listVoiceprints')).voiceprints).toEqual([])
   })

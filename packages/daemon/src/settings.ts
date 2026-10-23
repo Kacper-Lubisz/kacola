@@ -3,9 +3,10 @@ import {
   DEFAULT_AUTO_RECORD,
   DEFAULT_DECISIONS,
   DEFAULT_SPEAKER_SETTINGS,
+  DecisionsProvider,
   isKeyedProvider,
   type KeyedProvider,
-  type LlmProvider,
+  LlmProvider,
   type Settings,
   type SettingsPatch,
   StoredSettings,
@@ -58,6 +59,83 @@ export function defaultSettings(env: NodeJS.ProcessEnv = {}): StoredSettings {
   return {
     ...DEFAULT_SETTINGS,
     llm: { ...DEFAULT_SETTINGS.llm, provider, model: DEFAULT_LLM_MODELS[provider] },
+  }
+}
+
+/** Settings the config file (config-file.ts) or the environment pins, over what is stored. */
+export type SettingsOverrides = {
+  llm?: Partial<StoredSettings['llm']>
+  decisions?: Partial<NonNullable<StoredSettings['decisions']>>
+  speakers?: { voiceprints: boolean }
+}
+
+/**
+ * KACOLA_LLM_PROVIDER / _MODEL, KACOLA_OLLAMA_URL, KACOLA_DECISIONS_PROVIDER / _MODEL (a TYPESAFE_API_KEY
+ * with no provider named means Jev) and KACOLA_VOICEPRINTS (on / off). A value that is not one of the
+ * choices is reported in `invalid` and ignored.
+ */
+export function settingsOverrides(env: NodeJS.ProcessEnv): {
+  overrides: SettingsOverrides
+  invalid: string[]
+} {
+  const v = (k: string) => env[k]?.trim() || undefined
+  const invalid: string[] = []
+  const overrides: SettingsOverrides = {}
+  const llmProvider = v('KACOLA_LLM_PROVIDER')
+  const llm: Partial<StoredSettings['llm']> = {}
+  if (llmProvider) {
+    const p = LlmProvider.safeParse(llmProvider)
+    if (p.success) llm.provider = p.data
+    else invalid.push('KACOLA_LLM_PROVIDER')
+  }
+  if (v('KACOLA_LLM_MODEL')) llm.model = v('KACOLA_LLM_MODEL')!
+  if (v('KACOLA_OLLAMA_URL')) llm.ollamaUrl = v('KACOLA_OLLAMA_URL')!
+  if (Object.keys(llm).length) overrides.llm = llm
+  const decisions: Partial<NonNullable<StoredSettings['decisions']>> = {}
+  const dp = v('KACOLA_DECISIONS_PROVIDER') ?? (v('TYPESAFE_API_KEY') ? 'jev' : undefined)
+  if (dp) {
+    const p = DecisionsProvider.safeParse(dp)
+    if (p.success) decisions.provider = p.data
+    else invalid.push('KACOLA_DECISIONS_PROVIDER')
+  }
+  if (v('KACOLA_DECISIONS_MODEL')) decisions.model = v('KACOLA_DECISIONS_MODEL')!
+  if (Object.keys(decisions).length) overrides.decisions = decisions
+  const vp = v('KACOLA_VOICEPRINTS')?.toLowerCase()
+  if (vp === 'on' || vp === 'true' || vp === '1') overrides.speakers = { voiceprints: true }
+  else if (vp === 'off' || vp === 'false' || vp === '0') overrides.speakers = { voiceprints: false }
+  else if (vp) invalid.push('KACOLA_VOICEPRINTS')
+  return { overrides, invalid }
+}
+
+function applyOverrides(s: StoredSettings, o: SettingsOverrides): StoredSettings {
+  if (!o.llm && !o.decisions && !o.speakers) return s
+  return {
+    ...s,
+    ...(o.llm
+      ? {
+          llm: {
+            ...s.llm,
+            ...o.llm,
+            // a provider pinned without a model gets that provider's default, not the stored one's model
+            ...(o.llm.provider && !o.llm.model && o.llm.provider !== s.llm.provider
+              ? { model: DEFAULT_LLM_MODELS[o.llm.provider] }
+              : {}),
+          },
+        }
+      : {}),
+    ...(o.decisions
+      ? {
+          decisions: {
+            ...DEFAULT_DECISIONS,
+            ...s.decisions,
+            ...o.decisions,
+            ...(o.decisions.provider && !o.decisions.model && o.decisions.provider !== s.decisions?.provider
+              ? { model: '' }
+              : {}),
+          },
+        }
+      : {}),
+    ...(o.speakers ? { speakers: { ...DEFAULT_SPEAKER_SETTINGS, ...s.speakers, ...o.speakers } } : {}),
   }
 }
 
@@ -114,6 +192,7 @@ export class SettingsService {
   private readonly defaults: StoredSettings
   private readonly logger: Logger
   private readonly cachedKeyringKeys = new Map<KeyedProvider, string | null>()
+  private readonly overrides: SettingsOverrides
 
   constructor(deps: { store: Store; keyring: Keyring; env: NodeJS.ProcessEnv; logger: Logger }) {
     this.store = deps.store
@@ -126,9 +205,17 @@ export class SettingsService {
     }
     for (const k of Object.values(this.envKeys)) this.logger.addSecret(k)
     this.defaults = defaultSettings(deps.env)
+    const { overrides, invalid } = settingsOverrides(deps.env)
+    this.overrides = overrides
+    if (invalid.length) this.logger.warn('ignored settings with values kacola does not know', { invalid })
   }
 
   get(): StoredSettings {
+    return applyOverrides(this.stored(), this.overrides)
+  }
+
+  /** What is stored, without the config file's overrides: changes merge into this, so they never persist them. */
+  private stored(): StoredSettings {
     const stored = this.store.getSettings()
     return stored ? mergeSettings(this.defaults, stored) : this.defaults
   }
@@ -152,7 +239,7 @@ export class SettingsService {
   }
 
   async patch(p: SettingsPatch): Promise<Settings> {
-    const next = mergeSettings(this.get(), p)
+    const next = mergeSettings(this.stored(), p)
     this.store.putSettings(next)
     this.logger.info('settings updated', { sections: Object.keys(p) })
     return this.view()
@@ -160,7 +247,7 @@ export class SettingsService {
 
   /** Agent channel: which private sessions agents may attach to (a durable settings.updated, like any). */
   setAgentSettings(agents: NonNullable<StoredSettings['agents']>): StoredSettings {
-    const next = mergeSettings(this.get(), { agents })
+    const next = mergeSettings(this.stored(), { agents })
     this.store.putSettings(next)
     this.logger.info('settings updated', { sections: ['agents'] })
     return next

@@ -110,6 +110,13 @@ environment:
   KACOLA_CALENDAR        eds | eventkit | off | file:PATH | ics:PATH-OR-URL
                          (default eds; eventkit on macOS; off with --fake)
   KACOLA_CAL_AGENT       the macOS calendar helper for eventkit (default: the bundled kacola-cal-agent)
+  KACOLA_CONFIG_FILE     kacola.env to read at start (default: <config dir>/kacola.env); any variable here
+                         may be set in it, the environment wins
+  KACOLA_LLM_PROVIDER    anthropic | openai | ollama | none — pins Questions and answers' provider
+  KACOLA_LLM_MODEL       pins its model;  KACOLA_OLLAMA_URL pins Ollama's URL
+  KACOLA_DECISIONS_PROVIDER jev | openai | anthropic | ollama | local (default jev with a TYPESAFE_API_KEY)
+  KACOLA_DECISIONS_MODEL pins its model
+  KACOLA_VOICEPRINTS     on | off — recognise named people across meetings (default on)
   KACOLA_CALENDAR_ME     your addresses (comma-separated), to read your RSVP from an ICS calendar
   KACOLA_CAPTURE         pipewire | external     (default pipewire; external on macOS)
   KACOLA_PLATFORM        resolve defaults as this platform (tests: darwin on Linux)

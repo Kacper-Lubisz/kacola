@@ -285,7 +285,7 @@ export const ATLAS: AtlasEntry[] = [
     'speakers',
     'preferences',
     'voiceprints',
-    'Preferences › Speakers: tell apart, and recognise people across meetings',
+    'Preferences › Speakers: tell far-end people apart (named ones are recognised in later meetings)',
   ),
   win(
     'ask-live',
@@ -408,19 +408,10 @@ export const ATLAS: AtlasEntry[] = [
     'settings-provider',
     'general',
     'anthropic',
-    'Preferences › General: Anthropic configured (the key is never shown)',
+    'Preferences › General › Advanced: what answers and decides, one line, and Open config file',
     {
       responsive: true,
     },
-  ),
-  win('settings-provider', 'provider', 'menu', 'Choosing a provider: Anthropic, OpenAI, Ollama, none'),
-  win('settings-provider', 'openai', 'key', 'OpenAI selected: its key field'),
-  win('settings-provider', 'ollama', 'url', 'Ollama selected: its URL'),
-  planned(
-    'settings-provider',
-    'decisions',
-    'provider',
-    'Agenda during meetings: what it runs on (jev, OpenAI, Anthropic, Ollama, this computer) and its key',
   ),
   win(
     'settings-capture',

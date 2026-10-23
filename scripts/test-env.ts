@@ -39,10 +39,15 @@ if (!process.env.KACOLA_TEST_HOME) {
   // Never CREATE the user's real data dir from a test: on a machine still on gnomeola, an empty
   // ~/.local/share/kacola/models would make the daemon's first-start migration see two data dirs and
   // refuse. Until it exists, test downloads go to the cache instead.
-  const realModels = join(real.DATA, 'kacola', 'models')
-  process.env.KACOLA_MODELS_DIR ||= existsSync(realModels)
-    ? realModels
-    : join(process.env.XDG_CACHE_HOME || join(home, '.cache'), 'kacola', 'models')
+  // macOS keeps them in Application Support unless XDG_DATA_HOME says otherwise (platformPaths)
+  const realModels = [
+    join(real.DATA, 'kacola', 'models'),
+    ...(process.platform === 'darwin' && !process.env.XDG_DATA_HOME
+      ? [join(home, 'Library', 'Application Support', 'kacola', 'models')]
+      : []),
+  ].find((d) => existsSync(d))
+  process.env.KACOLA_MODELS_DIR ||=
+    realModels ?? join(process.env.XDG_CACHE_HOME || join(home, '.cache'), 'kacola', 'models')
   const root = mkdtempSync(join(tmpdir(), 'kacola-test-home-'))
   process.env.KACOLA_TEST_HOME = root
   for (const [k, v] of Object.entries(real)) {

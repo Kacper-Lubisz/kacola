@@ -1,6 +1,6 @@
-import type { AudioDevice, DecisionsProvider, Settings, SettingsPatch } from '@kacola/protocol'
+import type { AudioDevice, Settings, SettingsPatch } from '@kacola/protocol'
 import { _, fmt } from '@kacola/ui-core/i18n'
-import { deviceChoices, finalPasses, providers, retentions } from '@kacola/ui-core/settings'
+import { deviceChoices, finalPasses, retentions } from '@kacola/ui-core/settings'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { type ReactNode, useState } from 'react'
 import { useServices } from '../../data/services.tsx'
@@ -17,11 +17,10 @@ import {
   TabList,
   TabPanel,
   Tabs,
-  TextField,
   useToast,
 } from '../../design/primitives/index.ts'
 import { BackgroundRow, CliInstallRow, ExtensionRow } from './integration-rows.tsx'
-import { setApiKeyMutation, updateSettingsMutation } from './settings-data.ts'
+import { updateSettingsMutation } from './settings-data.ts'
 
 // Preferences: every daemon setting the window owns (the GTK dialog's, S-3), applied as soon as it
 // changes — no OK button. Values come from the ['settings'] query, which the EventBridge folds
@@ -35,118 +34,6 @@ import { setApiKeyMutation, updateSettingsMutation } from './settings-data.ts'
 const reasonOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /** A text setting applied with Enter or its Apply button (not on every keystroke). */
-function ApplyField({
-  label,
-  value,
-  type = 'text',
-  onApply,
-}: {
-  label: string
-  value: string
-  type?: 'text' | 'url'
-  onApply: (v: string) => void
-}) {
-  const [draft, setDraft] = useState<string | null>(null)
-  const dirty = draft !== null && draft.trim() !== '' && draft.trim() !== value
-  const apply = () => {
-    if (dirty) onApply(draft.trim())
-    setDraft(null)
-  }
-  return (
-    <div className="flex items-end gap-2">
-      <TextField
-        label={label}
-        labelHidden
-        type={type}
-        className="min-w-0 flex-1"
-        value={draft ?? value}
-        onChange={setDraft}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') apply()
-        }}
-      />
-      <Button onPress={apply} isDisabled={!dirty} aria-label={fmt(_('Apply {setting}'), { setting: label })}>
-        {_('Apply')}
-      </Button>
-    </div>
-  )
-}
-
-function ApiKeyRows({
-  configured,
-  title,
-  provider,
-}: {
-  configured: boolean
-  title: string
-  /** Which keyring account (default: the text LLM's current provider). */
-  provider?: 'anthropic' | 'openai' | 'typesafe'
-}) {
-  const { api, queryClient } = useServices()
-  const toast = useToast()
-  const setKey = useMutation(setApiKeyMutation(api, queryClient))
-  const [key, setKeyText] = useState('')
-  const save = (value: string | null) =>
-    setKey.mutate(provider ? { key: value, provider } : value, {
-      onSuccess: (r) => {
-        setKeyText('')
-        toast(
-          value === null
-            ? _('API key removed')
-            : r.configured
-              ? _('API key saved')
-              : _('The API key was not stored'),
-        )
-      },
-      onError: (e) =>
-        toast(fmt(_('Could not store the API key: {reason}'), { reason: reasonOf(e) }), { tone: 'error' }),
-    })
-  const label = configured ? _('Replace API key') : _('API key')
-  return (
-    <>
-      <Row
-        title={title}
-        subtitle={configured ? _('Saved in your keyring, never shown') : _('Not configured')}
-      >
-        {configured ? (
-          <Button
-            variant="destructive"
-            size="sm"
-            isDisabled={setKey.isPending}
-            aria-description={_('Remove the stored API key')}
-            onPress={() => save(null)}
-          >
-            {_('Remove')}
-          </Button>
-        ) : null}
-      </Row>
-      <Row title={label} stacked>
-        <form
-          className="flex items-end gap-2"
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (key.trim() && !setKey.isPending) save(key.trim())
-          }}
-        >
-          <TextField
-            label={label}
-            labelHidden
-            type="password"
-            autoComplete="off"
-            placeholder={_('Paste a key')}
-            className="min-w-0 flex-1"
-            value={key}
-            onChange={setKeyText}
-          />
-          <Button type="submit" variant="primary" isDisabled={!key.trim() || setKey.isPending}>
-            {_('Save')}
-          </Button>
-        </form>
-      </Row>
-    </>
-  )
-}
-
 function SwitchRow({
   title,
   subtitle,
@@ -192,78 +79,74 @@ function SelectRow<T extends string>({
   )
 }
 
-const decisionProviders = (): { value: DecisionsProvider; label: string }[] => [
-  { value: 'local', label: _('On this computer') },
-  { value: 'jev', label: _('TypeSafe Jev') },
-  { value: 'openai', label: _('OpenAI') },
-  { value: 'anthropic', label: _('Anthropic') },
-  { value: 'ollama', label: _('Ollama') },
-]
-
 /**
- * The live decisions (agendas: is this item covered? which point next? did they answer?): a typed-decision
- * provider of its own, separate from the language model above. /health says whether it can answer, and
- * why not ("on-device model not downloaded").
+ * Which AI answers questions, writes notes and judges decisions, its model and the API keys: not shown
+ * here, but kept in kacola.env (platformPaths().configFile), which this opens. What is configured shows
+ * as one line from /health.
  */
-function DecisionsGroup({ settings, patch }: { settings: Settings; patch: (p: SettingsPatch) => void }) {
-  const { queries } = useServices()
+function AdvancedGroup() {
+  const { bridge, queries } = useServices()
+  const toast = useToast()
   const health = useQuery({ ...queries.health(), refetchOnMount: 'always' })
-  const d = settings.decisions ?? { provider: 'local' as const, model: '', apiKeyConfigured: false }
-  const status = health.data?.decisions
-  // in plain words, from the structured fields: the daemon's own `detail` is written for logs
-  const ready =
-    status && status.provider === d.provider
-      ? !status.ready
-        ? d.provider === 'ollama'
-          ? _('Ollama is not answering')
-          : _('Needs an API key')
-        : d.provider === 'local' && status.detail
-          ? _('Ready. More accurate once its on-device model is downloaded')
-          : _('Ready')
-      : undefined
+  const h = health.data
+  // an older daemon's /health may not say
+  const ai = !h?.llm
+    ? undefined
+    : [
+        h.llm.provider === 'none'
+          ? _('Answers: off')
+          : fmt(h.llm.ready ? _('Answers: {provider}') : _('Answers: {provider}, needs an API key'), {
+              provider: providerName(h.llm.provider),
+            }),
+        h.decisions
+          ? fmt(
+              h.decisions.ready ? _('Decisions: {provider}') : _('Decisions: {provider}, needs an API key'),
+              {
+                provider: providerName(h.decisions.provider),
+              },
+            )
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
   return (
     <RowGroup
-      title={_('Agenda during meetings')}
+      title={_('Advanced')}
       description={_(
-        'Ticks off agenda items as they are covered and suggests what to raise next. Also judges which calendar meetings to record.',
+        'Which AI answers questions, writes notes and judges meetings, and its API keys, are set in a config file.',
       )}
     >
-      <SelectRow
-        title={_('Runs on')}
-        subtitle={ready}
-        options={decisionProviders()}
-        value={d.provider}
-        onChange={(provider) => patch({ decisions: { provider } })}
-      />
-      {d.provider !== 'local' ? (
-        <Row title={_('Agenda model')} subtitle={d.model ? undefined : _('The provider’s default')} stacked>
-          <ApplyField
-            label={_('Agenda model')}
-            value={d.model}
-            onApply={(model) => patch({ decisions: { model } })}
-          />
-        </Row>
-      ) : null}
-      {d.provider === 'jev' ? (
-        <ApiKeyRows
-          key="typesafe"
-          provider="typesafe"
-          configured={d.apiKeyConfigured}
-          title={_('TypeSafe API key')}
-        />
-      ) : d.provider === 'openai' || d.provider === 'anthropic' ? (
-        <Row
-          title={d.provider === 'openai' ? _('OpenAI API key') : _('Anthropic API key')}
-          subtitle={
-            d.apiKeyConfigured
-              ? _('Configured: the same key as for questions and answers')
-              : _('Not configured: add it above, under Questions and answers')
+      <Row title={_('AI providers and API keys')} subtitle={ai}>
+        <Button
+          size="sm"
+          onPress={() =>
+            void bridge
+              .openConfigFile()
+              .then(({ path, error }) =>
+                toast(
+                  error
+                    ? fmt(_('Could not open {path}: {reason}'), { path, reason: error })
+                    : _('Changes apply a few seconds after you save the file'),
+                  error ? { tone: 'error' } : undefined,
+                ),
+              )
           }
-        />
-      ) : null}
+        >
+          {_('Open config file')}
+        </Button>
+      </Row>
     </RowGroup>
   )
 }
+
+const providerName = (p: string): string =>
+  ({
+    anthropic: 'Anthropic',
+    openai: 'OpenAI',
+    ollama: 'Ollama',
+    jev: 'TypeSafe Jev',
+    local: _('on this computer'),
+  })[p] ?? p
 
 function General({
   settings,
@@ -274,46 +157,11 @@ function General({
   devices: AudioDevice[]
   patch: (p: SettingsPatch) => void
 }) {
-  const { llm, stt, capture, autoRecord } = settings
+  const { stt, capture, autoRecord } = settings
   // optional in the schema (settings stored before M3): the daemon's defaults
-  const speakers = settings.speakers ?? { diarize: true, voiceprints: false }
+  const speakers = settings.speakers ?? { diarize: true, voiceprints: true }
   return (
     <div className="flex flex-col gap-6">
-      <RowGroup
-        title={_('Questions and answers')}
-        description={_('The AI that answers questions about your meetings and writes up notes.')}
-      >
-        <SelectRow
-          title={_('Provider')}
-          options={providers()}
-          value={llm.provider}
-          onChange={(provider) => patch({ llm: { provider } })}
-        />
-        {llm.provider !== 'none' ? (
-          <Row title={_('Model')} subtitle={llm.model ? undefined : _('The provider’s default')} stacked>
-            <ApplyField label={_('Model')} value={llm.model} onApply={(model) => patch({ llm: { model } })} />
-          </Row>
-        ) : null}
-        {llm.provider === 'ollama' ? (
-          <Row title={_('Ollama URL')} stacked>
-            <ApplyField
-              label={_('Ollama URL')}
-              type="url"
-              value={llm.ollamaUrl}
-              onApply={(ollamaUrl) => patch({ llm: { ollamaUrl } })}
-            />
-          </Row>
-        ) : null}
-        {llm.provider === 'anthropic' || llm.provider === 'openai' ? (
-          <ApiKeyRows
-            // keyed by provider: each has its own key, so switching must not carry an entry's text over
-            key={llm.provider}
-            configured={llm.apiKeyConfigured}
-            title={llm.provider === 'anthropic' ? _('Anthropic API key') : _('OpenAI API key')}
-          />
-        ) : null}
-      </RowGroup>
-      <DecisionsGroup settings={settings} patch={patch} />
       <RowGroup
         title={_('Transcription')}
         description={_('A second, more accurate pass replaces the live transcript line by line.')}
@@ -327,21 +175,15 @@ function General({
       </RowGroup>
       <RowGroup
         title={_('Speakers')}
-        description={_('Your microphone is always you. These decide what happens to the other side.')}
+        description={_(
+          'Your microphone is always you. People you name are recognised by their voice in later meetings; voices stay on this computer.',
+        )}
       >
         <SwitchRow
           title={_('Tell far-end speakers apart')}
           subtitle={_('Label each voice on the other side as its own speaker')}
           value={speakers.diarize}
           onChange={(diarize) => patch({ speakers: { diarize } })}
-        />
-        <SwitchRow
-          title={_('Recognise people across meetings')}
-          subtitle={_(
-            'Remember the voices of people you name, so they are named in later meetings. Voices are stored only on this computer; turning this off forgets them all.',
-          )}
-          value={speakers.voiceprints}
-          onChange={(voiceprints) => patch({ speakers: { voiceprints } })}
         />
       </RowGroup>
       <RowGroup title={_('Capture')} description={_('Used for recordings started from now on.')}>
@@ -375,7 +217,7 @@ function General({
           <SelectRow
             title={_('Which meetings')}
             subtitle={_(
-              'Judged by what runs “Agenda during meetings”, from the event and what you recorded before. You get a notification when one is left alone.',
+              'Judged from the event and what you recorded before. You get a notification when one is left alone.',
             )}
             options={[
               { value: 'likely', label: _('The ones you’d want recorded') },
@@ -392,6 +234,7 @@ function General({
           onChange={(micActivity) => patch({ autoRecord: { micActivity } })}
         />
       </RowGroup>
+      <AdvancedGroup />
     </div>
   )
 }

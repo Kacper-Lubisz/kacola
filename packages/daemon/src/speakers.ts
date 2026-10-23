@@ -16,7 +16,8 @@ import type { SessionManager } from './sessions.ts'
 
 // M3 — attribution in the daemon: rename / merge / split far-end speakers, and voiceprints (A-6).
 //
-// Voiceprints are opt-in (settings.speakers.voiceprints) and local. With them on:
+// Voiceprints are on by default (settings.speakers.voiceprints; KACOLA_VOICEPRINTS=off in kacola.env) and
+// local. With them on:
 //   · at the end of each recording, each far-end speaker's voice (the diarizer's centroid) is written
 //     beside the session's audio (`voices.json`), and speakers already linked to a voiceprint refine it;
 //   · naming a speaker — mid-meeting or afterwards — makes (or refines) the voiceprint of that name;

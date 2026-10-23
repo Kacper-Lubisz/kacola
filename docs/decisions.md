@@ -89,7 +89,10 @@ provider falls back to the hashing embedder (health says so). Tests use `~/.cach
   (default `local`, model `''` = provider default; switching provider without a model resets it). Optional in
   the schema so older stored settings parse.
 - Keys reuse the keyring/env pattern: jev → keyring account `typesafe` / `TYPESAFE_API_KEY`; openai and
-  anthropic share the Q&A keys. `PUT /settings/api-key {provider: 'typesafe'}` stores it.
+  anthropic share the Q&A keys. The window no longer edits providers, models or keys: they live in
+  `kacola.env` (Preferences › Advanced › Open config file; `KACOLA_DECISIONS_PROVIDER`, `KACOLA_DECISIONS_MODEL`,
+  `TYPESAFE_API_KEY`, …), read into the daemon's environment at start, and a TypeSafe key alone selects Jev.
+  `PUT /settings/api-key {provider: 'typesafe'}` still stores one in the keyring (the CLI, scripts).
 - `/health.decisions = { provider, model, ready, detail }` — e.g. `no TYPESAFE_API_KEY in the environment or
   keyring`, `on-device embedding model not downloaded: using the hashing fallback`.
 - The daemon's `DecisionsService` (`daemon.decisions.provider()`) builds and caches the provider; later waves

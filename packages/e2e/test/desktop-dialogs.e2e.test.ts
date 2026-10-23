@@ -110,8 +110,10 @@ describe('Preferences and About against the real daemon', () => {
     expect(await app.axe()).toEqual([])
     await app.screenshot(join(DESKTOP_ARTIFACTS, 'ask-unavailable.png'))
     await askPane().getByRole('button', { name: 'Set up a provider' }).click()
-    await prefs().getByRole('region', { name: 'Questions and answers' }).waitFor({ timeout: 5000 })
-    await prefs().getByText('Not configured').waitFor()
+    await prefs().getByRole('region', { name: 'Advanced' }).waitFor({ timeout: 5000 })
+    await prefs()
+      .getByText(/Answers: Anthropic, needs an API key/)
+      .waitFor()
     await closePrefs()
 
     // Notes: Enhance says the same, with its own way to Preferences; the notes are untouched
@@ -127,7 +129,7 @@ describe('Preferences and About against the real daemon', () => {
     expect(await app.axe()).toEqual([])
     await app.screenshot(join(DESKTOP_ARTIFACTS, 'notes-unavailable.png'))
     await banner.getByRole('button', { name: 'Set up a provider' }).click()
-    await prefs().getByRole('region', { name: 'Questions and answers' }).waitFor({ timeout: 5000 })
+    await prefs().getByRole('region', { name: 'Advanced' }).waitFor({ timeout: 5000 })
     await closePrefs()
     await banner.getByRole('button', { name: 'Dismiss' }).click()
     await banner.waitFor({ state: 'detached' })
@@ -143,8 +145,10 @@ describe('Preferences and About against the real daemon', () => {
     // from the primary menu
     await app.window.getByRole('button', { name: 'Main menu' }).click()
     await app.window.getByRole('menuitem', { name: /Preferences/ }).click()
-    await prefs().getByRole('region', { name: 'Questions and answers' }).waitFor()
-    await prefs().getByText('Not configured').waitFor()
+    await prefs().getByRole('region', { name: 'Auto-record' }).waitFor()
+    await prefs()
+      .getByText(/Answers: Anthropic, needs an API key/)
+      .waitFor()
     await expect
       .poll(() =>
         prefs()
@@ -157,26 +161,19 @@ describe('Preferences and About against the real daemon', () => {
     expect(await app.axe()).toEqual([])
   })
 
-  it('stores an API key typed into Preferences: the daemon reports it, the window never shows it', async () => {
-    const field = prefs().getByRole('textbox', { name: 'API key' })
-    await field.fill(KEY)
-    expect(await field.getAttribute('type')).toBe('password')
-    const typed = await app.screenshot(join(DESKTOP_ARTIFACTS, 'prefs-key-typed.png'))
-    const text = ocr(typed)
-    expect(text).toMatch(/Preferences|Provider/) // OCR works on this screen at all
-    expect(text).not.toContain(KEY.slice(8, 20))
-    await field.press('Enter')
-    await waitFor(
-      async () => (await daemon.client.call('getSettings')).llm.apiKeyConfigured,
-      10_000,
-      'the daemon to report a configured key',
-    )
-    await prefs().getByText('Saved in your keyring, never shown').waitFor()
-    await app.window.getByRole('status').filter({ hasText: 'API key saved' }).waitFor() // toast
-    // cleared from the field, absent from the page and the screen
-    await expect.poll(() => prefs().getByRole('textbox', { name: 'Replace API key' }).inputValue()).toBe('')
+  it('a key set outside the window (kacola.env, the keyring) shows as a status line, never as the key', async () => {
+    await daemon.client.call('setApiKey', { body: { key: KEY } })
+    await prefs()
+      .getByText(/Answers: Anthropic(?!, needs)/)
+      .waitFor({ timeout: 10_000 })
+    expect(
+      await prefs()
+        .getByRole('textbox', { name: /API key/ })
+        .count(),
+    ).toBe(0)
+    expect(await prefs().getByRole('button', { name: 'Open config file' }).count()).toBe(1)
     expect(await pageText(app)).not.toContain(KEY)
-    expect(ocr(await app.screenshot(join(DESKTOP_ARTIFACTS, 'prefs-key-saved.png')))).not.toContain(
+    expect(ocr(await app.screenshot(join(DESKTOP_ARTIFACTS, 'prefs-advanced.png')))).not.toContain(
       KEY.slice(8, 20),
     )
     expect(daemon.output()).not.toContain(KEY)
@@ -207,7 +204,7 @@ describe('Preferences and About against the real daemon', () => {
   it('persists settings changed in Preferences (keyboard), and reflects changes made elsewhere live', async () => {
     // Ctrl+, opens Preferences
     await app.window.keyboard.press('Control+,')
-    await prefs().getByRole('region', { name: 'Questions and answers' }).waitFor()
+    await prefs().getByRole('region', { name: 'Auto-record' }).waitFor()
     const pass = prefs().getByRole('button', { name: /Accurate transcript/ })
     await pass.focus()
     await app.window.keyboard.press('Enter')
@@ -241,31 +238,22 @@ describe('Preferences and About against the real daemon', () => {
     await expect
       .poll(() => prefs().getByRole('switch', { name: 'When another app uses the microphone' }).isChecked())
       .toBe(true)
-    expect((await daemon.client.call('getSettings')).autoRecord).toEqual({
+    expect((await daemon.client.call('getSettings')).autoRecord).toMatchObject({
       calendar: true,
       micActivity: true,
     })
     await app.screenshot(join(DESKTOP_ARTIFACTS, 'prefs-general.png'))
 
-    // a change made by another client shows up while the dialog is open
+    // a change made by another client shows up while the dialog is open (the provider itself is
+    // kacola.env's, or the CLI's: Preferences only reports it)
     await daemon.client.call('updateSettings', { body: { llm: { provider: 'ollama' } } })
-    await prefs().getByRole('textbox', { name: 'Ollama URL' }).waitFor()
-    expect(
-      await prefs()
-        .getByRole('textbox', { name: /API key/ })
-        .count(),
-    ).toBe(0)
+    await prefs()
+      .getByText(/Answers: Ollama/)
+      .waitFor()
     await daemon.client.call('updateSettings', { body: { llm: { provider: 'anthropic' } } })
-    await prefs().getByRole('textbox', { name: 'Replace API key' }).waitFor()
-    // the model applies with Enter
-    const modelField = prefs().getByRole('textbox', { name: 'Model' })
-    await modelField.fill('claude-test-model')
-    await modelField.press('Enter')
-    await waitFor(
-      async () => (await daemon.client.call('getSettings')).llm.model === 'claude-test-model',
-      5000,
-      'model',
-    )
+    await prefs()
+      .getByText(/Answers: Anthropic/)
+      .waitFor()
 
     // retention lives on the Storage page; delete-after-days shows its day count
     await prefs().getByRole('tab', { name: 'Storage' }).click()

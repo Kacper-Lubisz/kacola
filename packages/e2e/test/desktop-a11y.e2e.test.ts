@@ -224,7 +224,7 @@ describe('axe over every screen and state (seeded daemon, replayed provider)', (
 
     await w().keyboard.press('Control+,')
     const prefs = w().getByRole('dialog', { name: 'Preferences' })
-    await prefs.getByRole('region', { name: 'Questions and answers' }).waitFor()
+    await prefs.getByRole('region', { name: 'Auto-record' }).waitFor()
     await s('Preferences: General')
     await prefs.getByRole('button', { name: /Accurate transcript/ }).click()
     await w().getByRole('listbox').last().waitFor()

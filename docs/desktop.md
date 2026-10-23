@@ -70,6 +70,22 @@ computer; a provider that fails or takes over 8 s falls back to the on-device he
 out as the ephemeral `auto-record.decided`; the macOS app turns a skipped one into a notification ("Not
 recording “Run club”") that records the meeting on a click (`POST /meetings/:id/join`).
 
+## The config file (kacola.env)
+
+Preferences shows what most people change; which AI answers questions and writes notes, which makes live
+decisions, their models, the Ollama URL and the API keys live in `kacola.env` in the config dir
+(`platformPaths().configFile`: macOS `~/Library/Application Support/kacola/kacola.env`, Linux
+`~/.config/kacola/kacola.env`; `KACOLA_CONFIG_FILE` overrides). Preferences › General › Advanced says
+in one line what is in use and whether it needs a key, and **Open config file** creates the file from
+`@kacola/protocol`'s `CONFIG_TEMPLATE` (mode 0600, every line commented) and opens it in the text editor.
+
+The daemon reads it at start into its environment — the real environment wins — so every `KACOLA_*`
+variable and key can go there (`packages/daemon/src/config-file.ts`). `KACOLA_LLM_PROVIDER` / `_MODEL`,
+`KACOLA_OLLAMA_URL`, `KACOLA_DECISIONS_PROVIDER` / `_MODEL` and `KACOLA_VOICEPRINTS` pin those settings
+over the stored ones (`settingsOverrides`; a change made elsewhere never writes them into the store). A
+saved change is noticed within 2 s and the daemon restarts once nothing is recording (RestartControl,
+when-idle); the window shows "Starting kacola…" meanwhile.
+
 ## Configuration
 
 | env | values | default |

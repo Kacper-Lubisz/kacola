@@ -3,9 +3,17 @@ import '@kacola/protocol/legacy-env'
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { dirname, join, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { createClient, ingestPcm, MAX_FRAME_BYTES, type Meeting, type Session } from '@kacola/protocol'
+import {
+  createClient,
+  ingestPcm,
+  MAX_FRAME_BYTES,
+  type Meeting,
+  platformPaths,
+  type Session,
+} from '@kacola/protocol'
 import { migrateLegacyMacDir, migrateLegacyUserDirs } from '@kacola/protocol/legacy-dirs'
 import {
   webContents as allWebContents,
@@ -49,7 +57,13 @@ import { CaptureController, type CaptureWindowLike, captureTracks } from './capt
 import { calAgentPath, readDesktopConfig } from './config.ts'
 import { DeepLinkQueue, deepLinkFromArgv, normalizeDeepLink, schemeRegistration } from './deep-link.ts'
 import { ExtensionManager, extensionSource, runCommand } from './extension.ts'
-import { checkClipboardText, checkSaveRequest, type SaveDialogOptions, saveText } from './files.ts'
+import {
+  checkClipboardText,
+  checkSaveRequest,
+  ensureConfigFile,
+  type SaveDialogOptions,
+  saveText,
+} from './files.ts'
 import { cliEntry, Integration, runCli, shq } from './integration.ts'
 import { IdleCollector } from './memory.ts'
 import { askedPermissions, Permissions, SETTINGS_PANES } from './permissions.ts'
@@ -599,6 +613,22 @@ function wireIpc(): void {
   handle(IPC.permissionSettings, (_e, pane) => {
     if (typeof pane !== 'string' || !Object.hasOwn(SETTINGS_PANES, pane)) return false
     return permissions.openSettings(pane as SettingsPane)
+  })
+  handle(IPC.configFileOpen, async () => {
+    const path = platformPaths({ env: process.env, home: homedir(), platform: process.platform }).configFile
+    try {
+      ensureConfigFile(path)
+    } catch (err) {
+      return { path, error: (err as Error).message }
+    }
+    // macOS: TextEdit (or whatever opens plain text); elsewhere the desktop's handler for the file
+    const error =
+      process.platform === 'darwin'
+        ? await new Promise<string | null>((r) =>
+            execFile('open', ['-t', path], (err) => r(err ? err.message : null)),
+          )
+        : (await shell.openPath(path)) || null
+    return { path, error }
   })
   ipcMain.on(IPC.relaunch, (e) => {
     if (!trusted(e)) return

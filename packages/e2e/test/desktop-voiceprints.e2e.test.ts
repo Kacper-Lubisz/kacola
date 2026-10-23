@@ -138,14 +138,15 @@ describe('desktop: speaker settings and voiceprints against the real daemon', ()
     if (markerId) expect(markedPids(markerId)).toEqual([])
   })
 
-  it('Preferences: the speaker switches reach the daemon, follow changes made elsewhere, and Escape closes', async () => {
+  it('Preferences: the speaker switch reaches the daemon, follows changes made elsewhere, and Escape closes', async () => {
     await w().keyboard.press('Control+,')
     await prefs().getByRole('region', { name: 'Speakers' }).waitFor({ timeout: 5000 })
     const diarize = prefs().getByRole('switch', { name: 'Tell far-end speakers apart' })
-    const voiceprints = prefs().getByRole('switch', { name: 'Recognise people across meetings' })
-    // the daemon's defaults: far-end speakers told apart, no voices kept
+    // the daemon's defaults: far-end speakers told apart, named voices kept (no switch for that: on by
+    // default, KACOLA_VOICEPRINTS=off in kacola.env turns it off)
     expect(await diarize.isChecked()).toBe(true)
-    expect(await voiceprints.isChecked()).toBe(false)
+    expect(await prefs().getByRole('switch', { name: 'Recognise people across meetings' }).count()).toBe(0)
+    expect((await settings()).speakers?.voiceprints).toBe(true)
     expect(await app.axe()).toEqual([])
 
     // Wait for the SWITCH as well as the daemon before toggling again: under load the window can still
@@ -156,9 +157,6 @@ describe('desktop: speaker settings and voiceprints against the real daemon', ()
     await toggle('Tell far-end speakers apart')
     await poll(async () => (await settings()).speakers?.diarize === true, 5000, 'diarize on again')
     await poll(async () => diarize.isChecked(), 5000, 'the diarize switch on again')
-    await toggle('Recognise people across meetings')
-    await poll(async () => (await settings()).speakers?.voiceprints === true, 5000, 'voiceprints on')
-    await poll(async () => voiceprints.isChecked(), 5000, 'the voiceprints switch on')
 
     // another client (the CLI, say) changes them while the dialog is open: the switches follow
     await daemon.client.call('updateSettings', { body: { speakers: { diarize: false } } })
@@ -172,9 +170,7 @@ describe('desktop: speaker settings and voiceprints against the real daemon', ()
     await prefs().waitFor({ state: 'detached', timeout: 5000 })
     await w().keyboard.press('Control+,')
     await prefs().getByRole('region', { name: 'Speakers' }).waitFor({ timeout: 5000 })
-    expect(await prefs().getByRole('switch', { name: 'Recognise people across meetings' }).isChecked()).toBe(
-      true,
-    )
+    expect(await diarize.isChecked()).toBe(true)
     await w().keyboard.press('Escape')
     await prefs().waitFor({ state: 'detached', timeout: 5000 })
   })
@@ -249,17 +245,13 @@ describe('desktop: speaker settings and voiceprints against the real daemon', ()
     )
   })
 
-  it('switching voiceprints off in Preferences forgets every voice', async () => {
-    await w().keyboard.press('Control+,')
-    await prefs().getByRole('region', { name: 'Speakers' }).waitFor({ timeout: 5000 })
-    await toggle('Recognise people across meetings')
+  it('switching voiceprints off (kacola.env, the CLI) forgets every voice', async () => {
+    await daemon.client.call('updateSettings', { body: { speakers: { voiceprints: false } } })
     await poll(
       async () => (await daemon.client.call('listVoiceprints')).voiceprints.length === 0,
       5000,
       'every voiceprint forgotten',
     )
     expect((await settings()).speakers?.voiceprints).toBe(false)
-    await w().keyboard.press('Escape')
-    await prefs().waitFor({ state: 'detached', timeout: 5000 })
   })
 })

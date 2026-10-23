@@ -252,7 +252,7 @@ describe('Preferences and onboarding (real daemon, no sessions)', () => {
       await app.window.getByRole('searchbox', { name: 'Search or ask' }).waitFor({ timeout: 20_000 })
       await app.window.keyboard.press('Control+,')
       const prefs = app.window.getByRole('dialog', { name: 'Preferences' })
-      await prefs.getByRole('region', { name: 'Questions and answers' }).waitFor()
+      await prefs.getByRole('region', { name: 'Auto-record' }).waitFor()
       await app.window.evaluate('document.activeElement?.blur()')
       expect(await axeAllModes(app)).toEqual([])
       expect(await matrix(app, 'preferences')).toEqual([])

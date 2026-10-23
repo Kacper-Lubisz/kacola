@@ -1,7 +1,10 @@
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
+import { CONFIG_TEMPLATE } from '@kacola/protocol'
 import type { SaveTextRequest, SaveTextResult } from '../shared/bridge.ts'
 
 // Clipboard and "save as" for the renderer (it has no Node and no file system): the notes pane's Copy
-// as Markdown and Export. Pure argument checks + a small orchestration over injected Electron calls, so
+// as Markdown and Export; and Preferences' config file (kacola.env), created before it is opened. Pure argument checks + a small orchestration over injected Electron calls, so
 // both are unit-tested without Electron; index.ts wires them to ipcMain, clipboard and dialog.
 
 /** Enough for any notes document (the daemon caps one version at 200 000 characters) plus a header. */
@@ -67,4 +70,11 @@ export async function saveText(req: SaveTextRequest, deps: SaveDeps): Promise<Sa
   if (r.canceled || !r.filePath) return { saved: false }
   await deps.writeFile(r.filePath, req.text)
   return { saved: true, path: r.filePath }
+}
+
+/** kacola.env from the template, readable by this user only (it holds API keys); an existing one is kept. */
+export function ensureConfigFile(path: string): void {
+  if (existsSync(path)) return
+  mkdirSync(dirname(path), { recursive: true })
+  writeFileSync(path, CONFIG_TEMPLATE, { mode: 0o600 })
 }

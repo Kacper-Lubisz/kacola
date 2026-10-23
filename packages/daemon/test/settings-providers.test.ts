@@ -72,3 +72,24 @@ describe('LLM provider settings', () => {
     await expect(s.setApiKey('x')).rejects.toMatchObject({ code: 'bad_request' })
   })
 })
+
+describe('settings pinned by kacola.env', () => {
+  it('win over what is stored, and a change made elsewhere never writes them into the store', async () => {
+    const store = Store.open(':memory:')
+    const pinned = new SettingsService({
+      store,
+      keyring: new MemoryKeyring(),
+      env: { KACOLA_LLM_PROVIDER: 'openai', TYPESAFE_API_KEY: 'ts' },
+      logger: new Logger(),
+    })
+    expect(pinned.get().llm).toMatchObject({ provider: 'openai', model: 'gpt-5.5' })
+    expect(pinned.get().decisions?.provider).toBe('jev')
+    await pinned.patch({ autoRecord: { calendar: true } })
+    expect(pinned.get().llm.provider).toBe('openai')
+    // the same store without the file: the user's own choices, untouched by the pins
+    const plain = new SettingsService({ store, keyring: new MemoryKeyring(), env: {}, logger: new Logger() })
+    expect(plain.get().llm.provider).toBe('anthropic')
+    expect(plain.get().decisions?.provider).toBe('local')
+    expect(plain.get().autoRecord.calendar).toBe(true)
+  })
+})

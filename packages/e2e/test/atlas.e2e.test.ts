@@ -212,7 +212,7 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     )
   const openPrefs = async () => {
     await w().keyboard.press('Control+,')
-    await prefs().getByRole('region', { name: 'Questions and answers' }).waitFor({ timeout: 10_000 })
+    await prefs().getByRole('region', { name: 'Auto-record' }).waitFor({ timeout: 10_000 })
   }
   const recording = () =>
     poll(
@@ -881,46 +881,18 @@ describe('atlas: the seeded world (real daemon, replayed provider, held pipeline
     await goHome()
   })
 
-  it('settings: provider and keys, speakers, capture, storage, integration', async () => {
+  it('settings: providers and keys, speakers, capture, storage, integration', async () => {
     await openPrefs()
+    const advanced = prefs().getByRole('region', { name: 'Advanced' })
+    await advanced.scrollIntoViewIfNeeded()
     await atlas.shoot(w(), 'settings-provider__general__anthropic', {
-      expect: prefs().getByText('Saved in your keyring, never shown').first(),
+      expect: advanced.getByRole('button', { name: 'Open config file' }),
     })
-    await prefs()
-      .getByRole('button', { name: /Provider$/ })
-      .click()
-    await atlas.shoot(w(), 'settings-provider__provider__menu', {
-      expect: w().getByRole('option', { name: 'OpenAI' }),
-      keepFocus: true,
-    })
-    await w().getByRole('option', { name: 'OpenAI' }).click()
-    await atlas.shoot(w(), 'settings-provider__openai__key', {
-      expect: prefs()
-        .getByRole('textbox', { name: /OpenAI API key/ })
-        .or(prefs().getByText('OpenAI API key'))
-        .first(),
-    })
-    await prefs()
-      .getByRole('button', { name: /Provider$/ })
-      .click()
-    await w().getByRole('option', { name: 'Ollama' }).click()
-    await atlas.shoot(w(), 'settings-provider__ollama__url', {
-      expect: prefs().getByRole('textbox', { name: 'Ollama URL' }),
-    })
-    await prefs()
-      .getByRole('button', { name: /Provider$/ })
-      .click()
-    await w().getByRole('option', { name: 'Anthropic' }).click()
-    await poll(
-      async () => (await daemon.client.call('getSettings')).llm.provider === 'anthropic',
-      5000,
-      'anthropic',
-    )
 
     const speakers = prefs().getByRole('region', { name: 'Speakers' })
     await speakers.scrollIntoViewIfNeeded()
     await atlas.shoot(w(), 'speakers__preferences__voiceprints', {
-      expect: prefs().getByRole('switch', { name: 'Recognise people across meetings' }),
+      expect: prefs().getByRole('switch', { name: 'Tell far-end speakers apart' }),
     })
     const capture = prefs().getByRole('region', { name: 'Capture' })
     await capture.scrollIntoViewIfNeeded()

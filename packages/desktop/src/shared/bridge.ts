@@ -41,6 +41,7 @@ export const IPC = {
   permissionRequest: 'kacola:permission-request',
   permissionSettings: 'kacola:permission-settings',
   relaunch: 'kacola:relaunch',
+  configFileOpen: 'kacola:config-file-open',
 } as const
 
 // ---- fetch tunnel -----------------------------------------------------------------------------------
@@ -250,4 +251,9 @@ export interface KacolaBridge {
   openSettingsPane(pane: SettingsPane): Promise<boolean>
   /** Quit and start again (macOS applies a new Screen & System Audio Recording grant only then). */
   relaunch(): void
+  /**
+   * Open kacola.env (providers, models, API keys) in the text editor, creating it from the template first.
+   * `error` says why it could not be opened; the path is still given, to open by hand.
+   */
+  openConfigFile(): Promise<{ path: string; error: string | null }>
 }

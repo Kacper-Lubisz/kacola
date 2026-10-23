@@ -32,6 +32,8 @@ export type PlatformPaths = {
   modelsDir: string
   /** hosts.json (paired device tokens). */
   configDir: string
+  /** kacola.env: the settings Preferences does not show (providers, models, API keys). KACOLA_CONFIG_FILE wins. */
+  configFile: string
   /** UI state (onboarding done, window size). */
   stateDir: string
 }
@@ -60,15 +62,17 @@ export function platformPaths(i: PlatformInput): PlatformPaths {
       ? appSupport
       : join(home, '.local', 'share', name)
   const dataDir = env.KACOLA_DATA_DIR || dataRoot
+  const configDir = env.XDG_CONFIG_HOME
+    ? join(env.XDG_CONFIG_HOME, name)
+    : mac
+      ? appSupport
+      : join(home, '.config', name)
   return {
     kind,
     dataDir,
     modelsDir: env.KACOLA_MODELS_DIR || join(dataRoot, 'models'),
-    configDir: env.XDG_CONFIG_HOME
-      ? join(env.XDG_CONFIG_HOME, name)
-      : mac
-        ? appSupport
-        : join(home, '.config', name),
+    configDir,
+    configFile: env.KACOLA_CONFIG_FILE || join(configDir, `${name}.env`),
     stateDir: env.XDG_STATE_HOME
       ? join(env.XDG_STATE_HOME, name)
       : mac

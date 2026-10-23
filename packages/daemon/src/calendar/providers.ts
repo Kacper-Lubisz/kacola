@@ -282,7 +282,8 @@ abstract class AgentCalendarProvider implements CalendarProvider {
           ? `could not run ${this.spawn.command}: ${error}`
           : `cal-agent exited (${signal ?? `code ${code}`})${stderr ? `: ${lastLine(stderr)}` : ''}`
         this.l?.status(willRestart ? 'starting' : 'unavailable', why)
-        if (!willRestart) log.error('cal-agent gave up', { why })
+        // stop() clears the listener first: an agent that exits because we stopped it did not give up
+        if (!willRestart && this.l) log.error('cal-agent gave up', { why })
       },
     })
     this.child.start()

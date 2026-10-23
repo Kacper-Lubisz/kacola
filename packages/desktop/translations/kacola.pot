@@ -547,7 +547,6 @@ msgstr ""
 
 #: src/renderer/features/agendas/agenda-editor.tsx:530
 #: src/renderer/features/agendas/share.tsx:242
-#: src/renderer/features/preferences/preferences-dialog.tsx:142
 msgid "Save"
 msgstr ""
 
@@ -630,7 +629,6 @@ msgstr ""
 #: src/renderer/features/preferences/extension-setup.tsx:293
 #: src/renderer/features/preferences/extension-setup.tsx:300
 #: src/renderer/features/preferences/integration-rows.tsx:106
-#: src/renderer/features/preferences/preferences-dialog.tsx:119
 msgid "Remove"
 msgstr ""
 
@@ -2237,7 +2235,7 @@ msgid "Accept"
 msgstr ""
 
 #: src/renderer/features/meeting/transcript-panel.tsx:27
-#: src/renderer/features/preferences/preferences-dialog.tsx:329
+#: src/renderer/features/preferences/preferences-dialog.tsx:177
 #: src/renderer/features/speakers/speakers-dialog.tsx:207
 #: src/renderer/features/speakers/speakers-dialog.tsx:234
 #: src/renderer/features/speakers/speakers-dialog.tsx:257
@@ -2453,7 +2451,6 @@ msgid "Loading models"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:141
-#: src/renderer/features/preferences/preferences-dialog.tsx:222
 msgid "Ready"
 msgstr ""
 
@@ -2520,7 +2517,7 @@ msgid "Checking audio capture"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:276
-#: src/renderer/features/preferences/preferences-dialog.tsx:349
+#: src/renderer/features/preferences/preferences-dialog.tsx:191
 #: src/renderer/features/sessions/session-details.tsx:19
 msgid "Microphone"
 msgstr ""
@@ -2534,7 +2531,7 @@ msgid "Turn kacola on under Privacy & Security › Microphone"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:283
-#: src/renderer/features/preferences/preferences-dialog.tsx:355
+#: src/renderer/features/preferences/preferences-dialog.tsx:197
 #: src/renderer/features/sessions/session-details.tsx:20
 msgid "System audio"
 msgstr ""
@@ -2893,315 +2890,208 @@ msgid ""
 "Record from the top bar and the command line without opening this window"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:68
-msgid "Apply {setting}"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:69
-msgid "Apply"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:95
-msgid "API key removed"
-msgstr ""
-
 #: src/renderer/features/preferences/preferences-dialog.tsx:97
-msgid "API key saved"
+msgid "Answers: off"
 msgstr ""
 
 #: src/renderer/features/preferences/preferences-dialog.tsx:98
-msgid "The API key was not stored"
+msgid "Answers: {provider}"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:102
-msgid "Could not store the API key: {reason}"
+#: src/renderer/features/preferences/preferences-dialog.tsx:98
+msgid "Answers: {provider}, needs an API key"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:104
-msgid "Replace API key"
+#: src/renderer/features/preferences/preferences-dialog.tsx:103
+msgid "Decisions: {provider}"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:104
-msgid "API key"
+#: src/renderer/features/preferences/preferences-dialog.tsx:103
+msgid "Decisions: {provider}, needs an API key"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:109
-msgid "Saved in your keyring, never shown"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:109
-msgid "Not configured"
+#: src/renderer/features/preferences/preferences-dialog.tsx:114
+msgid "Advanced"
 msgstr ""
 
 #: src/renderer/features/preferences/preferences-dialog.tsx:116
-msgid "Remove the stored API key"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:136
-msgid "Paste a key"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:196
-msgid "On this computer"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:197
-msgid "TypeSafe Jev"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:198
-msgid "OpenAI"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:199
-msgid "Anthropic"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:200
-msgid "Ollama"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:218
-msgid "Ollama is not answering"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:219
-msgid "Needs an API key"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:221
-msgid "Ready. More accurate once its on-device model is downloaded"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:226
-msgid "Agenda during meetings"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:228
 msgid ""
-"Ticks off agenda items as they are covered and suggests what to raise next. "
-"Also judges which calendar meetings to record."
+"Which AI answers questions, writes notes and judges meetings, and its API "
+"keys, are set in a config file."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:232
-msgid "Runs on"
+#: src/renderer/features/preferences/preferences-dialog.tsx:119
+msgid "AI providers and API keys"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:239
-#: src/renderer/features/preferences/preferences-dialog.tsx:241
-msgid "Agenda model"
+#: src/renderer/features/preferences/preferences-dialog.tsx:128
+msgid "Could not open {path}: {reason}"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:239
-#: src/renderer/features/preferences/preferences-dialog.tsx:293
-msgid "The provider’s default"
+#: src/renderer/features/preferences/preferences-dialog.tsx:129
+msgid "Changes apply a few seconds after you save the file"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:252
-msgid "TypeSafe API key"
+#: src/renderer/features/preferences/preferences-dialog.tsx:135
+msgid "Open config file"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:256
-#: src/renderer/features/preferences/preferences-dialog.tsx:312
-msgid "OpenAI API key"
+#: src/renderer/features/preferences/preferences-dialog.tsx:148
+msgid "on this computer"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:256
-#: src/renderer/features/preferences/preferences-dialog.tsx:312
-msgid "Anthropic API key"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:259
-msgid "Configured: the same key as for questions and answers"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:260
-msgid "Not configured: add it above, under Questions and answers"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:283
-msgid "Questions and answers"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:284
-msgid "The AI that answers questions about your meetings and writes up notes."
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:287
-msgid "Provider"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:293
-#: src/renderer/features/preferences/preferences-dialog.tsx:294
-msgid "Model"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:298
-#: src/renderer/features/preferences/preferences-dialog.tsx:300
-msgid "Ollama URL"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:318
+#: src/renderer/features/preferences/preferences-dialog.tsx:166
 msgid "Transcription"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:319
+#: src/renderer/features/preferences/preferences-dialog.tsx:167
 msgid "A second, more accurate pass replaces the live transcript line by line."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:322
+#: src/renderer/features/preferences/preferences-dialog.tsx:170
 msgid "Accurate transcript"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:330
+#: src/renderer/features/preferences/preferences-dialog.tsx:179
 msgid ""
-"Your microphone is always you. These decide what happens to the other side."
+"Your microphone is always you. People you name are recognised by their voice "
+"in later meetings; voices stay on this computer."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:333
+#: src/renderer/features/preferences/preferences-dialog.tsx:183
 msgid "Tell far-end speakers apart"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:334
+#: src/renderer/features/preferences/preferences-dialog.tsx:184
 msgid "Label each voice on the other side as its own speaker"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:339
-msgid "Recognise people across meetings"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:341
-msgid ""
-"Remember the voices of people you name, so they are named in later meetings. "
-"Voices are stored only on this computer; turning this off forgets them all."
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:347
+#: src/renderer/features/preferences/preferences-dialog.tsx:189
 msgid "Capture"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:347
+#: src/renderer/features/preferences/preferences-dialog.tsx:189
 msgid "Used for recordings started from now on."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:356
+#: src/renderer/features/preferences/preferences-dialog.tsx:198
 msgid "What the other people in the call sound like"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:363
+#: src/renderer/features/preferences/preferences-dialog.tsx:205
 msgid "Auto-record"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:365
+#: src/renderer/features/preferences/preferences-dialog.tsx:207
 msgid ""
 "Start recording on its own. A recording that is already running is never "
 "interrupted."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:369
+#: src/renderer/features/preferences/preferences-dialog.tsx:211
 msgid "When a calendar meeting starts"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:370
+#: src/renderer/features/preferences/preferences-dialog.tsx:212
 msgid "Meetings you declined, and all-day events, are skipped"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:376
+#: src/renderer/features/preferences/preferences-dialog.tsx:218
 msgid "Which meetings"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:378
+#: src/renderer/features/preferences/preferences-dialog.tsx:220
 msgid ""
-"Judged by what runs “Agenda during meetings”, from the event and what you "
-"recorded before. You get a notification when one is left alone."
+"Judged from the event and what you recorded before. You get a notification "
+"when one is left alone."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:381
+#: src/renderer/features/preferences/preferences-dialog.tsx:223
 msgid "The ones you’d want recorded"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:382
+#: src/renderer/features/preferences/preferences-dialog.tsx:224
 msgid "Every meeting"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:389
+#: src/renderer/features/preferences/preferences-dialog.tsx:231
 msgid "When another app uses the microphone"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:390
+#: src/renderer/features/preferences/preferences-dialog.tsx:232
 msgid "Stops again once the call has ended"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:403
+#: src/renderer/features/preferences/preferences-dialog.tsx:246
 msgid "Recorded audio"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:404
+#: src/renderer/features/preferences/preferences-dialog.tsx:247
 msgid ""
 "Transcripts are always kept. This only decides what happens to the audio."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:407
+#: src/renderer/features/preferences/preferences-dialog.tsx:250
 msgid "Audio"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:413
-#: src/renderer/features/preferences/preferences-dialog.tsx:415
+#: src/renderer/features/preferences/preferences-dialog.tsx:256
+#: src/renderer/features/preferences/preferences-dialog.tsx:258
 msgid "Days to keep audio"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:428
+#: src/renderer/features/preferences/preferences-dialog.tsx:271
 msgid "Archive audio"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:429
+#: src/renderer/features/preferences/preferences-dialog.tsx:272
 msgid "Keep a small compressed copy of each recording"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:439
+#: src/renderer/features/preferences/preferences-dialog.tsx:282
 msgid "Desktop integration"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:439
+#: src/renderer/features/preferences/preferences-dialog.tsx:282
 msgid "Make kacola available outside this window."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:458
+#: src/renderer/features/preferences/preferences-dialog.tsx:301
 msgid "Could not save the setting: {reason}"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:482
+#: src/renderer/features/preferences/preferences-dialog.tsx:325
 msgid "Settings unavailable"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:483
+#: src/renderer/features/preferences/preferences-dialog.tsx:326
 msgid "kacola’s background service did not answer. Close this and try again."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:489
+#: src/renderer/features/preferences/preferences-dialog.tsx:332
 msgid "Loading settings"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:495
+#: src/renderer/features/preferences/preferences-dialog.tsx:338
 #: src/renderer/features/shell/primary-menu.tsx:17
 #: src/renderer/features/shell/shortcuts.tsx:28
 msgid "Preferences"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:498
+#: src/renderer/features/preferences/preferences-dialog.tsx:341
 msgid "Preferences pages"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:501
+#: src/renderer/features/preferences/preferences-dialog.tsx:344
 #: src/renderer/features/shell/shortcuts.tsx:23
 msgid "General"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:502
+#: src/renderer/features/preferences/preferences-dialog.tsx:345
 msgid "Storage"
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:503
+#: src/renderer/features/preferences/preferences-dialog.tsx:346
 msgid "Integration"
 msgstr ""
 

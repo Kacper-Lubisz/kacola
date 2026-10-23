@@ -18,7 +18,7 @@ import { Icon } from '../icon.tsx'
 // hovered or focused), or by its close button. Anything persistent is a Banner instead.
 //
 //   const toast = useToast()
-//   toast(_('API key saved'))
+//   toast(_('Command-line tool installed'))
 //   toast(fmt(_('Could not stop recording: {reason}'), { reason }), { tone: 'error' })
 
 export type ToastOptions = {

@@ -35,6 +35,7 @@ import {
   NoCalendar,
 } from './calendar/providers.ts'
 import { parseConfig, UsageError } from './config.ts'
+import { applyConfigFile, configFilePath, watchConfigFile } from './config-file.ts'
 import { createDaemon, type DaemonOptions } from './daemon.ts'
 import { acquireDataDirLock, type DataDirLock, DataDirLockedError } from './data-lock.ts'
 import { LlmNotesEngine } from './engines/enhance.ts'
@@ -82,6 +83,8 @@ function keyringFor(kind: string, service: string): Keyring {
 }
 
 async function main(): Promise<void> {
+  const configFile = configFilePath(process.env, process.env.KACOLA_PLATFORM || process.platform)
+  const fromConfigFile = applyConfigFile(configFile, process.env)
   // TYPESAFE_AI_API_KEY is accepted as another name for TYPESAFE_API_KEY
   if (!process.env.TYPESAFE_API_KEY?.trim() && process.env.TYPESAFE_AI_API_KEY?.trim())
     process.env.TYPESAFE_API_KEY = process.env.TYPESAFE_AI_API_KEY
@@ -215,6 +218,19 @@ async function main(): Promise<void> {
   process.stdout.write(
     `${JSON.stringify({ event: 'listening', url: daemon.url, port: daemon.port, pid: process.pid })}\n`,
   )
+  // names only: the file holds API keys
+  if (fromConfigFile.length)
+    daemon.logger.info('config file applied', { file: configFile, set: fromConfigFile })
+  const unwatchConfig = watchConfigFile(configFile, () => {
+    daemon.logger.info('config file changed: restarting once nothing is recording', { file: configFile })
+    try {
+      daemon.restart.request({ mode: 'when-idle', force: false, by: 'config file' })
+    } catch (err) {
+      daemon.logger.warn('config file changed, but this daemon cannot restart itself: restart it to apply', {
+        err: (err as Error).message,
+      })
+    }
+  })
 
   // H-7 hybrid sync: push this machine's transcripts and notes to a hosted server, as a protocol client
   // of both ends (the agent reads this daemon's own /events over loopback).
@@ -252,6 +268,7 @@ async function main(): Promise<void> {
     if (stopping) return
     stopping = true
     sync.abort()
+    unwatchConfig()
     daemon.logger.info(code === DAEMON_EXIT.RESTART ? 'restart' : 'signal received', { why, recordings })
     const force = setTimeout(() => process.exit(code || 1), 10_000)
     force.unref()

@@ -412,10 +412,11 @@ flowchart TD
 - **Status:** built
 - **Steps:** 1. Every line has a speaker chip: Me (the microphone, always), Speaker N for each far-end
   voice. 2. Name a speaker inline; merge two that are the same person; split a line off ("Someone Else
-  Said This"). 3. With "Recognise people across meetings" on, a named voice is named in later meetings.
+  Said This"). 3. A named voice is named in later meetings (voiceprints, on by default, kept on this
+  computer; `KACOLA_VOICEPRINTS=off` in kacola.env turns them off and forgets them).
 - **States:** `speakers__transcript__chips`, `speakers__dialog__list`, `speakers__rename__field`,
   `speakers__merge__menu`, `speakers__line__someone-else`, `speakers__preferences__voiceprints`.
-- **Tests:** desktop-speakers, desktop-voiceprints, attribution-real.e2e.
+- **Tests:** desktop-speakers, desktop-voiceprints, attribution-real.e2e, voiceprints-external.e2e (the macOS path).
 
 ```mermaid
 flowchart TD
@@ -425,7 +426,7 @@ flowchart TD
   C -->|Merge into…| E[Merge menu]
   B -->|select a far-end line| F[Someone Else Said This]
   D -.reserved or duplicate name.-> X[The daemon's refusal]
-  G([Preferences › Speakers]) --> H[Recognise people across meetings]
+  G([Preferences › Speakers]) --> H[Tell far-end speakers apart]
   H --> I([Named by voice next time])
   D --> I
   %% shot: B = speakers__transcript__chips
@@ -623,31 +624,23 @@ flowchart LR
 
 ## Settings
 
-### settings-provider — Language model provider and keys
-- **Status:** built (the decisions provider is planned)
-- **Steps:** 1. Preferences › General › Questions and Answers: provider (Anthropic, OpenAI, Ollama, none),
-  model, effort. 2. The API key is write-only: "Configured (kept in the keyring, never shown)",
-  Replace or Remove. 3. Ollama takes a URL. 4. Planned: the decisions provider for live intelligence
-  (jev, OpenAI, Anthropic, Ollama, local) with its own key.
-- **States:** `settings-provider__general__anthropic`, `settings-provider__provider__menu`,
-  `settings-provider__openai__key`, `settings-provider__ollama__url`, `settings-provider__decisions__provider`
-  (planned).
+### settings-provider — AI providers and keys
+- **Status:** built
+- **Steps:** 1. Preferences › General › Advanced shows, in one line, what answers questions and writes
+  notes (Anthropic, OpenAI, Ollama, off) and what makes live decisions (Jev, this computer, …), and says
+  when one needs an API key. 2. **Open config file** opens `kacola.env` (created from a commented
+  template, readable only by the user) in the text editor: providers, models, Ollama URL and API keys
+  are set there. 3. Saving it applies the change: the daemon restarts once nothing is recording.
+- **States:** `settings-provider__general__anthropic`.
 
 ```mermaid
 flowchart TD
-  A([Ctrl+,]) --> B[General: Anthropic configured]
-  B --> C[Provider menu]
-  C -->|OpenAI| D[OpenAI API key]
-  C -->|Ollama| E[Ollama URL]
-  C -->|None| F[Ask / Enhance explain what is missing]
-  D -->|Save| G[API key saved, never shown again]
-  B -.planned.-> H[Decisions provider + key]
+  A([Ctrl+,]) --> B[General › Advanced: Answers / Decisions status]
+  B -->|Open config file| C[kacola.env in the text editor]
+  C -->|save| D[the daemon restarts when idle; the status line follows]
+  B -.no provider or key.-> F[Ask / Enhance explain what is missing]
   %% shot: B = settings-provider__general__anthropic
-  %% shot: C = settings-provider__provider__menu
-  %% shot: D = settings-provider__openai__key
-  %% shot: E = settings-provider__ollama__url
   %% shot: F = provider-errors__ask__no-provider
-  %% shot: H = settings-provider__decisions__provider
 ```
 
 ### settings-capture — Capture devices and speech models

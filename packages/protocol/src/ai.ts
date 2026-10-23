@@ -129,20 +129,20 @@ export function aiErrorCopy(
   switch (reason) {
     case 'no-provider':
       return {
-        message: `${feature} needs an AI provider. Set one up in Preferences.`,
+        message: `${feature} needs an AI provider. Set one up in Preferences › Advanced.`,
         reason,
         action: 'set-up-provider',
       }
     case 'no-key':
       return {
-        message: `${name} needs an API key. Add it in Preferences.`,
+        message: `${name} needs an API key. Add it in Preferences › Advanced.`,
         reason,
         action: 'set-up-provider',
         ...withProvider,
       }
     case 'bad-key':
       return {
-        message: `${name} didn't accept the API key. Check it in Preferences.`,
+        message: `${name} didn't accept the API key. Check it in Preferences › Advanced.`,
         reason,
         action: 'set-up-provider',
         ...withProvider,

@@ -18,7 +18,7 @@ export function applyPatch(s: Settings, p: SettingsPatch): Settings {
     retention: { ...s.retention, ...p.retention },
     autoRecord: { ...s.autoRecord, ...p.autoRecord },
     ...(p.speakers || s.speakers
-      ? { speakers: { diarize: true, voiceprints: false, ...s.speakers, ...p.speakers } }
+      ? { speakers: { diarize: true, voiceprints: true, ...s.speakers, ...p.speakers } }
       : {}),
   }
 }
@@ -30,24 +30,5 @@ export function updateSettingsMutation(api: Api, qc: QueryClient) {
     ...optimistic<SettingsPatch>(qc, (patch) => [
       { key: keys.settings(), update: (prev) => applyPatch(prev as Settings, patch) },
     ]),
-  }
-}
-
-/**
- * Store (or clear, with null) the current provider's API key. The key goes straight to the daemon's
- * keyring and is never cached or shown; only `apiKeyConfigured` changes here, and the settings are
- * refetched afterwards (a key change is not a settings.updated event).
- */
-export function setApiKeyMutation(api: Api, qc: QueryClient) {
-  return {
-    mutationKey: ['setApiKey'],
-    mutationFn: (v: string | null | { key: string | null; provider: 'anthropic' | 'openai' | 'typesafe' }) =>
-      api.call('setApiKey', {
-        body: v !== null && typeof v === 'object' ? { key: v.key, provider: v.provider } : { key: v },
-      }),
-    onSettled: () => {
-      void qc.invalidateQueries({ queryKey: keys.health(), exact: true })
-      return qc.invalidateQueries({ queryKey: keys.settings(), exact: true })
-    },
   }
 }

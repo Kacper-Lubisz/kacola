@@ -40,7 +40,7 @@ export const settings = (over: Partial<Settings> = {}): Settings => ({
   capture: { micDevice: 'default', systemDevice: 'default' },
   retention: { audio: 'keep', days: 30, archive: false },
   autoRecord: { calendar: false, micActivity: false },
-  speakers: { diarize: true, voiceprints: false },
+  speakers: { diarize: true, voiceprints: true },
   ...over,
 })
 
@@ -136,6 +136,7 @@ export function fakeBridge(over: Partial<KacolaBridge> = {}) {
     ),
     openSettingsPane: vi.fn(async (_pane: SettingsPane) => false),
     relaunch: vi.fn(),
+    openConfigFile: vi.fn(async () => ({ path: '/home/u/.config/kacola/kacola.env', error: null })),
   }
   Object.assign(b, over)
   return {

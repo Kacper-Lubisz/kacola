@@ -10,6 +10,7 @@ describe('platformPaths', () => {
       dataDir: '/home/ana/.local/share/kacola',
       modelsDir: '/home/ana/.local/share/kacola/models',
       configDir: '/home/ana/.config/kacola',
+      configFile: '/home/ana/.config/kacola/kacola.env',
       stateDir: '/home/ana/.local/state/kacola',
     })
     expect(
@@ -39,6 +40,7 @@ describe('platformPaths', () => {
       dataDir: '/home/ana/.var/app/com.kacperlubisz.Kacola/data/kacola',
       modelsDir: '/home/ana/.var/app/com.kacperlubisz.Kacola/data/kacola/models',
       configDir: '/home/ana/.var/app/com.kacperlubisz.Kacola/config/kacola',
+      configFile: '/home/ana/.var/app/com.kacperlubisz.Kacola/config/kacola/kacola.env',
       stateDir: '/home/ana/.var/app/com.kacperlubisz.Kacola/.local/state/kacola',
     })
   })
@@ -50,6 +52,7 @@ describe('platformPaths', () => {
       dataDir: '/Users/ana/Library/Application Support/kacola',
       modelsDir: '/Users/ana/Library/Application Support/kacola/models',
       configDir: '/Users/ana/Library/Application Support/kacola',
+      configFile: '/Users/ana/Library/Application Support/kacola/kacola.env',
       stateDir: '/Users/ana/Library/Application Support/kacola/state',
     })
     expect(
@@ -65,6 +68,12 @@ describe('platformPaths', () => {
       expect(p.modelsDir).not.toContain('/tmp/d')
       expect(platformPaths({ platform, env: { KACOLA_MODELS_DIR: '/m' }, home: HOME }).modelsDir).toBe('/m')
     }
+  })
+
+  it('KACOLA_CONFIG_FILE names the config file anywhere', () => {
+    expect(
+      platformPaths({ platform: 'darwin', env: { KACOLA_CONFIG_FILE: '/x/k.env' }, home: HOME }).configFile,
+    ).toBe('/x/k.env')
   })
 
   it('packagingKind', () => {

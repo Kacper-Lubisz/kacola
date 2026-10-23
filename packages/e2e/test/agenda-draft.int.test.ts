@@ -304,7 +304,7 @@ describe('agenda drafting: daemon → llm → provider', () => {
         code: 'unavailable',
         reason: 'no-provider',
         action: 'set-up-provider',
-        message: 'Plan with Claude needs an AI provider. Set one up in Preferences.',
+        message: 'Plan with Claude needs an AI provider. Set one up in Preferences › Advanced.',
       },
     })
     expect(anthropic.seen.length + openai.seen.length).toBe(0)

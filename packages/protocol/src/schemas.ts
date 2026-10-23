@@ -161,7 +161,7 @@ export type ModelInfo = z.infer<typeof ModelInfo>
  * voices of people you name, locally, and recognises them in later sessions.
  */
 export const SpeakerSettings = z.object({ diarize: z.boolean(), voiceprints: z.boolean() })
-export const DEFAULT_SPEAKER_SETTINGS: z.infer<typeof SpeakerSettings> = { diarize: true, voiceprints: false }
+export const DEFAULT_SPEAKER_SETTINGS: z.infer<typeof SpeakerSettings> = { diarize: true, voiceprints: true }
 
 /** Agent channel settings (see agendas.ts: AgentAccess). */
 export const AgentSettings = z.object({ allowPrivate: z.array(z.string()).max(1000) })

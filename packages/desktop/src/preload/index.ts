@@ -61,6 +61,7 @@ const bridge: KacolaBridge = {
   requestPermission: (kind: PermissionKind) => ipcRenderer.invoke(IPC.permissionRequest, kind),
   openSettingsPane: (pane: SettingsPane) => ipcRenderer.invoke(IPC.permissionSettings, pane),
   relaunch: () => ipcRenderer.send(IPC.relaunch),
+  openConfigFile: () => ipcRenderer.invoke(IPC.configFileOpen),
 }
 
 contextBridge.exposeInMainWorld('kacola', bridge)

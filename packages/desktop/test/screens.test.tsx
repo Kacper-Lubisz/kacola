@@ -24,7 +24,7 @@ async function openPreferences() {
   await screen.findByRole('searchbox', { name: 'Search or ask' })
   fireEvent.keyDown(window, { key: ',', ctrlKey: true })
   const prefs = await screen.findByRole('dialog', { name: 'Preferences' })
-  await within(prefs).findByRole('region', { name: 'Questions and answers' })
+  await within(prefs).findByRole('region', { name: 'Auto-record' })
   return prefs
 }
 
@@ -51,53 +51,41 @@ describe('Preferences', () => {
     app.stop()
   })
 
-  it('applies a switch at once (optimistic), and an API key goes to the keyring and is cleared', async () => {
-    let stored: string | null = null
-    const handlers = shellHandlers()
-    const app = renderApp({
-      handlers: {
-        ...handlers,
-        setApiKey: ({ body }) => {
-          stored = (body as { key: string | null }).key
-          return { configured: stored !== null }
-        },
-        getSettings: () => {
-          const s = handlers.getSettings!({}) as ReturnType<typeof settings>
-          return { ...s, llm: { ...s.llm, apiKeyConfigured: stored !== null } }
-        },
-      },
-    })
+  it('applies a switch at once (optimistic)', async () => {
+    const app = renderApp()
     const prefs = await openPreferences()
     fireEvent.click(within(prefs).getByRole('switch', { name: 'When another app uses the microphone' }))
     await until(() => app.daemon.calls.includes('updateSettings'))
     expect(app.daemon.log.find((c) => c.name === 'updateSettings')!.opts.body).toEqual({
       autoRecord: { micActivity: true },
     })
-
-    const key = within(prefs).getByLabelText('API key') as HTMLInputElement
-    fireEvent.change(key, { target: { value: 'sk-secret-123' } })
-    fireEvent.click(within(prefs).getByRole('button', { name: 'Save' }))
-    await within(prefs).findByText('Saved in your keyring, never shown')
-    expect(stored).toBe('sk-secret-123')
-    expect((within(prefs).getByLabelText('Replace API key') as HTMLInputElement).value).toBe('')
-    expect(document.body.innerHTML).not.toContain('sk-secret-123')
-    await screen.findByText('API key saved')
     app.stop()
   })
 
-  it('shows the Ollama URL for Ollama, and the key rows only for key providers', async () => {
+  it('keeps providers, models and keys out of sight: one line of status, and the config file', async () => {
+    const fb = fakeBridge({
+      openConfigFile: vi.fn(async () => ({ path: '/home/u/.config/kacola/kacola.env', error: null })),
+    })
     const app = renderApp({
-      handlers: shellHandlers({
-        settings: settings({
-          llm: { provider: 'ollama', model: 'llama3', ollamaUrl: 'http://h:1', apiKeyConfigured: false },
+      bridge: fb,
+      handlers: {
+        ...shellHandlers(),
+        health: () => ({
+          lastSeq: 1,
+          llm: { provider: 'anthropic', ready: false },
+          decisions: { provider: 'jev', model: 'jev-1', ready: true, detail: null },
         }),
-      }),
+      },
     })
     const prefs = await openPreferences()
-    expect((within(prefs).getByRole('textbox', { name: 'Ollama URL' }) as HTMLInputElement).value).toBe(
-      'http://h:1',
-    )
-    expect(within(prefs).queryByLabelText('API key')).toBeNull()
+    for (const gone of ['Questions and answers', 'Agenda during meetings'])
+      expect(within(prefs).queryByRole('region', { name: gone })).toBeNull()
+    expect(within(prefs).queryByLabelText(/API key/)).toBeNull()
+    expect(within(prefs).queryByRole('switch', { name: 'Recognise people across meetings' })).toBeNull()
+    await within(prefs).findByText('Answers: Anthropic, needs an API key · Decisions: TypeSafe Jev')
+    fireEvent.click(within(prefs).getByRole('button', { name: 'Open config file' }))
+    await until(() => fb.bridge.openConfigFile.mock.calls.length === 1)
+    await screen.findByText('Changes apply a few seconds after you save the file')
     app.stop()
   })
 
