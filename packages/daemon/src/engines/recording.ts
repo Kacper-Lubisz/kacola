@@ -5,6 +5,7 @@ import {
   type AudioDevice,
   DEFAULT_SPEAKER_SETTINGS,
   type ModelInfo,
+  type StoredSettings,
   type Track,
   type TrackKind,
 } from '@kacola/protocol'
@@ -118,6 +119,20 @@ export class RecordingPipeline implements TranscriptionPipeline {
       sink.error({ message: `diarization unavailable: ${(err as Error).message}`, fatal: false })
       return null
     }
+  }
+
+  requiredModels(settings: StoredSettings): string[] {
+    const stt = settings.stt
+    return [
+      known(stt.liveModel, 'live') ? stt.liveModel : DEFAULT_MODELS.live,
+      DEFAULT_MODELS.vad,
+      ...(stt.finalPass === 'off'
+        ? []
+        : [known(stt.finalModel, 'final') ? stt.finalModel : DEFAULT_MODELS.final]),
+      ...((settings.speakers ?? DEFAULT_SPEAKER_SETTINGS).diarize
+        ? [DEFAULT_MODELS.segmentation, DEFAULT_MODELS.embedding]
+        : []),
+    ]
   }
 
   async start(opts: PipelineStartOptions, sink: PipelineSink): Promise<RecordingHandle> {

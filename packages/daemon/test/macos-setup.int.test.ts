@@ -44,6 +44,18 @@ afterAll(async () => {
 })
 
 describe('a daemon configured for macOS', () => {
+  it('marks only the models the default pipeline loads as required, not the whole catalogue', async () => {
+    const { models } = await d.client.call('listModels')
+    expect(models.length).toBeGreaterThan(6)
+    expect(models.filter((m) => m.required).map((m) => m.id)).toEqual([
+      'live-nemo-fastconformer-en-80ms-int8',
+      'final-parakeet-tdt-110m-en-int8',
+      'vad-silero',
+      'segmentation-pyannote-3.0',
+      'embedding-titanet-small-en',
+    ])
+  })
+
   it('reports external capture and never starts a helper process (no pw-*, gjs, D-Bus bridge, cal-agent)', async () => {
     const h = await d.client.call('health')
     expect(h.capture).toMatchObject({ available: true, backend: 'external' })

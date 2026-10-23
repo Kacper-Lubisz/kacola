@@ -14,6 +14,15 @@ import {
 
 // The settings view model and the i18n shim (from the GTK app's view-logic tests, kept at the cut-over).
 
+const model = (id: string, role: ModelInfo['role'], state: ModelInfo['state']): ModelInfo => ({
+  id,
+  role,
+  title: id,
+  sizeBytes: 1,
+  state,
+  progress: null,
+})
+
 describe('settings model', () => {
   it('maps combo indexes and values both ways', () => {
     expect(indexOf(providers(), 'openai')).toBe(1)
@@ -69,6 +78,27 @@ describe('settings model', () => {
       'final',
       'vad',
     ])
+  })
+  it('needs only what the daemon marks required, never the rest of the catalogue', () => {
+    const models = [
+      { ...model('live-a', 'live', 'ready'), required: true },
+      { ...model('live-b', 'live', 'missing'), required: false },
+      { ...model('final-a', 'final', 'missing'), required: true },
+      { ...model('final-b', 'final', 'missing'), required: false },
+      { ...model('emb', 'embedding', 'missing'), required: false },
+    ]
+    expect(missingModels(models, null).map((x) => x.id)).toEqual(['final-a'])
+  })
+  it('without the mark (an older daemon), needs the selected live and final models only', () => {
+    const models = [
+      model('live-a', 'live', 'missing'),
+      model('live-b', 'live', 'missing'),
+      model('final-a', 'final', 'missing'),
+      model('final-b', 'final', 'missing'),
+      model('vad', 'vad', 'missing'),
+    ]
+    const s = { stt: { liveModel: 'live-b', finalModel: 'final-a', finalPass: 'during' } } as Settings
+    expect(missingModels(models, s).map((x) => x.id)).toEqual(['live-b', 'final-a', 'vad'])
   })
   it('formats sizes like GNOME does', () => {
     expect(formatBytes(1_000_000)).toBe('1 MB')

@@ -148,6 +148,11 @@ export const ModelInfo = z.object({
   sizeBytes: z.int().nonnegative(),
   state: z.enum(['missing', 'downloading', 'ready', 'corrupt']),
   progress: z.number().min(0).max(1).nullable(),
+  /**
+   * The configured pipeline uses it (the selected live and final models, VAD, and the speaker models
+   * while attribution is on). Absent from a daemon that predates it, and from model.progress events.
+   */
+  required: z.boolean().optional(),
 })
 export type ModelInfo = z.infer<typeof ModelInfo>
 
