@@ -114,6 +114,8 @@ export function createQueries(api: Api) {
         queryKey: keys.devices(),
         queryFn: async ({ signal }) => (await api.call('listDevices', { signal })).devices,
       }),
+    sync: () =>
+      queryOptions({ queryKey: keys.sync(), queryFn: ({ signal }) => api.call('syncStatus', { signal }) }),
     calendar: () =>
       queryOptions({
         queryKey: keys.calendar(),

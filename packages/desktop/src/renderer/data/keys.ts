@@ -18,6 +18,7 @@ export const keys = {
   models: () => ['models'] as const,
   devices: () => ['devices'] as const,
   calendar: () => ['calendar'] as const,
+  sync: () => ['sync'] as const,
   meetings: (range: { from?: string; to?: string } = {}) => ['meetings', range] as const,
   search: (q: string) => ['search', q] as const,
   // ---- agendas (kacola wave 2): one AgendaView per agenda, folded from the agenda.* events

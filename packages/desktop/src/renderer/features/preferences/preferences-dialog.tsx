@@ -116,6 +116,7 @@ function AdvancedGroup() {
         'Which AI answers questions, writes notes and judges meetings, and its API keys, are set in a config file.',
       )}
     >
+      <SyncRow />
       <Row title={_('AI providers and API keys')} subtitle={ai}>
         <Button
           size="sm"
@@ -136,6 +137,56 @@ function AdvancedGroup() {
         </Button>
       </Row>
     </RowGroup>
+  )
+}
+
+/**
+ * Two-way sync with your other Macs, through the hosted server in the config file (KACOLA_SYNC_URL):
+ * signed in with your kacperlubisz.com account in the browser; the background service keeps it.
+ */
+function SyncRow() {
+  const { api, bridge, queries, queryClient } = useServices()
+  const toast = useToast()
+  const status = useQuery({ ...queries.sync(), refetchOnMount: 'always', refetchInterval: 10_000 })
+  const [busy, setBusy] = useState(false)
+  const s = status.data
+  if (!s || s.state === 'off') return null
+  const refresh = () => queryClient.invalidateQueries({ queryKey: queries.sync().queryKey })
+  const subtitle =
+    s.state === 'signed-out'
+      ? fmt(_('Not signed in. Syncs meetings and notes with {server}'), { server: new URL(s.server!).host })
+      : s.state === 'error'
+        ? fmt(_('Not syncing: {reason}'), { reason: s.detail ?? _('unknown') })
+        : fmt(_('Syncing as {email}'), { email: s.email ?? _('you') })
+  return (
+    <Row title={_('Sync with your other Macs')} subtitle={subtitle}>
+      {s.state === 'signed-out' ? (
+        <Button
+          size="sm"
+          isDisabled={busy}
+          onPress={() => {
+            setBusy(true)
+            void bridge
+              .signInToSync()
+              .then((r) =>
+                r.ok
+                  ? toast(fmt(_('Signed in as {email}'), { email: r.email ?? _('you') }))
+                  : toast(fmt(_('Could not sign in: {reason}'), { reason: r.error }), { tone: 'error' }),
+              )
+              .finally(() => {
+                setBusy(false)
+                void refresh()
+              })
+          }}
+        >
+          {busy ? _('Waiting for the browser…') : _('Sign in')}
+        </Button>
+      ) : (
+        <Button size="sm" onPress={() => void api.call('clearSyncAccount').then(refresh, refresh)}>
+          {_('Sign out')}
+        </Button>
+      )}
+    </Row>
   )
 }
 

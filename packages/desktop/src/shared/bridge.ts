@@ -42,6 +42,7 @@ export const IPC = {
   permissionSettings: 'kacola:permission-settings',
   relaunch: 'kacola:relaunch',
   configFileOpen: 'kacola:config-file-open',
+  syncSignIn: 'kacola:sync-sign-in',
 } as const
 
 // ---- fetch tunnel -----------------------------------------------------------------------------------
@@ -256,4 +257,9 @@ export interface KacolaBridge {
    * `error` says why it could not be opened; the path is still given, to open by hand.
    */
   openConfigFile(): Promise<{ path: string; error: string | null }>
+  /**
+   * Sign two-way sync in: opens the accounts service in the browser and resolves when it comes back
+   * (the daemon then has the account; sign out is the daemon's DELETE /sync/account).
+   */
+  signInToSync(): Promise<{ ok: true; email: string | null } | { ok: false; error: string }>
 }

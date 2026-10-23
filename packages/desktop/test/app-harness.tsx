@@ -137,6 +137,7 @@ export function fakeBridge(over: Partial<KacolaBridge> = {}) {
     openSettingsPane: vi.fn(async (_pane: SettingsPane) => false),
     relaunch: vi.fn(),
     openConfigFile: vi.fn(async () => ({ path: '/home/u/.config/kacola/kacola.env', error: null })),
+    signInToSync: vi.fn(async () => ({ ok: true as const, email: 'me@example.com' })),
   }
   Object.assign(b, over)
   return {
@@ -178,6 +179,14 @@ export function shellHandlers(
       ],
     }),
     calendarStatus: () => ({ state: 'off', provider: 'eds', detail: null, calendars: [], updatedAt: null }),
+    syncStatus: () => ({
+      state: 'off',
+      server: null,
+      email: null,
+      deviceId: 'dev_test0000',
+      issuer: 'https://accounts.example.com',
+      detail: null,
+    }),
     // team sharing: every agenda is unshared unless a test says otherwise
     getAgendaShare: ({ params }) => shareStatus({ agendaId: params!.id! }),
   }

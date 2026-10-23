@@ -53,6 +53,7 @@ import {
   type WindowControl,
 } from '../shared/bridge.ts'
 import { CAPTURE_IPC, type CaptureState, type CaptureTrack } from '../shared/capture.ts'
+import { CLIENT_ID, finishSignIn, isAuthCallback, type PendingSignIn, startSignIn } from './account.ts'
 import { autostartStatus, migrateLegacyAutostart, requestBackground, setAutostart } from './autostart.ts'
 import { CaptureController, type CaptureWindowLike, captureTracks } from './capture.ts'
 import { calAgentPath, readDesktopConfig } from './config.ts'
@@ -408,6 +409,54 @@ const deepLinks = new DeepLinkQueue()
 /** The link this process was started with; received once the app is ready. */
 const coldDeepLink = deepLinkFromArgv(process.argv)
 
+// ---- signing two-way sync in (account.ts): the browser round trip, back on kacola://auth/callback ----
+
+type SignInResult = { ok: true; email: string | null } | { ok: false; error: string }
+let pendingSignIn: { req: PendingSignIn; done: (r: SignInResult) => void } | null = null
+const SIGN_IN_TIMEOUT_MS = 10 * 60_000
+
+async function signInToSync(): Promise<SignInResult> {
+  const st = await client.call('syncStatus')
+  if (!st.server) return { ok: false, error: 'Sync is off: set KACOLA_SYNC_URL in the config file' }
+  pendingSignIn?.done({ ok: false, error: 'Replaced by a newer sign-in' })
+  const req = await startSignIn({ issuer: st.issuer, resource: st.server })
+  return new Promise((resolve) => {
+    const timer = setTimeout(
+      () => done({ ok: false, error: 'The sign-in was not finished in time' }),
+      SIGN_IN_TIMEOUT_MS,
+    )
+    const done = (r: SignInResult) => {
+      clearTimeout(timer)
+      if (pendingSignIn?.req === req) pendingSignIn = null
+      resolve(r)
+    }
+    pendingSignIn = { req, done }
+    void shell.openExternal(req.url)
+  })
+}
+
+function receiveAuthCallback(url: string): void {
+  const p = pendingSignIn
+  // never logged whole: it carries a one-time code
+  logLine({ event: 'auth-callback', expected: p !== null })
+  if (!p) return
+  showWindow()
+  finishSignIn(url, p.req)
+    .then(async (s) => {
+      await client.call('setSyncAccount', {
+        body: {
+          issuer: p.req.issuer,
+          clientId: CLIENT_ID,
+          resource: p.req.resource,
+          refreshToken: s.refreshToken,
+          email: s.email,
+        },
+      })
+      p.done({ ok: true, email: s.email })
+    })
+    .catch((err: unknown) => p.done({ ok: false, error: err instanceof Error ? err.message : String(err) }))
+}
+
 /** A link wants the window: show it, and push the link if its renderer is listening (else it waits). */
 function receiveDeepLink(url: string): void {
   if (!deepLinks.push(url)) return
@@ -426,6 +475,8 @@ function deliverDeepLink(): void {
 }
 
 app.on('second-instance', (_e, argv) => {
+  const callback = argv.find(isAuthCallback)
+  if (callback) return receiveAuthCallback(callback)
   const url = deepLinkFromArgv(argv)
   // a link means the user wants the window, --background or not
   if (url) receiveDeepLink(url)
@@ -435,6 +486,7 @@ app.on('second-instance', (_e, argv) => {
 // macOS hands links over as an event, possibly before ready (showWindow waits for ready; the link queues)
 app.on('open-url', (e, raw) => {
   e.preventDefault()
+  if (isAuthCallback(raw)) return receiveAuthCallback(raw)
   const url = normalizeDeepLink(raw)
   if (url) receiveDeepLink(url)
 })
@@ -650,6 +702,7 @@ function wireIpc(): void {
         : (await shell.openPath(path)) || null
     return { path, error }
   })
+  handle(IPC.syncSignIn, () => signInToSync())
   ipcMain.on(IPC.relaunch, (e) => {
     if (!trusted(e)) return
     app.relaunch()

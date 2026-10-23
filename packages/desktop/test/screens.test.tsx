@@ -89,6 +89,41 @@ describe('Preferences', () => {
     app.stop()
   })
 
+  it('sync: signs in through the browser, shows who, and signs out', async () => {
+    let state: { state: string; email: string | null } = { state: 'signed-out', email: null }
+    const fb = fakeBridge({
+      signInToSync: vi.fn(async () => {
+        state = { state: 'syncing', email: 'me@example.com' }
+        return { ok: true as const, email: 'me@example.com' }
+      }),
+    })
+    const app = renderApp({
+      bridge: fb,
+      handlers: {
+        ...shellHandlers(),
+        syncStatus: () => ({
+          ...state,
+          server: 'https://kacola.example.com',
+          deviceId: 'dev_test0000',
+          issuer: 'https://accounts.example.com',
+          detail: null,
+        }),
+        clearSyncAccount: () => {
+          state = { state: 'signed-out', email: null }
+          return {}
+        },
+      },
+    })
+    const prefs = await openPreferences()
+    await within(prefs).findByText('Not signed in. Syncs meetings and notes with kacola.example.com')
+    fireEvent.click(within(prefs).getByRole('button', { name: 'Sign in' }))
+    await within(prefs).findByText('Syncing as me@example.com')
+    expect(fb.bridge.signInToSync).toHaveBeenCalledTimes(1)
+    fireEvent.click(within(prefs).getByRole('button', { name: 'Sign out' }))
+    await within(prefs).findByText(/Not signed in/)
+    app.stop()
+  })
+
   it('installs the command-line tool from Integration and shows the state', async () => {
     const fb = fakeBridge()
     const app = renderApp({ bridge: fb })
