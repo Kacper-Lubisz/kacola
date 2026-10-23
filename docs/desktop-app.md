@@ -172,7 +172,11 @@ Desktop Integration → "Start in the background at login" (`src/main/autostart.
   (only an entry carrying our `X-Kacola-Autostart=1` is ever removed).
 - **macOS**: a login item with `--background`, and the menu-bar **Tray** (`src/main/tray.ts`, a pure menu
   model: status line, Record — or Pause/Resume + Stop —, Open, Quit; private meetings stay "Private
-  meeting"). The Dock icon re-opens the window.
+  meeting"). The Dock icon re-opens the window. Beside the icon, the title is the meeting worth a glance
+  (from `GET /meetings/next`): `now: Standup`, `Standup in 12 min` within the hour, `10:30 Standup` later
+  today, at most 22 characters; nothing while recording, when no meeting is left today, or when the
+  calendar is not `ok`. The menu says the same under the status line ("Next: Standup at 10:30"). Main
+  re-reads it on `calendar.updated`, on (re)connect and every 30 s.
 
 ## Desktop integration installs
 

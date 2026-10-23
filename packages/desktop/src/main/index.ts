@@ -11,6 +11,7 @@ import {
   ingestPcm,
   MAX_FRAME_BYTES,
   type Meeting,
+  type NextMeeting,
   platformPaths,
   type Session,
 } from '@kacola/protocol'
@@ -82,7 +83,7 @@ import {
 } from './security.ts'
 import { DaemonSupervisor } from './supervisor.ts'
 import { readPortal, themeFrom, watchPortal } from './theme.ts'
-import { type TrayAction, trayMenuModel, trayTooltip } from './tray.ts'
+import { type TrayAction, trayMenuModel, trayTitle, trayTooltip } from './tray.ts'
 import { serveTunnel, type TunnelPort } from './tunnel.ts'
 
 // The Electron main process: one instance, daemon supervision, the app:// origin, the fetch tunnel and
@@ -282,6 +283,7 @@ async function daemonUp(): Promise<void> {
   }
   void capture?.reconcile()
   refreshActive()
+  refreshMeetings()
   // nothing to watch for: no in-app capture (PipeWire daemon) and no Tray (Linux)
   if (watching || (!capture && !tray)) return
   watching = true
@@ -289,18 +291,21 @@ async function daemonUp(): Promise<void> {
   void client.subscribe({
     // ephemeral for auto-record.decided (audio levels come with it while recording: cheap, and dropped)
     ephemeral: true,
+    onConnect: refreshMeetings,
     onEvent: (e) => {
       if (e.data.type === 'session.upserted' || e.data.type === 'session.deleted') {
         void capture?.reconcile()
         refreshActive()
-      } else if (e.data.type === 'auto-record.decided' && !e.data.decision.record)
-        notifySkipped(e.data.meeting)
+      } else if (e.data.type === 'calendar.updated') refreshMeetings()
+      else if (e.data.type === 'auto-record.decided' && !e.data.decision.record) notifySkipped(e.data.meeting)
     },
   })
   setInterval(() => {
     void capture?.reconcile()
     refreshActive()
   }, 2000).unref()
+  // the next meeting changes without an event as time passes (one ends, the next becomes current)
+  setInterval(refreshMeetings, 30_000).unref()
 }
 
 /** The smart calendar rule left a meeting alone: say so, and record it on a click (the user knows best). */
@@ -333,13 +338,27 @@ function refreshActive(): void {
     .catch(() => {})
 }
 
+function refreshMeetings(): void {
+  if (!tray) return
+  void client
+    .call('nextMeeting')
+    .then((m) => {
+      meetings = m
+      refreshTray()
+    })
+    .catch(() => {})
+}
+
 // macOS: the menu-bar Tray (background mode there). Linux has none (the top-bar extension is that surface).
 let tray: Tray | null = null
+let meetings: NextMeeting | null = null
 
 function refreshTray(): void {
   if (!tray) return
-  const input = { daemon: supervisor.status, active }
+  const input = { daemon: supervisor.status, active, meetings, now: Date.now() }
   tray.setToolTip(trayTooltip(input))
+  // monospaced digits: the "in N min" countdown does not make the menu bar jiggle
+  tray.setTitle(trayTitle(input), { fontType: 'monospacedDigit' })
   tray.setContextMenu(
     Menu.buildFromTemplate(
       trayMenuModel(input).map((i) =>
