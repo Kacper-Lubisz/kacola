@@ -18,6 +18,7 @@ const MIN: Record<DatasetName, number> = {
   'next-point': 20,
   recap: 15,
   'interview-extraction': 25,
+  'record-worthy': 50,
 }
 
 describe('text-only eval datasets', () => {
@@ -34,6 +35,17 @@ describe('text-only eval datasets', () => {
     const cats = new Set(cases.map((c) => c.category))
     for (const c of ['direct', 'indirect', 'obfuscated', 'role-play', 'benign-mention', 'quoted'])
       expect(cats).toContain(c)
+  })
+
+  it('record-worthy is roughly balanced, and has history and agenda cases', () => {
+    const cases = loadDataset('record-worthy')
+    const pos = cases.filter((c) => c.label.record).length
+    expect(pos / cases.length).toBeGreaterThan(0.35)
+    expect(pos / cases.length).toBeLessThan(0.65)
+    // history is the strongest signal: both directions, including one where it overrules the title
+    expect(cases.some((c) => c.event.history && c.event.history.recorded === 0 && !c.label.record)).toBe(true)
+    expect(cases.some((c) => c.event.history && c.event.history.recorded > 0 && c.label.record)).toBe(true)
+    expect(cases.some((c) => c.event.agenda)).toBe(true)
   })
 
   it('relevance has both labels, and itemIds always name agenda items', () => {

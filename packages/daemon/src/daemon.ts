@@ -37,6 +37,7 @@ import type { SpeechGuard } from './agents/guard.ts'
 import { liveHandlers } from './agents/handlers.ts'
 import { resolveScope, runAsk } from './ask.ts'
 import { AutoRecorder } from './auto-record.ts'
+import { judgeMeeting } from './auto-record-judge.ts'
 import { EventBus } from './bus.ts'
 import { endOfLocalDay, localMidnight } from './calendar/meetings.ts'
 import { type CalendarProvider, NoCalendar } from './calendar/providers.ts'
@@ -271,6 +272,15 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
     logger,
     mic: o.micActivity ?? { start() {}, stop() {} },
     micIdleStopMs: o.micIdleStopMs,
+    judge: (m) =>
+      judgeMeeting(m, {
+        provider: () => decisions.provider(),
+        localProvider: () => decisions.localProvider(),
+        meetings: async (from, to) => (await calendar.list(from, to, true)).meetings,
+        sessions: (since) => store.listSessions({ since, includePrivate: true, limit: 1000 }),
+        agendas: (uid) => agendas.agendas.forEvent(uid),
+        logger,
+      }),
   })
   speakers = new SpeakerService({ store, sessions, settings: () => settings.get(), logger })
   const spk = speakers

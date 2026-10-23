@@ -59,6 +59,17 @@ start, never auto-stopped. Microphone: poll `pw-dump` for `Stream/Input/Audio` n
 are not ours (`kacola-capture-*`), not sink monitors, not level meters; stop a session *this rule started*
 after `KACOLA_MIC_IDLE_STOP_MS` (30 s) without one. A rule never interrupts a running recording.
 
+**Smart calendar rule** (`autoRecord.calendarFilter`: `likely`, the default; `all` = every meeting): only a
+meeting the user will likely want recorded — a standup, not a run club. `auto-record-judge.ts` gathers the
+facts (title, calendar, location, video-call provider, people invited, length, recurrence, the user's RSVP;
+earlier occurrences of the series in the last 8 weeks and how many were recorded; an agenda prepared for it)
+and asks the decisions provider the `recordWorthy` yes/no question (@kacola/decisions, docs/decisions.md):
+Jev when selected (calibrated P), else the on-device rules. It is asked when the meeting is announced (a
+minute early), so recording still starts on time. A series with a private agenda is only judged on this
+computer; a provider that fails or takes over 8 s falls back to the on-device heuristic. Every verdict goes
+out as the ephemeral `auto-record.decided`; the macOS app turns a skipped one into a notification ("Not
+recording “Run club”") that records the meeting on a click (`POST /meetings/:id/join`).
+
 ## Configuration
 
 | env | values | default |

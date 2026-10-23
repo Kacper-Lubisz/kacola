@@ -84,6 +84,69 @@ describe('calendar rule', () => {
   })
 })
 
+describe('calendar rule, smart (calendarFilter: likely, the default)', () => {
+  const decided = () => {
+    const out: { title: string; record: boolean; provider: string }[] = []
+    d.bus.subscribe((e) => {
+      if (e.data.type === 'auto-record.decided')
+        out.push({
+          title: e.data.meeting.title,
+          record: e.data.decision.record,
+          provider: e.data.decision.provider,
+        })
+    })
+    return out
+  }
+
+  it('records the standup and leaves the run club alone, saying so either way', async () => {
+    await d.settings.patch({ autoRecord: { calendar: true } })
+    const verdicts = decided()
+    const t = Date.now()
+    cal.push({
+      calendars: [
+        { id: 'cal-work', name: 'Work' },
+        { id: 'cal-me', name: 'kacper@gmail.com' },
+      ],
+      occurrences: [
+        occ({
+          summary: 'Run club',
+          sourceUid: 'cal-me',
+          calendarName: 'kacper@gmail.com',
+          location: 'Victoria Park',
+          start: new Date(t + 300).toISOString(),
+          end: at(t, 60),
+        }),
+      ],
+    })
+    await waitFor(() => verdicts.length === 1 || null, 3000, 'the run club verdict')
+    expect(verdicts).toEqual([{ title: 'Run club', record: false, provider: 'local' }])
+    expect(live()).toEqual([])
+    snap(
+      occ({
+        summary: 'Standup',
+        start: new Date(Date.now() + 300).toISOString(),
+        end: at(Date.now(), 15),
+        location: 'https://meet.google.com/abc-defg-hij',
+        attendees: 6,
+      }),
+    )
+    const [s] = await waitFor(() => (live().length ? live() : null), 3000, 'the standup recorded')
+    expect(s!.title).toBe('Standup')
+    expect(verdicts.at(-1)).toMatchObject({ title: 'Standup', record: true })
+  })
+
+  it('calendarFilter: all records every meeting, unjudged', async () => {
+    await d.settings.patch({ autoRecord: { calendar: true, calendarFilter: 'all' } })
+    const verdicts = decided()
+    snap(
+      occ({ summary: 'Run club', start: new Date(Date.now() + 300).toISOString(), end: at(Date.now(), 60) }),
+    )
+    const [s] = await waitFor(() => (live().length ? live() : null), 3000, 'the run club recorded')
+    expect(s!.title).toBe('Run club')
+    expect(verdicts).toEqual([])
+  })
+})
+
 describe('microphone rule', () => {
   it('watches only while enabled', async () => {
     expect(mic.running).toBe(false)

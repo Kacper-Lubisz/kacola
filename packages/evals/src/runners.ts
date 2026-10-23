@@ -7,6 +7,7 @@ import {
   decideInjection,
   decideInterview,
   decideNextPoint,
+  decideRecordWorthy,
   decideRelevance,
   decideStatus,
   type Embedder,
@@ -23,6 +24,7 @@ import type {
   InterviewRunner,
   NextPointRunner,
   RecapRunner,
+  RecordWorthyRunner,
   RelevanceRunner,
   RunnerMeta,
   RunUsage,
@@ -93,6 +95,16 @@ export function decisionStatusRunner(
 }
 
 // ------------------------------------------------------------------------------ text-only decisions
+
+export function decisionRecordWorthyRunner(provider: DecisionProvider, mode: EvalMode): RecordWorthyRunner {
+  return {
+    ...metaOf(provider, 'reference-record-worthy', mode),
+    async run(c) {
+      const { decision, result } = await decideRecordWorthy(provider, c.event)
+      return { record: decision.record, p: decision.p, usage: usageOf(result) }
+    },
+  }
+}
 
 export function decisionRelevanceRunner(provider: DecisionProvider, mode: EvalMode): RelevanceRunner {
   return {

@@ -224,7 +224,9 @@ function DecisionsGroup({ settings, patch }: { settings: Settings; patch: (p: Se
   return (
     <RowGroup
       title={_('Agenda during meetings')}
-      description={_('Ticks off agenda items as they are covered and suggests what to raise next.')}
+      description={_(
+        'Ticks off agenda items as they are covered and suggests what to raise next. Also judges which calendar meetings to record.',
+      )}
     >
       <SelectRow
         title={_('Runs on')}
@@ -369,6 +371,20 @@ function General({
           value={autoRecord.calendar}
           onChange={(calendar) => patch({ autoRecord: { calendar } })}
         />
+        {autoRecord.calendar ? (
+          <SelectRow
+            title={_('Which meetings')}
+            subtitle={_(
+              'Judged by what runs “Agenda during meetings”, from the event and what you recorded before. You get a notification when one is left alone.',
+            )}
+            options={[
+              { value: 'likely', label: _('The ones you’d want recorded') },
+              { value: 'all', label: _('Every meeting') },
+            ]}
+            value={autoRecord.calendarFilter ?? 'likely'}
+            onChange={(calendarFilter) => patch({ autoRecord: { calendarFilter } })}
+          />
+        ) : null}
         <SwitchRow
           title={_('When another app uses the microphone')}
           subtitle={_('Stops again once the call has ended')}

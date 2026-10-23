@@ -2,7 +2,7 @@ import { LlmError } from '@kacola/llm'
 import type { GroundTruth } from '@kacola/testkit/fixtures'
 import { describe, expect, it } from 'vitest'
 import { parseAgenda, parseRecapStatus } from '../src/llm-runners.ts'
-import { runDecisionSuites } from '../src/run.ts'
+import { DECISION_SUITES, runDecisionSuites } from '../src/run.ts'
 import {
   runDraftSuite,
   runInjectionSuite,
@@ -345,7 +345,7 @@ describe('runDecisionSuites', () => {
       provider: null,
       skip: 'no TYPESAFE_API_KEY in the environment',
     })
-    expect(cards).toHaveLength(5)
+    expect(cards).toHaveLength(DECISION_SUITES.length)
     for (const c of cards)
       expect(c).toMatchObject({ skipped: 'no TYPESAFE_API_KEY in the environment', metrics: {} })
   })

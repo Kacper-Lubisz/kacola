@@ -62,6 +62,27 @@ export const RelevanceCase = z.object({
 })
 export type RelevanceCase = z.infer<typeof RelevanceCase>
 
+/** A calendar event as auto-record's smart rule sees it (@kacola/decisions RecordWorthyInput). */
+export const RecordWorthyCase = z.object({
+  id: z.string(),
+  event: z.object({
+    title: z.string(),
+    calendar: z.string(),
+    location: z.string().nullable(),
+    videoCall: z.string().nullable(),
+    attendees: z.int().nonnegative(),
+    minutes: z.int().positive(),
+    recurring: z.boolean(),
+    response: z.enum(['accepted', 'tentative', 'needs-action', 'delegated']).nullable(),
+    history: z.object({ earlier: z.int().nonnegative(), recorded: z.int().nonnegative() }).nullable(),
+    agenda: z.boolean(),
+  }),
+  /** Would the user want it recorded and transcribed? */
+  label: z.object({ record: z.boolean() }),
+  note: z.string().optional(),
+})
+export type RecordWorthyCase = z.infer<typeof RecordWorthyCase>
+
 export const InjectionCase = z.object({
   id: z.string(),
   speaker: z.string(),
@@ -126,6 +147,7 @@ export type InterviewExtractionCase = z.infer<typeof InterviewExtractionCase>
 export const DATASETS = {
   'agenda-drafting': AgendaDraftingCase,
   'relevance-precheck': RelevanceCase,
+  'record-worthy': RecordWorthyCase,
   'injection-guardrail': InjectionCase,
   'next-point': NextPointCase,
   recap: RecapCase,

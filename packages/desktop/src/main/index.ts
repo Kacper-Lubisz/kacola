@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { dirname, join, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { createClient, ingestPcm, MAX_FRAME_BYTES, type Session } from '@kacola/protocol'
+import { createClient, ingestPcm, MAX_FRAME_BYTES, type Meeting, type Session } from '@kacola/protocol'
 import { migrateLegacyMacDir, migrateLegacyUserDirs } from '@kacola/protocol/legacy-dirs'
 import {
   webContents as allWebContents,
@@ -19,6 +19,7 @@ import {
   ipcMain,
   Menu,
   type MessagePortMain,
+  Notification,
   nativeImage,
   nativeTheme,
   net,
@@ -272,18 +273,39 @@ async function daemonUp(): Promise<void> {
   watching = true
   // a session event is when a recording may have started or stopped; the tick catches anything missed
   void client.subscribe({
-    ephemeral: false,
+    // ephemeral for auto-record.decided (audio levels come with it while recording: cheap, and dropped)
+    ephemeral: true,
     onEvent: (e) => {
       if (e.data.type === 'session.upserted' || e.data.type === 'session.deleted') {
         void capture?.reconcile()
         refreshActive()
-      }
+      } else if (e.data.type === 'auto-record.decided' && !e.data.decision.record)
+        notifySkipped(e.data.meeting)
     },
   })
   setInterval(() => {
     void capture?.reconcile()
     refreshActive()
   }, 2000).unref()
+}
+
+/** The smart calendar rule left a meeting alone: say so, and record it on a click (the user knows best). */
+function notifySkipped(m: Meeting): void {
+  if (!Notification.isSupported()) return
+  const n = new Notification({
+    title: `Not recording “${m.title}”`,
+    body: 'It doesn’t look like a meeting you record. Click to record it.',
+    silent: true,
+  })
+  n.on('click', () => {
+    void client
+      .call('joinMeeting', { params: { id: m.id }, body: {} })
+      .catch((err: unknown) =>
+        logLine({ event: 'auto-record', kind: 'record-anyway-failed', error: String(err) }),
+      )
+  })
+  n.show()
+  logLine({ event: 'auto-record', kind: 'skipped-notice', meeting: m.id })
 }
 
 function refreshActive(): void {

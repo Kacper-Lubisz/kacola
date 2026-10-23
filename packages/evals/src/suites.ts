@@ -13,6 +13,7 @@ import {
   multiclass,
   type NextPointCase,
   type RecapCase,
+  type RecordWorthyCase,
   type RelevanceCase,
   ranking,
   rubric,
@@ -26,6 +27,7 @@ import type {
   InterviewRunner,
   NextPointRunner,
   RecapRunner,
+  RecordWorthyRunner,
   RelevanceRunner,
   ReplayUtterance,
   RunnerMeta,
@@ -322,6 +324,30 @@ export async function runRelevanceSuite(runner: RelevanceRunner, cases: readonly
       : null,
   }
   return card('relevance-precheck', runner, 'relevance-precheck.jsonl', cases.length, metrics, meter, {
+    details: rows.filter((r) => r.pred !== r.truth),
+  })
+}
+
+// ------------------------------------------------------------------------------ auto-record: worth recording?
+
+export async function runRecordWorthySuite(runner: RecordWorthyRunner, cases: readonly RecordWorthyCase[]) {
+  const meter = new Meter()
+  const rows = []
+  for (const c of cases) {
+    const r = await timed(meter, () => runner.run(c))
+    rows.push({ id: c.id, title: c.event.title, truth: c.label.record, pred: r.record, p: r.p })
+  }
+  const b = binary(rows)
+  const cal = binaryCalibration(rows.map((r) => ({ p: r.p, truth: r.truth })))
+  const metrics = {
+    precision: b.precision,
+    recall: b.recall,
+    f1: b.f1,
+    accuracy: b.accuracy,
+    ece: cal.ece,
+    brier: cal.brier,
+  }
+  return card('record-worthy', runner, 'record-worthy.jsonl', cases.length, metrics, meter, {
     details: rows.filter((r) => r.pred !== r.truth),
   })
 }

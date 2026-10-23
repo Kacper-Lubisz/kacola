@@ -6,6 +6,7 @@ import {
   decisionInjectionRunner,
   decisionInterviewRunner,
   decisionNextPointRunner,
+  decisionRecordWorthyRunner,
   decisionRelevanceRunner,
   decisionStatusRunner,
 } from './runners.ts'
@@ -13,6 +14,7 @@ import {
   runInjectionSuite,
   runInterviewSuite,
   runNextPointSuite,
+  runRecordWorthySuite,
   runRelevanceSuite,
   runStatusSuite,
   type StatusFixture,
@@ -28,6 +30,7 @@ export const DECISION_SUITES = [
   'injection-guardrail',
   'next-point',
   'interview-extraction',
+  'record-worthy',
 ] as const
 export type DecisionSuite = (typeof DECISION_SUITES)[number]
 
@@ -62,6 +65,8 @@ export async function runDecisionSuites(
     'next-point': () => runNextPointSuite(decisionNextPointRunner(p, mode), cap(loadDataset('next-point'))),
     'interview-extraction': () =>
       runInterviewSuite(decisionInterviewRunner(p, mode), cap(loadDataset('interview-extraction'))),
+    'record-worthy': () =>
+      runRecordWorthySuite(decisionRecordWorthyRunner(p, mode), cap(loadDataset('record-worthy'))),
   }
   const cards: Scorecard[] = []
   let dead: string | null = null

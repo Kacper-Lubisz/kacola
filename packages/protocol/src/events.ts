@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { AgendaEphemeralEvents, AgendaEvents } from './agendas.ts'
-import { CalendarStatus, Meeting } from './calendar.ts'
+import { AutoRecordDecision, CalendarStatus, Meeting } from './calendar.ts'
 import { NoteTemplate, NoteVersion } from './notes.ts'
 import { Iso, ModelInfo, QaMessage, Segment, Session, StoredSettings, TrackKind } from './schemas.ts'
 import { ShareEvents, SharingEphemeralEvents } from './sharing.ts'
@@ -70,6 +70,8 @@ export const EphemeralEventData = z.discriminatedUnion('type', [
   z.object({ type: z.literal('calendar.updated'), calendar: CalendarStatus }),
   /** A timed meeting is about to start (sent once per occurrence, shortly before its start). */
   z.object({ type: z.literal('meeting.starting'), meeting: Meeting }),
+  // the calendar rule judged a meeting at its start (smart mode): recorded, or left alone
+  z.object({ type: z.literal('auto-record.decided'), meeting: Meeting, decision: AutoRecordDecision }),
   // ---- kacola phases 1–2: agent presence on the live channel (./agendas.ts)
   ...AgendaEphemeralEvents,
   // ---- Agendas wave 2: the live tracker's status (./tracker.ts)

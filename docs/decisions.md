@@ -106,6 +106,10 @@ provider falls back to the hashing embedder (health says so). Tests use `~/.cach
   → auto (undoable), 0.5–0.8 → "looks covered?", forward-only, manual always wins.
 - `decideRelevance`, `decideInjection`, `decideNextPoint` (model distribution × a code-side prior: must-cover
   under time pressure, in-progress, just-discussed, absent owner — arithmetic stays in code), `decideInterview`.
+- `decideRecordWorthy` (auto-record's smart calendar rule, docs/desktop.md): one yes/no over the event's
+  facts and the series' recording history. `recordWorthyHeuristic` is its on-device rule and the daemon's
+  fallback: history first (≥ 2 earlier occurrences: the share recorded), then title words (meeting words vs
+  exercise / social / appointments / travel / focus time, also run together: `#nousrunclub`), then shape.
 - `AGENDA_RULES`: the on-device rules for each (lexical overlap + embedding similarity, settle / defer /
   deflect cues). Heuristics, honestly labelled; no tuning was done.
 
@@ -129,6 +133,7 @@ Datasets (`packages/testkit/fixtures`):
 | `evals/next-point.jsonl` | 22 | best next item + acceptable alternatives |
 | `evals/recap.jsonl` | 17 | outcome keyword groups, actions with owners, forbidden (injected) text |
 | `evals/interview-extraction.jsonl` | 28 (20 / 8) | answered? + canonical answer + aliases |
+| `evals/record-worthy.jsonl` | 62 (29 / 33) | would the user want this calendar event recorded? incl. history that overrules the title, hashtag titles, solo blocks about meetings |
 
 The agenda fixtures are generated like the others (`node packages/testkit/scripts/generate-fixtures.ts
 --agenda`, Piper voices): per item, when it was settled (end of the settling utterance, ms), which utterances

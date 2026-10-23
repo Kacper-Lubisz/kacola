@@ -104,9 +104,28 @@ export const AutoRecordSettings = z.object({
   calendar: z.boolean(),
   /** Start recording when another application starts capturing from a microphone; stop when it ends. */
   micActivity: z.boolean(),
+  /**
+   * Which meetings the calendar rule records: `likely` = the ones the decisions provider judges the user
+   * will want recorded (a standup, not a run club); `all` = every one. Absent (older settings): `likely`.
+   */
+  calendarFilter: z.enum(['likely', 'all']).optional(),
 })
 export type AutoRecordSettings = z.infer<typeof AutoRecordSettings>
-export const DEFAULT_AUTO_RECORD: AutoRecordSettings = { calendar: false, micActivity: false }
+export const DEFAULT_AUTO_RECORD: AutoRecordSettings = {
+  calendar: false,
+  micActivity: false,
+  calendarFilter: 'likely',
+}
+
+/** What the calendar rule decided about a meeting that just started (ephemeral `auto-record.decided`). */
+export const AutoRecordDecision = z.object({
+  record: z.boolean(),
+  /** P(the user wants it recorded). */
+  p: z.number().min(0).max(1),
+  /** The decisions provider that judged it (`fallback`: on-device rules after the selected one failed). */
+  provider: z.string(),
+})
+export type AutoRecordDecision = z.infer<typeof AutoRecordDecision>
 
 // -------------------------------------------------------------------------------- routes' shapes
 

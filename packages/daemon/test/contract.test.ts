@@ -633,7 +633,7 @@ describe('contract: every route, real server, typed client', () => {
         stt: { liveModel: expect.any(String), finalModel: expect.any(String), finalPass: 'during' },
         capture: { micDevice: 'default', systemDevice: 'default' },
         retention: { audio: 'keep', days: 30, archive: false },
-        autoRecord: { calendar: false, micActivity: false },
+        autoRecord: { calendar: false, micActivity: false, calendarFilter: 'likely' },
         speakers: { diarize: true, voiceprints: false },
         decisions: { provider: 'local', model: '', apiKeyConfigured: false },
       })

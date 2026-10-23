@@ -7,6 +7,7 @@ import type {
   InterviewExtractionCase,
   NextPointCase,
   RecapCase,
+  RecordWorthyCase,
   RelevanceCase,
 } from '@kacola/testkit/evals'
 
@@ -80,6 +81,9 @@ type Out<T> = Promise<T & { usage?: RunUsage }>
 
 export interface RelevanceRunner extends RunnerMeta {
   run(c: RelevanceCase): Out<{ relevant: boolean; p: number; itemIds: string[] }>
+}
+export interface RecordWorthyRunner extends RunnerMeta {
+  run(c: RecordWorthyCase): Out<{ record: boolean; p: number }>
 }
 export interface InjectionRunner extends RunnerMeta {
   run(c: InjectionCase): Out<{ injection: boolean; p: number }>

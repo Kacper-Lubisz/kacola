@@ -1,4 +1,5 @@
 import type { AutoRecordSettings, Meeting } from '@kacola/protocol'
+import type { RecordJudgement } from './auto-record-judge.ts'
 import type { EventBus } from './bus.ts'
 import { sessionMeeting } from './calendar/meetings.ts'
 import type { CalendarService } from './calendar/service.ts'
@@ -11,7 +12,10 @@ import type { SettingsService } from './settings.ts'
 //
 //   calendar      when a timed calendar meeting (not declined, not cancelled) starts, record it —
 //                 titled and linked like Join, without opening anything. Never stopped automatically:
-//                 meetings overrun, and cutting the end off is worse than a long tail.
+//                 meetings overrun, and cutting the end off is worse than a long tail. With
+//                 `calendarFilter: likely` (the default) only a meeting the user will likely want recorded
+//                 (./auto-record-judge.ts), judged when it is announced so recording starts on time; the
+//                 verdict goes out as `auto-record.decided` either way, so a skipped one can be recorded.
 //   micActivity   when another application starts capturing from a microphone (a call started), record;
 //                 when no other application has used the microphone for `micIdleStopMs`, stop — but only
 //                 a session this rule started, and only if it is still the one recording.
@@ -28,6 +32,8 @@ export type AutoRecorderDeps = {
   mic: MicActivitySource
   /** Default 30 s. */
   micIdleStopMs?: number
+  /** Smart mode's judgement (absent: every meeting is recorded, as with `calendarFilter: all`). */
+  judge?: (m: Meeting) => Promise<RecordJudgement>
 }
 
 export class AutoRecorder {
@@ -37,6 +43,8 @@ export class AutoRecorder {
   private micSession: string | null = null
   private idleTimer: NodeJS.Timeout | null = null
   private readonly unsubscribe: (() => void)[] = []
+  /** Judgements started when a meeting was announced, by meeting id (with the title they judged). */
+  private readonly judged = new Map<string, { title: string; verdict: Promise<RecordJudgement> }>()
 
   constructor(d: AutoRecorderDeps) {
     this.d = d
@@ -46,6 +54,9 @@ export class AutoRecorder {
   start(): void {
     this.unsubscribe.push(
       this.d.calendar.onBegin((m) => void this.onMeetingBegins(m)),
+      this.d.calendar.onStarting((m) => {
+        if (this.smart()) this.judgement(m)
+      }),
       this.d.bus.subscribe((e) => {
         if (e.data.type === 'settings.updated') this.apply(e.data.settings.autoRecord)
         if (e.data.type === 'session.upserted' && e.data.session.id === this.micSession) {
@@ -87,11 +98,44 @@ export class AutoRecorder {
     this.idleTimer = null
   }
 
+  private smart(): boolean {
+    return this.rules.calendar && this.rules.calendarFilter !== 'all' && this.d.judge !== undefined
+  }
+
+  private judgement(m: Meeting): Promise<RecordJudgement> {
+    const cached = this.judged.get(m.id)
+    if (cached?.title === m.title) return cached.verdict
+    const verdict = this.d.judge!(m)
+    this.judged.set(m.id, { title: m.title, verdict })
+    // only the next few meetings are ever waiting
+    if (this.judged.size > 32) this.judged.delete(this.judged.keys().next().value!)
+    return verdict
+  }
+
   private async onMeetingBegins(m: Meeting): Promise<void> {
     if (!this.rules.calendar) return
     if (this.d.control.active()) {
       this.d.logger.info('auto-record: meeting began while already recording; left alone', { meeting: m.id })
       return
+    }
+    if (this.smart()) {
+      const v = await this.judgement(m)
+      this.judged.delete(m.id)
+      this.d.bus.ephemeral(null, {
+        type: 'auto-record.decided',
+        meeting: m,
+        decision: { record: v.record, p: v.p, provider: v.provider },
+      })
+      if (!v.record) {
+        this.d.logger.info('auto-record: not a meeting the user records; left alone', {
+          meeting: m.id,
+          p: Number(v.p.toFixed(3)),
+          provider: v.provider,
+        })
+        return
+      }
+      // the judgement may have taken a moment: someone may have started a recording meanwhile
+      if (this.d.control.active()) return
     }
     try {
       const s = await this.d.control.startNew({ reason: 'calendar', meeting: sessionMeeting(m) })
