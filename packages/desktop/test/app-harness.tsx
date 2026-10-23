@@ -16,6 +16,9 @@ import type {
   CliInstallState,
   ExtensionState,
   KacolaBridge,
+  PermissionKind,
+  PermissionsState,
+  SettingsPane,
   UiState,
 } from '../src/shared/bridge.ts'
 import { fakeDaemon, type Handler } from './helpers.ts'
@@ -116,6 +119,23 @@ export function fakeBridge(over: Partial<KacolaBridge> = {}) {
     }),
     onDeepLink: vi.fn(() => () => {}),
     takeDeepLink: vi.fn(async (): Promise<string | null> => null),
+    // Linux by default: nothing to grant
+    permissions: vi.fn(
+      async (): Promise<PermissionsState> => ({
+        microphone: 'not-needed',
+        'system-audio': 'not-needed',
+        calendar: 'not-needed',
+      }),
+    ),
+    requestPermission: vi.fn(
+      async (_kind: PermissionKind): Promise<PermissionsState> => ({
+        microphone: 'not-needed',
+        'system-audio': 'not-needed',
+        calendar: 'not-needed',
+      }),
+    ),
+    openSettingsPane: vi.fn(async (_pane: SettingsPane) => false),
+    relaunch: vi.fn(),
   }
   Object.assign(b, over)
   return {

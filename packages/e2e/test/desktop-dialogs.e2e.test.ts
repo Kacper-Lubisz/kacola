@@ -385,7 +385,7 @@ describe('first-run onboarding (slow fake model downloads)', () => {
     await daemon?.stop()
   })
 
-  it('opens on first run, downloads the missing model with live progress, installs the CLI, and is remembered', async () => {
+  it('opens on first run, downloads the required model by itself with live progress, walks its steps, installs the CLI, and is remembered', async () => {
     rmSync(uiStatePath(display), { force: true })
     const shim = join(display.env.HOME!, '.local', 'bin', 'kacola')
     rmSync(shim, { force: true })
@@ -393,14 +393,34 @@ describe('first-run onboarding (slow fake model downloads)', () => {
     try {
       const welcome = app.window.getByRole('dialog', { name: 'Welcome to kacola' })
       await welcome.waitFor({ timeout: 20_000 })
-      const models = (await daemon.client.call('listModels')).models
-      for (const m of models) await welcome.getByRole('listitem', { name: m.title }).waitFor()
-      const whisper = models.find((m) => m.state === 'missing')!
-      const row = welcome.getByRole('listitem', { name: whisper.title })
-      await row.getByText('Accurate transcription', { exact: true }).waitFor()
-      await row.getByText('1 MB · Not downloaded').waitFor()
-      await welcome.getByText('Working', { exact: true }).waitFor() // capture check from health()
-      // calendar access: which calendars are read, and a broken calendar shows live
+      // no question to answer: the missing model starts downloading as soon as setup opens, and its
+      // progress arrives through model.progress events — watch several distinct values go by
+      const models = welcome.getByRole('listitem', { name: 'Speech models' })
+      const seen = new Set<string>()
+      const bars = new Set<number>()
+      const bar = welcome.getByRole('progressbar', { name: 'Speech models download progress' })
+      await waitFor(
+        async () => {
+          const s = (await models.textContent()) ?? ''
+          const m = /Downloading [\d.]+ MB · (\d+)%/.exec(s)
+          if (m) seen.add(m[1]!)
+          const v = await bar.getAttribute('aria-valuenow', { timeout: 50 }).catch(() => null)
+          if (v !== null) bars.add(Number(v))
+          if (seen.size === 2) await app.screenshot(join(DESKTOP_ARTIFACTS, 'onboarding-progress.png'))
+          return s.includes('Ready · ')
+        },
+        20_000,
+        'the download to finish',
+      )
+      expect([...seen].map(Number).filter((p) => p > 0 && p < 100).length).toBeGreaterThanOrEqual(1)
+      expect([...bars].filter((p) => p > 0 && p < 100).length).toBeGreaterThanOrEqual(1)
+      expect((await daemon.client.call('listModels')).models.every((m) => m.state === 'ready')).toBe(true)
+      // step 1, recording: on Linux nothing to grant, capture either works or says why (health())
+      await welcome.getByText('Working', { exact: true }).waitFor()
+      expect(await app.axe()).toEqual([])
+      await app.screenshot(join(DESKTOP_ARTIFACTS, 'onboarding.png'))
+      await welcome.getByRole('button', { name: 'Continue' }).click()
+      // step 2, calendar: which calendars are read, and a broken calendar shows live
       await welcome.getByText('Reading Work').waitFor({ timeout: 10_000 })
       writeFileSync(calendarFile, '{ broken')
       await welcome.getByText(/Not available: calendar file/).waitFor({ timeout: 10_000 })
@@ -409,34 +429,12 @@ describe('first-run onboarding (slow fake model downloads)', () => {
         JSON.stringify({ calendars: [{ id: 'work', name: 'Work' }], occurrences: [] }),
       )
       await welcome.getByText('Reading Work').waitFor({ timeout: 10_000 })
-      // the CLI + skill step is on by default
+      await welcome.getByRole('button', { name: 'Continue' }).click()
+      // step 3: the CLI + skill is on by default
       expect(
         await welcome.getByRole('switch', { name: 'Install command-line tool and Claude skill' }).isChecked(),
       ).toBe(true)
       expect(await app.axe()).toEqual([])
-      await app.screenshot(join(DESKTOP_ARTIFACTS, 'onboarding.png'))
-
-      await welcome.getByRole('button', { name: 'Download all models' }).click()
-      // progress arrives through model.progress events: watch several distinct values go by
-      const seen = new Set<string>()
-      const bars = new Set<number>()
-      const bar = welcome.getByRole('progressbar', { name: `${whisper.title} download progress` })
-      await waitFor(
-        async () => {
-          const s = (await row.textContent()) ?? ''
-          const m = /Downloading… (\d+)%/.exec(s)
-          if (m) seen.add(m[1]!)
-          const v = await bar.getAttribute('aria-valuenow', { timeout: 50 }).catch(() => null)
-          if (v !== null) bars.add(Number(v))
-          if (seen.size === 2) await app.screenshot(join(DESKTOP_ARTIFACTS, 'onboarding-progress.png'))
-          return s.includes('· Ready')
-        },
-        20_000,
-        'the download to finish',
-      )
-      expect([...seen].map(Number).filter((p) => p > 0 && p < 100).length).toBeGreaterThanOrEqual(2)
-      expect([...bars].filter((p) => p > 0 && p < 100).length).toBeGreaterThanOrEqual(1)
-      expect((await daemon.client.call('listModels')).models.every((m) => m.state === 'ready')).toBe(true)
 
       await welcome.getByRole('button', { name: 'Done' }).click()
       await welcome.waitFor({ state: 'detached' })
@@ -465,29 +463,28 @@ describe('first-run onboarding (slow fake model downloads)', () => {
 })
 
 describe('onboarding skipped', () => {
-  it('remembers the skip, shows a banner for the missing model, and the banner reopens it', async () => {
+  it('Skip ends setup at once and installs nothing, the models still download, and the menu reopens it', async () => {
     const daemon = await startDaemon()
     rmSync(uiStatePath(display), { force: true })
     const app = await launchDesktop({ display, env: { KACOLA_URL: daemon.baseUrl } })
     try {
       const welcome = app.window.getByRole('dialog', { name: 'Welcome to kacola' })
       await welcome.waitFor({ timeout: 20_000 })
-      // not installing the CLI this time
-      await toggle(app, welcome.getByRole('switch', { name: 'Install command-line tool and Claude skill' }))
       await welcome.getByRole('button', { name: 'Skip for now' }).click()
       await welcome.waitFor({ state: 'detached' })
       expect(JSON.parse(readFileSync(uiStatePath(display), 'utf8'))).toEqual({
         version: 1,
         onboardingDone: true,
-        skippedMissing: ['whisper-small.en'],
+        skippedMissing: [],
       })
       expect(existsSync(join(display.env.HOME!, '.local', 'bin', 'kacola'))).toBe(false)
-      const banner = app.window.getByRole('status', {
-        name: 'A speech model is not downloaded yet, so recording can’t transcribe',
-      })
-      await banner.waitFor()
-      await app.screenshot(join(DESKTOP_ARTIFACTS, 'onboarding-skipped-banner.png'))
-      await banner.getByRole('button', { name: 'Set up' }).click()
+      await waitFor(
+        async () => (await daemon.client.call('listModels')).models.every((m) => m.state === 'ready'),
+        20_000,
+        'the models setup started to finish after Skip',
+      )
+      await app.window.getByRole('button', { name: 'Main menu' }).click()
+      await app.window.getByRole('menuitem', { name: 'Set up kacola…' }).click()
       await welcome.waitFor()
       // Escape counts as skipping again
       await app.window.keyboard.press('Escape')

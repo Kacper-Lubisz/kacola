@@ -699,6 +699,7 @@ msgid "Follow a shared agenda"
 msgstr ""
 
 #: src/renderer/features/agendas/follow.tsx:110
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:465
 msgid "Back"
 msgstr ""
 
@@ -887,7 +888,7 @@ msgstr ""
 #: src/renderer/features/agendas/send.tsx:90
 #: src/renderer/features/agendas/share.tsx:230
 #: src/renderer/features/meeting/outcome-view.tsx:91
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:182
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:468
 msgid "Done"
 msgstr ""
 
@@ -1190,6 +1191,7 @@ msgstr ""
 #: src/renderer/features/agendas/share.tsx:411
 #: src/renderer/features/ask/ask-answer.tsx:104
 #: src/renderer/features/meeting/notepad.tsx:152
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:145
 #: src/renderer/features/preferences/extension-setup.tsx:51
 #: src/renderer/routes/main-layout.tsx:100
 msgid "Try again"
@@ -1515,6 +1517,7 @@ msgstr ""
 
 #: src/renderer/features/home/day-view.tsx:524
 #: src/renderer/features/meeting/header.tsx:118
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:34
 #: src/renderer/features/shell/shortcuts.tsx:24 ../ui-core/src/format.ts:61
 msgid "Recording"
 msgstr ""
@@ -2376,46 +2379,43 @@ msgstr ""
 msgid "(empty)"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:34
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:225
-#: src/renderer/features/preferences/preferences-dialog.tsx:222
-msgid "Ready"
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:35
+msgid "Your meetings"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:36
-msgid "Downloading… {percent}"
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:385
+msgid "For agents"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:38
-msgid "Damaged: download again"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:40
-msgid "Not downloaded"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:82
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:91
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:77
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:86
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:126
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:208
 #: src/renderer/features/preferences/extension-setup.tsx:71
 #: src/renderer/features/preferences/extension-setup.tsx:273
 #: src/renderer/features/preferences/integration-rows.tsx:20
 msgid "Checking…"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:84
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:79
 msgid "Working"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:85
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:80
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:105
 msgid "Not available: {detail}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:96
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:91
 msgid "Reading {calendars}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:99
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:96
+msgid "No calendars yet. Add an account in Internet Accounts."
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:97
 msgid "No calendars found. Add one in GNOME Calendar or Online Accounts."
 msgstr ""
 
@@ -2427,153 +2427,258 @@ msgstr ""
 msgid "Calendar reading is turned off"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:153
-#: src/renderer/features/preferences/integration-rows.tsx:88
-#: src/renderer/features/preferences/integration-rows.tsx:121
-msgid "Command-line tool installed"
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:128
+msgid "Ready · {size}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:155
-#: src/renderer/features/preferences/integration-rows.tsx:77
-msgid "Could not install the command-line tool: {reason}"
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:129
+msgid "Downloading {size} · {percent}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:175
-msgid "Welcome to kacola"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:186
-msgid "Skip for now"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:189
-msgid "Download all models"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:196
-msgid "Download {size}"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:199
-msgid "Downloading…"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:209
-msgid ""
-"kacola transcribes on this computer. It needs a few speech models first, and "
-"access to your microphone and system audio."
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:213
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:134
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:135
 msgid "Speech models"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:216
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:136
+msgid "Transcription and speakers, on this computer"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:138
 msgid "Loading models"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:230
-msgid "{model} download progress"
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:141
+#: src/renderer/features/preferences/preferences-dialog.tsx:222
+msgid "Ready"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:236
-msgid "Download {model}"
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:148
+msgid "Speech models download progress"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:239
-msgid "Download"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:249
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:154
 msgid "Something went wrong: {reason}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:252
-msgid "Audio capture"
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:210
+msgid "Allowed · {purpose}"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:253
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:254
-msgid "Microphone and system audio"
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:212
+msgid "This build of kacola can’t ask for it"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:257
-msgid "Capture available"
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:220
+msgid "Asking for {permission}"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:223
+msgid "Allowed"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:227
+msgid "Not available"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:232
+msgid "Open System Settings"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:240
+msgid "Allow {permission}"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:243
+msgid "Allow"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:258
-msgid "Capture not available"
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:273
+msgid "Audio capture"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:259
-msgid "Checking audio capture"
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:260
+msgid "Microphone and system audio"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:263
+msgid "Capture available"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:264
-msgid "Meetings"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:264
-msgid "Calendar access"
+msgid "Capture not available"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:265
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:266
-msgid "Calendar"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:269
-msgid "Calendar available"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:270
-msgid "Calendar not available"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:271
-msgid "Checking calendar access"
+msgid "Checking audio capture"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:276
-msgid "For agents"
-msgstr ""
-
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:276
-msgid "Command-line tool"
+#: src/renderer/features/preferences/preferences-dialog.tsx:347
+#: src/renderer/features/sessions/session-details.tsx:19
+msgid "Microphone"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:277
+msgid "Your side of the meeting"
+msgstr ""
+
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:279
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:292
-msgid "Install command-line tool and Claude skill"
+msgid "Turn kacola on under Privacy & Security › Microphone"
 msgstr ""
 
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:283
+#: src/renderer/features/preferences/preferences-dialog.tsx:353
+#: src/renderer/features/sessions/session-details.tsx:20
+msgid "System audio"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:284
+msgid ""
+"What everyone else says, from your speakers. kacola never records the screen."
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:287
+msgid ""
+"Turn kacola on under Privacy & Security › Screen & System Audio Recording, "
+"then restart kacola"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:291
+msgid "Restart kacola"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:322
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:323
+msgid "Calendar"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:326
+msgid "Calendar available"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:327
+msgid "Calendar not available"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:328
+msgid "Checking calendar access"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:335
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:346
+msgid "Meetings"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:335
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:346
+msgid "Calendar access"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:343
+msgid ""
+"kacola reads the calendars in the Calendar app, so meetings get their titles "
+"and agendas. Your Google account works without a separate sign-in."
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:349
+msgid "Calendars"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:350
+msgid "Every calendar in the Calendar app"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:352
+msgid "Turn kacola on under Privacy & Security › Calendars"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:355
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:357
+msgid "Google, iCloud or Exchange"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:359
+msgid ""
+"Add the account in Internet Accounts with Calendars switched on. kacola "
+"picks it up by itself."
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:363
+msgid "Open Internet Accounts"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:385
+msgid "Command-line tool"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:386
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:388
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:401
+msgid "Install command-line tool and Claude skill"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:392
 #: src/renderer/features/preferences/integration-rows.tsx:34
 msgid ""
 "Lets agents like Claude Code read your meetings through the kacola command"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:288
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:397
 msgid "Installed"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:301
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:410
 msgid "Top bar"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:301
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:302
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:303
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:410
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:411
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:412
 #: src/renderer/features/preferences/extension-setup.tsx:272
 #: src/renderer/features/preferences/extension-setup.tsx:341
 #: src/renderer/features/preferences/extension-setup.tsx:347
 msgid "Top-bar extension"
 msgstr ""
 
-#: src/renderer/features/onboarding/onboarding-dialog.tsx:306
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:415
 #: src/renderer/features/preferences/extension-setup.tsx:276
 msgid "On"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:445
+#: src/renderer/features/preferences/integration-rows.tsx:88
+#: src/renderer/features/preferences/integration-rows.tsx:121
+msgid "Command-line tool installed"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:447
+#: src/renderer/features/preferences/integration-rows.tsx:77
+msgid "Could not install the command-line tool: {reason}"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:456
+msgid "Welcome to kacola"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:463
+msgid "Skip for now"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:468
+msgid "Continue"
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:476
+msgid ""
+"kacola records and transcribes your meetings on this computer. Nothing "
+"leaves it unless you set up sync."
+msgstr ""
+
+#: src/renderer/features/onboarding/onboarding-dialog.tsx:482
+msgid "Step {n} of {total} · {title}"
 msgstr ""
 
 #: src/renderer/features/preferences/extension-setup.tsx:48
@@ -2771,8 +2876,8 @@ msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:126
 msgid ""
-"{path} was not installed by this app. Replacing it points the kacola "
-"command at this app instead."
+"{path} was not installed by this app. Replacing it points the kacola command "
+"at this app instead."
 msgstr ""
 
 #: src/renderer/features/preferences/integration-rows.tsx:146
@@ -2974,16 +3079,6 @@ msgstr ""
 msgid "Used for recordings started from now on."
 msgstr ""
 
-#: src/renderer/features/preferences/preferences-dialog.tsx:347
-#: src/renderer/features/sessions/session-details.tsx:19
-msgid "Microphone"
-msgstr ""
-
-#: src/renderer/features/preferences/preferences-dialog.tsx:353
-#: src/renderer/features/sessions/session-details.tsx:20
-msgid "System audio"
-msgstr ""
-
 #: src/renderer/features/preferences/preferences-dialog.tsx:354
 msgid "What the other people in the call sound like"
 msgstr ""
@@ -3153,7 +3248,7 @@ msgid "Follow a shared agenda…"
 msgstr ""
 
 #: src/renderer/features/shell/primary-menu.tsx:23
-msgid "Set up speech models…"
+msgid "Set up kacola…"
 msgstr ""
 
 #: src/renderer/features/shell/primary-menu.tsx:26
@@ -3722,26 +3817,26 @@ msgstr ""
 msgid "{device} (not connected)"
 msgstr ""
 
-#: ../ui-core/src/settings.ts:102
+#: ../ui-core/src/settings.ts:111
 msgid "Live transcription"
 msgstr ""
 
-#: ../ui-core/src/settings.ts:103
+#: ../ui-core/src/settings.ts:112
 msgid "Accurate transcription"
 msgstr ""
 
-#: ../ui-core/src/settings.ts:104
+#: ../ui-core/src/settings.ts:113
 msgid "Voice detection"
 msgstr ""
 
-#: ../ui-core/src/settings.ts:105
+#: ../ui-core/src/settings.ts:114
 msgid "Speaker turns"
 msgstr ""
 
-#: ../ui-core/src/settings.ts:106
+#: ../ui-core/src/settings.ts:115
 msgid "Speaker recognition"
 msgstr ""
 
-#: ../ui-core/src/settings.ts:107
+#: ../ui-core/src/settings.ts:116
 msgid "Offline decisions"
 msgstr ""

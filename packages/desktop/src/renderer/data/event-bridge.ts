@@ -236,7 +236,7 @@ export class EventBridge {
     const d = e.data
     if (d.type === 'model.progress')
       this.qc.setQueryData<ModelInfo[]>(keys.models(), (cur) =>
-        cur?.map((m) => (m.id === d.model.id ? d.model : m)),
+        cur?.map((m) => (m.id === d.model.id ? { ...m, ...d.model } : m)),
       )
     else if (d.type === 'calendar.updated') {
       this.qc.setQueryData(keys.calendar(), d.calendar)

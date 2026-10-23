@@ -20,7 +20,7 @@ export function PrimaryMenu() {
         {_('Follow a shared agenda…')}
       </MenuItem>
       <MenuItem icon="download" onAction={() => dialogs.open('onboarding')}>
-        {_('Set up speech models…')}
+        {_('Set up kacola…')}
       </MenuItem>
       <MenuItem icon="keyboard" shortcut="Ctrl+?" onAction={() => dialogs.open('shortcuts')}>
         {_('Keyboard shortcuts')}

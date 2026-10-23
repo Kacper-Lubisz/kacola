@@ -46,7 +46,7 @@ packages/desktop/
     features/sessions/      record flow (recorder.ts), Details
     features/{transcript,ask,notes}/   the pieces the meeting page is built from (PaneProps, features/sessions/pane.ts)
     features/preferences/   Preferences, settings mutations, CLI / extension install rows
-    features/onboarding/    first run: models, capture, calendar, CLI + skill
+    features/onboarding/    first run: required models (automatic), permissions, calendar, CLI + skill
     features/about/         About (Granola credit, licence, notices)
   test/                     unit + jsdom component tests (vitest `unit` project)
   translations/             kacola.pot + LINGUAS (scripts/i18n-pot.ts; see "Translations")
@@ -131,6 +131,33 @@ lists each recording that waits for audio at `GET /capture/external`. Main makes
   into a recording started with the Record button; real models; mic WER within the committed baseline
   (12.0 % vs 12 % ± 5), every mic segment `me`, levels on the Microphone meter. The system-track ingest
   is the daemon-level `external-capture.e2e.test.ts`'s subject.
+
+## First run
+
+Setup (`features/onboarding/`) opens by itself once, on first run (`ui-state.json`'s `onboardingDone`),
+and again from the main menu's **Set up kacola…** or the missing-model banner. It asks nothing about
+models:
+
+- **Speech models**: the ones the daemon marks `required` (`GET /models`: the selected live and final
+  models, VAD, and the speaker models while attribution is on — never the rest of the catalogue) start
+  downloading the moment setup opens, behind one progress bar by size. After setup, a required model that
+  goes missing (another model picked in Preferences, a new default, a damaged file) downloads by itself
+  in the background; setup does not reopen for it.
+- **Steps**: Recording, Your meetings, For agents. Skip (or Escape) ends setup at once and installs
+  nothing; Done installs the command-line tool and Claude skill when its switch is on (the default).
+- **Permissions** (`src/main/permissions.ts`, macOS; Linux needs none and shows what works instead):
+  microphone through `systemPreferences`; system audio through Screen & System Audio Recording, whose
+  prompt comes from listing screen sources (Electron reports it as denied before the app ever asked, so
+  main remembers what it asked in `permissions-asked.json` beside `ui-state.json` and offers Allow until
+  then); calendars through `kacola-cal-agent --request`. A row offers System Settings only once macOS has
+  had its answer, because the panes list an app only after it asked. A new system-audio grant applies
+  after a restart (the row's Restart button).
+- **Calendar on macOS**: the daemon's `eventkit` provider runs `kacola-cal-agent`
+  (`packages/daemon/macos/cal-agent.swift`, built by `scripts/build-cal-agent.ts` into the runtime),
+  which reads every calendar in the Calendar app — so a Google, iCloud or Exchange account added in
+  System Settings › Internet Accounts works with no sign-in of kacola's own. It speaks the cal-agent line
+  protocol, reports `access` until it is allowed and notices a grant within seconds. Read-only: the
+  agenda invitation block is handed back to paste.
 
 ## Background mode
 

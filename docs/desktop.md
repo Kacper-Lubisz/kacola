@@ -63,7 +63,8 @@ after `KACOLA_MIC_IDLE_STOP_MS` (30 s) without one. A rule never interrupts a ru
 
 | env | values | default |
 | --- | --- | --- |
-| `KACOLA_CALENDAR` | `eds`, `off`, `file:PATH` | `eds` (`off` with `--fake`) |
+| `KACOLA_CALENDAR` | `eds`, `eventkit`, `off`, `file:PATH`, `ics:PATH-OR-URL` | `eds`; `eventkit` on macOS (`off` with `--fake`) |
+| `KACOLA_CAL_AGENT` | path | the bundled `kacola-cal-agent` (macOS) |
 | `KACOLA_DBUS` | `session`, `off` | `session` (`off` with `--fake`) |
 | `KACOLA_MIC_ACTIVITY` | `pipewire`, `pipewire:SOURCE`, `off` | `pipewire` (`off` with `--fake`) |
 | `KACOLA_MIC_IDLE_STOP_MS` | ms | 30000 |

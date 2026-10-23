@@ -3,7 +3,7 @@ import '@kacola/protocol/legacy-env'
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
-import { join, sep } from 'node:path'
+import { dirname, join, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { createClient, ingestPcm, MAX_FRAME_BYTES, type Session } from '@kacola/protocol'
 import { migrateLegacyMacDir, migrateLegacyUserDirs } from '@kacola/protocol/legacy-dirs'
@@ -25,6 +25,7 @@ import {
   protocol,
   session,
   shell,
+  systemPreferences,
   Tray,
   type WebContents,
 } from 'electron'
@@ -34,6 +35,8 @@ import {
   type AutostartState,
   type DaemonStatus,
   IPC,
+  type PermissionKind,
+  type SettingsPane,
   type Theme,
   type TunnelControl,
   type TunnelRequest,
@@ -42,12 +45,13 @@ import {
 import { CAPTURE_IPC, type CaptureState, type CaptureTrack } from '../shared/capture.ts'
 import { autostartStatus, migrateLegacyAutostart, requestBackground, setAutostart } from './autostart.ts'
 import { CaptureController, type CaptureWindowLike, captureTracks } from './capture.ts'
-import { readDesktopConfig } from './config.ts'
+import { calAgentPath, readDesktopConfig } from './config.ts'
 import { DeepLinkQueue, deepLinkFromArgv, normalizeDeepLink, schemeRegistration } from './deep-link.ts'
 import { ExtensionManager, extensionSource, runCommand } from './extension.ts'
 import { checkClipboardText, checkSaveRequest, type SaveDialogOptions, saveText } from './files.ts'
 import { cliEntry, Integration, runCli, shq } from './integration.ts'
 import { IdleCollector } from './memory.ts'
+import { askedPermissions, Permissions, SETTINGS_PANES } from './permissions.ts'
 import { loadCatalogue, preferredLanguages, readNotices, readUiState, writeUiState } from './resources.ts'
 import {
   APP_ORIGIN,
@@ -155,6 +159,28 @@ const integration = new Integration(cli ? runCli(process.execPath, cli, process.
       ? `${shq(process.execPath)} --background`
       : null,
   extension,
+})
+const calAgent = calAgentPath(process.env, {
+  resourcesPath: app.isPackaged ? process.resourcesPath : undefined,
+  appDir: HERE,
+})
+const permissions = new Permissions({
+  platform: process.platform,
+  mediaStatus: (kind) => systemPreferences.getMediaAccessStatus(kind),
+  askMicrophone: () => systemPreferences.askForMediaAccess('microphone'),
+  probeScreen: async () => {
+    await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 0, height: 0 } })
+  },
+  calendarHelper: (flag) =>
+    new Promise((resolve) => {
+      if (!calAgent) return resolve(null)
+      // --request waits for the user to answer the system prompt
+      execFile(calAgent, [flag], { timeout: flag === '--request' ? 600_000 : 10_000 }, (err, stdout) =>
+        resolve(err ? null : stdout),
+      )
+    }),
+  openUrl: (url) => shell.openExternal(url),
+  asked: askedPermissions(join(dirname(config.uiStatePath), 'permissions-asked.json')),
 })
 
 /** What a login starts (Linux outside Flatpak): this binary (+ the main script when unpackaged). */
@@ -540,6 +566,22 @@ function wireIpc(): void {
     } catch (err) {
       return { ...autostartStatus(autostartDeps), detail: String((err as Error).message ?? err) }
     }
+  })
+  // ---- setup's permissions (permissions.ts)
+  handle(IPC.permissions, () => permissions.state())
+  handle(IPC.permissionRequest, (_e, kind) => {
+    if (kind !== 'microphone' && kind !== 'system-audio' && kind !== 'calendar')
+      throw new Error('unknown permission')
+    return permissions.request(kind as PermissionKind)
+  })
+  handle(IPC.permissionSettings, (_e, pane) => {
+    if (typeof pane !== 'string' || !Object.hasOwn(SETTINGS_PANES, pane)) return false
+    return permissions.openSettings(pane as SettingsPane)
+  })
+  ipcMain.on(IPC.relaunch, (e) => {
+    if (!trusted(e)) return
+    app.relaunch()
+    app.quit()
   })
   // ---- in-app capture: frames and state from the capture window only
   const isTrack = (t: unknown): t is CaptureTrack => t === 'mic' || t === 'system'

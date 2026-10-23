@@ -1,10 +1,15 @@
 // @vitest-environment jsdom
 import type { Session } from '@kacola/protocol'
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
-import { shouldOnboard } from '../src/renderer/features/onboarding/onboarding-state.ts'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  backgroundDownloads,
+  downloadProgress,
+  shouldOnboard,
+} from '../src/renderer/features/onboarding/onboarding-state.ts'
 import { applyPatch } from '../src/renderer/features/preferences/settings-data.ts'
 import { matches, SHORTCUTS } from '../src/renderer/features/shell/shortcuts.tsx'
+import type { PermissionKind, PermissionsState } from '../src/shared/bridge.ts'
 import { fakeBridge, model, renderApp, settings, shellHandlers } from './app-harness.tsx'
 import { session, until, upserted } from './helpers.ts'
 
@@ -179,29 +184,67 @@ describe('the record flow', () => {
 })
 
 describe('onboarding', () => {
-  it('is due on first run and when a newly missing model appears, not for the skipped ones', () => {
+  it('is due on first run only (later missing models download by themselves)', () => {
     const missing = [model('whisper', { state: 'missing' })]
     expect(shouldOnboard({ version: 1, onboardingDone: false, skippedMissing: [] }, missing)).toBe(true)
-    expect(shouldOnboard({ version: 1, onboardingDone: true, skippedMissing: ['whisper'] }, missing)).toBe(
-      false,
-    )
-    expect(shouldOnboard({ version: 1, onboardingDone: true, skippedMissing: [] }, missing)).toBe(true)
+    expect(shouldOnboard({ version: 1, onboardingDone: true, skippedMissing: [] }, missing)).toBe(false)
     expect(shouldOnboard({ version: 1, onboardingDone: false, skippedMissing: [] }, null)).toBe(false)
+    expect(
+      backgroundDownloads({ version: 1, onboardingDone: true, skippedMissing: [] }, [
+        ...missing,
+        model('busy', { state: 'downloading' }),
+      ]).map((m) => m.id),
+    ).toEqual(['whisper'])
+    // skipped in the old setup dialog: still the user's to start
+    expect(
+      backgroundDownloads({ version: 1, onboardingDone: true, skippedMissing: ['whisper'] }, missing),
+    ).toEqual([])
+    expect(backgroundDownloads({ version: 1, onboardingDone: false, skippedMissing: [] }, missing)).toEqual(
+      [],
+    )
   })
 
-  it('opens by itself on first run; Skip remembers the missing models and installs the CLI (default on)', async () => {
+  it('measures download progress by size', () => {
+    const p = downloadProgress([
+      model('a', { sizeBytes: 300, state: 'ready' }),
+      model('b', { sizeBytes: 100, state: 'downloading', progress: 0.5 }),
+      model('c', { sizeBytes: 600, state: 'missing' }),
+    ])
+    expect(p).toEqual({ totalBytes: 1000, fraction: 0.35, done: false })
+    expect(downloadProgress([]).done).toBe(true)
+  })
+
+  it('opens by itself on first run, downloads only the required models without asking, and walks its steps', async () => {
     const fb = fakeBridge()
     fb.setUi({ version: 1, onboardingDone: false, skippedMissing: [] })
     const app = renderApp({
       bridge: fb,
       handlers: {
-        ...shellHandlers({ models: [model('live'), model('whisper', { role: 'final', state: 'missing' })] }),
+        ...shellHandlers({
+          models: [
+            model('live', { required: true }),
+            model('whisper', { role: 'final', state: 'missing', required: true, sizeBytes: 211_000_000 }),
+            model('whisper-big', { role: 'final', state: 'missing', required: false }),
+          ],
+        }),
+        downloadModel: ({ params }) =>
+          model(params!.id!, { role: 'final', state: 'downloading', progress: 0.1 }),
         health: () => ({ lastSeq: 1, capture: { available: true, backend: 'fake', detail: null } }),
       },
     })
     const welcome = await screen.findByRole('dialog', { name: 'Welcome to kacola' }, { timeout: 3000 })
-    await within(welcome).findByRole('listitem', { name: /whisper/ })
+    await until(() => app.daemon.calls.includes('downloadModel'))
+    expect(app.daemon.log.filter((c) => c.name === 'downloadModel').map((c) => c.opts.params?.id)).toEqual([
+      'whisper',
+    ])
+    expect(within(welcome).queryByRole('button', { name: /^Download/ })).toBeNull()
+    await within(welcome).findByText(/Downloading 212 MB/)
+    // Linux: capture needs no grant, it either works or says why
     await within(welcome).findByText('Working')
+    fireEvent.click(within(welcome).getByRole('button', { name: 'Continue' }))
+    await within(welcome).findByText(/Step 2 of 3/)
+    fireEvent.click(within(welcome).getByRole('button', { name: 'Continue' }))
+    await within(welcome).findByText(/Step 3 of 3/)
     expect(
       (
         within(welcome).getByRole('switch', {
@@ -209,15 +252,62 @@ describe('onboarding', () => {
         }) as HTMLInputElement
       ).checked,
     ).toBe(true)
-    fireEvent.click(within(welcome).getByRole('button', { name: 'Skip for now' }))
+    fireEvent.click(within(welcome).getByRole('button', { name: 'Done' }))
     await until(() => fb.bridge.setUiState.mock.calls.length === 1)
     expect(fb.bridge.setUiState).toHaveBeenCalledWith({
       version: 1,
       onboardingDone: true,
-      skippedMissing: ['whisper'],
+      skippedMissing: [],
     })
     await until(() => fb.bridge.installCli.mock.calls.length === 1)
-    // the banner offers to set up again
+    app.stop()
+  })
+
+  it('on macOS asks for each permission, and sends a refused one to System Settings', async () => {
+    let perms: PermissionsState = {
+      microphone: 'not-determined',
+      'system-audio': 'denied',
+      calendar: 'not-determined',
+    }
+    const fb = fakeBridge({
+      permissions: vi.fn(async () => perms),
+      requestPermission: vi.fn(async (kind: PermissionKind) => {
+        perms = { ...perms, [kind]: 'granted' }
+        return perms
+      }),
+    })
+    fb.setUi({ version: 1, onboardingDone: false, skippedMissing: [] })
+    const app = renderApp({
+      bridge: fb,
+      info: { platform: 'darwin' },
+      handlers: shellHandlers({ models: [model('live', { required: true, state: 'missing' })] }),
+    })
+    const welcome = await screen.findByRole('dialog', { name: 'Welcome to kacola' }, { timeout: 3000 })
+    fireEvent.click(await within(welcome).findByRole('button', { name: 'Allow Microphone' }))
+    await until(() => fb.bridge.requestPermission.mock.calls.length === 1)
+    expect(fb.bridge.requestPermission).toHaveBeenCalledWith('microphone')
+    await within(welcome).findByText('Allowed · Your side of the meeting')
+    fireEvent.click(within(welcome).getByRole('button', { name: 'Open System Settings' }))
+    expect(fb.bridge.openSettingsPane).toHaveBeenCalledWith('system-audio')
+    fireEvent.click(within(welcome).getByRole('button', { name: 'Continue' }))
+    fireEvent.click(await within(welcome).findByRole('button', { name: 'Allow Calendars' }))
+    await until(() => fb.bridge.requestPermission.mock.calls.length === 2)
+    expect(fb.bridge.requestPermission).toHaveBeenLastCalledWith('calendar')
+    fireEvent.click(within(welcome).getByRole('button', { name: 'Open Internet Accounts' }))
+    expect(fb.bridge.openSettingsPane).toHaveBeenLastCalledWith('internet-accounts')
+    app.stop()
+  })
+
+  it('after setup, a newly missing model downloads in the background and setup stays closed', async () => {
+    const app = renderApp({
+      handlers: {
+        ...shellHandlers({ models: [model('live', { required: true, state: 'missing' })] }),
+        downloadModel: ({ params }) => model(params!.id!, { state: 'downloading', progress: 0 }),
+      },
+    })
+    await until(() => app.daemon.calls.includes('downloadModel'))
+    expect(screen.queryByRole('dialog', { name: 'Welcome to kacola' })).toBeNull()
+    // the banner still offers setup, for the permissions
     const banner = await screen.findByRole('status', {
       name: 'A speech model is not downloaded yet, so recording can’t transcribe',
     })
