@@ -1,8 +1,9 @@
 import { _, fmt } from '@kacola/ui-core/i18n'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet, useLocation, useNavigate, useParams } from '@tanstack/react-router'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useStore } from 'zustand'
+import { restarting, startupState, useDaemonStatusFeed } from '../data/daemon-status.ts'
 import { useServices } from '../data/services.tsx'
 import { Button, EmptyState, HeaderBar, Spinner } from '../design/primitives/index.ts'
 import { AboutDialog } from '../features/about/about-dialog.tsx'
@@ -64,6 +65,17 @@ function Window() {
   // observe the list without fetching it: the EventBridge's snapshot is what fills it
   const everLive = useQuery({ ...queries.sessions(), enabled: false }).data !== undefined
   const live = everLive && connection.kind !== 'unreachable'
+  useDaemonStatusFeed()
+  const daemon = useStore(store, (s) => s.daemon)
+  // how long this window has been waiting for its first snapshot (startupState's grace)
+  const [openedAt] = useState(() => Date.now())
+  const [now, setNow] = useState(openedAt)
+  useEffect(() => {
+    if (everLive) return
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [everLive])
+  const startup = startupState(connection, daemon, now - openedAt)
   const onboarding = useOnboarding(everLive)
   const dialogs = useDialogs()
 
@@ -74,12 +86,16 @@ function Window() {
     if (onboarding.due && dialogsRef.current.current === null) dialogsRef.current.open('onboarding')
   }, [onboarding.due])
 
-  if (!everLive && connection.kind !== 'unreachable') {
+  if (!everLive && startup === 'starting') {
     return (
       <Page>
         <EmptyState
-          title={_('Connecting…')}
-          description={fmt(_('Reaching kacola at {origin}'), { origin: appInfo.daemonUrl })}
+          title={restarting(daemon) ? _('Starting kacola…') : _('Connecting…')}
+          description={
+            restarting(daemon)
+              ? _('Its background service is starting. This takes a few seconds.')
+              : fmt(_('Reaching kacola at {origin}'), { origin: appInfo.daemonUrl })
+          }
         >
           <Spinner label={_('Connecting…')} />
         </EmptyState>

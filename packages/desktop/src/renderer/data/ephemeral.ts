@@ -9,6 +9,7 @@ import type {
 } from '@kacola/protocol'
 import type { PartialLine } from '@kacola/ui-core/transcript'
 import { createStore } from 'zustand/vanilla'
+import type { DaemonStatus } from '../../shared/bridge.ts'
 
 // Everything that is NOT server state lives here (React Query holds the server state): the event
 // stream's connection, live audio levels, in-progress transcript partials, streaming answer / enhance
@@ -53,6 +54,8 @@ export type EphemeralState = {
   /** model id → the latest progress report. */
   modelProgress: Record<string, ModelInfo>
   meetingStarting: Meeting | null
+  /** Main's supervisor's view of the daemon (data/daemon-status.ts); null until it has said. */
+  daemon: DaemonStatus | null
   /** sessionId → leaseId → the agent's latest presence. */
   presence: Record<string, Record<string, Presence>>
 }
@@ -64,6 +67,7 @@ export const initialEphemeral: EphemeralState = {
   streams: {},
   modelProgress: {},
   meetingStarting: null,
+  daemon: null,
   presence: {},
 }
 

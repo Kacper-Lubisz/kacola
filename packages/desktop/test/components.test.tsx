@@ -11,8 +11,8 @@ import { createQueries } from '../src/renderer/data/queries.ts'
 import { type Services, ServicesProvider } from '../src/renderer/data/services.tsx'
 import { applyTheme } from '../src/renderer/data/theme.ts'
 import { NavigationList, parseButtonLayout, WindowControls } from '../src/renderer/design/primitives/index.ts'
-import type { AppInfo, KacolaBridge } from '../src/shared/bridge.ts'
-import { renderApp } from './app-harness.tsx'
+import type { AppInfo, DaemonStatus, KacolaBridge } from '../src/shared/bridge.ts'
+import { fakeBridge, renderApp } from './app-harness.tsx'
 import { fakeDaemon, session, until, upserted } from './helpers.ts'
 
 // Component tests (Testing Library, jsdom): role + name queries, the same way the e2e suite and a
@@ -129,8 +129,37 @@ describe('i18n and theme', () => {
 })
 
 describe('the first screen', () => {
+  it('while main is starting the daemon, says so instead of can’t-reach, and connects the moment it answers', async () => {
+    let push: (s: DaemonStatus) => void = () => {}
+    const fb = fakeBridge({
+      daemonStatus: vi.fn(async (): Promise<DaemonStatus> => ({ kind: 'starting' })),
+      onDaemonStatus: vi.fn((cb: (s: DaemonStatus) => void) => {
+        push = cb
+        return () => {}
+      }),
+    })
+    const app = renderApp({
+      bridge: fb,
+      sessions: [session('ses_a', { title: 'Standup', status: 'stopped' })],
+    })
+    app.daemon.state.fail = new Error('connect ECONNREFUSED')
+    await screen.findByRole('heading', { name: 'Starting kacola…' })
+    await new Promise((r) => setTimeout(r, 1200))
+    expect(screen.queryByRole('heading', { name: 'Can’t reach kacola' })).toBeNull()
+    app.daemon.state.fail = null
+    act(() => push({ kind: 'spawned', pid: 42 }))
+    await screen.findByRole('searchbox', { name: 'Search or ask' }, { timeout: 400 })
+    app.stop()
+  })
+
   it('shows can’t-reach, then home with the meetings by day; a new one appears live; pressing it opens it', async () => {
-    const app = renderApp({ sessions: [session('ses_a', { title: 'Standup', status: 'stopped' })] })
+    const app = renderApp({
+      sessions: [session('ses_a', { title: 'Standup', status: 'stopped' })],
+      // main has given up on it: a daemon that is only starting shows "Starting kacola…" instead
+      bridge: fakeBridge({
+        daemonStatus: vi.fn(async () => ({ kind: 'unreachable', error: 'refused' }) as const),
+      }),
+    })
     app.daemon.state.fail = new Error('not yet')
     await screen.findByRole('heading', { name: 'Can’t reach kacola' })
     app.daemon.state.fail = null

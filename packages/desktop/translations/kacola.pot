@@ -41,7 +41,7 @@ msgid "Start recording a new session"
 msgstr ""
 
 #: src/renderer/design/primitives/record-button.tsx:52
-#: src/renderer/features/home/home-page.tsx:69
+#: src/renderer/features/home/home-page.tsx:75
 msgid "Starting…"
 msgstr ""
 
@@ -1193,7 +1193,7 @@ msgstr ""
 #: src/renderer/features/meeting/notepad.tsx:152
 #: src/renderer/features/onboarding/onboarding-dialog.tsx:145
 #: src/renderer/features/preferences/extension-setup.tsx:51
-#: src/renderer/routes/main-layout.tsx:100
+#: src/renderer/routes/main-layout.tsx:116
 msgid "Try again"
 msgstr ""
 
@@ -1465,7 +1465,7 @@ msgid "{title}, {time}, not recorded"
 msgstr ""
 
 #: src/renderer/features/home/day-view.tsx:417
-#: src/renderer/features/home/home-page.tsx:94
+#: src/renderer/features/home/home-page.tsx:104
 msgid "Set up"
 msgstr ""
 
@@ -1550,34 +1550,38 @@ msgstr ""
 msgid "{title}, {day} {time}"
 msgstr ""
 
-#: src/renderer/features/home/home-page.tsx:66
+#: src/renderer/features/home/home-page.tsx:72
 msgid "Start recording a call now, in your calendar or not"
 msgstr ""
 
-#: src/renderer/features/home/home-page.tsx:69
+#: src/renderer/features/home/home-page.tsx:75
 msgid "New recording"
 msgstr ""
 
-#: src/renderer/features/home/home-page.tsx:82
+#: src/renderer/features/home/home-page.tsx:87
+msgid "kacola’s background service is restarting…"
+msgstr ""
+
+#: src/renderer/features/home/home-page.tsx:91
 msgid "Lost the connection to kacola’s background service. Reconnecting…"
 msgstr ""
 
-#: src/renderer/features/home/home-page.tsx:88
+#: src/renderer/features/home/home-page.tsx:98
 msgid "A speech model is not downloaded yet, so recording can’t transcribe"
 msgid_plural ""
 "Speech models are not downloaded yet, so recording can’t transcribe"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/renderer/features/home/home-page.tsx:100
+#: src/renderer/features/home/home-page.tsx:110
 msgid "Your day"
 msgstr ""
 
-#: src/renderer/features/home/home-page.tsx:102
+#: src/renderer/features/home/home-page.tsx:112
 msgid "Search or ask"
 msgstr ""
 
-#: src/renderer/features/home/home-page.tsx:103
+#: src/renderer/features/home/home-page.tsx:113
 msgid "Search or ask: a name, a decision, anything someone said"
 msgstr ""
 
@@ -3462,24 +3466,32 @@ msgstr ""
 msgid "Could not change the speaker: {reason}"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:46
+#: src/renderer/routes/main-layout.tsx:47
 msgid "This is the {profile} window"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:81
-#: src/renderer/routes/main-layout.tsx:84
+#: src/renderer/routes/main-layout.tsx:93
+msgid "Starting kacola…"
+msgstr ""
+
+#: src/renderer/routes/main-layout.tsx:93
+#: src/renderer/routes/main-layout.tsx:100
 msgid "Connecting…"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:82
+#: src/renderer/routes/main-layout.tsx:96
+msgid "Its background service is starting. This takes a few seconds."
+msgstr ""
+
+#: src/renderer/routes/main-layout.tsx:97
 msgid "Reaching kacola at {origin}"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:94
+#: src/renderer/routes/main-layout.tsx:110
 msgid "Can’t reach kacola"
 msgstr ""
 
-#: src/renderer/routes/main-layout.tsx:96
+#: src/renderer/routes/main-layout.tsx:112
 msgid ""
 "kacola records and transcribes in a background service, and it isn’t "
 "answering. It may still be starting."

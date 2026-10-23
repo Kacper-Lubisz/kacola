@@ -349,6 +349,31 @@ describe('connection, gaps and reconnects', () => {
     expect(store.getState().connection.kind).toBe('live')
   })
 
+  it('retryNow (main says the daemon answers) skips the wait; a starting daemon is retried quickly', async () => {
+    const { daemon, bridge, store } = setup({ sessions: [session('a')], lastSeq: 1 }, { retryMs: 60_000 })
+    daemon.state.fail = new Error('connect ECONNREFUSED')
+    bridge.start()
+    await until(() => store.getState().connection.kind === 'unreachable')
+    const t = Date.now()
+    daemon.state.fail = null
+    // the first retries come every 500 ms, not every retryMs
+    await bridge.ready
+    expect(Date.now() - t).toBeLessThan(2000)
+    bridge.stop()
+
+    const second = setup({ sessions: [session('a')], lastSeq: 1 }, { retryMs: 60_000 })
+    second.daemon.state.fail = new Error('connect ECONNREFUSED')
+    second.bridge.start()
+    await until(() => second.store.getState().connection.kind === 'unreachable')
+    second.daemon.state.fail = null
+    const asked = Date.now()
+    second.bridge.retryNow()
+    await second.bridge.ready
+    // well inside the 500 ms the quick retry would have waited
+    expect(Date.now() - asked).toBeLessThan(250)
+    expect(second.store.getState().connection.kind).toBe('live')
+  })
+
   it('stop() ends the subscription', async () => {
     const { daemon, bridge } = setup()
     bridge.start()

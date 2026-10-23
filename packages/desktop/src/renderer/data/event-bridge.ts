@@ -48,7 +48,7 @@ export type BridgeClient = Pick<KacolaClient, 'call' | 'subscribe'>
 
 export type EventBridgeOptions = {
   reconnectDelayMs?: number
-  /** Delay before retrying an unreachable daemon's snapshot. */
+  /** Delay before retrying an unreachable daemon's snapshot (after the first STARTUP_RETRIES quick ones). */
   retryMs?: number
   /** How many recent durable events to keep for re-folding into late query results. */
   recent?: number
@@ -61,6 +61,9 @@ const message = (err: unknown): string => {
     return err.cause instanceof Error ? `${err.message}: ${err.cause.message}` : err.message
   return String(err)
 }
+
+const STARTUP_RETRIES = 20
+const STARTUP_RETRY_MS = 500
 
 export class EventBridge {
   private readonly client: BridgeClient
@@ -77,6 +80,7 @@ export class EventBridge {
   readonly ready: Promise<void>
   private markReady: () => void = () => {}
   /** Counters, for tests and diagnostics. */
+  private failures = 0
   readonly stats = { snapshots: 0, applied: 0, duplicates: 0, resnapshots: 0 }
 
   constructor(client: BridgeClient, qc: QueryClient, store: EphemeralStore, opts: EventBridgeOptions = {}) {
@@ -96,6 +100,14 @@ export class EventBridge {
   start(): void {
     this.stop()
     this.unwatch = this.qc.getQueryCache().subscribe((e) => this.onCacheEvent(e))
+    this.restart()
+  }
+
+  /** Retry now instead of waiting out the delay (main says the daemon answers). No-op unless waiting. */
+  retryNow(): void {
+    if (!this.retryTimer) return
+    clearTimeout(this.retryTimer)
+    this.retryTimer = null
     this.restart()
   }
 
@@ -148,12 +160,16 @@ export class EventBridge {
     } catch (err) {
       if (signal.aborted) return
       this.setConnection({ kind: 'unreachable', error: message(err) })
+      // a daemon that is starting answers within seconds: look often at first, then settle down
+      const delay =
+        this.failures++ < STARTUP_RETRIES ? Math.min(STARTUP_RETRY_MS, this.o.retryMs) : this.o.retryMs
       this.retryTimer = setTimeout(() => {
         this.retryTimer = null
         if (this.ac === ac) this.restart()
-      }, this.o.retryMs)
+      }, delay)
       return
     }
+    this.failures = 0
     if (signal.aborted) return
     if (!first) {
       // everything else may have missed events while we were away: refetch what is being watched

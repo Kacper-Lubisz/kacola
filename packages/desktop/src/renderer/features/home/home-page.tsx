@@ -6,6 +6,7 @@ import { _, ngettext } from '@kacola/ui-core/i18n'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useStore } from 'zustand'
+import { restarting, useHeld } from '../../data/daemon-status.ts'
 import { useServices } from '../../data/services.tsx'
 import { Banner, Button, HeaderBar, Kbd, SearchField } from '../../design/primitives/index.ts'
 import { useAsk } from '../ask/ask-answer.tsx'
@@ -23,9 +24,14 @@ import { SearchResults } from './search-results.tsx'
 // is under way in its own place (day-view.tsx), then earlier days. No sidebar: every meeting page
 // has Back to Today. The query lives in the URL (?q=), so Back from a result returns to the results.
 
+/** A stream that is back within this long never shows the reconnecting banner. */
+const RECONNECT_BANNER_DELAY_MS = 2000
+
 export function HomePage() {
   const { store } = useServices()
   const connection = useStore(store, (s) => s.connection)
+  const daemon = useStore(store, (s) => s.daemon)
+  const lost = useHeld(connection.kind === 'reconnecting', RECONNECT_BANNER_DELAY_MS)
   const missing = useMissingModels()
   const dialogs = useDialogs()
   const recorder = useRecorder()
@@ -76,11 +82,15 @@ export function HomePage() {
       {/* the gutter is kept when results are short, so the search box never jumps sideways as you type */}
       <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable_both-edges]">
         <div className="mx-auto flex w-full max-w-[880px] flex-col gap-6 px-4 pt-4 pb-10 sm:px-8">
-          {connection.kind === 'reconnecting' ? (
-            <Banner
-              tone="warning"
-              title={_('Lost the connection to kacola’s background service. Reconnecting…')}
-            />
+          {lost ? (
+            restarting(daemon) ? (
+              <Banner tone="info" title={_('kacola’s background service is restarting…')} />
+            ) : (
+              <Banner
+                tone="warning"
+                title={_('Lost the connection to kacola’s background service. Reconnecting…')}
+              />
+            )
           ) : missing > 0 ? (
             <Banner
               tone="warning"
