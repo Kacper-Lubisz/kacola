@@ -13,6 +13,7 @@
 // (better-sqlite3's darwin N-API prebuild, sherpa-onnx-darwin-<arch> from the registry); electron-builder
 // (packaging/macos/electron-builder.yml) puts it at Contents/Resources/runtime. Signing and a dmg need a
 // Mac: the zips are ad-hoc unsigned, so Gatekeeper asks users to right-click → Open the first time.
+// Built on a Mac, each app is signed (signIdentity below), so it runs as is.
 import { execFileSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -22,6 +23,20 @@ import { BRAND_ICONS, electronVersion, stageDesktopApp } from './build-desktop.t
 import { buildRuntime, REPO, type Target } from './build-runtime.ts'
 
 export type MacArch = 'arm64' | 'x64'
+
+/** packaging/macos/signing-identity.sh makes it. */
+export const LOCAL_SIGNING_IDENTITY = 'kacola Local Signing'
+
+/**
+ * KACOLA_MAC_SIGN_IDENTITY, else this Mac's local identity, else ad-hoc. macOS keeps an app's
+ * permissions (calendars, microphone, screen recording) only while its signing identity stays the same,
+ * and an ad-hoc signature is new on every build.
+ */
+export function signIdentity(env = process.env): string {
+  if (env.KACOLA_MAC_SIGN_IDENTITY) return env.KACOLA_MAC_SIGN_IDENTITY
+  const valid = execFileSync('security', ['find-identity', '-v', '-p', 'codesigning'], { encoding: 'utf8' })
+  return valid.includes(`"${LOCAL_SIGNING_IDENTITY}"`) ? LOCAL_SIGNING_IDENTITY : '-'
+}
 export type MacBuild = { zips: { arch: MacArch; path: string; bytes: number }[] }
 
 export async function buildMacos(o: {
@@ -76,9 +91,19 @@ export async function buildMacos(o: {
   })
   // Zip each .app keeping symlinks (-y): the Electron framework's Versions/Current links must survive
   const outDir = join(out, 'out')
+  const identity = process.platform === 'darwin' ? signIdentity() : null
   const zips = archs.map((arch) => {
     const appParent = join(outDir, arch === 'x64' ? 'mac' : `mac-${arch}`)
-    if (!existsSync(join(appParent, 'kacola.app'))) throw new Error(`no ${arch} app in ${appParent}`)
+    const app = join(appParent, 'kacola.app')
+    if (!existsSync(app)) throw new Error(`no ${arch} app in ${appParent}`)
+    if (identity) {
+      // the fuses and the runtime's natives changed the bundle after electron-builder's signature
+      execFileSync('codesign', ['--force', '--deep', '-s', identity, app], { stdio: 'inherit' })
+      execFileSync('codesign', ['--verify', '--deep', '--strict', app], { stdio: 'inherit' })
+      console.log(
+        `${arch}: signed (${identity === '-' ? 'ad-hoc: macOS forgets its permissions on the next build' : identity})`,
+      )
+    }
     const path = join(outDir, `kacola-${version}-mac-${arch}.zip`)
     execFileSync('zip', ['-qry', path, 'kacola.app'], { cwd: appParent })
     return { arch, path, bytes: statSync(path).size }

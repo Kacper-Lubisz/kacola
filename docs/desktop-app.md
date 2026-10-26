@@ -243,7 +243,7 @@ app (`src/main/deep-link.ts`, pure and unit-tested; wired in `index.ts`):
 ```sh
 node scripts/build-desktop.ts   # dist/desktop/linux-unpacked (electron-builder dir), ~326 MiB
 node scripts/build-flatpak.ts   # dist/flatpak: repo/ + kacola.flatpak (builds the above first)
-node scripts/build-macos.ts     # dist/macos/out/kacola-<v>-mac-{arm64,x64}.zip (unsigned)
+node scripts/build-macos.ts     # dist/macos/out/kacola-<v>-mac-{arm64,x64}.zip (signed when built on a Mac)
 ```
 
 - `build-desktop.ts` stages `package.json` (no dependencies: main, preload and renderer are complete
@@ -261,6 +261,12 @@ node scripts/build-macos.ts     # dist/macos/out/kacola-<v>-mac-{arm64,x64}.zip 
   arm64 code without a valid signature — so expect the arm64 zip to need `codesign --force --deep -s -
   kacola.app` (or a real identity) on a Mac before it runs. Not verified: nothing here can run a
   Mach-O; the zips are inspected (`macos-zip.e2e`) and need a Mac-side signing step until CI has a Mac.
+- macOS on a Mac: each app is signed after packing (`signIdentity` in `build-macos.ts`): with
+  `KACOLA_MAC_SIGN_IDENTITY`, else "kacola Local Signing" when this Mac has it, else ad-hoc. macOS ties
+  kacola's permissions (calendars, microphone, screen recording) to the signing identity, and an ad-hoc
+  signature is new on every build, so ad-hoc builds lose them at each reinstall.
+  `packaging/macos/signing-identity.sh` makes the local identity once (a self-signed certificate in the
+  login keychain, trusted for code signing only); after one more Allow, rebuilds keep the permissions.
 - Tests: `desktop-packaged.e2e` (the Linux app, windowed over CDP), `flatpak.e2e` (headless + windowed
   under zypak), `macos-zip.e2e` (Mach-O natives, Info.plist usage strings, fuses, shims).
 
