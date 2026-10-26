@@ -266,7 +266,8 @@ node scripts/build-macos.ts     # dist/macos/out/kacola-<v>-mac-{arm64,x64}.zip 
   kacola's permissions (calendars, microphone, screen recording) to the signing identity, and an ad-hoc
   signature is new on every build, so ad-hoc builds lose them at each reinstall.
   `packaging/macos/signing-identity.sh` makes the local identity once (a self-signed certificate in the
-  login keychain, trusted for code signing only); after one more Allow, rebuilds keep the permissions.
+  login keychain; untrusted, which signing does not need: the app's designated requirement is the
+  certificate's hash); after one more Allow, rebuilds keep the permissions.
 - Tests: `desktop-packaged.e2e` (the Linux app, windowed over CDP), `flatpak.e2e` (headless + windowed
   under zypak), `macos-zip.e2e` (Mach-O natives, Info.plist usage strings, fuses, shims).
 

@@ -34,8 +34,9 @@ export const LOCAL_SIGNING_IDENTITY = 'kacola Local Signing'
  */
 export function signIdentity(env = process.env): string {
   if (env.KACOLA_MAC_SIGN_IDENTITY) return env.KACOLA_MAC_SIGN_IDENTITY
-  const valid = execFileSync('security', ['find-identity', '-v', '-p', 'codesigning'], { encoding: 'utf8' })
-  return valid.includes(`"${LOCAL_SIGNING_IDENTITY}"`) ? LOCAL_SIGNING_IDENTITY : '-'
+  // not `-v`: the local identity is self-signed and untrusted, which signing does not need
+  const found = execFileSync('security', ['find-identity', '-p', 'codesigning'], { encoding: 'utf8' })
+  return found.includes(`"${LOCAL_SIGNING_IDENTITY}"`) ? LOCAL_SIGNING_IDENTITY : '-'
 }
 export type MacBuild = { zips: { arch: MacArch; path: string; bytes: number }[] }
 

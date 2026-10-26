@@ -4,15 +4,17 @@
 # microphone, screen recording) to the app's signature: an ad-hoc signature is new on every build, so
 # every rebuild loses them; one identity across builds keeps them.
 #
-#   packaging/macos/signing-identity.sh          (idempotent; asks for your login password once if
-#                                                 macOS wants the certificate trusted for code signing)
+#   packaging/macos/signing-identity.sh          (idempotent)
+#
+# It stays untrusted (find-identity -v leaves it out): codesign signs with it regardless, and the
+# designated requirement it gives the app is this certificate's hash, which needs no trust to check.
 # Remove it with: security delete-identity -c "kacola Local Signing"
 set -euo pipefail
 
 NAME="kacola Local Signing"
 KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 
-if security find-identity -v -p codesigning | grep -q "\"$NAME\""; then
+if security find-identity -p codesigning | grep -q "\"$NAME\""; then
   echo "$NAME: already set up"
   exit 0
 fi
@@ -42,13 +44,6 @@ EOF
   # -T: codesign may use the key without asking each build
   security import "$tmp/id.p12" -k "$KEYCHAIN" -P "$pass" -T /usr/bin/codesign >/dev/null
   echo "$NAME: created in the login keychain"
-else
-  security find-certificate -c "$NAME" -p "$KEYCHAIN" >"$tmp/cert.pem"
-fi
-
-if ! security find-identity -v -p codesigning | grep -q "\"$NAME\""; then
-  echo "$NAME: trusting it for code signing only (macOS asks for your login password)"
-  security add-trusted-cert -r trustAsRoot -p codeSign -k "$KEYCHAIN" "$tmp/cert.pem"
 fi
 
 cp /usr/bin/true "$tmp/probe"
