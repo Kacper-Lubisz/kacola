@@ -8,6 +8,7 @@ import {
   shouldOnboard,
 } from '../src/renderer/features/onboarding/onboarding-state.ts'
 import { applyPatch } from '../src/renderer/features/preferences/settings-data.ts'
+import { resetNavigationForTests } from '../src/renderer/features/shell/navigation.tsx'
 import { matches, SHORTCUTS } from '../src/renderer/features/shell/shortcuts.tsx'
 import type { PermissionKind, PermissionsState } from '../src/shared/bridge.ts'
 import { fakeBridge, model, renderApp, settings, shellHandlers } from './app-harness.tsx'
@@ -318,6 +319,56 @@ describe('onboarding', () => {
     expect(fb.bridge.requestPermission).toHaveBeenLastCalledWith('calendar')
     fireEvent.click(within(welcome).getByRole('button', { name: 'Open Internet Accounts' }))
     expect(fb.bridge.openSettingsPane).toHaveBeenLastCalledWith('internet-accounts')
+    app.stop()
+  })
+
+  it('main sends the window to setup’s Calendar step (the notification, the menu bar)', async () => {
+    resetNavigationForTests()
+    const fb = fakeBridge({
+      takeNavigation: vi.fn(async () => ({ to: 'setup' as const, step: 'calendar' as const })),
+      permissions: vi.fn(
+        async (): Promise<PermissionsState> => ({
+          microphone: 'granted',
+          'system-audio': 'granted',
+          calendar: 'not-determined',
+        }),
+      ),
+    })
+    const app = renderApp({ bridge: fb, info: { platform: 'darwin' } })
+    const welcome = await screen.findByRole('dialog', { name: 'Welcome to kacola' }, { timeout: 3000 })
+    await within(welcome).findByText(/Step 2 of 3/)
+    await within(welcome).findByRole('button', { name: 'Allow Calendars' })
+    app.stop()
+  })
+
+  it('home says when kacola may not read the calendars, and Allow access opens that step', async () => {
+    const fb = fakeBridge({
+      permissions: vi.fn(
+        async (): Promise<PermissionsState> => ({
+          microphone: 'granted',
+          'system-audio': 'granted',
+          calendar: 'denied',
+        }),
+      ),
+    })
+    const app = renderApp({
+      bridge: fb,
+      info: { platform: 'darwin' },
+      handlers: {
+        ...shellHandlers(),
+        calendarStatus: () => ({
+          state: 'unavailable',
+          provider: 'eventkit',
+          detail: 'kacola has not been allowed to read your calendars yet',
+          calendars: [],
+          updatedAt: null,
+        }),
+      },
+    })
+    const line = await screen.findByText('kacola isn’t allowed to read your calendars', {}, { timeout: 3000 })
+    fireEvent.click(within(line.closest('p')!).getByRole('button', { name: 'Allow access' }))
+    const welcome = await screen.findByRole('dialog', { name: 'Welcome to kacola' })
+    await within(welcome).findByText(/Step 2 of 3/)
     app.stop()
   })
 

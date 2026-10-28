@@ -25,6 +25,8 @@
 // t/x → number, b → boolean, as → string[], a{sv} → an object whose values are strings, numbers
 // (integers become int64 'x', others double 'd') or booleans; aa{sv} → an array of those objects.
 
+import type { StartReason } from '@kacola/protocol'
+
 export const BUS_NAME = 'com.kacperlubisz.Kacola'
 export const OBJECT_PATH = '/com/kacperlubisz/Kacola'
 export const INTERFACE = 'com.kacperlubisz.Kacola'
@@ -77,7 +79,7 @@ export type DbusSignal =
   | { name: 'SessionStopped'; args: [sessionId: string, status: string] }
   | { name: 'MeetingStarting'; args: [meeting: DbusMeeting] }
 
-export type StartReason = 'manual' | 'join' | 'calendar' | 'mic-activity'
+export type { StartReason }
 
 export type DbusCall =
   | { method: 'Start'; args: [title: string] }

@@ -98,7 +98,7 @@ describe('autostart', () => {
 
 describe('the macOS Tray menu', () => {
   const up = { kind: 'spawned' as const, pid: 1 }
-  const labels = (i: Pick<TrayModelInput, 'daemon' | 'active'>) =>
+  const labels = (i: Pick<TrayModelInput, 'daemon' | 'active' | 'calendarMissing'>) =>
     trayMenuModel({ meetings: null, now: 0, ...i }).map((x) =>
       x.type === 'separator'
         ? '—'
@@ -146,6 +146,28 @@ describe('the macOS Tray menu', () => {
     ])
     expect(labels({ daemon: { kind: 'unreachable', error: 'x' }, active: null })[0]).toBe(
       '[kacola is not reachable]',
+    )
+  })
+  it('calendar access missing: offers setup’s Calendar step, recording or not', () => {
+    expect(labels({ daemon: up, active: null, calendarMissing: true })).toEqual([
+      '[Not recording]',
+      '—',
+      'Record',
+      '—',
+      'Allow Calendar Access…',
+      '—',
+      'Open kacola',
+      'Quit kacola',
+    ])
+    expect(
+      labels({
+        daemon: up,
+        active: { status: 'recording', title: 'Standup', private: false },
+        calendarMissing: true,
+      }),
+    ).toContain('Allow Calendar Access…')
+    expect(labels({ daemon: up, active: null, calendarMissing: false })).not.toContain(
+      'Allow Calendar Access…',
     )
   })
 })

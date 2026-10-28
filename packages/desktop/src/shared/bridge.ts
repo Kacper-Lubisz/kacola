@@ -37,6 +37,9 @@ export const IPC = {
   deepLink: 'kacola:deep-link',
   /** invoke: marks the sender ready for pushes; returns and clears the pending link. */
   deepLinkTake: 'kacola:deep-link-take',
+  /** main → renderer: where a notification or the menu bar sent the user (AppNavigation), same handshake. */
+  navigate: 'kacola:navigate',
+  navigateTake: 'kacola:navigate-take',
   permissions: 'kacola:permissions',
   permissionRequest: 'kacola:permission-request',
   permissionSettings: 'kacola:permission-settings',
@@ -190,8 +193,17 @@ export type PermissionState =
   | 'unavailable'
   | 'not-needed'
 export type PermissionsState = Record<PermissionKind, PermissionState>
+/** kacola may not read the calendars, and the user can change that (setup's Calendar step). */
+export const calendarAccessMissing = (s: PermissionState | undefined): boolean =>
+  s === 'not-determined' || s === 'denied'
 /** A System Settings pane setup can open (macOS). */
 export type SettingsPane = PermissionKind | 'internet-accounts'
+
+/** A step of the setup flow (Set up kacola…). */
+export type SetupStep = 'recording' | 'calendar' | 'agents'
+
+/** A place in the window main sends the user to: a recording, or a step of setup. */
+export type AppNavigation = { to: 'session'; sessionId: string } | { to: 'setup'; step: SetupStep }
 
 /** Background mode: start (without a window) at login. */
 export type AutostartState = { enabled: boolean; detail?: string }
@@ -245,6 +257,9 @@ export interface KacolaBridge {
   onDeepLink(cb: (url: string) => void): Unsubscribe
   /** The link the app was opened with (or one that arrived before this page asked), once; null if none. */
   takeDeepLink(): Promise<string | null>
+  /** Main sending the window somewhere (a notification's click); like deep links: subscribe, then take. */
+  onNavigate(cb: (to: AppNavigation) => void): Unsubscribe
+  takeNavigation(): Promise<AppNavigation | null>
   permissions(): Promise<PermissionsState>
   /** Show the system's prompt for one permission if it was never asked; every state afterwards. */
   requestPermission(kind: PermissionKind): Promise<PermissionsState>

@@ -42,7 +42,9 @@ import {
 import pkg from '../../package.json' with { type: 'json' }
 import {
   type AppInfo,
+  type AppNavigation,
   type AutostartState,
+  calendarAccessMissing,
   type DaemonStatus,
   IPC,
   type PermissionKind,
@@ -68,6 +70,13 @@ import {
 } from './files.ts'
 import { cliEntry, Integration, runCli, shq } from './integration.ts'
 import { IdleCollector } from './memory.ts'
+import {
+  CALENDAR_ACCESS_NOTICE,
+  CalendarAccessWatch,
+  meetingStartingNotice,
+  type Notice,
+  recordingStartedNotice,
+} from './notifications.ts'
 import { askedPermissions, Permissions, SETTINGS_PANES } from './permissions.ts'
 import { loadCatalogue, preferredLanguages, readNotices, readUiState, writeUiState } from './resources.ts'
 import {
@@ -285,6 +294,7 @@ async function daemonUp(): Promise<void> {
   void capture?.reconcile()
   refreshActive()
   refreshMeetings()
+  checkCalendarAccess()
   // nothing to watch for: no in-app capture (PipeWire daemon) and no Tray (Linux)
   if (watching || (!capture && !tray)) return
   watching = true
@@ -297,8 +307,14 @@ async function daemonUp(): Promise<void> {
       if (e.data.type === 'session.upserted' || e.data.type === 'session.deleted') {
         void capture?.reconcile()
         refreshActive()
-      } else if (e.data.type === 'calendar.updated') refreshMeetings()
-      else if (e.data.type === 'auto-record.decided' && !e.data.decision.record) notifySkipped(e.data.meeting)
+      } else if (e.data.type === 'calendar.updated') {
+        refreshMeetings()
+        checkCalendarAccess()
+      } else if (e.data.type === 'auto-record.decided' && !e.data.decision.record)
+        notifySkipped(e.data.meeting)
+      else if (e.data.type === 'meeting.starting') void notifyStarting(e.data.meeting)
+      else if (e.data.type === 'recording.started')
+        notifyRecording(e.data.session.id, recordingStartedNotice(e.data))
     },
   })
   setInterval(() => {
@@ -326,6 +342,62 @@ function notifySkipped(m: Meeting): void {
   })
   n.show()
   logLine({ event: 'auto-record', kind: 'skipped-notice', meeting: m.id })
+}
+
+// macOS only (where the Tray is): on Linux the top-bar extension shows these from the D-Bus signals
+function notify(notice: Notice, onClick: () => void): void {
+  if (!tray || !Notification.isSupported()) return
+  const n = new Notification({ ...notice, silent: true })
+  n.on('click', onClick)
+  n.show()
+}
+
+const offeredMeetings = new Set<string>()
+
+/** A meeting is about to start: offer to record it, unless a recording or the calendar rule has it. */
+async function notifyStarting(m: Meeting): Promise<void> {
+  const key = `${m.id}@${m.start}`
+  if (offeredMeetings.has(key)) return
+  const settings = await client.call('getSettings').catch(() => null)
+  const notice = meetingStartingNotice({
+    meeting: m,
+    now: Date.now(),
+    recording: active !== null,
+    calendarRule: settings?.autoRecord.calendar ?? false,
+  })
+  if (!notice) return
+  offeredMeetings.add(key)
+  notify(notice, () => {
+    void client
+      .call('joinMeeting', { params: { id: m.id }, body: {} })
+      .catch((err: unknown) => logLine({ event: 'notification', kind: 'record-failed', error: String(err) }))
+  })
+  logLine({ event: 'notification', kind: 'meeting-starting', meeting: m.id })
+}
+
+function notifyRecording(sessionId: string, notice: Notice | null): void {
+  if (!notice) return
+  notify(notice, () => navigateWindow({ to: 'session', sessionId }))
+  logLine({ event: 'notification', kind: 'recording-started', sessionId })
+}
+
+const calendarAccess = new CalendarAccessWatch()
+
+/** Calendar access missing: suggest setup's Calendar step (a notification once, the Tray while it lasts). */
+function checkCalendarAccess(): void {
+  if (process.platform !== 'darwin' || !tray) return
+  void permissions
+    .state()
+    .then((p) => {
+      const missing = calendarAccessMissing(p.calendar)
+      const changed = missing !== calendarAccess.missing
+      if (calendarAccess.observe(missing)) {
+        notify(CALENDAR_ACCESS_NOTICE, () => navigateWindow({ to: 'setup', step: 'calendar' }))
+        logLine({ event: 'notification', kind: 'calendar-access', state: p.calendar })
+      }
+      if (changed) refreshTray()
+    })
+    .catch(() => {})
 }
 
 function refreshActive(): void {
@@ -357,7 +429,13 @@ let meetings: NextMeeting | null = null
 
 function refreshTray(): void {
   if (!tray) return
-  const input = { daemon: supervisor.status, active, meetings, now: Date.now() }
+  const input = {
+    daemon: supervisor.status,
+    active,
+    meetings,
+    now: Date.now(),
+    calendarMissing: calendarAccess.missing,
+  }
   tray.setToolTip(trayTooltip(input))
   // monospaced digits: the "in N min" countdown does not make the menu bar jiggle
   tray.setTitle(trayTitle(input), { fontType: 'monospacedDigit' })
@@ -378,6 +456,7 @@ async function trayAction(a: TrayAction): Promise<void> {
   try {
     if (a === 'open') return showWindow()
     if (a === 'quit') return app.quit()
+    if (a === 'allow-calendar') return navigateWindow({ to: 'setup', step: 'calendar' })
     if (a === 'record') {
       const s = await client.call('createSession', { body: {} })
       await client.call('startSession', { params: { id: s.id } })
@@ -463,6 +542,19 @@ function receiveDeepLink(url: string): void {
   logLine({ event: 'deep-link', url })
   showWindow()
   deliverDeepLink()
+}
+
+const navigations = new DeepLinkQueue<AppNavigation>(Date.now, 1000, (n) => JSON.stringify(n))
+
+/** Main sends the window somewhere (a notification's click, the Tray): show it, then deliver or queue. */
+function navigateWindow(to: AppNavigation): void {
+  if (!navigations.push(to)) return
+  logLine({ event: 'navigate', to: to.to })
+  showWindow()
+  const w = mainWindow
+  if (!w || w.isDestroyed()) return
+  const n = navigations.deliverTo(w.webContents.id)
+  if (n) w.webContents.send(IPC.navigate, n)
 }
 
 function deliverDeepLink(): void {
@@ -654,6 +746,7 @@ function wireIpc(): void {
   handle(IPC.extensionInstall, () => integration.installExtension())
   handle(IPC.extensionDisable, () => integration.disableExtension())
   handle(IPC.extensionRemove, () => integration.removeExtension())
+  handle(IPC.navigateTake, (e) => navigations.take(e.sender.id))
   handle(IPC.deepLinkTake, (e) => {
     const url = deepLinks.take(e.sender.id)
     if (url) logLine({ event: 'deep-link-delivered', url })
@@ -782,13 +875,17 @@ function createWindow(): BrowserWindow {
   const id = w.webContents.id
   w.on('closed', () => {
     deepLinks.reset(id)
+    navigations.reset(id)
     if (mainWindow === w) mainWindow = null
     idleGc.settle()
     mainWindowClosed()
   })
   // a reload is a new renderer: it takes again before links are pushed to it
   w.webContents.on('did-start-navigation', (d) => {
-    if (d.isMainFrame && !d.isSameDocument) deepLinks.reset(id)
+    if (d.isMainFrame && !d.isSameDocument) {
+      deepLinks.reset(id)
+      navigations.reset(id)
+    }
   })
   w.webContents.on('before-input-event', (ev, input) => {
     if (input.type === 'keyDown' && (input.control || input.meta) && input.key.toLowerCase() === 'q') {

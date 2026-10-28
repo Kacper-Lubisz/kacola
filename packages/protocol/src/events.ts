@@ -15,6 +15,10 @@ import { TrackerEphemeralEvents } from './tracker.ts'
 //   ephemeral — high-frequency, lossy by design (audio levels, in-progress partials, answer tokens).
 //               Never persisted, never replayed, carry no seq.
 
+/** Why a recording started: by hand (the menu bar, the CLI), Join, or an auto-record rule. */
+export const StartReason = z.enum(['manual', 'join', 'calendar', 'mic-activity'])
+export type StartReason = z.infer<typeof StartReason>
+
 export const DurableEventData = z.discriminatedUnion('type', [
   z.object({ type: z.literal('session.upserted'), session: Session }),
   z.object({ type: z.literal('segment.upserted'), segment: Segment }),
@@ -74,6 +78,12 @@ export const EphemeralEventData = z.discriminatedUnion('type', [
   z.object({ type: z.literal('meeting.starting'), meeting: Meeting }),
   // the calendar rule judged a meeting at its start (smart mode): recorded, or left alone
   z.object({ type: z.literal('auto-record.decided'), meeting: Meeting, decision: AutoRecordDecision }),
+  /** A recording started through the daemon's recording verbs, and why (a rule's start is worth a notice). */
+  z.object({
+    type: z.literal('recording.started'),
+    session: Session.pick({ id: true, title: true, private: true }),
+    reason: StartReason,
+  }),
   // ---- kacola phases 1–2: agent presence on the live channel (./agendas.ts)
   ...AgendaEphemeralEvents,
   // ---- Agendas wave 2: the live tracker's status (./tracker.ts)

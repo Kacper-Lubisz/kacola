@@ -12,6 +12,7 @@ import { ToastProvider } from '../src/renderer/design/primitives/index.ts'
 import { createAppRouter } from '../src/renderer/routes/router.tsx'
 import type {
   AppInfo,
+  AppNavigation,
   AutostartState,
   CliInstallState,
   ExtensionState,
@@ -119,6 +120,8 @@ export function fakeBridge(over: Partial<KacolaBridge> = {}) {
     }),
     onDeepLink: vi.fn(() => () => {}),
     takeDeepLink: vi.fn(async (): Promise<string | null> => null),
+    onNavigate: vi.fn(() => () => {}),
+    takeNavigation: vi.fn(async (): Promise<AppNavigation | null> => null),
     // Linux by default: nothing to grant
     permissions: vi.fn(
       async (): Promise<PermissionsState> => ({

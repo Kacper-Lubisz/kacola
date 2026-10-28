@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { type ReactNode, useState } from 'react'
 import { useStore } from 'zustand'
+import { calendarAccessMissing } from '../../../shared/bridge.ts'
 import { useServices } from '../../data/services.tsx'
 import { Button, Card, Icon, IconButton, type IconName } from '../../design/primitives/index.ts'
 import { MetaDot } from '../meeting/header.tsx'
@@ -131,14 +132,41 @@ export function RefreshCalendarButton() {
   )
 }
 
-/** The calendar is not all there (can't be read; accounts to sign in again; calendars offline): one quiet line, Refresh next to it. */
+/**
+ * The calendar is not all there (can't be read; accounts to sign in again; calendars offline): one quiet
+ * line, Refresh next to it — or, when kacola may not read the calendars (macOS), setup's Calendar step.
+ */
 function CalendarNoticeLine() {
-  const { api, queries, queryClient } = useServices()
+  const { api, bridge, queries, queryClient } = useServices()
+  const dialogs = useDialogs()
   const status = useQuery(queries.calendar()).data
   const running = useCalendarRefresh((s) => s.running)
   const refresh = useCalendarRefresh((s) => s.refresh)
+  const unavailable = status?.state === 'unavailable'
+  const perms = useQuery({
+    queryKey: ['permissions'],
+    queryFn: () => bridge.permissions(),
+    enabled: unavailable,
+  }).data
   const notice = calendarNotice(status)
   if (!notice) return null
+  if (unavailable && calendarAccessMissing(perms?.calendar))
+    return (
+      <p role="status" className="m-0 flex items-center gap-2 type-callout text-text-secondary">
+        <Icon name="calendar" size={15} className="text-text-tertiary" />
+        <span>
+          <span>{_('kacola isn’t allowed to read your calendars')}</span>{' '}
+          <Button
+            size="sm"
+            variant="link"
+            className="!inline underline"
+            onPress={() => dialogs.open('onboarding', { step: 'calendar' })}
+          >
+            {_('Allow access')}
+          </Button>
+        </span>
+      </p>
+    )
   return (
     <p
       role="status"

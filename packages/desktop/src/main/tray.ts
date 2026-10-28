@@ -9,7 +9,7 @@ import type { DaemonStatus } from '../shared/bridge.ts'
 // Linux has no tray: GNOME has no StatusNotifier host by default, and the top-bar extension is the
 // menu-bar surface there.
 
-export type TrayAction = 'record' | 'stop' | 'pause' | 'resume' | 'open' | 'quit'
+export type TrayAction = 'record' | 'stop' | 'pause' | 'resume' | 'allow-calendar' | 'open' | 'quit'
 
 export type TrayItem =
   | { type: 'item'; id: TrayAction; label: string; enabled: boolean }
@@ -28,6 +28,8 @@ export type TrayModelInput = {
   } | null
   /** Epoch ms. */
   now: number
+  /** kacola may not read the calendars (and the user can allow it): the menu offers setup's Calendar step. */
+  calendarMissing?: boolean
 }
 
 export type TrayMeeting = Pick<Meeting, 'title' | 'start' | 'end'>
@@ -125,6 +127,11 @@ export function trayMenuModel(i: TrayModelInput): TrayItem[] {
       { type: 'item', id: 'stop', label: 'Stop Recording', enabled: ready },
     )
   } else items.push({ type: 'item', id: 'record', label: 'Record', enabled: ready })
+  if (i.calendarMissing)
+    items.push(
+      { type: 'separator' },
+      { type: 'item', id: 'allow-calendar', label: 'Allow Calendar Access…', enabled: true },
+    )
   items.push(
     { type: 'separator' },
     { type: 'item', id: 'open', label: 'Open kacola', enabled: true },

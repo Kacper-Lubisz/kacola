@@ -1,8 +1,8 @@
-import type { Session, SessionMeeting } from '@kacola/protocol'
+import type { Session, SessionMeeting, StartReason } from '@kacola/protocol'
 import type { Store } from '@kacola/store'
+import type { EventBus } from './bus.ts'
 import { sessionMeeting } from './calendar/meetings.ts'
 import type { CalendarService } from './calendar/service.ts'
-import type { StartReason } from './dbus/bridge-protocol.ts'
 import { DaemonError } from './errors.ts'
 import type { Logger } from './logger.ts'
 import type { SessionManager } from './sessions.ts'
@@ -17,6 +17,7 @@ export class RecordingControl {
     store: Store
     sessions: SessionManager
     calendar: CalendarService
+    bus: EventBus
     logger: Logger
   }
   private readonly reasons = new Map<string, StartReason>()
@@ -56,7 +57,13 @@ export class RecordingControl {
       reason: o.reason,
       meeting: o.meeting?.id,
     })
-    return this.d.sessions.start(created.id)
+    const started = await this.d.sessions.start(created.id)
+    this.d.bus.ephemeral(started.id, {
+      type: 'recording.started',
+      session: { id: started.id, title: started.title, private: started.private },
+      reason: o.reason,
+    })
+    return started
   }
 
   /** Join a calendar meeting: record it (linked and titled), and hand back its link to open. */
