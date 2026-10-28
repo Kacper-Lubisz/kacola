@@ -68,7 +68,10 @@ Jev when selected (calibrated P), else the on-device rules. It is asked when the
 minute early), so recording still starts on time. A series with a private agenda is only judged on this
 computer; a provider that fails or takes over 8 s falls back to the on-device heuristic. Every verdict goes
 out as the ephemeral `auto-record.decided`; the macOS app turns a skipped one into a notification ("Not
-recording “Run club”") that records the meeting on a click (`POST /meetings/:id/join`).
+recording “Run club”") that records the meeting on a click (`POST /meetings/:id/join`). Every start through
+the recording verbs also goes out as the ephemeral `recording.started` with its reason (`manual`, `join`,
+`calendar`, `mic-activity`); the macOS app says "Recording “Standup”" for a rule's (docs/desktop-app.md,
+"Notifications").
 
 ## The config file (kacola.env)
 

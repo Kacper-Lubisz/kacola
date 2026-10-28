@@ -41,6 +41,14 @@ afterEach(async () => {
 })
 
 const live = () => d.store.sessionsWithStatus(['recording', 'paused'])
+/** The `recording.started` events (the desktop's "Recording …" notification) from here on. */
+const startedEvents = () => {
+  const out: { id: string; reason: string }[] = []
+  d.bus.subscribe((e) => {
+    if (e.data.type === 'recording.started') out.push({ id: e.data.session.id, reason: e.data.reason })
+  })
+  return out
+}
 const snap = (...o: ReturnType<typeof occ>[]) =>
   cal.push({ calendars: [{ id: 'cal-work', name: 'Work' }], occurrences: o })
 
@@ -55,6 +63,7 @@ describe('calendar rule', () => {
 
   it('records a meeting at its start, titled and linked, with reason `calendar`', async () => {
     await d.settings.patch({ autoRecord: { calendar: true } })
+    const started = startedEvents()
     snap(
       occ({
         summary: 'Standup',
@@ -71,6 +80,7 @@ describe('calendar rule', () => {
       meeting: { title: 'Standup', join: { provider: 'meet' } },
     })
     expect(d.control.reason(s!.id)).toBe('calendar')
+    expect(started).toEqual([{ id: s!.id, reason: 'calendar' }])
   })
 
   it('never interrupts a recording already running', async () => {
@@ -158,10 +168,12 @@ describe('microphone rule', () => {
 
   it('records when another app opens the mic, and stops after it has been idle', async () => {
     await d.settings.patch({ autoRecord: { micActivity: true } })
+    const started = startedEvents()
     mic.set([{ id: 42, app: 'Firefox', pid: 1 }])
     const [s] = await waitFor(() => (live().length ? live() : null), 3000, 'mic-triggered session')
     expect(s!.title).toBe('Call (Firefox)')
     expect(d.control.reason(s!.id)).toBe('mic-activity')
+    expect(started).toEqual([{ id: s!.id, reason: 'mic-activity' }])
     mic.set([])
     await waitFor(() => d.store.getSession(s!.id)?.status === 'stopped', 3000, 'auto stop')
   })
@@ -212,7 +224,9 @@ describe('M4 × M7: the calendar event picks the notes template', () => {
 
 describe('RecordingControl', () => {
   it('refuses a second recording, and join of an unknown meeting', async () => {
-    await d.control.startNew({ title: 'One', reason: 'manual' })
+    const started = startedEvents()
+    const one = await d.control.startNew({ title: 'One', reason: 'manual' })
+    expect(started).toEqual([{ id: one.id, reason: 'manual' }])
     await expect(d.control.startNew({ title: 'Two', reason: 'manual' })).rejects.toMatchObject({
       code: 'conflict',
     })

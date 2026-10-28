@@ -3,7 +3,7 @@ import { _, fmt } from '@kacola/ui-core/i18n'
 import { formatBytes } from '@kacola/ui-core/settings'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
-import type { PermissionKind, PermissionState, PermissionsState } from '../../../shared/bridge.ts'
+import type { PermissionKind, PermissionState, PermissionsState, SetupStep } from '../../../shared/bridge.ts'
 import { useServices } from '../../data/services.tsx'
 import {
   Button,
@@ -28,7 +28,7 @@ import { downloadProgress, useModelDownloads } from './onboarding-state.ts'
 // opens, with no choice to make, and their progress stays at the top of every step.
 // Skippable: Escape, the close button or Skip end it; what was not granted can be granted later.
 
-type Step = 'recording' | 'calendar' | 'agents'
+type Step = SetupStep
 const STEPS: Step[] = ['recording', 'calendar', 'agents']
 const STEP_TITLES: Record<Step, () => string> = {
   recording: () => _('Recording'),
@@ -425,12 +425,18 @@ function AgentsStep({
   )
 }
 
-export function OnboardingDialog({ onFinished }: { onFinished: () => void }) {
+export function OnboardingDialog({
+  onFinished,
+  initialStep = 'recording',
+}: {
+  onFinished: () => void
+  initialStep?: Step
+}) {
   const { appInfo } = useServices()
   const toast = useToast()
   const cli = useCliInstall()
   const mac = appInfo.platform === 'darwin'
-  const [step, setStep] = useState<Step>('recording')
+  const [step, setStep] = useState<Step>(initialStep)
   const [installCli, setInstallCli] = useState(true)
   const finished = useRef(false)
   const index = STEPS.indexOf(step)

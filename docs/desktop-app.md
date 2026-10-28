@@ -26,6 +26,7 @@ packages/desktop/
     integration.ts          "Install command-line tool and Claude skill" (runs `kacola install-cli --json`)
     extension.ts            "Install top-bar extension" (a copy into the user's extensions dir, never enabled)
     autostart.ts tray.ts    background mode: autostart entry / Background portal; the macOS Tray menu model
+    notifications.ts        the macOS notifications: meeting starting, a rule started recording, calendar access
     capture.ts              in-app capture: CaptureController (daemon's waiting list → capture window → ingest)
     deep-link.ts            kacola:// links: argv parsing, scheme registration rule, DeepLinkQueue (pure)
   src/preload/index.ts      contextBridge.exposeInMainWorld('kacola', …) — one function per capability
@@ -191,7 +192,27 @@ Desktop Integration → "Start in the background at login" (`src/main/autostart.
   (from `GET /meetings/next`): `now: Standup`, `Standup in 12 min` within the hour, `10:30 Standup` later
   today, at most 22 characters; nothing while recording, when no meeting is left today, or when the
   calendar is not `ok`. The menu says the same under the status line ("Next: Standup at 10:30"). Main
-  re-reads it on `calendar.updated`, on (re)connect and every 30 s.
+  re-reads it on `calendar.updated`, on (re)connect and every 30 s. While kacola may not read the
+  calendars, the menu also has **Allow Calendar Access…** (setup's Calendar step).
+
+## Notifications (macOS)
+
+Main shows them (`src/main/notifications.ts`, pure decisions, unit-tested); on Linux the top-bar extension
+notifies from the D-Bus signals instead. Each is silent, and a click is the only thing that opens anything:
+
+- **A meeting is about to start** (`meeting.starting`, a minute ahead): `“Standup” starts in 1 min`, when
+  nothing is recording and the auto-record calendar rule is off. A click records it (`POST
+  /meetings/:id/join`; the meeting link is not opened). With the rule on it stays quiet: the rule records
+  the meeting, or says it left it alone ("Not recording “Run club”", docs/desktop.md).
+- **A rule started recording** (the ephemeral `recording.started`, whose `reason` is `calendar` or
+  `mic-activity`; manual and Join starts say nothing): `Recording “Standup”`; a click opens the recording.
+- **kacola can't see your calendar**: the calendar helper says access was never asked or was refused
+  (`permissions.state()`, the same check as setup). Once after launch, and again whenever access goes
+  missing after being there; a click opens setup at its Calendar step. Home's calendar line says the same,
+  with **Allow access**.
+
+A click reaches the window as an `AppNavigation` (`{ to: 'session', sessionId }` or `{ to: 'setup', step }`)
+over `kacola:navigate`, with the deep links' handshake: the page subscribes, then takes the pending one once.
 
 ## Desktop integration installs
 

@@ -16,6 +16,7 @@ import { MissingModelsContext, useOnboarding } from '../features/onboarding/onbo
 import { PreferencesDialog } from '../features/preferences/preferences-dialog.tsx'
 import { useRecorder } from '../features/sessions/recorder.ts'
 import { DialogsProvider, useDialogs } from '../features/shell/dialogs.tsx'
+import { NavigationHandler } from '../features/shell/navigation.tsx'
 import { ShortcutsDialog, useShortcuts } from '../features/shell/shortcuts.tsx'
 
 // The main window: one page at a time — home (your day) or a meeting — with no sidebar; every meeting
@@ -132,6 +133,7 @@ function Window() {
       </main>
       {live ? <DialogHost onOnboardingDone={onboarding.done} /> : null}
       {everLive ? <DeepLinkHandler /> : null}
+      {everLive ? <NavigationHandler /> : null}
       {live ? <FollowDialogHost /> : null}
       <Shortcuts />
     </>
@@ -139,7 +141,7 @@ function Window() {
 }
 
 function DialogHost({ onOnboardingDone }: { onOnboardingDone: () => void }) {
-  const { current, close } = useDialogs()
+  const { current, setupStep, close } = useDialogs()
   const { appInfo } = useServices()
   if (current === 'preferences') return <PreferencesDialog onClose={close} />
   if (current === 'about') return <AboutDialog onClose={close} />
@@ -147,6 +149,7 @@ function DialogHost({ onOnboardingDone }: { onOnboardingDone: () => void }) {
   if (current === 'onboarding')
     return (
       <OnboardingDialog
+        initialStep={setupStep ?? undefined}
         onFinished={() => {
           onOnboardingDone()
           close()

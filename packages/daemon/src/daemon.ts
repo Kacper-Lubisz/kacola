@@ -277,7 +277,7 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
     onVoices: (id, v) => speakers?.recordingVoices(id, v),
   })
   const calendar = new CalendarService({ provider: o.calendar ?? new NoCalendar(), bus, logger })
-  const control = new RecordingControl({ store, sessions, calendar, logger })
+  const control = new RecordingControl({ store, sessions, calendar, bus, logger })
   const autoRecord = new AutoRecorder({
     calendar,
     control,

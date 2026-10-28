@@ -83,25 +83,29 @@ export function schemeRegistration(o: {
  * The link waiting for the window. A link is pushed to a window only once that window's renderer has
  * asked for pending links (take) — before that it could arrive before anyone listens — and otherwise
  * waits for the take. One slot: a newer link replaces one not yet taken. The same link twice within
- * `dedupeMs` (a double click, argv + open-url) counts once.
+ * `dedupeMs` (a double click, argv + open-url) counts once. Main's own navigations (a notification's
+ * click) wait the same way, as a queue of their own (`key` tells two of them apart).
  */
-export class DeepLinkQueue {
-  private pending: string | null = null
-  private last: { url: string; at: number } | null = null
+export class DeepLinkQueue<T = string> {
+  private pending: T | null = null
+  private last: { key: string; at: number } | null = null
   private readonly ready = new Set<number>()
   private readonly now: () => number
   private readonly dedupeMs: number
+  private readonly key: (v: T) => string
 
-  constructor(now: () => number = Date.now, dedupeMs = 1000) {
+  constructor(now: () => number = Date.now, dedupeMs = 1000, key: (v: T) => string = String) {
     this.now = now
     this.dedupeMs = dedupeMs
+    this.key = key
   }
 
   /** Queue a link; false for a duplicate of the last one. */
-  push(url: string): boolean {
+  push(url: T): boolean {
     const t = this.now()
-    if (this.last?.url === url && t - this.last.at < this.dedupeMs) return false
-    this.last = { url, at: t }
+    const key = this.key(url)
+    if (this.last?.key === key && t - this.last.at < this.dedupeMs) return false
+    this.last = { key, at: t }
     this.pending = url
     return true
   }
@@ -115,7 +119,7 @@ export class DeepLinkQueue {
   }
 
   /** The renderer asked (IPC.deepLinkTake): it is ready from now on; returns and clears the pending link. */
-  take(webContentsId: number): string | null {
+  take(webContentsId: number): T | null {
     this.markReady(webContentsId)
     const url = this.pending
     this.pending = null
@@ -123,7 +127,7 @@ export class DeepLinkQueue {
   }
 
   /** The pending link, to push to this window now — null unless its renderer has taken once. */
-  deliverTo(webContentsId: number): string | null {
+  deliverTo(webContentsId: number): T | null {
     return this.ready.has(webContentsId) ? this.take(webContentsId) : null
   }
 
