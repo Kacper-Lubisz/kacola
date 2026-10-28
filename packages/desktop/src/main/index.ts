@@ -27,6 +27,7 @@ import {
   type IpcMainInvokeEvent,
   ipcMain,
   Menu,
+  type MenuItemConstructorOptions,
   type MessagePortMain,
   Notification,
   nativeImage,
@@ -93,7 +94,15 @@ import {
 } from './security.ts'
 import { DaemonSupervisor } from './supervisor.ts'
 import { readPortal, themeFrom, watchPortal } from './theme.ts'
-import { type TrayAction, trayMenuModel, trayTitle, trayTooltip } from './tray.ts'
+import {
+  glanceMeeting,
+  type TrayAction,
+  type TrayModelInput,
+  type TraySymbol,
+  trayMenuModel,
+  trayTitle,
+  trayTooltip,
+} from './tray.ts'
 import { serveTunnel, type TunnelPort } from './tunnel.ts'
 
 // The Electron main process: one instance, daemon supervision, the app:// origin, the fetch tunnel and
@@ -313,8 +322,11 @@ async function daemonUp(): Promise<void> {
       } else if (e.data.type === 'auto-record.decided' && !e.data.decision.record)
         notifySkipped(e.data.meeting)
       else if (e.data.type === 'meeting.starting') void notifyStarting(e.data.meeting)
-      else if (e.data.type === 'recording.started')
+      else if (e.data.type === 'recording.started') {
+        if (e.data.reason === 'calendar' || e.data.reason === 'mic-activity')
+          autoStarted.add(e.data.session.id)
         notifyRecording(e.data.session.id, recordingStartedNotice(e.data))
+      }
     },
   })
   setInterval(() => {
@@ -345,10 +357,15 @@ function notifySkipped(m: Meeting): void {
 }
 
 // macOS only (where the Tray is): on Linux the top-bar extension shows these from the D-Bus signals
-function notify(notice: Notice, onClick: () => void): void {
+function notify(notice: Notice, onClick: () => void, action?: { label: string; run: () => void }): void {
   if (!tray || !Notification.isSupported()) return
-  const n = new Notification({ ...notice, silent: true })
+  const n = new Notification({
+    ...notice,
+    silent: true,
+    ...(action ? { actions: [{ type: 'button' as const, text: action.label }] } : {}),
+  })
   n.on('click', onClick)
+  if (action) n.on('action', action.run)
   n.show()
 }
 
@@ -377,8 +394,40 @@ async function notifyStarting(m: Meeting): Promise<void> {
 
 function notifyRecording(sessionId: string, notice: Notice | null): void {
   if (!notice) return
-  notify(notice, () => navigateWindow({ to: 'session', sessionId }))
+  notify(notice, () => navigateWindow({ to: 'session', sessionId }), {
+    label: 'Discard',
+    run: () => void discardRecording(sessionId),
+  })
   logLine({ event: 'notification', kind: 'recording-started', sessionId })
+}
+
+/** Recordings an auto-record rule started (since this launch): the Tray says so. */
+const autoStarted = new Set<string>()
+
+/** A recording that should not have happened: after a confirmation, stop it and delete everything it kept. */
+async function discardRecording(sessionId: string): Promise<void> {
+  const params = { id: sessionId }
+  const s = await client.call('getSession', { params, query: { includePrivate: true } }).catch(() => null)
+  if (!s) return
+  const name = s.private ? 'this private meeting' : `“${s.title.trim() || 'Untitled meeting'}”`
+  const { response } = await dialog.showMessageBox({
+    type: 'warning',
+    message: `Discard the recording of ${name}?`,
+    detail: 'kacola stops recording and deletes its audio and transcript. This can’t be undone.',
+    buttons: ['Discard', 'Keep Recording'],
+    defaultId: 1,
+    cancelId: 1,
+  })
+  if (response !== 0) return
+  try {
+    if (s.status === 'recording' || s.status === 'paused') await client.call('stopSession', { params })
+    await client.call('deleteSession', { params })
+    autoStarted.delete(sessionId)
+    logLine({ event: 'recording', kind: 'discarded', sessionId })
+  } catch (err) {
+    logLine({ event: 'recording', kind: 'discard-failed', sessionId, error: String(err) })
+  }
+  refreshActive()
 }
 
 const calendarAccess = new CalendarAccessWatch()
@@ -427,29 +476,48 @@ function refreshMeetings(): void {
 let tray: Tray | null = null
 let meetings: NextMeeting | null = null
 
-function refreshTray(): void {
-  if (!tray) return
-  const input = {
+function trayInput(): TrayModelInput {
+  return {
     daemon: supervisor.status,
     active,
     meetings,
     now: Date.now(),
+    activeAuto: active !== null && autoStarted.has(active.id),
     calendarMissing: calendarAccess.missing,
   }
+}
+
+function refreshTray(): void {
+  if (!tray) return
+  const input = trayInput()
   tray.setToolTip(trayTooltip(input))
   // monospaced digits: the "in N min" countdown does not make the menu bar jiggle
   tray.setTitle(trayTitle(input), { fontType: 'monospacedDigit' })
   tray.setContextMenu(
     Menu.buildFromTemplate(
-      trayMenuModel(input).map((i) =>
-        i.type === 'separator'
-          ? { type: 'separator' as const }
-          : i.type === 'status'
-            ? { label: i.label, enabled: false }
-            : { label: i.label, enabled: i.enabled, click: () => void trayAction(i.id) },
-      ),
+      trayMenuModel(input).map((i): MenuItemConstructorOptions => {
+        if (i.type === 'separator' || i.type === 'header') return i
+        if (i.type === 'status') return { label: i.label, sublabel: i.sublabel, enabled: false }
+        return {
+          label: i.label,
+          sublabel: i.sublabel,
+          icon: i.symbol && nativeImage.createMenuSymbol(TRAY_SYMBOLS[i.symbol]),
+          enabled: i.enabled,
+          click: () => void trayAction(i.id),
+        }
+      }),
     ),
   )
+}
+
+const TRAY_SYMBOLS: Record<TraySymbol, string> = {
+  record: 'record.circle',
+  pause: 'pause.circle',
+  resume: 'play.circle',
+  stop: 'stop.circle',
+  discard: 'trash',
+  calendar: 'calendar.badge.exclamationmark',
+  open: 'macwindow',
 }
 
 async function trayAction(a: TrayAction): Promise<void> {
@@ -457,7 +525,13 @@ async function trayAction(a: TrayAction): Promise<void> {
     if (a === 'open') return showWindow()
     if (a === 'quit') return app.quit()
     if (a === 'allow-calendar') return navigateWindow({ to: 'setup', step: 'calendar' })
-    if (a === 'record') {
+    if (a === 'open-recording')
+      return active ? navigateWindow({ to: 'session', sessionId: active.id }) : undefined
+    if (a === 'discard') return active ? await discardRecording(active.id) : undefined
+    if (a === 'record-meeting') {
+      const g = glanceMeeting(trayInput())
+      if (g?.at === 'now') await client.call('joinMeeting', { params: { id: g.meeting.id }, body: {} })
+    } else if (a === 'record') {
       const s = await client.call('createSession', { body: {} })
       await client.call('startSession', { params: { id: s.id } })
     } else if (active) {

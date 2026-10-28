@@ -187,13 +187,23 @@ Desktop Integration → "Start in the background at login" (`src/main/autostart.
 - **Linux**: `$XDG_CONFIG_HOME/autostart/com.kacperlubisz.Kacola.desktop`, `Exec=<this binary> --background`
   (only an entry carrying our `X-Kacola-Autostart=1` is ever removed).
 - **macOS**: a login item with `--background`, and the menu-bar **Tray** (`src/main/tray.ts`, a pure menu
-  model: status line, Record — or Pause/Resume + Stop —, Open, Quit; private meetings stay "Private
-  meeting"). The Dock icon re-opens the window. Beside the icon, the title is the meeting worth a glance
-  (from `GET /meetings/next`): `now: Standup`, `Standup in 12 min` within the hour, `10:30 Standup` later
-  today, at most 22 characters; nothing while recording, when no meeting is left today, or when the
-  calendar is not `ok`. The menu says the same under the status line ("Next: Standup at 10:30"). Main
-  re-reads it on `calendar.updated`, on (re)connect and every 30 s. While kacola may not read the
-  calendars, the menu also has **Allow Calendar Access…** (setup's Calendar step).
+  model that main renders natively: section headers, sublabels, SF Symbols). The Dock icon re-opens the
+  window. The menu:
+  - **Recording** / **Paused**: the recording (a click opens it; its sublabel says "Started automatically"
+    when a rule started it, and until when its meeting runs, or since when it records), Pause/Resume,
+    Stop, and **Discard Recording…**: after a confirmation, stop it and delete its audio and transcript —
+    for a recording that should not have happened.
+  - **Now** / **Next**: the meeting worth a glance with its time (not repeated when the recording is that
+    meeting). A meeting on now, with nothing recording, offers **Record This Meeting** (as Join: linked
+    and titled).
+  - Record (when no meeting is on), **Allow Calendar Access…** while kacola may not read the calendars
+    (setup's Calendar step), Open kacola, Quit kacola. Private meetings stay "Private meeting".
+
+  Beside the icon, the title is the meeting worth a glance (from `GET /meetings/next`): `now: Standup`,
+  `Standup in 12 min` within the hour, `10:30 Standup` later today, at most 22 characters; nothing when no
+  meeting is left today or the calendar is not `ok`. While recording it starts with `●` (`‖` paused):
+  `● now: Standup` while recording the meeting on now, else `● ` and the recording's title. Main re-reads
+  the meetings on `calendar.updated`, on (re)connect and every 30 s.
 
 ## Notifications (macOS)
 
@@ -205,7 +215,8 @@ notifies from the D-Bus signals instead. Each is silent, and a click is the only
   /meetings/:id/join`; the meeting link is not opened). With the rule on it stays quiet: the rule records
   the meeting, or says it left it alone ("Not recording “Run club”", docs/desktop.md).
 - **A rule started recording** (the ephemeral `recording.started`, whose `reason` is `calendar` or
-  `mic-activity`; manual and Join starts say nothing): `Recording “Standup”`; a click opens the recording.
+  `mic-activity`; manual and Join starts say nothing): `Recording “Standup”`; a click opens the recording,
+  and its **Discard** button discards it as the Tray's Discard Recording… does.
 - **kacola can't see your calendar**: the calendar helper says access was never asked or was refused
   (`permissions.state()`, the same check as setup). Once after launch, and again whenever access goes
   missing after being there; a click opens setup at its Calendar step. Home's calendar line says the same,

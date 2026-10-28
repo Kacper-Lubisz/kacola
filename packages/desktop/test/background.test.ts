@@ -98,18 +98,52 @@ describe('autostart', () => {
 
 describe('the macOS Tray menu', () => {
   const up = { kind: 'spawned' as const, pid: 1 }
-  const labels = (i: Pick<TrayModelInput, 'daemon' | 'active' | 'calendarMissing'>) =>
-    trayMenuModel({ meetings: null, now: 0, ...i }).map((x) =>
-      x.type === 'separator'
-        ? '—'
-        : x.type === 'status'
-          ? `[${x.label}]`
-          : `${x.label}${x.enabled ? '' : ' (disabled)'}`,
-    )
+  // local wall-clock times, so the expectations hold in any time zone
+  const at = (h: number, m = 0, day = 23) => new Date(2026, 9, day, h, m).getTime()
+  const iso = (ms: number) => new Date(ms).toISOString()
+  const meeting = (title: string, start: number, minutes = 30) => ({
+    id: `mtg_${title}`,
+    title,
+    start: iso(start),
+    end: iso(start + minutes * 60_000),
+  })
+  const recording = (o: Partial<NonNullable<TrayModelInput['active']>> = {}) => ({
+    status: 'recording' as const,
+    title: 'Standup',
+    private: false,
+    startedAt: iso(at(10, 3)),
+    ...o,
+  })
+  const input = (o: Partial<TrayModelInput> = {}): TrayModelInput => ({
+    daemon: up,
+    active: null,
+    meetings: null,
+    now: at(10, 40),
+    ...o,
+  })
+  const withMeetings = (m: { current?: ReturnType<typeof meeting>; next?: ReturnType<typeof meeting> }) => ({
+    current: m.current ?? null,
+    next: m.next ?? null,
+    calendar: { state: 'ok' as const },
+  })
+  // `## Header`, `[status | sublabel]`, `Item (sublabel) (disabled)`
+  const labels = (i: TrayModelInput) =>
+    trayMenuModel(i).map((x) => {
+      if (x.type === 'separator') return '—'
+      if (x.type === 'header') return `## ${x.label}`
+      const sub = x.sublabel ? ` | ${x.sublabel}` : ''
+      if (x.type === 'status') return `[${x.label}${sub}]`
+      return `${x.label}${x.sublabel ? ` (${x.sublabel})` : ''}${x.enabled ? '' : ' (disabled)'}`
+    })
 
-  it('idle: Record, Open, Quit', () => {
-    expect(labels({ daemon: up, active: null })).toEqual([
-      '[Not recording]',
+  it('idle, no meeting: Record, Open, Quit', () => {
+    expect(labels(input())).toEqual(['Record', '—', 'Open kacola', 'Quit kacola'])
+  })
+
+  it('idle, a meeting later: what is next above Record', () => {
+    expect(labels(input({ meetings: withMeetings({ next: meeting('Planning', at(11)) }) }))).toEqual([
+      '## Next',
+      '[Planning | 11:00 · in 20 min]',
       '—',
       'Record',
       '—',
@@ -117,26 +151,94 @@ describe('the macOS Tray menu', () => {
       'Quit kacola',
     ])
   })
-  it('recording: Pause and Stop, the title in the status line; a private meeting stays private', () => {
-    expect(labels({ daemon: up, active: { status: 'recording', title: 'Standup', private: false } })).toEqual(
-      ['[Recording: Standup]', '—', 'Pause Recording', 'Stop Recording', '—', 'Open kacola', 'Quit kacola'],
+
+  it('idle, a meeting on now: Record This Meeting (linked and titled, as Join)', () => {
+    const items = trayMenuModel(
+      input({ meetings: withMeetings({ current: meeting('Standup', at(10, 30)) }) }),
     )
-    expect(
-      trayTooltip({
-        daemon: up,
-        active: { status: 'recording', title: 'Secret', private: true },
-        meetings: null,
-        now: 0,
-      }),
-    ).toBe('kacola — Recording: Private meeting')
+    expect(labels(input({ meetings: withMeetings({ current: meeting('Standup', at(10, 30)) }) }))).toEqual([
+      '## Now',
+      '[Standup | Until 11:00]',
+      'Record This Meeting',
+      '—',
+      'Open kacola',
+      'Quit kacola',
+    ])
+    expect(items.find((x) => x.type === 'item' && x.label === 'Record This Meeting')).toMatchObject({
+      id: 'record-meeting',
+      symbol: 'record',
+    })
   })
-  it('paused: Resume and Stop', () => {
-    expect(
-      labels({ daemon: up, active: { status: 'paused', title: '', private: false } }).slice(0, 4),
-    ).toEqual(['[Paused: Untitled meeting]', '—', 'Resume Recording', 'Stop Recording'])
+
+  it('auto-recording the meeting on now: says so, and offers Discard', () => {
+    const current = meeting('Standup', at(10, 30))
+    const i = input({
+      active: recording({ meeting: { id: current.id } }),
+      activeAuto: true,
+      meetings: withMeetings({ current, next: meeting('Planning', at(11)) }),
+    })
+    expect(labels(i)).toEqual([
+      '## Recording',
+      'Standup (Started automatically · until 11:00)',
+      'Pause Recording',
+      'Stop Recording',
+      'Discard Recording…',
+      '—',
+      'Open kacola',
+      'Quit kacola',
+    ])
+    expect(trayMenuModel(i).find((x) => x.type === 'item' && x.id === 'discard')).toMatchObject({
+      symbol: 'discard',
+      enabled: true,
+    })
   })
+
+  it('recording by hand: since when; the next meeting still shows', () => {
+    const i = input({
+      active: recording({ title: 'Prep' }),
+      meetings: withMeetings({ next: meeting('Planning', at(11)) }),
+    })
+    expect(labels(i)).toEqual([
+      '## Recording',
+      'Prep (Since 10:03)',
+      'Pause Recording',
+      'Stop Recording',
+      'Discard Recording…',
+      '—',
+      '## Next',
+      '[Planning | 11:00 · in 20 min]',
+      '—',
+      'Open kacola',
+      'Quit kacola',
+    ])
+  })
+
+  it('recording something else while a meeting is on: the meeting shows, without Record This Meeting', () => {
+    const i = input({
+      active: recording({ title: 'Prep' }),
+      meetings: withMeetings({ current: meeting('Standup', at(10, 30)) }),
+    })
+    expect(labels(i).slice(5, 8)).toEqual(['—', '## Now', '[Standup | Until 11:00]'])
+    expect(labels(i)).not.toContain('Record This Meeting')
+  })
+
+  it('paused: Resume and Stop; a private meeting stays private', () => {
+    expect(labels(input({ active: recording({ status: 'paused', title: '' }) })).slice(0, 4)).toEqual([
+      '## Paused',
+      'Untitled meeting (Since 10:03)',
+      'Resume Recording',
+      'Stop Recording',
+    ])
+    expect(trayTooltip(input({ active: recording({ title: 'Secret', private: true }) }))).toBe(
+      'kacola — Recording: Private meeting',
+    )
+    expect(labels(input({ active: recording({ title: 'Secret', private: true }) }))[1]).toBe(
+      'Private meeting (Since 10:03)',
+    )
+  })
+
   it('without a daemon the recording actions are disabled; Open and Quit never are', () => {
-    expect(labels({ daemon: { kind: 'starting' }, active: null })).toEqual([
+    expect(labels(input({ daemon: { kind: 'starting' } }))).toEqual([
       '[Starting…]',
       '—',
       'Record (disabled)',
@@ -144,40 +246,30 @@ describe('the macOS Tray menu', () => {
       'Open kacola',
       'Quit kacola',
     ])
-    expect(labels({ daemon: { kind: 'unreachable', error: 'x' }, active: null })[0]).toBe(
-      '[kacola is not reachable]',
+    expect(labels(input({ daemon: { kind: 'unreachable', error: 'x' }, active: recording() }))).toContain(
+      'Discard Recording… (disabled)',
     )
   })
+
   it('calendar access missing: offers setup’s Calendar step, recording or not', () => {
-    expect(labels({ daemon: up, active: null, calendarMissing: true })).toEqual([
-      '[Not recording]',
-      '—',
+    expect(labels(input({ calendarMissing: true }))).toEqual([
       'Record',
-      '—',
       'Allow Calendar Access…',
       '—',
       'Open kacola',
       'Quit kacola',
     ])
-    expect(
-      labels({
-        daemon: up,
-        active: { status: 'recording', title: 'Standup', private: false },
-        calendarMissing: true,
-      }),
-    ).toContain('Allow Calendar Access…')
-    expect(labels({ daemon: up, active: null, calendarMissing: false })).not.toContain(
-      'Allow Calendar Access…',
-    )
+    expect(labels(input({ active: recording(), calendarMissing: true }))).toContain('Allow Calendar Access…')
+    expect(labels(input({ calendarMissing: false }))).not.toContain('Allow Calendar Access…')
   })
 })
 
 describe('the macOS menu-bar title: the next meeting', () => {
   const up = { kind: 'spawned' as const, pid: 1 }
-  // local wall-clock times, so the expectations hold in any time zone
   const at = (h: number, m = 0, day = 23) => new Date(2026, 9, day, h, m).getTime()
   const iso = (ms: number) => new Date(ms).toISOString()
   const meeting = (title: string, start: number, minutes = 30) => ({
+    id: `mtg_${title}`,
     title,
     start: iso(start),
     end: iso(start + minutes * 60_000),
@@ -193,25 +285,19 @@ describe('the macOS menu-bar title: the next meeting', () => {
     now,
     ...o,
   })
-  const statusLines = (i: TrayModelInput) =>
-    trayMenuModel(i).flatMap((x) => (x.type === 'status' ? [x.label] : []))
 
   it('nothing when no meeting is left, or before the daemon answered', () => {
     expect(trayTitle(input(at(9), {}))).toBe('')
-    expect(statusLines(input(at(9), {}))).toEqual(['Not recording'])
     expect(trayTitle(input(at(9), {}, { meetings: null }))).toBe('')
   })
 
   it('later today: the local start time and the title', () => {
-    const i = input(at(9), { next: meeting('Standup', at(10, 30)) })
-    expect(trayTitle(i)).toBe('10:30 Standup')
-    expect(statusLines(i)).toEqual(['Not recording', 'Next: Standup at 10:30'])
+    expect(trayTitle(input(at(9), { next: meeting('Standup', at(10, 30)) }))).toBe('10:30 Standup')
   })
 
   it('within the hour: counts down in minutes (rounded up, so never "in 0 min")', () => {
     const next = meeting('Standup', at(10, 30))
     expect(trayTitle(input(at(10, 18), { next }))).toBe('Standup in 12 min')
-    expect(statusLines(input(at(10, 18), { next }))[1]).toBe('Next: Standup in 12 min')
     expect(trayTitle(input(at(10, 29) + 30_000, { next }))).toBe('Standup in 1 min')
     expect(trayTitle(input(at(9, 31), { next }))).toBe('Standup in 59 min')
     expect(trayTitle(input(at(9, 30), { next }))).toBe('10:30 Standup')
@@ -220,7 +306,6 @@ describe('the macOS menu-bar title: the next meeting', () => {
   it('in progress: "now:", also when the daemon still called it next', () => {
     const current = meeting('Standup', at(10, 30))
     expect(trayTitle(input(at(10, 40), { current, next: meeting('Planning', at(11)) }))).toBe('now: Standup')
-    expect(statusLines(input(at(10, 40), { current }))[1]).toBe('Now: Standup (until 11:00)')
     expect(trayTitle(input(at(10, 31), { next: current }))).toBe('now: Standup')
     // it ended since the daemon answered: the next one, not a stale "now"
     expect(trayTitle(input(at(11, 5), { current, next: meeting('Planning', at(11, 30)) }))).toBe(
@@ -236,7 +321,17 @@ describe('the macOS menu-bar title: the next meeting', () => {
     expect(soon).toBe('Quarterly bu… in 5 min')
     const now = trayTitle(input(at(14, 5), { current: meeting(long, at(14)) }))
     expect(now).toBe('now: Quarterly busine…')
-    for (const t of [later, soon, now]) expect(t.length).toBeLessThanOrEqual(22)
+    const rec = trayTitle(
+      input(
+        at(14, 5),
+        { current: meeting(long, at(14)) },
+        {
+          active: { status: 'recording', title: long, private: false, meeting: { id: `mtg_${long}` } },
+        },
+      ),
+    )
+    expect(rec).toBe('● now: Quarterly busi…')
+    for (const t of [later, soon, now, rec]) expect([...t].length).toBeLessThanOrEqual(22)
     // an emoji is never split in half
     expect(trayTitle(input(at(9), { next: meeting('🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉', at(14)) }))).toBe(
       `14:00 ${'🎉'.repeat(15)}…`,
@@ -244,21 +339,34 @@ describe('the macOS menu-bar title: the next meeting', () => {
     expect(trayTitle(input(at(9), { next: meeting('  ', at(10, 30)) }))).toBe('10:30 Untitled meeting')
   })
 
-  it('a recording keeps the menu bar; the menu still says what is next', () => {
-    const i = input(
-      at(10, 18),
-      { next: meeting('Standup', at(10, 30)) },
-      { active: { status: 'recording', title: 'Prep', private: false } },
+  it('recording the meeting on now (a rule or Join linked it): "● now:", "‖ now:" paused', () => {
+    const current = meeting('Standup', at(10, 30))
+    const active = {
+      status: 'recording' as const,
+      title: 'Standup',
+      private: false,
+      meeting: { id: current.id },
+    }
+    expect(trayTitle(input(at(10, 40), { current }, { active }))).toBe('● now: Standup')
+    expect(trayTitle(input(at(10, 40), { current }, { active: { ...active, status: 'paused' } }))).toBe(
+      '‖ now: Standup',
     )
-    expect(trayTitle(i)).toBe('')
-    expect(statusLines(i)).toEqual(['Recording: Prep', 'Next: Standup in 12 min'])
-    expect(trayTitle({ ...i, active: { status: 'paused', title: 'Prep', private: false } })).toBe('')
+    // it ran over: the meeting has ended, the recording goes on under its own title
+    expect(trayTitle(input(at(11, 10), { current }, { active }))).toBe('● Standup')
+  })
+
+  it('any other recording: "●" and its own title, whatever is next', () => {
+    const active = { status: 'recording' as const, title: 'Prep', private: false }
+    expect(trayTitle(input(at(10, 18), { next: meeting('Standup', at(10, 30)) }, { active }))).toBe('● Prep')
+    expect(trayTitle(input(at(10, 40), { current: meeting('Standup', at(10, 30)) }, { active }))).toBe(
+      '● Prep',
+    )
+    expect(trayTitle(input(at(9), {}, { active: { ...active, private: true } }))).toBe('● Private meeting')
   })
 
   it("tomorrow's meeting: nothing, unless it starts within the hour (just after midnight)", () => {
     const tomorrow = meeting('Standup', at(9, 0, 24))
     expect(trayTitle(input(at(16), { next: tomorrow }))).toBe('')
-    expect(statusLines(input(at(16), { next: tomorrow }))).toEqual(['Not recording'])
     expect(trayTitle(input(at(23, 50), { next: meeting('Late call', at(0, 15, 24)) }))).toBe(
       'Late call in 25 min',
     )
