@@ -95,8 +95,8 @@ import {
 import { DaemonSupervisor } from './supervisor.ts'
 import { readPortal, themeFrom, watchPortal } from './theme.ts'
 import {
-  glanceMeeting,
   type TrayAction,
+  type TrayItem,
   type TrayModelInput,
   type TraySymbol,
   trayMenuModel,
@@ -371,7 +371,7 @@ function notify(notice: Notice, onClick: () => void, action?: { label: string; r
 
 const offeredMeetings = new Set<string>()
 
-/** A meeting is about to start: offer to record it, unless a recording or the calendar rule has it. */
+/** A meeting is about to start: Join & Record (or Record), unless kacola records it already. */
 async function notifyStarting(m: Meeting): Promise<void> {
   const key = `${m.id}@${m.start}`
   if (offeredMeetings.has(key)) return
@@ -379,17 +379,36 @@ async function notifyStarting(m: Meeting): Promise<void> {
   const notice = meetingStartingNotice({
     meeting: m,
     now: Date.now(),
-    recording: active !== null,
+    recordingIt: active?.meeting?.id === m.id,
     calendarRule: settings?.autoRecord.calendar ?? false,
   })
   if (!notice) return
   offeredMeetings.add(key)
-  notify(notice, () => {
-    void client
-      .call('joinMeeting', { params: { id: m.id }, body: {} })
-      .catch((err: unknown) => logLine({ event: 'notification', kind: 'record-failed', error: String(err) }))
-  })
+  const go = () => void joinMeeting(m.id, { open: m.join !== null, record: true })
+  notify(notice, go, { label: notice.action, run: go })
   logLine({ event: 'notification', kind: 'meeting-starting', meeting: m.id })
+}
+
+/**
+ * Join a meeting from the menu bar or a notification: record it (linked and titled) and/or open its link.
+ * Recording it ends any other recording first — the meeting before ran over, and the user moved on.
+ */
+async function joinMeeting(meetingId: string, o: { open: boolean; record: boolean }): Promise<void> {
+  try {
+    let url: string | null = null
+    if (o.record && active?.meeting?.id !== meetingId) {
+      if (active) await client.call('stopSession', { params: { id: active.id } })
+      url = (await client.call('joinMeeting', { params: { id: meetingId }, body: {} })).joinUrl
+    } else {
+      const m = [...(today ?? []), meetings?.current, meetings?.next].find((x) => x?.id === meetingId)
+      url = m?.join?.url ?? null
+    }
+    if (o.open && url) await shell.openExternal(url)
+    logLine({ event: 'meeting', kind: 'joined', meeting: meetingId, ...o })
+  } catch (err) {
+    logLine({ event: 'meeting', kind: 'join-failed', meeting: meetingId, error: String(err) })
+  }
+  refreshActive()
 }
 
 function notifyRecording(sessionId: string, notice: Notice | null): void {
@@ -463,10 +482,15 @@ function refreshActive(): void {
 
 function refreshMeetings(): void {
   if (!tray) return
-  void client
-    .call('nextMeeting')
-    .then((m) => {
-      meetings = m
+  const midnight = new Date()
+  midnight.setHours(0, 0, 0, 0)
+  void Promise.all([
+    client.call('nextMeeting'),
+    client.call('listMeetings', { query: { from: midnight.toISOString() } }).catch(() => null),
+  ])
+    .then(([next, list]) => {
+      meetings = next
+      today = list?.meetings ?? null
       refreshTray()
     })
     .catch(() => {})
@@ -475,12 +499,14 @@ function refreshMeetings(): void {
 // macOS: the menu-bar Tray (background mode there). Linux has none (the top-bar extension is that surface).
 let tray: Tray | null = null
 let meetings: NextMeeting | null = null
+let today: Meeting[] | null = null
 
 function trayInput(): TrayModelInput {
   return {
     daemon: supervisor.status,
     active,
     meetings,
+    today,
     now: Date.now(),
     activeAuto: active !== null && autoStarted.has(active.id),
     calendarMissing: calendarAccess.missing,
@@ -491,36 +517,41 @@ function refreshTray(): void {
   if (!tray) return
   const input = trayInput()
   tray.setToolTip(trayTooltip(input))
-  // monospaced digits: the "in N min" countdown does not make the menu bar jiggle
+  // monospaced digits: the "in N min" / "N min left" countdowns do not make the menu bar jiggle
   tray.setTitle(trayTitle(input), { fontType: 'monospacedDigit' })
-  tray.setContextMenu(
-    Menu.buildFromTemplate(
-      trayMenuModel(input).map((i): MenuItemConstructorOptions => {
-        if (i.type === 'separator' || i.type === 'header') return i
-        if (i.type === 'status') return { label: i.label, sublabel: i.sublabel, enabled: false }
-        return {
-          label: i.label,
-          sublabel: i.sublabel,
-          icon: i.symbol && nativeImage.createMenuSymbol(TRAY_SYMBOLS[i.symbol]),
-          enabled: i.enabled,
-          click: () => void trayAction(i.id),
-        }
-      }),
-    ),
-  )
+  tray.setContextMenu(Menu.buildFromTemplate(trayMenuModel(input).map(menuItem)))
+}
+
+function menuItem(i: TrayItem): MenuItemConstructorOptions {
+  if (i.type === 'separator' || i.type === 'header') return i
+  if (i.type === 'status') return { label: i.label, sublabel: i.sublabel, enabled: false }
+  const icon = i.symbol && nativeImage.createMenuSymbol(TRAY_SYMBOLS[i.symbol])
+  if (i.type === 'submenu')
+    return { label: i.label, sublabel: i.sublabel, icon, submenu: i.items.map(menuItem) }
+  return {
+    label: i.label,
+    sublabel: i.sublabel,
+    icon,
+    enabled: i.enabled,
+    click: () => void trayAction(i.id, i.meetingId),
+  }
 }
 
 const TRAY_SYMBOLS: Record<TraySymbol, string> = {
   record: 'record.circle',
+  recording: 'record.circle.fill',
   pause: 'pause.circle',
   resume: 'play.circle',
   stop: 'stop.circle',
   discard: 'trash',
-  calendar: 'calendar.badge.exclamationmark',
+  video: 'video',
+  event: 'calendar',
+  join: 'arrow.up.right.video',
+  'calendar-missing': 'calendar.badge.exclamationmark',
   open: 'macwindow',
 }
 
-async function trayAction(a: TrayAction): Promise<void> {
+async function trayAction(a: TrayAction, meetingId?: string): Promise<void> {
   try {
     if (a === 'open') return showWindow()
     if (a === 'quit') return app.quit()
@@ -528,10 +559,9 @@ async function trayAction(a: TrayAction): Promise<void> {
     if (a === 'open-recording')
       return active ? navigateWindow({ to: 'session', sessionId: active.id }) : undefined
     if (a === 'discard') return active ? await discardRecording(active.id) : undefined
-    if (a === 'record-meeting') {
-      const g = glanceMeeting(trayInput())
-      if (g?.at === 'now') await client.call('joinMeeting', { params: { id: g.meeting.id }, body: {} })
-    } else if (a === 'record') {
+    if (meetingId && (a === 'join-record' || a === 'join' || a === 'record-meeting'))
+      return await joinMeeting(meetingId, { open: a !== 'record-meeting', record: a !== 'join' })
+    if (a === 'record') {
       const s = await client.call('createSession', { body: {} })
       await client.call('startSession', { params: { id: s.id } })
     } else if (active) {

@@ -1,9 +1,10 @@
 import type { Meeting, StartReason } from '@kacola/protocol'
+import { PROVIDER_NAMES } from './tray.ts'
 
 // The macOS notifications main shows (Linux: the top-bar extension notifies), as pure decisions so they
 // are unit-tested; index.ts shows them and wires the clicks.
 //
-//   meeting starting   a minute ahead, when no rule will record it: click records it (Join, link unopened)
+//   meeting starting   a minute ahead: Join & Record (opens the link, records it), or Record without a link
 //   recording started  a rule (calendar, microphone) started one: click opens it
 //   calendar access    kacola may not read the calendars: click opens setup at its Calendar step
 
@@ -13,20 +14,35 @@ const MINUTE = 60_000
 
 const titleOf = (t: string) => t.trim() || 'Untitled meeting'
 
+const pad2 = (n: number) => String(n).padStart(2, '0')
+const clock = (iso: string) => {
+  const d = new Date(iso)
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+}
+
+/**
+ * A meeting is about to start: `“Standup” starts in 1 min`, `10:30–11:00 · Zoom`, and a button — Join &
+ * Record when it has a link (the click does the same), else Record. Quiet while kacola records it already,
+ * and when the calendar rule will record it and there is no link to offer.
+ */
 export function meetingStartingNotice(i: {
-  meeting: Pick<Meeting, 'title' | 'start'>
+  meeting: Pick<Meeting, 'title' | 'start' | 'end' | 'join'>
   /** Epoch ms. */
   now: number
-  recording: boolean
+  /** kacola is recording this very meeting. */
+  recordingIt: boolean
   /** The auto-record calendar rule is on: it records the meeting, or says it left it alone. */
   calendarRule: boolean
-}): Notice | null {
-  if (i.recording || i.calendarRule) return null
+}): (Notice & { action: 'Join & Record' | 'Record' }) | null {
+  const join = i.meeting.join
+  if (i.recordingIt || (i.calendarRule && !join)) return null
   const minutes = Math.ceil((Date.parse(i.meeting.start) - i.now) / MINUTE)
   const title = `“${titleOf(i.meeting.title)}”`
+  const where = join ? PROVIDER_NAMES[join.provider] : null
   return {
     title: minutes > 0 ? `${title} starts in ${minutes} min` : `${title} is starting`,
-    body: 'Click to record it with kacola.',
+    body: [`${clock(i.meeting.start)}–${clock(i.meeting.end)}`, where].filter((x) => x).join(' · '),
+    action: join ? 'Join & Record' : 'Record',
   }
 }
 

@@ -187,33 +187,38 @@ Desktop Integration → "Start in the background at login" (`src/main/autostart.
 - **Linux**: `$XDG_CONFIG_HOME/autostart/com.kacperlubisz.Kacola.desktop`, `Exec=<this binary> --background`
   (only an entry carrying our `X-Kacola-Autostart=1` is ever removed).
 - **macOS**: a login item with `--background`, and the menu-bar **Tray** (`src/main/tray.ts`, a pure menu
-  model that main renders natively: section headers, sublabels, SF Symbols). The Dock icon re-opens the
-  window. The menu:
+  model that main renders natively: section headers, sublabels, SF Symbols, a submenu per meeting). The
+  Dock icon re-opens the window. The menu:
   - **Recording** / **Paused**: the recording (a click opens it; its sublabel says "Started automatically"
     when a rule started it, and until when its meeting runs, or since when it records), Pause/Resume,
     Stop, and **Discard Recording…**: after a confirmation, stop it and delete its audio and transcript —
     for a recording that should not have happened.
-  - **Now** / **Next**: the meeting worth a glance with its time (not repeated when the recording is that
-    meeting). A meeting on now, with nothing recording, offers **Record This Meeting** (as Join: linked
-    and titled).
-  - Record (when no meeting is on), **Allow Calendar Access…** while kacola may not read the calendars
+  - **Today**: a glanceable calendar — each meeting not yet over (`GET /meetings` from local midnight; one
+    line per occurrence, so an invitation on two calendars shows once; declined ones hidden), with its
+    times, where it is (Zoom, Google Meet…) and `now · 18 min left` / `in 20 min` / `recording`. Its
+    submenu: **Join & Record** (opens the link and records it, linked and titled; any other recording
+    stops first — the meeting before ran over), **Join Without Recording**, **Record Without Joining**
+    (just **Record** without a link). While it is being recorded: **Join Meeting**, **Open Recording**.
+  - Record (a recording of its own), **Allow Calendar Access…** while kacola may not read the calendars
     (setup's Calendar step), Open kacola, Quit kacola. Private meetings stay "Private meeting".
 
-  Beside the icon, the title is the meeting worth a glance (from `GET /meetings/next`): `now: Standup`,
-  `Standup in 12 min` within the hour, `10:30 Standup` later today, at most 22 characters; nothing when no
-  meeting is left today or the calendar is not `ok`. While recording it starts with `●` (`‖` paused):
-  `● now: Standup` while recording the meeting on now, else `● ` and the recording's title. Main re-reads
-  the meetings on `calendar.updated`, on (re)connect and every 30 s.
+  Beside the icon, the title is the meeting worth a glance (from `GET /meetings/next`): `now: Standup ·
+  18 min left` (`· until 15:00` an hour or more out), `Standup in 12 min` within the hour, `10:30 Standup`
+  later today; the meeting's title at most 24 characters. Nothing when no meeting is left today or the
+  calendar is not `ok`. While recording it starts with `●` (`‖` paused): `● now: Standup · 18 min left`
+  while recording the meeting on now, else `● ` and the recording's title. Main re-reads the meetings on
+  `calendar.updated`, on (re)connect and every 30 s.
 
 ## Notifications (macOS)
 
 Main shows them (`src/main/notifications.ts`, pure decisions, unit-tested); on Linux the top-bar extension
 notifies from the D-Bus signals instead. Each is silent, and a click is the only thing that opens anything:
 
-- **A meeting is about to start** (`meeting.starting`, a minute ahead): `“Standup” starts in 1 min`, when
-  nothing is recording and the auto-record calendar rule is off. A click records it (`POST
-  /meetings/:id/join`; the meeting link is not opened). With the rule on it stays quiet: the rule records
-  the meeting, or says it left it alone ("Not recording “Run club”", docs/desktop.md).
+- **A meeting is about to start** (`meeting.starting`, a minute ahead): `“Standup” starts in 1 min`,
+  `10:30–11:00 · Zoom`, with a **Join & Record** button (the click does the same): open the link and
+  record it, as the Tray's Join & Record. Without a link the button is **Record**. Quiet while kacola
+  records that meeting already, and when the auto-record calendar rule is on and there is no link to offer
+  (the rule records the meeting, or says it left it alone: "Not recording “Run club”", docs/desktop.md).
 - **A rule started recording** (the ephemeral `recording.started`, whose `reason` is `calendar` or
   `mic-activity`; manual and Join starts say nothing): `Recording “Standup”`; a click opens the recording,
   and its **Discard** button discards it as the Tray's Discard Recording… does.

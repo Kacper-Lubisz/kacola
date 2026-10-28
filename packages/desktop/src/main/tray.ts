@@ -1,42 +1,63 @@
-import type { CalendarStatus, Meeting, Session } from '@kacola/protocol'
+import type { CalendarStatus, JoinLink, Meeting, MeetingProvider, Session } from '@kacola/protocol'
 import type { DaemonStatus } from '../shared/bridge.ts'
 
 // macOS menu-bar Tray (background mode there: the window closes, the app stays in the menu bar). The
-// menu is a pure function of what main knows — the daemon's state and the active recording — so it is
-// unit-tested; index.ts turns it into an Electron Menu (headers, sublabels and SF Symbols) and runs the
-// actions. The title beside the icon (macOS only) is the meeting worth a glance — on now, or next today —
-// behind a dot while kacola records.
+// menu is a pure function of what main knows — the daemon's state, the active recording and today's
+// meetings — so it is unit-tested; index.ts turns it into an Electron Menu (headers, sublabels, SF
+// Symbols, a submenu per meeting) and runs the actions. The title beside the icon (macOS only) is the
+// meeting worth a glance — on now and when it ends, or next today — behind a dot while kacola records.
 //
 // Linux has no tray: GNOME has no StatusNotifier host by default, and the top-bar extension is the
 // menu-bar surface there.
 
 export type TrayAction =
   | 'record'
-  | 'record-meeting'
   | 'stop'
   | 'pause'
   | 'resume'
   | 'discard'
   | 'open-recording'
+  | 'join-record'
+  | 'join'
+  | 'record-meeting'
   | 'allow-calendar'
   | 'open'
   | 'quit'
 
 /** Each is an SF Symbol in index.ts. */
-export type TraySymbol = 'record' | 'pause' | 'resume' | 'stop' | 'discard' | 'calendar' | 'open'
+export type TraySymbol =
+  | 'record'
+  | 'recording'
+  | 'pause'
+  | 'resume'
+  | 'stop'
+  | 'discard'
+  | 'video'
+  | 'event'
+  | 'join'
+  | 'calendar-missing'
+  | 'open'
 
 export type TrayItem =
   | { type: 'header'; label: string }
   | {
       type: 'item'
       id: TrayAction
+      /** The meeting the action is for (join, record a meeting). */
+      meetingId?: string
       label: string
-      sublabel?: string
+      sublabel?: string | undefined
       symbol?: TraySymbol
       enabled: boolean
     }
+  | { type: 'submenu'; label: string; sublabel?: string | undefined; symbol?: TraySymbol; items: TrayItem[] }
   | { type: 'status'; label: string; sublabel?: string | undefined }
   | { type: 'separator' }
+
+export type TrayMeeting = Pick<Meeting, 'id' | 'title' | 'start' | 'end'> & {
+  join?: Pick<JoinLink, 'url' | 'provider'> | null
+  response?: Meeting['response']
+}
 
 export type TrayModelInput = {
   daemon: DaemonStatus
@@ -53,13 +74,13 @@ export type TrayModelInput = {
     next: TrayMeeting | null
     calendar: Pick<CalendarStatus, 'state'>
   } | null
+  /** Today's meetings (GET /meetings from local midnight); null until the daemon answered. */
+  today?: TrayMeeting[] | null
   /** Epoch ms. */
   now: number
   /** kacola may not read the calendars (and the user can allow it): the menu offers setup's Calendar step. */
   calendarMissing?: boolean
 }
-
-export type TrayMeeting = Pick<Meeting, 'id' | 'title' | 'start' | 'end'>
 
 const up = (d: DaemonStatus) => d.kind === 'attached' || d.kind === 'spawned'
 
@@ -72,13 +93,26 @@ export function trayStatusLine(i: TrayModelInput): string {
   return `${i.active.status === 'paused' ? 'Paused' : 'Recording'}: ${activeTitle(i.active)}`
 }
 
+export const PROVIDER_NAMES: Record<MeetingProvider, string | null> = {
+  meet: 'Google Meet',
+  zoom: 'Zoom',
+  teams: 'Microsoft Teams',
+  webex: 'Webex',
+  jitsi: 'Jitsi',
+  whereby: 'Whereby',
+  other: null,
+}
+
 const MINUTE = 60_000
-/** The menu-bar title's budget: the whole title, ellipsis included. */
-const TITLE_MAX = 22
+/** The meeting title's share of the menu-bar title (times and "min left" come on top). */
+const TITLE_CHARS = 24
+/** At most this many of today's meetings in the menu. */
+const AGENDA_MAX = 12
 
 type Glance = { meeting: TrayMeeting; at: 'now' | 'soon' | 'later'; minutes: number }
 
 const sameLocalDay = (a: number, b: number) => new Date(a).toDateString() === new Date(b).toDateString()
+const isLive = (m: TrayMeeting, now: number) => Date.parse(m.start) <= now && now < Date.parse(m.end)
 
 /**
  * The meeting worth a glance: the one in progress, else the next one when it starts within the hour or
@@ -87,7 +121,7 @@ const sameLocalDay = (a: number, b: number) => new Date(a).toDateString() === ne
 export function glanceMeeting(i: TrayModelInput): Glance | null {
   const c = i.meetings
   if (!up(i.daemon) || !c || c.calendar.state !== 'ok') return null
-  const live = [c.current, c.next].find((m) => m && Date.parse(m.start) <= i.now && i.now < Date.parse(m.end))
+  const live = [c.current, c.next].find((m) => m && isLive(m, i.now))
   if (live) return { meeting: live, at: 'now', minutes: 0 }
   const next = c.next
   const start = next ? Date.parse(next.start) : Number.NaN
@@ -114,71 +148,156 @@ function truncate(s: string, max: number): string {
 
 const meetingTitle = (m: TrayMeeting) => m.title.trim() || 'Untitled meeting'
 
+/** How long a meeting on now has left: `18 min left`, or `until 15:00` an hour or more out. */
+function timeLeft(m: TrayMeeting, now: number): string {
+  const minutes = Math.ceil((Date.parse(m.end) - now) / MINUTE)
+  return minutes < 60 ? `${minutes} min left` : `until ${clock(m.end)}`
+}
+
+/** The recording is of this meeting (a rule, Join or the menu linked it). */
+const records = (a: TrayModelInput['active'], m: TrayMeeting) => a?.meeting?.id === m.id
+
 /**
- * The text beside the menu-bar icon: `now: Standup`, `Standup in 12 min`, `10:30 Standup`, or nothing.
- * While recording it starts with `●` (`‖` paused): `● now: Standup` while the meeting is on, else the
- * recording's own title.
+ * The text beside the menu-bar icon: `now: Standup · 18 min left`, `Standup in 12 min`, `10:30 Standup`,
+ * or nothing. While recording it starts with `●` (`‖` paused): `● now: Standup · 18 min left` while
+ * recording the meeting on now, else the recording's own title.
  */
 export function trayTitle(i: TrayModelInput): string {
   const g = glanceMeeting(i)
-  const fit = (before: string, title: string, after = '') =>
-    `${before}${truncate(title, TITLE_MAX - [...before].length - after.length)}${after}`
+  const title = (m: TrayMeeting) => truncate(meetingTitle(m), TITLE_CHARS)
+  const nowLine = (m: TrayMeeting) => `now: ${title(m)} · ${timeLeft(m, i.now)}`
   if (i.active) {
     const dot = i.active.status === 'paused' ? '‖ ' : '● '
-    return g && recordsGlance(i.active, g)
-      ? fit(`${dot}now: `, meetingTitle(g.meeting))
-      : fit(dot, activeTitle(i.active))
+    return g?.at === 'now' && records(i.active, g.meeting)
+      ? `${dot}${nowLine(g.meeting)}`
+      : `${dot}${truncate(activeTitle(i.active), TITLE_CHARS)}`
   }
   if (!g) return ''
-  const title = meetingTitle(g.meeting)
-  if (g.at === 'now') return fit('now: ', title)
-  if (g.at === 'soon') return fit('', title, ` in ${g.minutes} min`)
-  return fit(`${clock(g.meeting.start)} `, title)
+  if (g.at === 'now') return nowLine(g.meeting)
+  if (g.at === 'soon') return `${title(g.meeting)} in ${g.minutes} min`
+  return `${clock(g.meeting.start)} ${title(g.meeting)}`
 }
 
-/** The recording is of the meeting on now (a rule or Join linked it). */
-const recordsGlance = (a: NonNullable<TrayModelInput['active']>, g: Glance) =>
-  g.at === 'now' && a.meeting?.id === g.meeting.id
-
-/** When the glance meeting is: `until 11:00`, `10:30 · in 12 min`, `10:30`. */
-function whenLine(g: Glance): string {
-  if (g.at === 'now') return `until ${clock(g.meeting.end)}`
-  return g.at === 'soon' ? `${clock(g.meeting.start)} · in ${g.minutes} min` : clock(g.meeting.start)
+/**
+ * What is left of today: meetings not yet over, in order. One per occurrence: a meeting on two calendars
+ * (an invitation forwarded to a shared calendar) shows once, the copy with a join link and an answer.
+ */
+export function todayAgenda(i: TrayModelInput): TrayMeeting[] {
+  if (!up(i.daemon) || i.meetings?.calendar.state !== 'ok' || !i.today) return []
+  const rank = (m: TrayMeeting) => (m.join ? 2 : 0) + (m.response === 'accepted' ? 1 : 0)
+  const byOccurrence = new Map<string, TrayMeeting>()
+  for (const m of i.today) {
+    if (Date.parse(m.end) <= i.now || !sameLocalDay(Date.parse(m.start), i.now) || m.response === 'declined')
+      continue
+    const key = `${m.start}|${m.end}|${meetingTitle(m).toLowerCase()}`
+    const seen = byOccurrence.get(key)
+    if (!seen || rank(m) > rank(seen)) byOccurrence.set(key, m)
+  }
+  return [...byOccurrence.values()]
+    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
+    .slice(0, AGENDA_MAX)
 }
 
 /** A sublabel from its parts, joined with ` · ` and capitalised. */
-function sublabel(...parts: (string | null)[]): string | undefined {
-  const s = parts.filter((p) => p !== null).join(' · ')
+function sublabel(...parts: (string | null | undefined)[]): string | undefined {
+  const s = parts.filter((p) => p).join(' · ')
   return s ? `${s[0]!.toUpperCase()}${s.slice(1)}` : undefined
+}
+
+/** One of today's meetings: its times and link at a glance, the ways to join or record it inside. */
+function agendaItem(m: TrayMeeting, i: TrayModelInput, ready: boolean): TrayItem {
+  const recording = records(i.active, m)
+  const live = isLive(m, i.now)
+  const minutes = Math.ceil((Date.parse(m.start) - i.now) / MINUTE)
+  const status = recording
+    ? 'recording'
+    : live
+      ? `now · ${timeLeft(m, i.now)}`
+      : minutes < 60
+        ? `in ${minutes} min`
+        : null
+  const meetingId = m.id
+  const items: TrayItem[] = recording
+    ? [
+        ...(m.join
+          ? [
+              {
+                type: 'item' as const,
+                id: 'join' as const,
+                meetingId,
+                label: 'Join Meeting',
+                symbol: 'join' as const,
+                enabled: true,
+              },
+            ]
+          : []),
+        { type: 'item', id: 'open-recording', label: 'Open Recording', enabled: true },
+      ]
+    : m.join
+      ? [
+          {
+            type: 'item',
+            id: 'join-record',
+            meetingId,
+            label: 'Join & Record',
+            symbol: 'record',
+            enabled: ready,
+          },
+          {
+            type: 'item',
+            id: 'join',
+            meetingId,
+            label: 'Join Without Recording',
+            symbol: 'join',
+            enabled: true,
+          },
+          { type: 'item', id: 'record-meeting', meetingId, label: 'Record Without Joining', enabled: ready },
+        ]
+      : [{ type: 'item', id: 'record-meeting', meetingId, label: 'Record', symbol: 'record', enabled: ready }]
+  return {
+    type: 'submenu',
+    label: truncate(meetingTitle(m), 40),
+    sublabel: sublabel(
+      `${clock(m.start)}–${clock(m.end)}`,
+      m.join ? PROVIDER_NAMES[m.join.provider] : null,
+      status,
+    ),
+    symbol: recording ? 'recording' : m.join ? 'video' : 'event',
+    items,
+  }
 }
 
 /**
  *   Recording / Paused       (header)
  *     Standup                Started automatically · until 11:00
  *     Pause · Stop · Discard Recording…
- *   Now / Next               (header; not repeated when the recording is that meeting)
- *     Planning               10:30 · in 12 min
- *     Record This Meeting    (a meeting on now: recorded linked and titled, as Join)
+ *   Today                    (header)
+ *     Standup ›              10:30–11:00 · Zoom · now · 18 min left
+ *       Join & Record · Join Without Recording · Record Without Joining
+ *     Planning ›             11:00–11:30 · Google Meet · in 20 min
  *   Record · Allow Calendar Access… · Open kacola · Quit kacola
  */
 export function trayMenuModel(i: TrayModelInput): TrayItem[] {
   const ready = up(i.daemon)
   const a = i.active
-  const g = glanceMeeting(i)
   const items: TrayItem[] = []
   if (!ready) items.push({ type: 'status', label: trayStatusLine(i) }, { type: 'separator' })
 
-  const recordingThis = a !== null && g !== null && recordsGlance(a, g)
   if (a) {
-    const when = recordingThis ? whenLine(g) : a.startedAt ? `since ${clock(a.startedAt)}` : null
-    const sub = sublabel(i.activeAuto ? 'started automatically' : null, when)
+    const g = glanceMeeting(i)
+    const ofMeeting = g?.at === 'now' && records(a, g.meeting) ? g.meeting : null
+    const when = ofMeeting
+      ? `until ${clock(ofMeeting.end)}`
+      : a.startedAt
+        ? `since ${clock(a.startedAt)}`
+        : null
     items.push(
       { type: 'header', label: a.status === 'paused' ? 'Paused' : 'Recording' },
       {
         type: 'item',
         id: 'open-recording',
         label: truncate(activeTitle(a), 48),
-        ...(sub ? { sublabel: sub } : {}),
+        sublabel: sublabel(i.activeAuto ? 'started automatically' : null, when),
         enabled: true,
       },
       a.status === 'paused'
@@ -190,30 +309,24 @@ export function trayMenuModel(i: TrayModelInput): TrayItem[] {
     )
   }
 
-  if (g && !recordingThis) {
+  if (ready && i.meetings?.calendar.state === 'ok' && i.today) {
+    const agenda = todayAgenda(i)
     items.push(
-      { type: 'header', label: g.at === 'now' ? 'Now' : 'Next' },
-      { type: 'status', label: truncate(meetingTitle(g.meeting), 48), sublabel: sublabel(whenLine(g)) },
+      { type: 'header', label: 'Today' },
+      ...(agenda.length
+        ? agenda.map((m) => agendaItem(m, i, ready))
+        : [{ type: 'status' as const, label: 'Nothing else today' }]),
+      { type: 'separator' },
     )
-    if (!a && g.at === 'now')
-      items.push({
-        type: 'item',
-        id: 'record-meeting',
-        label: 'Record This Meeting',
-        symbol: 'record',
-        enabled: ready,
-      })
-    items.push({ type: 'separator' })
   }
 
-  if (!a && g?.at !== 'now')
-    items.push({ type: 'item', id: 'record', label: 'Record', symbol: 'record', enabled: ready })
+  if (!a) items.push({ type: 'item', id: 'record', label: 'Record', symbol: 'record', enabled: ready })
   if (i.calendarMissing)
     items.push({
       type: 'item',
       id: 'allow-calendar',
       label: 'Allow Calendar Access…',
-      symbol: 'calendar',
+      symbol: 'calendar-missing',
       enabled: true,
     })
   if (items.at(-1)?.type !== 'separator') items.push({ type: 'separator' })

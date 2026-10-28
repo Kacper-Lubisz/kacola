@@ -7,17 +7,29 @@ import {
 import { calendarAccessMissing } from '../src/shared/bridge.ts'
 
 const START = Date.parse('2026-10-28T10:00:00.000Z')
-const meeting = { title: 'Standup', start: new Date(START).toISOString() }
+const meeting = {
+  title: 'Standup',
+  start: new Date(START).toISOString(),
+  end: new Date(START + 30 * 60_000).toISOString(),
+  join: { url: 'https://meet.google.com/abc-defg-hij', provider: 'meet' as const },
+}
+// local wall clock, as the notification shows it
+const hhmm = (ms: number) => new Date(ms).toTimeString().slice(0, 5)
 
 describe('the meeting-starting notification', () => {
-  const base = { meeting, now: START - 60_000, recording: false, calendarRule: false }
+  const base = { meeting, now: START - 60_000, recordingIt: false, calendarRule: false }
 
-  it('offers to record a meeting nothing will record, with the minutes to go', () => {
+  it('a meeting with a link: Join & Record, its times and where it is', () => {
     expect(meetingStartingNotice(base)).toEqual({
       title: '“Standup” starts in 1 min',
-      body: 'Click to record it with kacola.',
+      body: `${hhmm(START)}–${hhmm(START + 30 * 60_000)} · Google Meet`,
+      action: 'Join & Record',
     })
     expect(meetingStartingNotice({ ...base, now: START - 150_000 })?.title).toBe('“Standup” starts in 3 min')
+  })
+  it('without a link: Record', () => {
+    const n = meetingStartingNotice({ ...base, meeting: { ...meeting, join: null } })
+    expect(n).toMatchObject({ action: 'Record', body: `${hhmm(START)}–${hhmm(START + 30 * 60_000)}` })
   })
   it('says “is starting” once its start has come; an empty title is an untitled meeting', () => {
     expect(meetingStartingNotice({ ...base, now: START })?.title).toBe('“Standup” is starting')
@@ -25,9 +37,14 @@ describe('the meeting-starting notification', () => {
       meetingStartingNotice({ ...base, meeting: { ...meeting, title: ' ' }, now: START + 5000 })?.title,
     ).toBe('“Untitled meeting” is starting')
   })
-  it('stays quiet while recording, and when the calendar rule decides', () => {
-    expect(meetingStartingNotice({ ...base, recording: true })).toBeNull()
-    expect(meetingStartingNotice({ ...base, calendarRule: true })).toBeNull()
+  it('with the calendar rule on, still offers the link (Join & Record starts it on the spot)', () => {
+    expect(meetingStartingNotice({ ...base, calendarRule: true })?.action).toBe('Join & Record')
+    expect(
+      meetingStartingNotice({ ...base, calendarRule: true, meeting: { ...meeting, join: null } }),
+    ).toBeNull()
+  })
+  it('quiet while kacola records this very meeting; another recording (one that ran over) does not count', () => {
+    expect(meetingStartingNotice({ ...base, recordingIt: true })).toBeNull()
   })
 })
 
