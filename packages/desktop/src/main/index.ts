@@ -518,7 +518,9 @@ function refreshTray(): void {
   const input = trayInput()
   tray.setToolTip(trayTooltip(input))
   // monospaced digits: the "in N min" / "N min left" countdowns do not make the menu bar jiggle
-  tray.setTitle(trayTitle(input), { fontType: 'monospacedDigit' })
+  // macOS draws the title flush against the icon
+  const title = trayTitle(input)
+  tray.setTitle(title && ` ${title}`, { fontType: 'monospacedDigit' })
   tray.setContextMenu(Menu.buildFromTemplate(trayMenuModel(input).map(menuItem)))
 }
 
