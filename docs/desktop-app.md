@@ -267,7 +267,10 @@ node scripts/build-macos.ts     # dist/macos/out/kacola-<v>-mac-{arm64,x64}.zip 
   signature is new on every build, so ad-hoc builds lose them at each reinstall.
   `packaging/macos/signing-identity.sh` makes the local identity once (a self-signed certificate in the
   login keychain; untrusted, which signing does not need: the app's designated requirement is the
-  certificate's hash); after one more Allow, rebuilds keep the permissions.
+  certificate's hash); after one more Allow, rebuilds keep the permissions. While the login keychain is
+  locked, codesign asks for its password once per nested binary, so the build signs a probe first and,
+  if that fails, unlocks the keychain once in the terminal. `packaging/macos/install-local.sh` does the
+  whole round on a Mac: identity, build, and swapping it into `~/Applications` once nothing is recording.
 - Tests: `desktop-packaged.e2e` (the Linux app, windowed over CDP), `flatpak.e2e` (headless + windowed
   under zypak), `macos-zip.e2e` (Mach-O natives, Info.plist usage strings, fuses, shims).
 

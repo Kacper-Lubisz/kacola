@@ -14,8 +14,9 @@
 // (packaging/macos/electron-builder.yml) puts it at Contents/Resources/runtime. Signing and a dmg need a
 // Mac: the zips are ad-hoc unsigned, so Gatekeeper asks users to right-click → Open the first time.
 // Built on a Mac, each app is signed (signIdentity below), so it runs as is.
-import { execFileSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { applyFuses } from '../packages/desktop/fuses.config.ts'
@@ -38,6 +39,35 @@ export function signIdentity(env = process.env): string {
   const found = execFileSync('security', ['find-identity', '-p', 'codesigning'], { encoding: 'utf8' })
   return found.includes(`"${LOCAL_SIGNING_IDENTITY}"`) ? LOCAL_SIGNING_IDENTITY : '-'
 }
+
+const LOGIN_KEYCHAIN = join(homedir(), 'Library', 'Keychains', 'login.keychain-db')
+
+/**
+ * While the login keychain is locked, codesign asks for its password once per nested binary (dozens per
+ * app), or fails with errSecInternalComponent where it cannot ask. So sign a probe first, and if that
+ * fails, unlock the keychain once in the terminal, before the build rather than minutes into it.
+ */
+function unlockKeychainFor(identity: string): void {
+  if (identity === '-') return
+  const dir = mkdtempSync(join(tmpdir(), 'kacola-sign-'))
+  const probe = join(dir, 'probe')
+  cpSync('/usr/bin/true', probe)
+  const signs = () =>
+    spawnSync('codesign', ['--force', '-s', identity, probe], { stdio: 'ignore' }).status === 0
+  try {
+    if (signs()) return
+    if (!process.stdin.isTTY)
+      throw new Error(
+        `codesign cannot use "${identity}": unlock the login keychain, or build from a terminal`,
+      )
+    console.log(`Unlocking the login keychain so codesign can use "${identity}" (your login password):`)
+    execFileSync('security', ['unlock-keychain', LOGIN_KEYCHAIN], { stdio: 'inherit' })
+    if (!signs()) throw new Error(`codesign still cannot use "${identity}" with the keychain unlocked`)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+}
+
 export type MacBuild = { zips: { arch: MacArch; path: string; bytes: number }[] }
 
 export async function buildMacos(o: {
@@ -47,6 +77,8 @@ export async function buildMacos(o: {
 }): Promise<MacBuild> {
   const out = resolve(o.outDir)
   const archs = o.archs ?? ['arm64', 'x64']
+  const identity = process.platform === 'darwin' ? signIdentity() : null
+  if (identity) unlockKeychainFor(identity)
   const stage = join(out, 'stage')
   rmSync(stage, { recursive: true, force: true })
   rmSync(join(out, 'out'), { recursive: true, force: true })
@@ -92,7 +124,6 @@ export async function buildMacos(o: {
   })
   // Zip each .app keeping symlinks (-y): the Electron framework's Versions/Current links must survive
   const outDir = join(out, 'out')
-  const identity = process.platform === 'darwin' ? signIdentity() : null
   const zips = archs.map((arch) => {
     const appParent = join(outDir, arch === 'x64' ? 'mac' : `mac-${arch}`)
     const app = join(appParent, 'kacola.app')
