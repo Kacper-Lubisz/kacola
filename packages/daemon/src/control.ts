@@ -1,4 +1,4 @@
-import type { Session, SessionMeeting, StartReason } from '@kacola/protocol'
+import type { Session, SessionMeeting, StartReason, StopReason } from '@kacola/protocol'
 import type { Store } from '@kacola/store'
 import type { EventBus } from './bus.ts'
 import { sessionMeeting } from './calendar/meetings.ts'
@@ -81,6 +81,18 @@ export class RecordingControl {
     const s = this.active()
     if (!s) throw new DaemonError('conflict', 'nothing is recording')
     return s
+  }
+
+  /** A rule stops a recording, if it is still THE active one; says why (`recording.stopped`). */
+  async stopByRule(id: string, reason: StopReason): Promise<Session | null> {
+    if (this.active()?.id !== id) return null
+    const stopped = await this.d.sessions.stop(id)
+    this.d.bus.ephemeral(id, {
+      type: 'recording.stopped',
+      session: { id, title: stopped.title, private: stopped.private },
+      reason,
+    })
+    return stopped
   }
 
   async stopActive(): Promise<Session> {

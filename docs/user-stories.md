@@ -302,8 +302,9 @@ flowchart TD
 - **Persona:** someone who forgets to press Record.
 - **Entry points:** Preferences › Auto-record › "When a Calendar Meeting Starts" (off by default).
 - **Steps:** 1. Switch the rule on. 2. At a timed, not-declined meeting's start, the daemon records it,
-  titled after the event and linked to it. It is never auto-stopped, and a rule never interrupts a
-  recording. 3. The session is live in the sidebar. 4. Its Notes suggest a template from the event
+  titled after the event and linked to it. It stops once the meeting is over (past its end and
+  quiet for 5 min, an hour past its end, or the next recorded meeting begins), and a rule never
+  interrupts a recording. 3. The session is live in the sidebar. 4. Its Notes suggest a template from the event
   ("interview" → Interview).
 - **States:** `auto-record-calendar__preferences__rule-on`, `auto-record-calendar__begins__recording-row`,
   `notes-templates__suggested__calendar`.

@@ -19,6 +19,10 @@ import { TrackerEphemeralEvents } from './tracker.ts'
 export const StartReason = z.enum(['manual', 'join', 'calendar', 'mic-activity'])
 export type StartReason = z.infer<typeof StartReason>
 
+/** Why a rule stopped a recording: the meeting it was for is over, or the call's microphone went idle. */
+export const StopReason = z.enum(['meeting-ended', 'mic-idle'])
+export type StopReason = z.infer<typeof StopReason>
+
 export const DurableEventData = z.discriminatedUnion('type', [
   z.object({ type: z.literal('session.upserted'), session: Session }),
   z.object({ type: z.literal('segment.upserted'), segment: Segment }),
@@ -83,6 +87,12 @@ export const EphemeralEventData = z.discriminatedUnion('type', [
     type: z.literal('recording.started'),
     session: Session.pick({ id: true, title: true, private: true }),
     reason: StartReason,
+  }),
+  /** An auto-record rule stopped a recording (a stop by hand sends none). */
+  z.object({
+    type: z.literal('recording.stopped'),
+    session: Session.pick({ id: true, title: true, private: true }),
+    reason: StopReason,
   }),
   // ---- kacola phases 1–2: agent presence on the live channel (./agendas.ts)
   ...AgendaEphemeralEvents,

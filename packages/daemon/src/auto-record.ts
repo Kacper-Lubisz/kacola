@@ -1,4 +1,4 @@
-import type { AutoRecordSettings, Meeting } from '@kacola/protocol'
+import type { AnyEvent, AutoRecordSettings, Meeting, Session, StartReason } from '@kacola/protocol'
 import type { RecordJudgement } from './auto-record-judge.ts'
 import type { EventBus } from './bus.ts'
 import { sessionMeeting } from './calendar/meetings.ts'
@@ -11,8 +11,7 @@ import type { SettingsService } from './settings.ts'
 // C-8: the auto-record rules, both off by default (Preferences → Auto-record).
 //
 //   calendar      when a timed calendar meeting (not declined, not cancelled) starts, record it —
-//                 titled and linked like Join, without opening anything. Never stopped automatically:
-//                 meetings overrun, and cutting the end off is worse than a long tail. With
+//                 titled and linked like Join, without opening anything. With
 //                 `calendarFilter: likely` (the default) only a meeting the user will likely want recorded
 //                 (./auto-record-judge.ts), judged when it is announced so recording starts on time; the
 //                 verdict goes out as `auto-record.decided` either way, so a skipped one can be recorded.
@@ -22,6 +21,12 @@ import type { SettingsService } from './settings.ts'
 //
 // A rule never interrupts or replaces a recording that is already running. If a calendar meeting is
 // in progress when the microphone rule fires, the session is linked to (and named after) it.
+//
+// A recording made FOR a meeting (the calendar rule's, or Join's) ends with it, whether or not the rule
+// is on: once the meeting's end has passed, after `meetingQuietStopMs` with no new words, or
+// `meetingOverrunStopMs` past the end however loud the room, or when the next meeting the calendar
+// rule records begins. Meetings overrun, so its end alone is not enough; a laptop left recording an
+// empty room (or a frozen app sending no audio) all afternoon is worse than a clipped goodbye.
 
 export type AutoRecorderDeps = {
   calendar: CalendarService
@@ -32,6 +37,12 @@ export type AutoRecorderDeps = {
   mic: MicActivitySource
   /** Default 30 s. */
   micIdleStopMs?: number
+  /** Default 5 min. */
+  meetingQuietStopMs?: number
+  /** Default 60 min. */
+  meetingOverrunStopMs?: number
+  /** How often a meeting's recording is checked for having ended. Default 30 s. */
+  meetingEndCheckMs?: number
   /** Smart mode's judgement (absent: every meeting is recorded, as with `calendarFilter: all`). */
   judge?: (m: Meeting) => Promise<RecordJudgement>
 }
@@ -42,6 +53,8 @@ export class AutoRecorder {
   private micRunning = false
   private micSession: string | null = null
   private idleTimer: NodeJS.Timeout | null = null
+  private endTimer: NodeJS.Timeout | null = null
+  private readonly heard = new SpeechClock()
   private readonly unsubscribe: (() => void)[] = []
   /** Judgements started when a meeting was announced, by meeting id (with the title they judged). */
   private readonly judged = new Map<string, { title: string; verdict: Promise<RecordJudgement> }>()
@@ -59,18 +72,54 @@ export class AutoRecorder {
       }),
       this.d.bus.subscribe((e) => {
         if (e.data.type === 'settings.updated') this.apply(e.data.settings.autoRecord)
-        if (e.data.type === 'session.upserted' && e.data.session.id === this.micSession) {
+        if (e.sessionId) this.heard.observe(e.sessionId, e.data)
+        if (e.data.type === 'session.upserted') {
           const st = e.data.session.status
-          if (st !== 'recording' && st !== 'paused') this.forgetMicSession()
+          if (st === 'recording' || st === 'paused') return
+          this.heard.forget(e.data.session.id)
+          if (e.data.session.id === this.micSession) this.forgetMicSession()
         }
       }),
     )
     this.apply(this.rules, true)
+    this.endTimer = setInterval(() => void this.stopIfMeetingEnded(), this.d.meetingEndCheckMs ?? 30_000)
+    this.endTimer.unref()
   }
 
   stop(): void {
     for (const u of this.unsubscribe.splice(0)) u()
+    if (this.endTimer) clearInterval(this.endTimer)
+    this.endTimer = null
     this.stopMic()
+  }
+
+  /** The meeting this recording was made for, if it was made for one (and it has ended by `now`). */
+  private endedMeeting(s: Session, now: number): { end: number } | null {
+    if (!s.meeting || !ENDS_WITH_MEETING.has(this.d.control.reason(s.id))) return null
+    // the calendar's copy: the meeting may have been moved or extended since it started
+    const end = Date.parse(this.d.calendar.get(s.meeting.id)?.end ?? s.meeting.end)
+    return now >= end ? { end } : null
+  }
+
+  private async stopIfMeetingEnded(): Promise<void> {
+    const s = this.d.control.active()
+    const now = Date.now()
+    const ended = s && this.endedMeeting(s, now)
+    if (!s || !ended) return
+    const lastWords = Math.max(this.heard.last(s.id) ?? 0, Date.parse(s.startedAt ?? s.createdAt))
+    const quiet = now - lastWords >= (this.d.meetingQuietStopMs ?? 5 * 60_000)
+    const overrun = now - ended.end >= (this.d.meetingOverrunStopMs ?? 60 * 60_000)
+    if (!quiet && !overrun) return
+    await this.stopForMeeting(s, quiet ? 'quiet since it ended' : 'still going long after it ended')
+  }
+
+  private async stopForMeeting(s: Session, why: string): Promise<void> {
+    try {
+      if (await this.d.control.stopByRule(s.id, 'meeting-ended'))
+        this.d.logger.info(`auto-record: meeting over (${why}); stopped`, { sessionId: s.id })
+    } catch (err) {
+      this.d.logger.warn('auto-record: could not stop', { sessionId: s.id, err: String(err) })
+    }
   }
 
   private apply(next: AutoRecordSettings, initial = false): void {
@@ -114,7 +163,8 @@ export class AutoRecorder {
 
   private async onMeetingBegins(m: Meeting): Promise<void> {
     if (!this.rules.calendar) return
-    if (this.d.control.active()) {
+    const running = this.d.control.active()
+    if (running && !this.endedMeeting(running, Date.now())) {
       this.d.logger.info('auto-record: meeting began while already recording; left alone', { meeting: m.id })
       return
     }
@@ -135,8 +185,10 @@ export class AutoRecorder {
         return
       }
       // the judgement may have taken a moment: someone may have started a recording meanwhile
-      if (this.d.control.active()) return
+      const current = this.d.control.active()
+      if (current && current.id !== running?.id) return
     }
+    if (running) await this.stopForMeeting(running, `"${m.title}" began`)
     try {
       const s = await this.d.control.startNew({ reason: 'calendar', meeting: sessionMeeting(m) })
       this.d.logger.info('auto-record: recording calendar meeting', { sessionId: s.id, meeting: m.id })
@@ -172,13 +224,45 @@ export class AutoRecorder {
     const id = this.micSession
     this.idleTimer = setTimeout(() => {
       this.idleTimer = null
-      if (this.micSession !== id || this.d.control.active()?.id !== id) return
-      this.d.control.stopActive().then(
-        () => this.d.logger.info('auto-record: microphone idle; stopped', { sessionId: id }),
+      if (this.micSession !== id) return
+      this.d.control.stopByRule(id, 'mic-idle').then(
+        (s) => s && this.d.logger.info('auto-record: microphone idle; stopped', { sessionId: id }),
         (err) => this.d.logger.warn('auto-record: could not stop', { sessionId: id, err: String(err) }),
       )
       this.micSession = null
     }, this.d.micIdleStopMs ?? 30_000)
     this.idleTimer.unref()
+  }
+}
+
+const ENDS_WITH_MEETING = new Set<StartReason>(['calendar', 'join'])
+
+/**
+ * When each live recording last heard words: a new segment, or a partial line that changed. A quiet
+ * room (or no audio at all) sends neither.
+ */
+class SpeechClock {
+  private readonly at = new Map<string, number>()
+  private readonly lines = new Map<string, string>()
+
+  observe(sessionId: string, e: AnyEvent['data']): void {
+    if (e.type === 'segment.upserted') {
+      if (e.segment.revision === 1) this.at.set(sessionId, Date.now())
+    } else if (e.type === 'transcript.partial' && e.text.trim()) {
+      const key = `${sessionId}:${e.track}`
+      const line = `${e.startMs}:${e.text}`
+      if (this.lines.get(key) === line) return
+      this.lines.set(key, line)
+      this.at.set(sessionId, Date.now())
+    }
+  }
+
+  last(sessionId: string): number | undefined {
+    return this.at.get(sessionId)
+  }
+
+  forget(sessionId: string): void {
+    this.at.delete(sessionId)
+    for (const k of this.lines.keys()) if (k.startsWith(`${sessionId}:`)) this.lines.delete(k)
   }
 }

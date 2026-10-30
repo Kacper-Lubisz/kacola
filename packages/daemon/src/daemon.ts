@@ -107,6 +107,10 @@ export type DaemonOptions = {
   /** Microphone-activity source for the auto-record rule. Default: none (the rule then never fires). */
   micActivity?: MicActivitySource
   micIdleStopMs?: number
+  /** Auto-record's meeting-end timings (./auto-record.ts), shortened by tests. */
+  meetingQuietStopMs?: number
+  meetingOverrunStopMs?: number
+  meetingEndCheckMs?: number
   /**
    * H-6 pairing auth. Required to listen on anything but loopback; then remote requests need a device
    * token and only loopback stays anonymous. null/undefined: loopback-only, as before.
@@ -286,6 +290,9 @@ async function compose(o: DaemonOptions, host: string, lock: DataDirLock): Promi
     logger,
     mic: o.micActivity ?? { start() {}, stop() {} },
     micIdleStopMs: o.micIdleStopMs,
+    meetingQuietStopMs: o.meetingQuietStopMs,
+    meetingOverrunStopMs: o.meetingOverrunStopMs,
+    meetingEndCheckMs: o.meetingEndCheckMs,
     judge: (m) =>
       judgeMeeting(m, {
         provider: () => decisions.provider(),

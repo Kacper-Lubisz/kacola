@@ -77,6 +77,7 @@ import {
   meetingStartingNotice,
   type Notice,
   recordingStartedNotice,
+  recordingStoppedNotice,
 } from './notifications.ts'
 import { askedPermissions, Permissions, SETTINGS_PANES } from './permissions.ts'
 import { loadCatalogue, preferredLanguages, readNotices, readUiState, writeUiState } from './resources.ts'
@@ -326,6 +327,11 @@ async function daemonUp(): Promise<void> {
         if (e.data.reason === 'calendar' || e.data.reason === 'mic-activity')
           autoStarted.add(e.data.session.id)
         notifyRecording(e.data.session.id, recordingStartedNotice(e.data))
+      } else if (e.data.type === 'recording.stopped') {
+        const sessionId = e.data.session.id
+        autoStarted.delete(sessionId)
+        notify(recordingStoppedNotice(e.data), () => navigateWindow({ to: 'session', sessionId }))
+        logLine({ event: 'notification', kind: 'recording-stopped', sessionId, reason: e.data.reason })
       }
     },
   })
@@ -429,7 +435,9 @@ async function discardRecording(sessionId: string): Promise<void> {
   const s = await client.call('getSession', { params, query: { includePrivate: true } }).catch(() => null)
   if (!s) return
   const name = s.private ? 'this private meeting' : `“${s.title.trim() || 'Untitled meeting'}”`
-  const { response } = await dialog.showMessageBox({
+  const w = await sheetWindow({ to: 'session', sessionId })
+  if (!w) return
+  const { response } = await dialog.showMessageBox(w, {
     type: 'warning',
     message: `Discard the recording of ${name}?`,
     detail: 'kacola stops recording and deletes its audio and transcript. This can’t be undone.',
@@ -447,6 +455,20 @@ async function discardRecording(sessionId: string): Promise<void> {
     logLine({ event: 'recording', kind: 'discard-failed', sessionId, error: String(err) })
   }
   refreshActive()
+}
+
+/**
+ * The window, shown at `to`, to hang a confirmation sheet on. A dialog with no window (or a hidden one)
+ * is app-modal on macOS: main stops until it is answered, and with it the Tray and the microphone audio
+ * it relays to the daemon.
+ */
+async function sheetWindow(to: AppNavigation): Promise<BrowserWindow | null> {
+  navigateWindow(to)
+  showWindow()
+  const w = mainWindow
+  if (!w || w.isDestroyed()) return null
+  if (!w.isVisible()) await new Promise<void>((resolve) => w.once('show', () => resolve()))
+  return w
 }
 
 const calendarAccess = new CalendarAccessWatch()

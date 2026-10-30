@@ -1,4 +1,4 @@
-import type { Meeting, StartReason } from '@kacola/protocol'
+import type { Meeting, StartReason, StopReason } from '@kacola/protocol'
 import { PROVIDER_NAMES } from './tray.ts'
 
 // The macOS notifications main shows (Linux: the top-bar extension notifies), as pure decisions so they
@@ -6,6 +6,7 @@ import { PROVIDER_NAMES } from './tray.ts'
 //
 //   meeting starting   a minute ahead: Join & Record (opens the link, records it), or Record without a link
 //   recording started  a rule (calendar, microphone) started one: click opens it
+//   recording stopped  a rule stopped one (its meeting is over, the call ended): click opens it
 //   calendar access    kacola may not read the calendars: click opens setup at its Calendar step
 
 export type Notice = { title: string; body: string }
@@ -53,6 +54,15 @@ export function recordingStartedNotice(i: {
   if (i.reason !== 'calendar' && i.reason !== 'mic-activity') return null
   const title = i.session.private ? 'Private meeting' : titleOf(i.session.title)
   return { title: `Recording “${title}”`, body: 'kacola started recording automatically. Click to open.' }
+}
+
+export function recordingStoppedNotice(i: {
+  session: { title: string; private: boolean }
+  reason: StopReason
+}): Notice {
+  const title = i.session.private ? 'Private meeting' : titleOf(i.session.title)
+  const why = i.reason === 'meeting-ended' ? 'The meeting is over.' : 'The call ended.'
+  return { title: `Stopped recording “${title}”`, body: `${why} Click to open the recording.` }
 }
 
 export const CALENDAR_ACCESS_NOTICE: Notice = {

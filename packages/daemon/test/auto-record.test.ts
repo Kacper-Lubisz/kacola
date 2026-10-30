@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { createClient, type Session } from '@kacola/protocol'
 import { waitFor } from '@kacola/testkit/daemon'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { sessionMeeting } from '../src/calendar/meetings.ts'
 import { ManualCalendarProvider } from '../src/calendar/providers.ts'
 import { createDaemon, type Daemon } from '../src/daemon.ts'
 import { changedProps, clipLine, dbusView, PRIVATE_TITLE } from '../src/dbus/view.ts'
@@ -20,20 +21,30 @@ let d: Daemon
 let cal: ManualCalendarProvider
 let mic: ManualMicActivity
 
-beforeEach(async () => {
-  dir = mkdtempSync(join(tmpdir(), 'kacola-autorec-'))
-  cal = new ManualCalendarProvider()
-  mic = new ManualMicActivity()
-  d = await createDaemon({
+const TALKING = { segmentEveryMs: 50, partialEveryMs: 20 }
+/** A room nobody speaks in: the audio clock held at 0 until a file that never appears. */
+const quietRoom = () => ({ hold: { atMs: 0, releaseFile: join(dir, 'never') } })
+
+const daemon = (pipeline: ConstructorParameters<typeof FakePipeline>[0]) =>
+  createDaemon({
     dataDir: dir,
     port: 0,
-    pipeline: new FakePipeline({ segmentEveryMs: 50, partialEveryMs: 20 }),
+    pipeline: new FakePipeline(pipeline),
     keyring: new MemoryKeyring(),
     env: {},
     calendar: cal,
     micActivity: mic,
     micIdleStopMs: 300,
+    meetingQuietStopMs: 400,
+    meetingOverrunStopMs: 1500,
+    meetingEndCheckMs: 50,
   })
+
+beforeEach(async () => {
+  dir = mkdtempSync(join(tmpdir(), 'kacola-autorec-'))
+  cal = new ManualCalendarProvider()
+  mic = new ManualMicActivity()
+  d = await daemon(TALKING)
 })
 afterEach(async () => {
   await d.close()
@@ -157,6 +168,87 @@ describe('calendar rule, smart (calendarFilter: likely, the default)', () => {
   })
 })
 
+describe('a recording made for a meeting ends with it', () => {
+  const stoppedEvents = () => {
+    const out: { id: string; reason: string }[] = []
+    d.bus.subscribe((e) => {
+      if (e.data.type === 'recording.stopped') out.push({ id: e.data.session.id, reason: e.data.reason })
+    })
+    return out
+  }
+  /** A meeting in progress that ends `endsInMs` from now, joined (recorded) through Join. */
+  const joinMeetingEnding = async (endsInMs: number) => {
+    snap(
+      occ({
+        summary: 'Retro',
+        start: at(Date.now(), -30),
+        end: new Date(Date.now() + endsInMs).toISOString(),
+      }),
+    )
+    const m = await waitFor(() => d.calendar.all()[0], 3000, 'the meeting')
+    return (await d.control.join(m.id)).session
+  }
+  const statusAfter = async (ms: number, id: string) => {
+    await new Promise((r) => setTimeout(r, ms))
+    return d.store.getSession(id)?.status
+  }
+
+  it('in a quiet room, stops once the meeting is over, and says why', async () => {
+    await d.close()
+    d = await daemon(quietRoom())
+    const stopped = stoppedEvents()
+    const s = await joinMeetingEnding(500)
+    expect(await statusAfter(300, s.id)).toBe('recording')
+    await waitFor(() => d.store.getSession(s.id)?.status === 'stopped', 3000, 'stopped after the end')
+    expect(stopped).toEqual([{ id: s.id, reason: 'meeting-ended' }])
+  })
+
+  it('keeps recording an overrun while people talk, up to the overrun limit', async () => {
+    const s = await joinMeetingEnding(200)
+    expect(await statusAfter(900, s.id)).toBe('recording')
+    await waitFor(() => d.store.getSession(s.id)?.status === 'stopped', 3000, 'stopped at the limit')
+  })
+
+  it('never stops a recording started by hand, even one linked to the meeting', async () => {
+    await d.close()
+    d = await daemon(quietRoom())
+    snap(occ({ summary: 'Retro', start: at(Date.now(), -30), end: new Date(Date.now() + 100).toISOString() }))
+    const m = await waitFor(() => d.calendar.all()[0], 3000, 'the meeting')
+    const s = await d.control.startNew({ reason: 'manual', meeting: sessionMeeting(m) })
+    expect(await statusAfter(2000, s.id)).toBe('recording')
+  })
+
+  it('hands over to the next meeting the calendar rule records, once its own has ended', async () => {
+    await d.settings.patch({ autoRecord: { calendar: true, calendarFilter: 'all' } })
+    const t = Date.now()
+    snap(
+      occ({ summary: 'Retro', start: new Date(t + 200).toISOString(), end: new Date(t + 500).toISOString() }),
+      occ({ summary: 'Planning', start: new Date(t + 700).toISOString(), end: at(t, 30) }),
+    )
+    const [retro] = await waitFor(() => (live().length ? live() : null), 3000, 'the retro recorded')
+    expect(retro!.title).toBe('Retro')
+    const [planning] = await waitFor(
+      () => (live()[0]?.title === 'Planning' ? live() : null),
+      3000,
+      'the planning recorded',
+    )
+    expect(d.store.getSession(retro!.id)?.status).toBe('stopped')
+    expect(planning!.id).not.toBe(retro!.id)
+  })
+
+  it('leaves it alone when the next meeting begins before its own has ended', async () => {
+    await d.settings.patch({ autoRecord: { calendar: true, calendarFilter: 'all' } })
+    const t = Date.now()
+    snap(
+      occ({ summary: 'Retro', start: new Date(t + 200).toISOString(), end: at(t, 30) }),
+      occ({ summary: 'Planning', start: new Date(t + 500).toISOString(), end: at(t, 30) }),
+    )
+    const [retro] = await waitFor(() => (live().length ? live() : null), 3000, 'the retro recorded')
+    await new Promise((r) => setTimeout(r, 700))
+    expect(live().map((x) => x.id)).toEqual([retro!.id])
+  })
+})
+
 describe('microphone rule', () => {
   it('watches only while enabled', async () => {
     expect(mic.running).toBe(false)
@@ -174,8 +266,13 @@ describe('microphone rule', () => {
     expect(s!.title).toBe('Call (Firefox)')
     expect(d.control.reason(s!.id)).toBe('mic-activity')
     expect(started).toEqual([{ id: s!.id, reason: 'mic-activity' }])
+    const stopped: string[] = []
+    d.bus.subscribe((e) => {
+      if (e.data.type === 'recording.stopped') stopped.push(e.data.reason)
+    })
     mic.set([])
     await waitFor(() => d.store.getSession(s!.id)?.status === 'stopped', 3000, 'auto stop')
+    expect(stopped).toEqual(['mic-idle'])
   })
 
   it('a mic that comes back within the idle period keeps the same recording', async () => {

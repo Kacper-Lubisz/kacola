@@ -3,6 +3,7 @@ import {
   CalendarAccessWatch,
   meetingStartingNotice,
   recordingStartedNotice,
+  recordingStoppedNotice,
 } from '../src/main/notifications.ts'
 import { calendarAccessMissing } from '../src/shared/bridge.ts'
 
@@ -62,6 +63,24 @@ describe('the recording-started notification', () => {
     expect(
       recordingStartedNotice({ session: { title: 'Secret', private: true }, reason: 'calendar' })?.title,
     ).toBe('Recording “Private meeting”')
+  })
+})
+
+describe('the recording-stopped notification', () => {
+  it('says the meeting is over, or the call ended', () => {
+    const session = { title: 'Retro', private: false }
+    expect(recordingStoppedNotice({ session, reason: 'meeting-ended' })).toEqual({
+      title: 'Stopped recording “Retro”',
+      body: 'The meeting is over. Click to open the recording.',
+    })
+    expect(recordingStoppedNotice({ session, reason: 'mic-idle' }).body).toBe(
+      'The call ended. Click to open the recording.',
+    )
+  })
+  it('a private meeting stays private', () => {
+    expect(
+      recordingStoppedNotice({ session: { title: 'Secret', private: true }, reason: 'meeting-ended' }).title,
+    ).toBe('Stopped recording “Private meeting”')
   })
 })
 

@@ -55,9 +55,18 @@ unpacks it into `${XDG_DATA_HOME:-~/.local/share}/gnome-shell/extensions/` — i
 ## Auto-record (C-8)
 
 Both rules off by default (Preferences → Auto-record). Calendar: record a timed, not-declined meeting at its
-start, never auto-stopped. Microphone: poll `pw-dump` for `Stream/Input/Audio` nodes in `running` state that
+start. Microphone: poll `pw-dump` for `Stream/Input/Audio` nodes in `running` state that
 are not ours (`kacola-capture-*`), not sink monitors, not level meters; stop a session *this rule started*
 after `KACOLA_MIC_IDLE_STOP_MS` (30 s) without one. A rule never interrupts a running recording.
+
+**A meeting's recording ends with it.** One made *for* a meeting (the calendar rule's, or Join's; never
+one started by hand) stops, whether or not the rule is on, once the meeting's end has passed (the
+calendar's current copy: it may have been moved) and either nothing new was said for 5 min (no new
+segment, no changed partial line: a quiet room, or no audio arriving at all), or it is 60 min past the
+end however loud the room, or the next meeting the calendar rule records begins (it then records that
+one). A meeting that begins while the current one has not reached its end is still left alone. Each
+stop goes out as the ephemeral `recording.stopped` (`reason`: `meeting-ended`, or `mic-idle` for the
+microphone rule's); the macOS app says "Stopped recording “Retro”".
 
 **Smart calendar rule** (`autoRecord.calendarFilter`: `likely`, the default; `all` = every meeting): only a
 meeting the user will likely want recorded — a standup, not a run club. `auto-record-judge.ts` gathers the

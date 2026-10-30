@@ -191,8 +191,10 @@ Desktop Integration → "Start in the background at login" (`src/main/autostart.
   Dock icon re-opens the window. The menu:
   - **Recording** / **Paused**: the recording (a click opens it; its sublabel says "Started automatically"
     when a rule started it, and until when its meeting runs, or since when it records), Pause/Resume,
-    Stop, and **Discard Recording…**: after a confirmation, stop it and delete its audio and transcript —
-    for a recording that should not have happened.
+    Stop, and **Discard Recording…**: opens the recording in the window and confirms in a sheet on it,
+    then stops it and deletes its audio and transcript — for a recording that should not have happened.
+    (Never a dialog without a window: on macOS that is app-modal and stalls main, the Tray and the
+    microphone audio main relays, until it is answered.)
   - **Today**: a glanceable calendar — each meeting not yet over (`GET /meetings` from local midnight; one
     line per occurrence, so an invitation on two calendars shows once; declined ones hidden), with its
     times, where it is (Zoom, Google Meet…) and `now · 18 min left` / `in 20 min` / `recording`. Its
@@ -222,6 +224,9 @@ notifies from the D-Bus signals instead. Each is silent, and a click is the only
 - **A rule started recording** (the ephemeral `recording.started`, whose `reason` is `calendar` or
   `mic-activity`; manual and Join starts say nothing): `Recording “Standup”`; a click opens the recording,
   and its **Discard** button discards it as the Tray's Discard Recording… does.
+- **A rule stopped recording** (the ephemeral `recording.stopped`: its meeting is over, docs/desktop.md,
+  or the call's microphone went idle): `Stopped recording “Retro”`, `The meeting is over.`; a click opens
+  the recording.
 - **kacola can't see your calendar**: the calendar helper says access was never asked or was refused
   (`permissions.state()`, the same check as setup). Once after launch, and again whenever access goes
   missing after being there; a click opens setup at its Calendar step. Home's calendar line says the same,
